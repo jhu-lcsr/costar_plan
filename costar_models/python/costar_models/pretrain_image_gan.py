@@ -47,11 +47,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img_in = Input(img_shape,name="predictor_img_in")
         test_in = Input(img_shape, name="descriminator_test_in")
 
-        encoder = self._makeImageEncoder(img_shape)
+        encoder = self._makeImageEncoder(img_shape, perm_drop=True)
         enc = encoder([img_in])
         decoder = self._makeImageDecoder(
                 self.hidden_shape,
-                self.skip_shape, False)
+                self.skip_shape, False, perm_drop=True)
 
         if self.load_pretrained_weights:
             try:
@@ -93,14 +93,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         [img, q, g, oin, label, q_target, g_target,] = features
         return [img], [img]
 
-    def _addNoise(self, in_data):
-        out = [x for x in in_data]
-        sz = out[0].shape[0]
-        for _ in range(self.noise_iters):
-            x = np.random.random((sz, self.noise_dim))
-            out.append(x)
-        return out
-
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
@@ -113,7 +105,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img0 = Input(img_shape,name="img0_encoder_in")
         ins = [img, img0]
         dr = self.dropout_rate
-        dr = 0
 
         if self.use_wasserstein:
             loss = wasserstein_loss
@@ -122,19 +113,27 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             loss = "binary_crossentropy"
             activation = "sigmoid"
 
-        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x = Add()([x, x0])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        # common arguments
+        kwargs = { "dropout_rate" : dr,
+                   "padding" : "same",
+                   "lrelu" : True,
+                   "bn" : False,
+                   "perm_drop" : True,
+                 }
+
+        x  = AddConv2D(img,  64, [4,4], 1, **kwargs)
+        x0 = AddConv2D(img0, 64, [4,4], 1, **kwargs)
+        x  = Add()([x, x0])
+        x  = AddConv2D(x,    64, [4,4], 2, **kwargs)
+        x  = AddConv2D(x,   128, [4,4], 2, **kwargs)
+        x  = AddConv2D(x,   256, [4,4], 2, **kwargs)
 
         if self.use_wasserstein:
             x = Flatten()(x)
-            x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+            x = AddDense(x, 1, "linear", 0., output=True, bn=False, perm_drop=True)
         else:
             x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
-                bn=False)
+                bn=False, perm_drop=True)
             x = GlobalAveragePooling2D()(x)
 
         discrim = Model(ins, x, name="image_discriminator")
@@ -221,7 +220,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                         # Descriminator pass
                         img, target = next(train_generator)
-                        data = self._addNoise(img) if self.use_noise else img
+                        data = self.addNoiseIfNeeded(img)
                         fake = self.generator.predict(data)
                         self.discriminator.trainable = True
                         if self.use_wasserstein:
@@ -241,7 +240,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                     # Generator pass
                     img, target = next(train_generator)
-                    data = self._addNoise(img) if self.use_noise else img
+                    data = self.addNoiseIfNeeded(img)
                     res = self.model.train_on_batch(
                             data, target + [is_not_fake]
                     )
@@ -256,7 +255,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                 # Accuracy tests
                 img, target = next(train_generator)
-                data = self._addNoise(img) if self.use_noise else img
+                data = self.addNoiseIfNeeded(img)
                 fake = self.generator.predict(data)
                 inputs = img + fake if isinstance(fake, list) else img + [fake]
                 results = self.discriminator.predict(inputs)

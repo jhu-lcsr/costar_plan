@@ -59,6 +59,7 @@ function job_status() {
     if [[ ${running_jobs[$j]} == true ]]; then status=RUNNING
     elif grep TIME "./slurm-$j.out" > /dev/null; then status=TIMEOUT
     elif grep error "./slurm-$j.out" > /dev/null; then status=ERROR
+    elif grep Error "./slurm-$j.out" > /dev/null; then status=ERROR
     else status=SUCCESS
     fi
     echo $j $status $dir
@@ -139,9 +140,11 @@ function latest_images_dir() {
     for f in $1/$prefix*; do
       # Isolate number
       local file="${f##*/}"
-      file="${file%_result*}"
-      local num="${file##*epoch}"
-      [[ $num > $max ]] && max=$num
+      #file="${file%_result*}"
+      #local num="${file##*epoch}"
+      #num=$(echo $num | sed 's/^0*//') # remove leading 0s
+      num=$(echo $file | sed 's/^.*epoch0*\([0-9]*\).*/\1/')
+      (($num > $max)) && max=$num
     done
     image_prefixes[$prefix]=$max
   done
@@ -172,5 +175,10 @@ function feh_latest_job() {
   echo "Looking at latest of job $job"
   job_descr_of_dir $dir2
   files=$(latest_images_dir $dir/debug)
+  feh $files
+}
+
+function feh_latest_dir() {
+  files=$(latest_images_dir *$1/debug)
   feh $files
 }

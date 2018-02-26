@@ -261,6 +261,16 @@ class TaskParser(object):
             actions[i] = a
         self.data.append((t, objs, actions, seq))
 
+    def printAction(self, action):
+        '''
+        Display some information about an action.
+
+        Parameters:
+        -----------
+        action: an ActionInfo object parsed from ROS bag or other data source
+        '''
+        print(action.base_name, action.arm, action.object_acted_on, action.object_in_hand)
+
     def process(self):
         '''
         This function runs through the whole data set and processes it.
@@ -353,8 +363,9 @@ class TaskParser(object):
                         prev_added[j] = name
 
                         # compute final action
-                        if (self.sequence_ends[seq][j] in self.idle_tags
-                            or name not in self.idle_tags):
+                        if (j < len(self.sequence_ends[seq]) and (
+                            self.sequence_ends[seq][j] in self.idle_tags
+                            or name not in self.idle_tags)):
                             self.sequence_ends[seq][j] = name
                     else:
                         print("WARNING: trajectory %s of length %d was too short"%(prev[j],len(examples[j].traj)))

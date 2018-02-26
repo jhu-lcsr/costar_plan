@@ -60,10 +60,26 @@ class RosTaskParser(TaskParser):
     def loadFromBag(self, bag, seq=0):
         '''
         Parse an individual bag.
+        Call whenever adding a new rosbag or data source for a particular trial.
         '''
 
-        # call whenever adding a new rosbag or data source for a particular
-        # trial.
+        # NOTES ON LOADING:
+        # - 12 frames before set correctly in newest bags
+        # - plastic blocks should be best with:
+        #   - IDLE --> REACH 4x
+        #   - REACH --> TAKE 2x
+        #   - PUT --> STACK 2x
+        #   - STACK --> IDLE 2x
+        #   - REACH --> IDLE 2x
+        # How to deal with idle:
+        #   - remove idle at beginning and end
+        #   - start with REACH (- 12? no)
+        #   - end with IDLE (ignore last idle)
+        # How to deal with trajectories:
+        #   - put something somewhere (acts on table)
+        #   - put needs to act on a block
+        #   - stack also acts on a block
+        started = [False, False]
         for topic, msg, _ in bag:
             # We do not trust the timestamps associated with the bag since
             # these may be written separately from when the data was actually
@@ -74,7 +90,21 @@ class RosTaskParser(TaskParser):
                 objs = self._getObjects(msg)
                 left = self._getHand(msg.left, ActionInfo.ARM_LEFT)
                 right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
-                self.addExample(t, objs, [left, right], seq)
+                started = [s or x.base_name == "Reach"
+                           for s, x 
+                           in zip(started, [left, right])]
+                print ("L=", left.base_name,
+                       "R=", right.base_name,
+                       "started=", started)
+                self.printAction(left)
+                self.printAction(right)
+                actions = []
+                for s, a in zip(started, [left, right]):
+                    if s:
+                        actions.append(a)
+                if len(actions) < 0:
+                    continue
+                self.addExample(t, objs, actions, seq)
             elif topic == self.alias_topic:
                 self.addAlias(msg.old_name, msg.new_name)
 

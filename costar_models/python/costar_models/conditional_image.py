@@ -47,7 +47,6 @@ class ConditionalImage(PredictionSampler2):
         self.rep_size = 256
         self.num_transforms = 3
         self.transform_model = None
-        self.skip_connections = False
         self.save_encoder_decoder = self.retrain
 
         if self.use_noise:
@@ -73,22 +72,15 @@ class ConditionalImage(PredictionSampler2):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = self._makeImageEncoder(img_shape)
+        decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder)
 
         # =====================================================================
         # Load the arm and gripper representation
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder([img_in])
-            h0 = encoder(img0_in)
+        h = encoder([img_in])
+        h0 = encoder(img0_in)
 
         if self.validate:
             self.loadValidationModels(arm_size, gripper_size, h0, h)
@@ -132,7 +124,7 @@ class ConditionalImage(PredictionSampler2):
         if self.no_disc:
             disc_wt = 0.
         else:
-            disc_wt = 1e-4
+            disc_wt = 1e-3
         if self.no_disc:
             train_predictor = Model(ins + [label_in],
                     [image_out, image_out2] + enc_outs)
@@ -185,26 +177,31 @@ class ConditionalImage(PredictionSampler2):
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
 
-        self.value_model = GetValueModel(h, self.num_options, 64,
+        print(">>> VALUE MODEL")
+        self.value_model = GetValueModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.value_model.compile(loss="mae", optimizer=self.getOptimizer())
         self.value_model.load_weights(self.makeName("secondary", "value"))
 
+        print(">>> NEXT MODEL")
         self.next_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.next_model.compile(loss="mae", optimizer=self.getOptimizer())
         self.next_model.load_weights(self.makeName("secondary", "next"))
 
+        print(">>> ACTOR MODEL")
         self.actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         self.actor.compile(loss="mae",optimizer=self.getOptimizer())
         self.actor.load_weights(self.makeName("secondary", "actor"))
 
+        print(">>> POSE MODEL")
         self.pose_model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         self.pose_model.compile(loss="mae",optimizer=self.getOptimizer())
         self.pose_model.load_weights(self.makeName("secondary", "pose"))
 
+        print(">>> Q MODEL")
         self.q_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
@@ -233,10 +230,27 @@ class ConditionalImage(PredictionSampler2):
         '''
         Visualize based on hidden
         '''
-        p = self.next_model.predict([hidden0, hidden, prev_option])
+        p, done = self.next_model.predict([hidden0, hidden, prev_option])
         #p = np.exp(p)
         #p /= np.sum(p)
-        return p
+        return p, done
+
+    def q(self, hidden0, hidden, prev_option):
+        p, done = self.q_model.predict([hidden0, hidden, prev_option])
+        return p, done
+
+    def next(self, hidden0, hidden, prev_option,
+             done_threshold=0.1):
+        p, done1 = self.next_model.predict([hidden0, hidden, prev_option])
+        q, done2 = self.q_model.predict([hidden0, hidden, prev_option])
+        
+        # Done will predict whether or not the current value is done or not
+        done1 = done1 > done_threshold
+        done2 = done2 > done_threshold
+        print(done1[0], done2[0])
+        print(p[0])
+        print(q[0])
+        
 
     def value(self, hidden0, hidden):
         #v = self.value_model.predict([h0, hidden, prev_option])

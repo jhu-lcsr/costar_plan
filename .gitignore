@@ -30,6 +30,16 @@
 *.ttt
 *.json
 
+# Tags file
+tags
+
+# Slurm files
+slurm-*.out
+
+# orig files from vim
+*.orig
+
+
 # Various record folders
 */logs/*
 */logs_cornell/*
