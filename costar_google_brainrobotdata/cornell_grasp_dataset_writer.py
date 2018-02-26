@@ -185,7 +185,7 @@ flags.DEFINE_string(
 flags.DEFINE_integer('num_fold', 10, 'number of fold for K-Fold splits, default to 5')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_boolean('plot', True, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
+flags.DEFINE_boolean('plot', False, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
 flags.DEFINE_boolean(
     'showTextBox', False,
     """If plotting is enabled, plot extra text boxes near each grasp box
@@ -448,7 +448,7 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
     head_line = ('which_splits, num_splits, unique_image, unique_object,'
                  'num_pos, num_neg, num_total_grasp, spilt_type\n')
 
-    csv_string = ''
+    csv_string = head_line
     for i in range(num_fold):
         cur_line = ''
         for single_list in info_lists:
@@ -459,7 +459,7 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
         with open(result_path, 'w+') as file_object:
             file_object.write(csv_string)
 
-    print('CSV with stats for this run:\n' + result_path + '\n\n' + csv_string + '\n\n')
+    print('\nCSV with stats for this run:\n' + result_path + '\n\n' + csv_string + '\n\n')
 
     return fold_image_id_list
 
