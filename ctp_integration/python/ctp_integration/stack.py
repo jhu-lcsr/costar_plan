@@ -81,6 +81,12 @@ def _makeSmartPlaceRequest(poses, name):
     req.obj_class = "place"
     return req
 
+def GetStackManager():
+    sm = StackManager()
+    for color in ["red", "blue", "yellow", "green"]:
+        name = "grab_%s"%color
+        req = _makeSmartGraspRequest(color)
+
 def _makeSmartGraspRequest(color):
     '''
     Helper function to create a grasp request via smartmove.

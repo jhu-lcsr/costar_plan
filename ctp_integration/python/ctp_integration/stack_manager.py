@@ -12,6 +12,9 @@ class StackManager(object):
         self.grasp = GetSmartGraspService()
         self.place = GetSmartPlaceService()
 
+    def addRequest(self, name, srv, req):
+        self.reqs[name] = (srv, req)
+
     def sample(self):
         pass
 
