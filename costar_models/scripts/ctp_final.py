@@ -62,6 +62,8 @@ def main(args):
         correct_g1 = 0
         correct_g2 = 0
         total = 0
+        err1_sum = 0.
+        err2_sum = 0.
         for filename in dataset.test:
             print(filename)
             data = dataset.loadFile(filename)
@@ -93,8 +95,14 @@ def main(args):
                     correct_g1 += 1
                 if res2[0] == o2[i]:
                     correct_g2 += 1
+                err1 = np.mean(np.abs((xg[0] - I_target[i])))
+                err2 = np.mean(np.abs((xg2[0] - I_target2[i])))
+                err1_sum += err1
+                err2_sum += err2
                 total += 1
-                print(correct_g1, "/", total, correct_g2, "/", total, "...", o1[i], o2[i], res1[0], res2[0])
+                mean1 = err1_sum / total
+                mean2 = err2_sum / total
+                print(correct_g1, "/", total, correct_g2, "/", total, "...", o1[i], o2[i], res1[0], res2[0], "errs =", err1, err2, "means =", mean1, mean2)
 
     else:
         raise RuntimeError('Must provide a model to load')
