@@ -233,6 +233,11 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inver
      You probably don't need to use this, just call random_projection_transform()
      and then transform_and_crop_image().
 
+    Please note that when calling this function you should be very careful
+    about your transform matrix, because the projection function expects the matrix
+    to be inverted relative to what you would normally expect. Instead of taking a
+    point in the current frame and projecting it out to the final frame it does the inverse.
+
     # Arguments
 
         coordinate: A 2D image coordinate.
@@ -245,12 +250,13 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inver
     """
     with tf.name_scope(name, "transform_and_crop_coordinate",
                        [coordinate, transform, offset]) as name:
-        # TODO(ahundt) I may need to invert the coordinate transform matrix
-        projection_matrix = _flat_transforms_to_matrices(transform)
-        # TODO(ahundt) replace above with the following once flat_transforms_to_matrices becomes public in tf
-        # projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
 
         if transform is not None:
+            # TODO(ahundt) I may need to invert the coordinate transform matrix
+            projection_matrix = _flat_transforms_to_matrices(transform)
+            # TODO(ahundt) replace above with the following once flat_transforms_to_matrices becomes public in tf
+            # projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
+
             # Very important: most TF code expects y, x coordinates
             # but the projection matrix is generated uing x, y coordinates
             # so we swap it from (y,x) to (x,y) here.
@@ -339,6 +345,7 @@ def transform_crop_and_resize_image(
 
        cropped_image if coordinate is None, otherwise [cropped_image, new_coordinate]
     """
+    # TODO(ahundt) projective grasp coordinate transform with xy sin cos rot and multiply also see crop_to_gripper_transform.
     with tf.name_scope(name, "transform_crop_and_resize_image",
                        [image]) as name:
         if crop_shape is None and offset is not None:
@@ -360,7 +367,7 @@ def transform_crop_and_resize_image(
 
             image = crop_images(image, offset, crop_shape)
 
-            if coordinate is not None and transform is not None:
+            if coordinate is not None and (transform is not None or offset is not None):
                 coordinate = transform_and_crop_coordinate(coordinate, transform, offset)
         if resize_shape is not None:
             if coordinate is not None:

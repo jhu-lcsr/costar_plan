@@ -27,7 +27,7 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
-def load_hyperparams_json(hyperparams_file, fine_tuning=False, fine_tuning_learning_rate=0.001):
+def load_hyperparams_json(hyperparams_file, fine_tuning=False, fine_tuning_learning_rate=0.001, feature_combo_name=None):
     """ Load hyperparameters from a json file
     """
     kwargs = {}
@@ -41,6 +41,18 @@ def load_hyperparams_json(hyperparams_file, fine_tuning=False, fine_tuning_learn
         kwargs['learning_rate'] = fine_tuning_learning_rate
         # TODO(ahundt) should we actually write the fine tuning settings out to the hyperparams log?
         # hyperparams = kwargs
+
+    if (kwargs is not None and feature_combo_name is not None and
+            'feature_combo_name' in kwargs and
+            kwargs['feature_combo_name'] != feature_combo_name):
+        print('Warning: overriding old hyperparam feature_combo_name: %s'
+              ' with new feature_combo_name: %s. This means the network '
+              'structure and inputs will be different from what is defined '
+              'in the hyperparams file: %s' %
+              (kwargs['feature_combo_name'], feature_combo_name, hyperparams_file))
+        kwargs.pop('feature_combo_name')
+        if 'feature_combo_name' in hyperparams:
+            hyperparams.pop('feature_combo_name')
     return hyperparams, kwargs
 
 

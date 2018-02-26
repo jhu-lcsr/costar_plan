@@ -140,12 +140,11 @@ flags.DEFINE_string(
     """Options are imagewise and objectwise, this is the type of split chosen when the tfrecords were generated.""")
 flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
 flags.DEFINE_string(
-    'feature_combo', '',
+    'feature_combo', 'image_preprocessed_sin2_cos2_width_3',
     """
     feature_combo: The name for the combination of input features being utilized.
         Options include 'image_preprocessed', image_preprocessed_width_1,
         'image_preprocessed_sin2_cos2_width_3'
-        'grasp_regression', image_center_grasp_regression.
         See choose_features_and_metrics() for details.
     """
 )
@@ -162,7 +161,7 @@ flags.DEFINE_string(
     """
 )
 flags.DEFINE_boolean(
-    'fine_tuning', False,
+    'fine_tuning', True,
     """ If true the model will be fine tuned.
 
         This means that any imagenet weights will be made trainable,
@@ -187,9 +186,10 @@ def run_training(
         train_size=None,
         val_filenames=None,
         val_size=None,
+        test_filenames=None,
         test_size=None,
         save_splits_weights='',
-        feature_combo_name='image_preprocessed_sin2_cos2_width_3',
+        feature_combo_name=None,
         problem_name=None,
         image_model_name='vgg',
         optimizer_name='sgd',
@@ -247,7 +247,7 @@ def run_training(
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
-     loss, metrics, classes] = choose_features_and_metrics(feature_combo_name, problem_name)
+     loss, metrics, classes, success_only] = choose_features_and_metrics(feature_combo_name, problem_name)
 
     # see parse_and_preprocess() for the creation of these features
     model_name = image_model_name + model_name
@@ -267,14 +267,14 @@ def run_training(
         image_model_name=image_model_name,
         **kwargs)
 
-    if(load_weights is not None and load_weights != ''):
+    if load_weights:
         if os.path.isfile(load_weights):
             model.load_weights(load_weights)
         else:
             print('Could not load weights {}, '
                   'the file does not exist, '
                   'starting fresh....'.format(load_weights))
-    print(monitor_loss_name)
+    print('Saving weights as ' + monitor_loss_name + ' improves.')
     # TODO(ahundt) add a loss that changes size with how open the gripper is
     # loss = grasp_loss.segmentation_gaussian_measurement
 
@@ -282,14 +282,14 @@ def run_training(
     run_name = grasp_utilities.timeStamped(run_name + save_splits_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
     callbacks = []
 
-    callbacks, optimizer = chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
+    callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
 
     log_dir = os.path.join(log_dir, run_name)
+    print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     log_dir_run_name = os.path.join(log_dir, run_name)
     csv_logger = CSVLogger(log_dir_run_name + run_name + '.csv')
     callbacks = callbacks + [csv_logger]
     callbacks += [PrintLogsCallback()]
-    print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     grasp_utilities.mkdir_p(log_dir)
 
     # Save the hyperparams to a json string so it is human readable
@@ -334,17 +334,14 @@ def run_training(
         loss=loss,
         metrics=metrics)
 
-    if all([train_filenames, train_size, val_filenames, val_size]):
-        train_data, train_steps, validation_data, validation_steps = load_dataset(
-            train_filenames=train_filenames, train_size=train_size,
-            val_filenames=val_filenames, val_size=val_size,
-            label_features=label_features, data_features=data_features, batch_size=batch_size,
-            train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode
-        )
-    else:
-        train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
-            label_features=label_features, data_features=data_features, batch_size=batch_size,
-            train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode)
+    train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
+        train_filenames=train_filenames, train_size=train_size,
+        val_filenames=val_filenames, val_size=val_size,
+        test_filenames=test_filenames, test_size=test_size,
+        label_features=label_features, data_features=data_features, batch_size=batch_size,
+        train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
+        success_only=success_only
+    )
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
@@ -369,7 +366,7 @@ def run_training(
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
         if fine_tuning:
             # do fine tuning stage after initial training
-            _, optimizer = chooseOptimizer(optimizer_name, fine_tuning_learning_rate, [], monitor_loss_name)
+            _, optimizer = choose_optimizer(optimizer_name, fine_tuning_learning_rate, [], monitor_loss_name)
 
             for layer in parallel_model.layers:
                 layer.trainable = True
@@ -452,7 +449,7 @@ def get_compiled_model(learning_rate=None,
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
-     loss, metrics, classes] = choose_features_and_metrics(feature_combo_name, problem_name)
+     loss, metrics, classes, success_only] = choose_features_and_metrics(feature_combo_name, problem_name)
 
     # see parse_and_preprocess() for the creation of these features
     model_name = image_model_name + model_name
@@ -471,25 +468,6 @@ def get_compiled_model(learning_rate=None,
         classes=classes,
         image_model_name=image_model_name,
         **kwargs)
-
-    if(load_weights is not None and load_weights != ''):
-        if os.path.isfile(load_weights):
-            model.load_weights(load_weights)
-        else:
-            print('Could not load weights {}, '
-                  'the file does not exist, '
-                  'starting fresh....'.format(load_weights))
-    print(monitor_loss_name)
-    # TODO(ahundt) add a loss that changes size with how open the gripper is
-    # loss = grasp_loss.segmentation_gaussian_measurement
-
-    dataset_names_str = 'cornell_grasping'
-    run_name = grasp_utilities.timeStamped(model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
-
-    # Save the current model to a json string so it is human readable
-    log_dir_run_name = os.path.join(log_dir, run_name)
-    with open(log_dir_run_name + '_model.json', 'w') as fp:
-        fp.write(model.to_json())
 
     if num_gpus > 1:
         parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
@@ -544,7 +522,7 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
     return preprocessing_mode
 
 
-def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name):
+def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name):
     if optimizer_name == 'sgd':
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
         callbacks = callbacks + [
@@ -560,7 +538,8 @@ def chooseOptimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
 
 
 def train_k_fold(num_fold=None, split_type=None,
-                 tfrecord_filename_base=None, csv_path='-k-fold-stat.csv'):
+                 tfrecord_filename_base=None, csv_path='-k-fold-stat.csv',
+                 **kwargs):
     """ Do K_Fold training
 
         num_fold: total number of fold.
@@ -596,18 +575,24 @@ def train_k_fold(num_fold=None, split_type=None,
             train_size += unique_image_num[j]
         save_splits_weights = split_type + '-train-on-' + train_id + '-val-on-' + str(i)
         print('run kflod train, train on splits: ' + train_id + ',   val on split: ' + str(i))
-        run_training(train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train',
-                     train_size=train_size, val_size=val_size, save_splits_weights=save_splits_weights)
+        run_training(train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train_val',
+                     train_size=train_size, val_size=val_size, save_splits_weights=save_splits_weights,
+                     **kwargs)
         train_size = 0
 
     return
 
 
-def choose_features_and_metrics(feature_combo_name, problem_name):
+def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=None):
     """ Choose the features to load from the dataset and losses to use during training
     """
-    image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+    if image_shapes is None:
+        image_shapes = [(FLAGS.resize_height, FLAGS.resize_width, 3)]
+
+    # most cases are 0 to 1 outputs
     classes = 1
+    # most cases consider both grasp successes and grasp failures
+    success_only = False
 
     # Configure the input data dimensions
     # TODO(ahundt) get input dimensions automatically, based on configured params
@@ -640,7 +625,10 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
                          'image_preprocessed_sin_cos_height_3, image_preprocessed_height_1,'
                          'preprocessed, and raw')
 
-    # Configure the chosen problem type
+    # Configure the chosen problem type such as
+    # classifying proposed grasps,
+    # predicting a single grasp, or
+    # predicting a grasp at each pixel.
     if problem_name == 'segmentation' or problem_name == 'grasp_segmentation' or problem_name == 'pixelwise_grasp_classification':
         label_features = ['grasp_success_yx_3']
         monitor_loss_name = 'segmentation_gaussian_binary_crossentropy'
@@ -656,14 +644,17 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
         loss = keras.losses.binary_crossentropy
         model_name = '_dense_model'
     elif problem_name == 'grasp_regression':
-        label_features = ['grasp_success_sin2_cos2_hw_norm_yx_7']
+        # predicting a single grasp proposal
+        success_only = True
+        label_features = ['sin2_cos2_hw_norm_yx_6']
         monitor_metric_name = 'grasp_jaccard'
         monitor_loss_name = 'val_loss'
         metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.mean_squared_error
         model_name = '_regression_model'
-        classes = 7
+        classes = 6
     elif problem_name == 'image_center_grasp_regression':
+        # predicting a single grasp proposal at the image center
         label_features = ['grasp_success_sin2_cos2_hw_5']
         monitor_metric_name = 'grasp_jaccard'
         monitor_loss_name = 'val_loss'
@@ -678,83 +669,76 @@ def choose_features_and_metrics(feature_combo_name, problem_name):
                          'feature selection options are segmentation and classification, '
                          'image_center_grasp_regression, grasp_regression, grasp_classification'
                          'grasp_segmentation')
-    return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics, classes
+    return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics, classes, success_only
 
 
-def load_dataset(label_features=None, data_features=None, train_filenames=None, train_size=0,
-                 val_filenames=None, val_size=0, batch_size=None, val_batch_size=1, test_batch_size=1,
-                 train_data=None, validation_data=None, test_data=None, in_memory_validation=False,
-                 preprocessing_mode='tf'):
+def load_dataset(
+        label_features=None, data_features=None,
+        train_filenames=None, train_size=0,
+        val_filenames=None, val_size=0,
+        test_filenames=None, test_size=0,
+        batch_size=None,
+        val_batch_size=1, test_batch_size=1,
+        train_data=None, validation_data=None, test_data=None,
+        in_memory_validation=False,
+        preprocessing_mode='tf', success_only=False):
     """ Load the cornell grasping dataset from the file if it isn't already available.
+
+    # Arguments
+
+    success_only: only traverse successful grasps
+    preprocessing_mode: 'tf', 'caffe', or 'torch' preprocessing.
+        See keras/applications/imagenet_utils.py for details.
+
     """
-    # When runing k-fold, filenames are passed in as arguments
-    if train_filenames is not None and train_size != 0:
-
-        train_steps, val_steps, _ = epoch_params_for_splits(
-            train_batch=batch_size, val_batch=val_batch_size,
-            samples_train=train_size, samples_val=val_size)
-
-        if train_data is None:
-            train_data = cornell_grasp_dataset_reader.yield_record(
-                train_filenames, label_features, data_features,
-                batch_size=batch_size,
-                parse_example_proto_fn=parse_and_preprocess,
-                preprocessing_mode=preprocessing_mode)
-
-        if validation_data is None:
-            validation_data = cornell_grasp_dataset_reader.yield_record(
-                val_filenames, label_features, data_features,
-                is_training=False, batch_size=val_batch_size,
-                parse_example_proto_fn=parse_and_preprocess,
-                preprocessing_mode=preprocessing_mode)
-
-        if in_memory_validation:
-            print('loading validation data directly into memory, if you run out set in_memory_validation to False')
-            validation_data = next(validation_data)
-
-        return train_data, train_steps, validation_data, val_steps
-
-    else:
-        # when do regular train/val/test filenames are generated inside
+    if train_filenames is None and val_filenames is None and test_filenames is None:
+        # train/val/test filenames are generated from the CSV file if they aren't provided
         train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = epoch_params()
-        train_steps, val_steps, test_steps = epoch_params_for_splits(
-            train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
-            samples_train=train_size, samples_val=val_size, samples_test=test_size)
+    train_steps, val_steps, test_steps = epoch_params_for_splits(
+        train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
+        samples_train=train_size, samples_val=val_size, samples_test=test_size)
 
-        if in_memory_validation:
-            val_batch_size = val_size
+    if in_memory_validation:
+        val_batch_size = val_size
 
-        if validation_data is None:
-            validation_data = cornell_grasp_dataset_reader.yield_record(
-                val_filenames, label_features, data_features,
-                is_training=False, batch_size=val_batch_size,
-                parse_example_proto_fn=parse_and_preprocess,
-                preprocessing_mode=preprocessing_mode)
+    if validation_data is None and val_filenames is not None:
+        validation_data = cornell_grasp_dataset_reader.yield_record(
+            val_filenames, label_features, data_features,
+            batch_size=val_batch_size,
+            parse_example_proto_fn=parse_and_preprocess,
+            preprocessing_mode=preprocessing_mode,
+            apply_filter=success_only,
+            is_training=False)
 
-        if in_memory_validation:
-            print('loading validation data directly into memory, if you run out set in_memory_validation to False')
-            validation_data = next(validation_data)
+    if in_memory_validation:
+        print('loading validation data directly into memory, if you run out set in_memory_validation to False')
+        validation_data = next(validation_data)
 
-        if train_data is None:
-            train_data = cornell_grasp_dataset_reader.yield_record(
-                train_filenames, label_features, data_features,
-                batch_size=batch_size,
-                parse_example_proto_fn=parse_and_preprocess,
-                preprocessing_mode=preprocessing_mode)
+    if train_data is None and train_filenames is not None:
+        train_data = cornell_grasp_dataset_reader.yield_record(
+            train_filenames, label_features, data_features,
+            batch_size=batch_size,
+            parse_example_proto_fn=parse_and_preprocess,
+            preprocessing_mode=preprocessing_mode,
+            apply_filter=success_only,
+            is_training=True)
 
-        if test_data is None:
-            test_data = cornell_grasp_dataset_reader.yield_record(
-                test_filenames, label_features, data_features,
-                batch_size=test_batch_size,
-                parse_example_proto_fn=parse_and_preprocess,
-                preprocessing_mode=preprocessing_mode)
+    if test_data is None and test_filenames is not None:
+        test_data = cornell_grasp_dataset_reader.yield_record(
+            test_filenames, label_features, data_features,
+            batch_size=test_batch_size,
+            parse_example_proto_fn=parse_and_preprocess,
+            preprocessing_mode=preprocessing_mode,
+            apply_filter=success_only,
+            is_training=False)
 
-        return train_data, train_steps, validation_data, val_steps, test_data, test_steps
+    return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 
 def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_type=None,
                  csv_path='-k-fold-stat.csv', data_dir=None, tfrecord_filename_base=None):
     """ Determine the number of steps to train, validate, and test
+    TODO(ahundt) rename this function, it is pretty nonsensical
 
     TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
     """
@@ -960,11 +944,10 @@ def old_loss(tan, x, y, h, w):
 def main(_):
     hyperparams, kwargs = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
-    run_training(hyperparams=hyperparams, **kwargs)
     if 'k_fold' in FLAGS.pipeline_stage:
-        train_k_fold()
+        train_k_fold(hyperparams=hyperparams, **kwargs)
     else:
-        run_training()
+        run_training(hyperparams=hyperparams, **kwargs)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5

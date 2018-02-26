@@ -311,6 +311,10 @@ def rectangle_vertices(h, w, sin_theta, cos_theta, cy, cx):
 
 
 def parse_rectangle_vertices(hw_st_ct_cy_cx):
+    """ Convert a dimensions, angle, grasp center, based rectangle to vertices.
+
+    hw_st_ct_cy_cx: [height, width, sin theta, cos theta, center x, center y]
+    """
     rect_vertices = rectangle_vertices(
         hw_st_ct_cy_cx[0],  # height
         hw_st_ct_cy_cx[1],  # width
@@ -397,9 +401,13 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
 
     # Arguments
 
-        Feature format:
+        Feature formats accepted:
         [grasp_success, sin_theta, cos_theta, height, width, center_y, center_x]
         [            0,         1,         2,      3,     4,        5,        6]
+
+        [sin_theta, cos_theta, height, width, center_y, center_x]
+        [        0,         1,      2,     3,        4,        5]
+
 
         y_true: a numpy array of features
         y_pred: a numpy array of features
@@ -413,23 +421,30 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
 
 
     """
+
+    has_grasp_success = (y_pred.size == 7)
+    grasp_rectangle_start_index = 0
+    if has_grasp_success:
+        grasp_rectangle_start_index = 1
+
     # print('0')
     predicted_success = np.rint(y_pred[0])
     # print('1')
-    if predicted_success != int(y_true[0]):
-        # print('2')
+    if has_grasp_success and predicted_success != int(y_true[0]):
         # grasp success prediction doesn't match, return 0 score
+        # print('2')
         return 0.0
-    elif predicted_success == 0:
-        # print('3')
-        # The success prediction correctly matches the ground truth and both are False.
+    elif has_grasp_success and predicted_success == 0:
+        # The success prediction correctly matches the ground truth,
+        # plus both are False so this is a true negative.
         # Any true negative where failure to grasp is predicted correctly
         # gets credit regardless of box contents
+        # print('3')
         return 1.0
     else:
-        # print('4')
         # We're looking at a successful grasp and we've correctly predicted grasp_success.
         # First check if the angles are close enough to matching the angle_threshold.
+        # print('4')
         true_y_sin_theta = y_true[1]
         true_x_cos_theta = y_true[2]
         pred_y_sin_theta = y_pred[1]
@@ -446,8 +461,8 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25):
         # We passed all the other checks so
         # let's find out if the grasp boxes match
         # via the jaccard distance.
-        true_rp = parse_rectangle_vertices(y_true[1:])
-        pred_rp = parse_rectangle_vertices(y_pred[1:])
+        true_rp = parse_rectangle_vertices(y_true[grasp_rectangle_start_index:])
+        pred_rp = parse_rectangle_vertices(y_pred[grasp_rectangle_start_index:])
 
         # print('7')
         iou = shapely_intersection_over_union(true_rp, pred_rp)
@@ -482,6 +497,13 @@ def grasp_jaccard(y_true, y_pred):
     """ Calculates the jaccard metric score in a manner compatible with tf and keras metrics.
 
         This is an IOU metric with angle difference and IOU score thresholds.
+
+        Feature formats accepted as a 2d array containing a batch of data ordered as:
+        [grasp_success, sin_theta, cos_theta, height, width, center_y, center_x]
+        [            0,         1,         2,      3,     4,        5,        6]
+
+        [sin_theta, cos_theta, height, width, center_y, center_x]
+        [        0,         1,      2,     3,        4,        5]
     """
     scores = tf.py_func(func=grasp_jaccard_batch, inp=[y_true, y_pred], Tout=tf.float32, stateful=False)
     return scores

@@ -17,6 +17,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.lines as lines
+import random
 
 import tensorflow as tf
 from tensorflow.python.platform import flags
@@ -84,48 +85,50 @@ flags.DEFINE_integer('crop_height', 224,
                      """Height to crop images, resize_width and resize_height is applied next""")
 flags.DEFINE_integer('crop_width', 224,
                      """Width to crop images, resize_width and resize_height is applied next""")
-flags.DEFINE_boolean('random_crop', True,
-                     """random_crop will apply the tf random crop function with
-                        the parameters specified by crop_width and crop_height.
+flags.DEFINE_string(
+    'crop_to', 'center_on_gripper_grasp_box_and_rotate_upright',
+    """ Choose the data augmentation projective transform configuration.
 
-                        If random crop is disabled, a fixed crop will be applied
-                        to a box on the far right of the image which is vertically
-                        centered. If no crop is desired simply set the crop_width
-                        and crop_height equal to the sensor_image_width and
-                        sensor_image_height. However, it is important to ensure
-                        that you crop images to the same size during both training
-                        and test time.
+    Options are:
+       'resize_height_and_resize_width' ensures your image will be the right size
+           but when training with random translations and rotations any part of the
+           image might be chosen.
+       'image_contains_grasp_box_center' ensures you will always have the grasp box center somewhere in the image
+           during training, and then a central crop is performed during testing.
+       'center_on_gripper_grasp_box' ensures the grasp box will always be
+           in the center of the image and if random translation is enabled
+           it will remain within the intersection over union jaccard metric limits.
+       'center_on_gripper_grasp_box_and_rotate_upright' ensures the grasp box
+           will always be centered, visible, and rotated upright, plus any random rotations
+           will be within the intersection over union jaccard metric and the
+           angle distance limits.
 
-                        If crop_to_gripper and random_crop are enabled at the same
-                        time, the translation will be limited to the width and height
-                        of the grasp rectangle bounding box.
-                     """)
-flags.DEFINE_boolean('crop_to_gripper', True,
-                     """crop to gripper will project and crop the image around
-                        the proposed gripper position and orientation.
-
-                        crop_to_gripper and random_crop cannot be enabled at the same time.
-                     """)
+    TODO(ahundt) consider adding image_contains_grasp_box which ensures the whole grasp box is in the image.
+    """)
 flags.DEFINE_boolean(
-    'crop_to_gripper_and_rotate', True,
-    """Should the rotation be applied to the image
-       in addition to cropping to the gripper when crop_to_gripper is True?
+    'random_translation', True,
+    """random_translation will apply the tf random crop function with
+       the parameters specified by crop_width and crop_height.
 
-       This can be True when both crop_to_gripper and random_crop are True.
-       This makes the gripper pose always be aligned as if the plates were
-       vertically oriented for a horizontal grasp of the image.
+       If random crop is disabled, a fixed crop will be applied
+       to a box on the far right of the image which is vertically
+       centered. If no crop is desired simply set the crop_width
+       and crop_height equal to the sensor_image_width and
+       sensor_image_height. However, it is important to ensure
+       that you crop images to the same size during both training
+       and test time.
 
-       Has no effect when crop_to_gripper is False.
-    """
-)
+       If crop_to_gripper and random_translation are enabled at the same
+       time, the translation will be limited to the width and height
+       of the grasp rectangle bounding box.
+    """)
 flags.DEFINE_boolean(
     'random_rotation', True,
-    """ Apply a random rotation to the input data.
+    """ Apply a random rotation to the input data subject to the current setting for crop_to.
 
-        TODO(ahundt) integrate this option, currently has no effect.
-
-        If crop_to_gripper_and_rotate is False, an arbitrary rotation will be selected.
-        If crop_to_gripper_and_rotate is True, this will be limited to 15 degrees in either direction.
+        The random rotation can be any arbitrary rotation amount.
+        However, when crop_to requires rotating upright, the random rotation
+        will be limited to 15 degrees in either direction.
     """
 )
 flags.DEFINE_integer('resize_height', 224,
@@ -135,7 +138,7 @@ flags.DEFINE_integer('resize_width', 224,
 flags.DEFINE_boolean('resize', False,
                      """resize will resize the input images to the desired dimensions specified by the
                         resize_width and resize_height flags. It is suggested that an exact factor of 2 be used
-                        relative to the input image directions if random_crop is disabled or the crop dimensions otherwise.
+                        relative to the input image directions if random_translation is disabled or the crop dimensions otherwise.
                      """)
 
 FLAGS = flags.FLAGS
@@ -405,6 +408,7 @@ def crop_to_gripper_transform(
         Given a gripper center coodinate and rotation angle,
         transform and rotate the image so it is centered with 0 theta.
     """
+    # TODO(ahundt) projective grasp coordinate transform with xy sin cos rot and multiply also see transform_crop_and_resize_image.
     transforms = []
     input_image_shape_float = tf.cast(input_image_shape, tf.float32)
     cropped_image_shape = tf.cast(cropped_image_shape, tf.float32)
@@ -454,9 +458,8 @@ def grasp_success_yx_3(grasp_success=None, cy=None, cx=None, features=None):
 
 
 def parse_and_preprocess(
-        examples_serialized, is_training=True, label_features_to_extract=None,
-        data_features_to_extract=None, crop_shape=None, output_shape=None,
-        random_crop=None, crop_to_gripper=None,
+        examples_serialized, is_training=True, crop_shape=None, output_shape=None,
+        crop_to=None, random_translation=None, random_rotation=None,
         preprocessing_mode='tf', seed=None, verbose=0):
     """ Parse an example and perform image preprocessing.
 
@@ -476,16 +479,6 @@ def parse_and_preprocess(
           - torch: will scale pixels between 0 and 1 and then
               will normalize each channel with respect to the
               ImageNet dataset.
-    label_features_to_extract: return only specific
-        feature strings as the label values, default of
-        None returns all features. Specifying
-        features reduces overhead and works with
-        yield_record() for keras generator compatibility.
-    data_features_to_extract: return only specific
-        feature strings as the input values,
-        default of None returns all features. Specifying
-        features reduces overhead and works with
-        yield_record() for keras generator compatibility.
     preprocessing_mode: string for the type of channel preprocessing,
        see keras'
        [preprocess_input()](https://github.com/keras-team/keras/blob/master/keras/applications/imagenet_utils.py) for details.
@@ -509,11 +502,14 @@ def parse_and_preprocess(
     else:
         feature = parse_example_proto(examples_serialized)
 
-    if random_crop is None:
-        random_crop = FLAGS.random_crop
-    if crop_to_gripper is None:
-        crop_to_gripper = FLAGS.crop_to_gripper
-
+    if random_translation is None:
+        random_translation = FLAGS.random_translation
+    if random_rotation is None:
+        random_rotation = FLAGS.random_rotation
+    if crop_to is None:
+        crop_to = FLAGS.crop_to
+    if verbose > 0:
+        feature['image/encoded'] = tf.Print(feature['image/encoded'], [], 'parse_and_preprocess called')
     # TODO(ahundt) clean up, use grasp_dataset.py as reference, possibly refactor to reuse the code
     sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
     image_buffer = feature['image/encoded']
@@ -543,49 +539,93 @@ def parse_and_preprocess(
     # perform image augmentation with projective transforms
     # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
     central_crop = False
-    if random_crop and not crop_to_gripper:
-        # Note: this option only works well if the crop size is similar to the input size
-        transform, random_features = rcp.random_projection_transform(
-            K.shape(image), crop_shape, scale=False, rotation=True, translation=True)
-    elif not is_training and not crop_to_gripper:
-        # simply do a central crop then a resize when not training
-        # to match the input without changes
-        central_crop = True
-        transform = None
-    elif crop_to_gripper:
-        # default to no rotation
-        random_rotation = None
-        if FLAGS.crop_to_gripper_and_rotate:
-            crop_to_gripper_theta = grasp_center_rotation_theta
-            # limit random rotation to 15 degrees
-            if is_training and random_crop:
-                random_rotation = math.pi / 12
-        else:
-            crop_to_gripper_theta = K.constant(0, 'float32')
-            # allow arbitrary random rotation
-            if is_training and random_crop:
-                random_rotation = True
+    # random features is a map from strings to
+    # random feature variables such as
+    # the amount of rotation
+    random_features = None
+    if not is_training:
+        # disable random rotation and translation if we are not training
+        random_rotation = False
+        random_translation = False
 
-        if is_training and random_crop:
+    # by default we won't be doing any rotations based on the grasp box theta
+    crop_to_gripper_theta = K.constant(0, 'float32', name='crop_to_gripper_theta')
+    translation_in_box = K.constant(0, 'float32', name='translation_in_box')
+
+    # configure the image transform based on the training mode
+    if crop_to == 'resize_height_and_resize_width':
+        # Note: this option only works well if the crop size is similar to the input size
+        if is_training and random_rotation or random_translation:
+            transform, random_features = rcp.random_projection_transform(
+                K.shape(image), crop_shape, scale=False, rotation=random_rotation, translation=random_translation)
+        else:
+            # simply do a central crop then a resize when not training
+            # to match the input without changes
+            central_crop = True
+            transform = None
+    elif 'center_on_gripper_grasp_box' in crop_to:
+        if 'rotate_upright' in crop_to:
+            crop_to_gripper_theta = grasp_center_rotation_theta
+            # limit random rotation to 15 degrees to stay within jaccard metrics
+            if is_training and random_rotation:
+                # set the range limit of the random rotations
+                random_rotation = math.pi / 12
+            # random_rotation is True, which allows arbitrary random rotation
+
+        if is_training and random_translation:
+            # translation in box is the range limit of the random translations
             translation_in_box = K.cast(feature['sin_cos_height_width_4'][-2:] // 2, 'int32')
             translation_in_box = tf.minimum(translation_in_box[0], translation_in_box[1])
             # TODO(ahundt) possibly add scale
         else:
             translation_in_box = None
+    elif crop_to == 'image_contains_grasp_box_center':
+        if is_training and random_translation:
+            # translation in box is the range limit of the random translations,
+            # translate by up to 1/3 the shorter crop shape size to prevent
+            # a grasp box in the corner from being rotated out of the image
+            crop_shape_tensor = tf.convert_to_tensor(
+                crop_shape[:2], dtype=tf.int32, name='crop_shape_tensor')
+            translation_in_box = K.cast(crop_shape_tensor // 3, 'int32')
+            translation_in_box = tf.minimum(translation_in_box[0], translation_in_box[1])
+            # TODO(ahundt) possibly add scale
+        elif not is_training:
+            # simply do a central crop then a resize when not training
+            # to match the input without changes
+            central_crop = True
+            transform = None
+    else:
+        raise ValueError('Unsupported choice of crop_to: %s try resize_height_and_resize_width, '
+                         'image_contains_grasp_box_center, center_on_gripper_grasp_box, or '
+                         'center_on_gripper_grasp_box_and_rotate_upright' % (crop_to))
 
+    if ('center_on_gripper_grasp_box' in crop_to or
+            (crop_to == 'image_contains_grasp_box_center' and is_training)):
         transform, random_features = crop_to_gripper_transform(
             input_image_shape, grasp_center_coordinate,
             crop_to_gripper_theta, crop_shape,
             random_translation_max_pixels=translation_in_box,
             random_rotation=random_rotation)
+
+    if verbose > 0:
+        grasp_center_coordinate = tf.Print(
+            grasp_center_coordinate,
+            [grasp_center_coordinate],
+            'grasp_center_coordinate before:')
     image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
         image, crop_shape=crop_shape, resize_shape=output_shape, central_crop=central_crop,
         transform=transform, coordinate=grasp_center_coordinate)
+    if verbose > 0:
+        preprocessed_grasp_center_coordinate = tf.Print(
+            preprocessed_grasp_center_coordinate,
+            [preprocessed_grasp_center_coordinate],
+            'preprocessed_grasp_center_coordinate after:')
 
-    if 'random_rotation' in random_features:
-        # TODO(ahundt) validate if we must subtract or add based on the transform
-        grasp_center_rotation_theta += random_features['random_rotation']
-    feature.update(random_features)
+    if random_features is not None:
+        if 'random_rotation' in random_features:
+            # TODO(ahundt) validate if we must subtract or add based on the transform
+            grasp_center_rotation_theta += random_features['random_rotation']
+        feature.update(random_features)
 
     feature['image/transformed'] = image
 
@@ -652,9 +692,11 @@ def parse_and_preprocess(
         [K.cast(feature['bbox/grasp_success'], 'float32'), feature['bbox/preprocessed/sin2_cos2_2'],
          feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width'], feature['bbox/preprocessed/cy_cx_normalized_2']])
     feature['grasp_success_sin2_cos2_hw_norm_yx_7'] = grasp_success_sin2_cos2_hw_norm_yx_7
+    feature['sin2_cos2_hw_norm_yx_6'] = grasp_success_sin2_cos2_hw_norm_yx_7[1:]
     feature['grasp_success_sin2_cos2_hw_5'] = grasp_success_sin2_cos2_hw_norm_yx_7[:5]
+    feature['sin2_cos2_hw_4'] = grasp_success_sin2_cos2_hw_norm_yx_7[1:5]
 
-    # TODO(ahundt) reenable this and compare performance against segmentation_gaussian_measurement()
+    # TODO(ahundt) reenable pixelwise gaussians but with separate success and failure layers and compare performance against segmentation_gaussian_measurement()
     if False:
         feature['grasp_success_2D'] = approximate_gaussian_ground_truth_image(
             image_shape=keras.backend.int_shape(image),
@@ -670,9 +712,11 @@ def parse_and_preprocess(
     return feature
 
 
-def filter_features(feature_map, label_features_to_extract, data_features_to_extract):
+def filter_features(feature_map, label_features_to_extract, data_features_to_extract, verbose=0):
     """ Strip out all features that aren't needed to reduce processing time.
     """
+    if verbose:
+        feature_map['image/preprocessed'] = tf.Print(feature_map['image/preprocessed'], [], 'filter_features called')
     simplified_feature = {}
     for feature_name in data_features_to_extract:
         simplified_feature[feature_name] = feature_map[feature_name]
@@ -681,53 +725,85 @@ def filter_features(feature_map, label_features_to_extract, data_features_to_ext
     return simplified_feature
 
 
+def filter_grasp_success_only(x, verbose=0):
+    """ Only traverse data where grasp_success is true
+    """
+    should_filter = tf.equal(x['grasp_success'][0], K.constant(1, 'int64'))
+    if verbose:
+        should_filter = tf.Print(should_filter, [should_filter, x['grasp_success']], 'filter_fn x should filter, grasp_success ')
+    return should_filter
+
+
 def yield_record(
         tfrecord_filenames, label_features_to_extract=None, data_features_to_extract=None,
         parse_example_proto_fn=parse_and_preprocess, batch_size=32,
-        device='/cpu:0', is_training=True, steps=None, buffer_size=int(1e6),
-        shuffle=True, shuffle_buffer_size=100, num_parallel_calls=None, preprocessing_mode='tf',
-        success_only=False):
-    """ TFRecord data generator configured for the cornell grasping dataset.
+        device='/cpu:0', steps=None, buffer_size=int(1e6),
+        shuffle=True, shuffle_buffer_size=100, num_parallel_calls=None,
+        apply_filter=False, filter_fn=filter_grasp_success_only, **kwargs):
+    """ TFRecord data python generator.
 
     # Arguments
 
+        parse_example_proto_fn: A function which takes a single example
+            from the tfrecord as input and returns a dictionary from
+            strings to feature tensors as output.
+            See `parse_and_preprocess()` for an example.
+        label_features_to_extract: return only specific
+            feature strings as the label values, default of
+            None returns all features. Specifying
+            features reduces overhead and works with
+            yield_record() for keras generator compatibility.
+        data_features_to_extract: return only specific
+            feature strings as the input values,
+            default of None returns all features. Specifying
+            features reduces overhead and works with
+            yield_record() for keras generator compatibility.
         is_training: performs additional data augmentation when true.
         success_only: filters out any grasps that aren't labeled as successful grasps.
+        filter_fn: A function which takes the feature tensor dict as input and returns
+            a tensor boolean. Used to filter out examples that should be skipped.
+            See `filter_grasp_success_only()` for an example.
+        kwargs: Any additional parameters you specify will be passed directly to
+            the parse_example_proto_fn.
     """
     if num_parallel_calls is None:
         num_parallel_calls = FLAGS.num_readers
+
+    if shuffle and isinstance(tfrecord_filenames, list):
+        random.shuffle(tfrecord_filenames)
     # based_on https://github.com/visipedia/tfrecords/blob/master/iterate_tfrecords.py
     # with tf.device(device):
     with tf.Session() as sess:
 
         dataset = tf.data.TFRecordDataset(
             tfrecord_filenames, buffer_size=buffer_size)
+        # Repeat the input indefinitely.
         dataset = dataset.repeat(count=steps)
         if shuffle:
             dataset = dataset.shuffle(shuffle_buffer_size)
-        # Repeat the input indefinitely.
 
         # call the parse_example_proto_fn with the is_training flag set.
-        def parse_fn_is_training(example):
-            return parse_example_proto_fn(examples_serialized=example, is_training=is_training,
-                                          label_features_to_extract=label_features_to_extract,
-                                          data_features_to_extract=data_features_to_extract,
-                                          preprocessing_mode=preprocessing_mode)
+        def parse_fn_with_kwargs(example):
+            return parse_example_proto_fn(
+                examples_serialized=example,
+                **kwargs)
         dataset = dataset.map(
-            map_func=parse_fn_is_training,
+            map_func=parse_fn_with_kwargs,
             num_parallel_calls=num_parallel_calls)
 
-        if success_only:
+        if apply_filter:
             # success_only mode skipps all grasps labeled a failure.
-            dataset = dataset.filter(lambda x: x['grasp_success'] == 1)
+            dataset = dataset.filter(filter_fn)
 
-        def get_simplified_features(feature_map):
-            return filter_features(feature_map,
-                                   label_features_to_extract,
-                                   data_features_to_extract)
-        dataset = dataset.map(
-            map_func=get_simplified_features,
-            num_parallel_calls=num_parallel_calls)
+        # Here we extract only the features required for this run
+        if data_features_to_extract is not None:
+            def get_simplified_features(feature_map):
+                return filter_features(feature_map,
+                                       label_features_to_extract,
+                                       data_features_to_extract)
+            dataset = dataset.map(
+                map_func=get_simplified_features,
+                num_parallel_calls=num_parallel_calls)
         dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
         dataset = dataset.prefetch(batch_size * 5)
         tensor_iterator = dataset.make_one_shot_iterator()
@@ -805,6 +881,12 @@ def old_inputs(data_files, num_epochs=1, train=False, batch_size=1):
     return features
 
 
+def print_feature(feature_map, feature_name):
+    """ Print the contents of a feature map
+    """
+    print(feature_name + ': ' + str(feature_map[feature_name]))
+
+
 def visualize_redundant_example(features_dicts, showTextBox=None):
     """ Visualize numpy dictionary containing a grasp example.
     """
@@ -819,15 +901,12 @@ def visualize_redundant_example(features_dicts, showTextBox=None):
     for example in features_dicts:
         print('original example bbox/theta: ' + str(example['bbox/theta']))
         if ('bbox/preprocessed/cy_cx_normalized_2' in example):
-            if 'random_projection_transform' in example:
-                print('bbox/preprocessed/cy_cx_normalized_2: ' + str(example['bbox/preprocessed/cy_cx_normalized_2']))
-                print('bbox/preprocessed/cy: ' + str(example['bbox/preprocessed/cy']))
-                print('bbox/preprocessed/cx: ' + str(example['bbox/preprocessed/cx']))
-                print('bbox/preprocessed/width: ' + str(example['bbox/preprocessed/width']))
-                print('bbox/preprocessed/height: ' + str(example['bbox/preprocessed/height']))
-                print('image/preprocessed/width: ' + str(example['image/preprocessed/width']))
-                print('image/preprocessed/height: ' + str(example['image/preprocessed/height']))
-                print('grasp_success_sin2_cos2_hw_norm_yx_7: ' + str(example['grasp_success_sin2_cos2_hw_norm_yx_7']))
+            print_feature(example, 'bbox/preprocessed/cy_cx_normalized_2')
+            print_feature(example, 'bbox/preprocessed/cy')
+            print_feature(example, 'bbox/preprocessed/cx')
+            print_feature(example, 'bbox/preprocessed/width')
+            print_feature(example, 'bbox/preprocessed/height')
+            print_feature(example, 'grasp_success_sin2_cos2_hw_norm_yx_7')
             # Reverse the preprocessing so we can visually compare correctness
             decoded_example = copy.deepcopy(example)
             sin_cos_2 = np.squeeze(example['bbox/preprocessed/sin_cos_2'])
@@ -951,12 +1030,16 @@ def visualize_redundant_example(features_dicts, showTextBox=None):
 
 def main(argv):
     batch_size = 1
-    is_training = False
+    is_training = True
     validation_file = FLAGS.evaluate_filename
+    crop_to = 'image_contains_grasp_box_center'
+    success_only = True
+    shuffle = False
 
     for example_dict in tqdm(yield_record(
             validation_file, is_training=is_training,
-            batch_size=batch_size)):
+            batch_size=batch_size, apply_filter=success_only,
+            shuffle=shuffle, crop_to=crop_to)):
         visualize_redundant_example(example_dict, showTextBox=True)
 
 
