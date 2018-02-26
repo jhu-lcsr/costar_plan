@@ -187,7 +187,7 @@ if ! $skip_cond; then
   $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
   req_dir_cmd=''
-  [[ $enc_dir ]] && req_dir_cmd="--req_directory $enc_dir"
+  [[ $enc_dir ]] && req_dir_cmd="--reqs_directory $enc_dir"
 
   # Calculate epochs left
   epochs_done=0

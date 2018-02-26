@@ -93,14 +93,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         [img, q, g, oin, label, q_target, g_target,] = features
         return [img], [img]
 
-    def _addNoise(self, in_data):
-        out = [x for x in in_data]
-        sz = out[0].shape[0]
-        for _ in range(self.noise_iters):
-            x = np.random.random((sz, self.noise_dim))
-            out.append(x)
-        return out
-
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
@@ -228,7 +220,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                         # Descriminator pass
                         img, target = next(train_generator)
-                        data = self._addNoise(img) if self.use_noise else img
+                        data = self.addNoiseIfNeeded(img)
                         fake = self.generator.predict(data)
                         self.discriminator.trainable = True
                         if self.use_wasserstein:
@@ -248,7 +240,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                     # Generator pass
                     img, target = next(train_generator)
-                    data = self._addNoise(img) if self.use_noise else img
+                    data = self.addNoiseIfNeeded(img)
                     res = self.model.train_on_batch(
                             data, target + [is_not_fake]
                     )
@@ -263,7 +255,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                 # Accuracy tests
                 img, target = next(train_generator)
-                data = self._addNoise(img) if self.use_noise else img
+                data = self.addNoiseIfNeeded(img)
                 fake = self.generator.predict(data)
                 inputs = img + fake if isinstance(fake, list) else img + [fake]
                 results = self.discriminator.predict(inputs)
