@@ -241,6 +241,8 @@ def run_training(
         fine_tuning = FLAGS.fine_tuning
     if fine_tuning_epochs is None:
         fine_tuning_epochs = FLAGS.fine_tuning_epochs
+    if feature_combo_name is None:
+        feature_combo_name = FLAGS.feature_combo
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -935,12 +937,12 @@ def old_loss(tan, x, y, h, w):
 
 
 def main(_):
-    hyperparams, kwargs = grasp_utilities.load_hyperparams_json(
+    hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     if 'k_fold' in FLAGS.pipeline_stage:
-        train_k_fold(hyperparams=hyperparams)  # , **kwargs)
+        train_k_fold(hyperparams=hyperparams, **hyperparams)
     else:
-        run_training(hyperparams=hyperparams, **kwargs)
+        run_training(hyperparams=hyperparams, **hyperparams)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
