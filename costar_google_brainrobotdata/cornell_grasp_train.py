@@ -481,25 +481,6 @@ def get_compiled_model(learning_rate=None,
     return parallel_model, data_features
 
 
-def model_predict(model, data_features, input_filenames, preprocessing_mode):
-    """ Make predictions given model and data.
-        model: compiled model instance.
-        input_data: generator instance.
-    """
-    input_data = cornell_grasp_dataset_reader.yield_record(
-        input_filenames, batch_size=1, is_training=False,
-        parse_example_proto_fn=parse_and_preprocess, preprocessing_mode=preprocessing_mode)
-
-    for example_dict in tqdm(input_data):
-        sess = K.get_session()
-        init_g = tf.global_variables_initializer()
-        init_l = tf.local_variables_initializer()
-        sess.run(init_g)
-        sess.run(init_l)
-        predict_input = [example_dict[data_features[0]], example_dict[data_features[1]]]
-        result = model.predict_on_batch(predict_input)
-
-
 def choose_preprocessing_mode(preprocessing_mode, image_model_name):
     """ Choose preprocessing for specific pretrained weights
     it is very important to preprocess
