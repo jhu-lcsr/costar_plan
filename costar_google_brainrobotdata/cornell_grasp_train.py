@@ -370,6 +370,8 @@ def run_training(
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
         if fine_tuning:
             # do fine tuning stage after initial training
+            print('')
+            print('')
             print('Initial training complete, beginning fine tuning stage')
             print('------------------------------------------------------')
             _, optimizer = choose_optimizer(optimizer_name, fine_tuning_learning_rate, [], monitor_loss_name)
@@ -400,6 +402,10 @@ def run_training(
 
     model.save_weights(log_dir_run_name + '_model_weights.h5')
 
+    print('')
+    print('')
+    print('This training run is complete')
+    print('------------------------------------------------------')
     return history
 
 
@@ -1028,5 +1034,4 @@ if __name__ == '__main__':
     # FLAGS._parse_flags()
     tf.app.run(main=main)
     print('grasp_train.py run complete, original command: ', sys.argv)
-    sys.exit()
     # tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
