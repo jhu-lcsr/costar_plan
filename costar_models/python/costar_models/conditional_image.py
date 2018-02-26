@@ -177,6 +177,15 @@ class ConditionalImage(PredictionSampler2):
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
 
+        print(">>> GOAL_CLASSIFIER")
+        image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=(64, 64, 3))
+        image_discriminator.compile(loss="categorical_crossentropy",
+                                    metrics="accuracy",
+                                    optimizer=self.getOptimizer())
+        self.discriminator = image_discriminator
+
         print(">>> VALUE MODEL")
         self.value_model = GetValueModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)

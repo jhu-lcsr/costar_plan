@@ -24,6 +24,7 @@ def main(args):
     '''
     ConfigureGPU(args)
 
+    np.random.seed(0)
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]
     root = ""
@@ -50,23 +51,36 @@ def main(args):
         for filename in dataset.test:
             print(filename)
             data = dataset.loadFile(filename)
-        asdf
-
-        np.random.seed(0)
-        features, targets = next(test_generator)
-        [I0, I, o1, o2, oin] = features
-        [ I_target, I_target2, o1_1h, value, qa, ga, o2_1h] = targets
+            length = data['example'].shape[0]
+            features, targets = model._getData(**data)
+            [I0, I, o1, o2, oin] = features
+            [I_target, I_target2, o1_1h, value, qa, ga, o2_1h] = targets
+            for i in range(length):
+                xi = np.expand_dims(I[i],axis=0)
+                x0 = np.expand_dims(I0[i],axis=0)
+                prev_option = np.array([oin[i]])
+                h = model.encode(xi)
+                h0 = model.encode(x0)
+                p_a, done1 = model.pnext(h0, h, prev_option)
+                v2 = model.value(h0, h)
+                h_goal = model.transform(h0, h, np.array([o1[i]]))
+                h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
+                xg = model.decode(h_goal)
+                xg2 = model.decode(h_goal2)
+                print(p_a)
+                print(np.argmax(p_a, axis=1), o1[i], oin[i])
+                plt.subplot(1,4,1); plt.imshow(x0[0])
+                plt.subplot(1,4,2); plt.imshow(xi[0])
+                plt.subplot(1,4,3); plt.imshow(xg[0])
+                plt.subplot(1,4,4); plt.imshow(xg2[0])
+                res1 = model.discriminator(xg)
+                res2 = model.discriminator(xg2)
+                print(o1, o2, res1, res2)
+                plt.show()
 
         # Same as in training code
-        model.model.predict([I0, I, o1, o2, oin])
-        h = model.encode(I)
-        h0 = model.encode(I0)
-        prev_option = oin
-        null_option = np.ones_like(prev_option) * model.null_option
-        p_a, done1 = model.pnext(h0, h, prev_option)
-        q_a, _ = model.q(h0, h, prev_option)
-        q = model.q(h0, h, prev_option)
-        v = model.value(h0, h)
+        #q_a, _ = model.q(h0, h, prev_option)
+        #q = model.q(h0, h, prev_option)
 
         if not h.shape[0] == I.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
