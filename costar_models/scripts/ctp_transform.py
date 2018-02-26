@@ -31,6 +31,8 @@ def visualizeHiddenMain(args):
         if i < len(data_file_info)-1 and i > 0:
             root += '.'
         root += tok
+
+    np.random.seed(0)
     if data_type == "npz":
         dataset = NpzGeneratorDataset(root)
         data = dataset.load(success_only = args['success_only'])
@@ -47,7 +49,6 @@ def visualizeHiddenMain(args):
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
 
-        np.random.seed(0)
         features, targets = next(test_generator)
         [I0, I, o1, o2, oin] = features
         [ I_target, I_target2, o1_1h, value, qa, ga, o2_1h] = targets
