@@ -1,6 +1,22 @@
+import numpy as np
 import os
 import json
 import datetime
+
+
+def rotate(data, shift=1):
+    """ Rotates indices up 1 for a list or numpy array.
+
+    For example, [0, 1, 2] will become [1, 2, 0] and
+    [4, 3, 1, 0] will become [3, 1, 0, 4].
+    The contents of index 0 becomes the contents of index 1,
+    and the final entry will contain the original contents of index 0.
+    Always operates on axis 0.
+    """
+    if isinstance(data, list):
+        return data[shift:] + data[:shift]
+    else:
+        return np.roll(data, shift, axis=0)
 
 
 def mkdir_p(path):
