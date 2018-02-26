@@ -182,7 +182,7 @@ class ConditionalImage(PredictionSampler2):
                     make_classifier_fn=MakeImageClassifier,
                     img_shape=(64, 64, 3))
         image_discriminator.compile(loss="categorical_crossentropy",
-                                    metrics="accuracy",
+                                    metrics=["accuracy"],
                                     optimizer=self.getOptimizer())
         self.discriminator = image_discriminator
 

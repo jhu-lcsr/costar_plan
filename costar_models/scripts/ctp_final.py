@@ -67,15 +67,13 @@ def main(args):
                 h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
                 xg = model.decode(h_goal)
                 xg2 = model.decode(h_goal2)
-                print(p_a)
-                print(np.argmax(p_a, axis=1), o1[i], oin[i])
                 plt.subplot(1,4,1); plt.imshow(x0[0])
                 plt.subplot(1,4,2); plt.imshow(xi[0])
                 plt.subplot(1,4,3); plt.imshow(xg[0])
                 plt.subplot(1,4,4); plt.imshow(xg2[0])
-                res1 = model.discriminator(xg)
-                res2 = model.discriminator(xg2)
-                print(o1, o2, res1, res2)
+                res1 = np.argmax(model.discriminator.predict([x0, xg]), axis=1)
+                res2 = np.argmax(model.discriminator.predict([x0, xg2]), axis=1)
+                print(o1[i], o2[i], res1, res2)
                 plt.show()
 
         # Same as in training code
