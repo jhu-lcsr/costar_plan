@@ -65,7 +65,7 @@ import grasp_utilities
 
 flags.DEFINE_float(
     'learning_rate',
-    0.01,
+    0.02,
     'Initial learning rate.'
 )
 flags.DEFINE_float(
@@ -80,7 +80,7 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_integer(
     'epochs',
-    100,
+    200,
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
@@ -363,6 +363,8 @@ def run_training(
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
         if fine_tuning:
             # do fine tuning stage after initial training
+            print('Initial training complete, beginning fine tuning stage')
+            print('------------------------------------------------------')
             _, optimizer = choose_optimizer(optimizer_name, fine_tuning_learning_rate, [], monitor_loss_name)
 
             for layer in parallel_model.layers:
@@ -536,6 +538,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
 
 def train_k_fold(num_fold=None, split_type=None,
                  tfrecord_filename_base=None, csv_path='-k-fold-stat.csv',
+                 log_dir=None, run_name=None,
                  **kwargs):
     """ Do K_Fold training
 
@@ -543,12 +546,16 @@ def train_k_fold(num_fold=None, split_type=None,
         split_type: str, either 'imagewise' or 'objectwise', should be consistent with
         splits type desired when doing actual splits.
     """
+    if log_dir is None:
+        log_dir = FLAGS.log_dir
+    if run_name is None:
+        run_name = FLAGS.run_name
     if split_type is None:
         split_type = FLAGS.split_dataset
     if tfrecord_filename_base is None:
         tfrecord_filename_base = FLAGS.tfrecord_filename_base
     cur_csv_path = os.path.join(FLAGS.data_dir, tfrecord_filename_base + '-' + split_type + csv_path)
-    csv_reader = csv.DictReader(open(cur_csv_path))
+    csv_reader = csv.DictReader(open(cur_csv_path, mode='r'))
     unique_image_num = []
     for row in csv_reader:
         unique_image_num.append(int(row[' num_total_grasp']))  # file writer repeat each image for num_grasp
@@ -559,6 +566,8 @@ def train_k_fold(num_fold=None, split_type=None,
     train_id = ''
     val_size = 0
     train_size = 0
+    log_dir = os.path.join(log_dir, grasp_utilities.timeStamped(run_name + '-kfold'))
+
     for i in range(num_fold):
         val_filenames = [os.path.join(FLAGS.data_dir,
                          tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
@@ -574,6 +583,7 @@ def train_k_fold(num_fold=None, split_type=None,
         print('run kflod train, train on splits: ' + train_id + ',   val on split: ' + str(i))
         run_training(train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train_val',
                      train_size=train_size, val_size=val_size, save_splits_weights=save_splits_weights,
+                     log_dir=log_dir, run_name=run_name,
                      **kwargs)
         train_size = 0
 
@@ -644,7 +654,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # predicting a single grasp proposal
         success_only = True
         label_features = ['norm_sin2_cos2_hw_yx_6']
-        monitor_metric_name = 'grasp_jaccard'
+        monitor_metric_name = 'val_grasp_jaccard'
         monitor_loss_name = 'val_loss'
         metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.mean_squared_error
