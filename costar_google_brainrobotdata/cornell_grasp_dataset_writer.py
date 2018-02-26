@@ -407,7 +407,7 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
             shuffle(z_txt_list)
             for line in z_txt_list:
                 [new_z_txt_array.append(line[i:i + 4]) for i in range(0, len(line), 4)]
-                z_txt_array = new_z_txt_array
+            z_txt_array = new_z_txt_array
     for line in tqdm(z_txt_array, desc='Loading files and grasps'):
         image_id, object_id, _, _ = line
         if image_id == last_image_id:
