@@ -23,6 +23,7 @@ import traceback
 import numpy as np
 import tensorflow as tf
 import keras
+import json
 from keras import backend as K
 from keras.applications.imagenet_utils import preprocess_input
 
@@ -41,6 +42,7 @@ import grasp_loss
 import grasp_utilities
 import keras_workaround
 from callbacks import EvaluateInputTensor
+from callbacks import PrintLogsCallback
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 from keras_tqdm import TQDMCallback  # Keras tqdm progress bars https://github.com/bstriner/keras-tqdm
@@ -91,6 +93,21 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
 flags.DEFINE_float('grasp_learning_rate', 0.001,
                    """Determines the initial learning rate""")
+flags.DEFINE_float(
+    'fine_tuning_learning_rate',
+    0.0005,
+    'Initial learning rate, this is the learning rate used if load_weights is passed.'
+)
+flags.DEFINE_integer(
+    'fine_tuning_epochs',
+    100,
+    'Number of epochs to run trainer with all weights marked as trainable.'
+)
+flags.DEFINE_integer(
+    'epochs',
+    100,
+    'Number of epochs to run trainer.'
+)
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
                      """DenseNet and DenseNetFCN parameter growth rate""")
@@ -132,6 +149,11 @@ flags.DEFINE_integer('early_stopping', None,
                      """Stop training if the monitored loss does not improve after the specified number of epochs.
                         Values of 0 or None will disable early stopping.
                      """)
+flags.DEFINE_string(
+    'log_dir',
+    './logs_google_brain/',
+    'Directory for tensorboard, model layout, model weight, csv, and hyperparam files'
+)
 flags.DEFINE_string('load_hyperparams', None,
                     """Load hyperparams from a json file. Only applies to grasp_model_hypertree""")
 
@@ -167,30 +189,35 @@ class GraspTrain(object):
             tf_session = tf.Session(config=config)
             K.set_session(tf_session)
 
-    def train(self, dataset=FLAGS.grasp_datasets_train,
-              grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
-              batch_size=FLAGS.batch_size,
-              epochs=FLAGS.epochs,
-              eval_per_epoch=FLAGS.eval_per_epoch,
-              load_weights=FLAGS.load_weights,
-              save_weights=FLAGS.save_weights,
+    def train(self, dataset=None,
+              grasp_datasets_batch_algorithm=None,
+              batch_size=None,
+              epochs=None,
+              eval_per_epoch=None,
+              load_weights=None,
+              save_weights=None,
               make_model_fn=grasp_model.grasp_model_densenet,
-              imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
-              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-              random_crop=FLAGS.random_crop,
-              resize=FLAGS.resize,
-              resize_height=FLAGS.resize_height,
-              resize_width=FLAGS.resize_width,
-              learning_rate_decay_algorithm=FLAGS.learning_rate_decay_algorithm,
-              learning_rate=FLAGS.grasp_learning_rate,
-              learning_power_decay_rate=FLAGS.learning_rate_scheduler_power_decay_rate,
-              dropout_rate=FLAGS.dropout_rate,
-              model_name=FLAGS.grasp_model,
-              loss=FLAGS.loss,
-              metric=FLAGS.metric,
-              early_stopping=FLAGS.early_stopping,
-              hyperparams=None):
+              imagenet_preprocessing=None,
+              grasp_sequence_min_time_step=None,
+              grasp_sequence_max_time_step=None,
+              random_crop=None,
+              resize=None,
+              resize_height=None,
+              resize_width=None,
+              learning_rate_decay_algorithm=None,
+              learning_rate=None,
+              learning_power_decay_rate=None,
+              dropout_rate=None,
+              model_name=None,
+              loss=None,
+              metric=None,
+              early_stopping=None,
+              log_dir=None,
+              hyperparams=None,
+              run_name=None,
+              fine_tuning_learning_rate=None,
+              fine_tuning=None,
+              fine_tuning_epochs=None):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -209,6 +236,53 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
+        if dataset is None:
+            dataset = FLAGS.grasp_datasets_train
+        if grasp_datasets_batch_algorithm is None:
+            grasp_datasets_batch_algorithm = FLAGS.grasp_datasets_batch_algorithm,
+        if batch_size is None:
+            batch_size = FLAGS.batch_size
+        if epochs is None:
+            epochs = FLAGS.epochs
+        if eval_per_epoch is None:
+            eval_per_epoch = FLAGS.eval_per_epoch
+        if load_weights is None:
+            load_weights = FLAGS.load_weights
+        if save_weights is None:
+            save_weights = FLAGS.save_weights
+        if make_model_fn is None:
+            make_model_fn = grasp_model.grasp_model_densenet
+        if imagenet_preprocessing is None:
+            imagenet_preprocessing = FLAGS.imagenet_preprocessing
+        if grasp_sequence_min_time_step is None:
+            grasp_sequence_min_time_step = FLAGS.grasp_sequence_min_time_step
+        if grasp_sequence_max_time_step is None:
+            grasp_sequence_max_time_step = FLAGS.grasp_sequence_max_time_step
+        if random_crop is None:
+            random_crop = FLAGS.random_crop
+        if resize is None:
+            resize = FLAGS.resize
+        if resize_height is None:
+            resize_height = FLAGS.resize_height
+        if resize_width is None:
+            resize_width = FLAGS.resize_width
+        if learning_rate_decay_algorithm is None:
+            learning_rate_decay_algorithm = FLAGS.learning_rate_decay_algorithm
+        if learning_rate is None:
+            learning_rate = FLAGS.grasp_learning_rate
+        if learning_power_decay_rate is None:
+            learning_power_decay_rate = FLAGS.learning_rate_scheduler_power_decay_rate
+        if dropout_rate is None:
+            dropout_rate = FLAGS.dropout_rate
+        if model_name is None:
+            model_name = FLAGS.grasp_model
+        if loss is None:
+            loss = FLAGS.loss
+        if metric is None:
+            metric = FLAGS.metric
+        if early_stopping is None:
+            early_stopping = FLAGS.early_stopping
+
         with K.name_scope('train') as scope:
             datasets = dataset.split(',')
             dataset_names_str = dataset.replace(',', '_')
@@ -230,6 +304,8 @@ class GraspTrain(object):
                 input_image_shape = [resize_height, resize_width, 3]
             else:
                 input_image_shape = [512, 640, 3]
+            if log_dir is None:
+                log_dir = FLAGS.log_dir
 
             ########################################################
             # End tensor configuration, begin model configuration and training
@@ -361,7 +437,7 @@ class GraspTrain(object):
 
             csv_logger = CSVLogger(log_dir_run_name + '.csv')
             callbacks = callbacks + [csv_logger]
-            callbacks += [callbacks.PrintLogsCallback()]
+            callbacks += [PrintLogsCallback()]
 
             checkpoint = keras.callbacks.ModelCheckpoint(
                 log_dir_run_name + '-epoch-{epoch:03d}-' +
@@ -419,12 +495,12 @@ class GraspTrain(object):
 
             try:
                 model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks, verbose=0)
-                final_weights_name = weights_name + '-final.h5'
+                final_weights_name = log_dir_run_name + '-final.h5'
                 model.save_weights(final_weights_name)
             except (Exception, KeyboardInterrupt) as e:
                 # always try to save weights
                 traceback.print_exc()
-                final_weights_name = weights_name + '-autosaved-on-exception.h5'
+                final_weights_name = log_dir_run_name + '-autosaved-on-exception.h5'
                 model.save_weights(final_weights_name)
                 raise e
             return final_weights_name
@@ -731,7 +807,10 @@ def choose_make_model_fn(grasp_model_name=FLAGS.grasp_model):
                 *a, **kw)
     elif grasp_model_name == 'grasp_model_hypertree':
         def make_model_fn(*a, **kw):
-            if FLAGS.load_hyperparams
+            if FLAGS.load_hyperparams:
+                hyperparams = grasp_utilities.load_hyperparams_json(
+                    FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate)
+                kw.update(hyperparams)
             return grasp_model.choose_hypertree_model(
                 *a, **kw)
     else:

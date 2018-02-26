@@ -767,9 +767,9 @@ class GraspDataset(object):
             features_complete_list=None,
             time_ordered_feature_name_dict=None,
             num_samples=None,
-            batch_size=FLAGS.batch_size,
-            gripper_z_offset=FLAGS.gripper_z_offset_meters,
-            median_filter=FLAGS.median_filter,
+            batch_size=None,
+            gripper_z_offset=None,
+            median_filter=None,
             verbose=0):
         """Get runtime generated 3D transform feature tensors as a dictionary, including depth surface relative transforms.
 
@@ -889,6 +889,12 @@ class GraspDataset(object):
 
             num_samples: the number of grasp attempts in the dataset.
         """
+        if batch_size is None:
+            batch_size = FLAGS.batch_size
+        if gripper_z_offset is None:
+            gripper_z_offset = FLAGS.gripper_z_offset_meters
+        if median_filter is None:
+            median_filter = FLAGS.median_filter
         if feature_op_dicts is None:
             feature_op_dicts, features_complete_list, num_samples = self._get_simple_parallel_dataset_ops(batch_size=batch_size)
         elif features_complete_list is None or num_samples is None:
@@ -1195,8 +1201,8 @@ class GraspDataset(object):
 
     @staticmethod
     def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, decode_depth_as='depth',
-                      point_cloud_fn='tensorflow', median_filter=FLAGS.median_filter,
-                      median_filter_height=FLAGS.median_filter_height, median_filter_width=FLAGS.median_filter_width):
+                      point_cloud_fn='tensorflow', median_filter=None,
+                      median_filter_height=None, median_filter_width=None):
         """ Add features to dict that supply decoded png and jpeg images for any encoded images present.
 
         Any feature path that is 'image/encoded' will also now have 'image/decoded', and 'image/xyz' when
@@ -1232,6 +1238,12 @@ class GraspDataset(object):
 
             updated feature_op_dict, new_feature_list
         """
+        if median_filter is None:
+            median_filter = FLAGS.median_filter
+        if median_filter_width is None:
+            median_filter_width = FLAGS.median_filter_width
+        if median_filter_height is None:
+            median_filter_height = FLAGS.median_filter_height
         with tf.name_scope('image_decode'):
             new_feature_list = []
             if sensor_image_dimensions is None:
@@ -1621,17 +1633,17 @@ class GraspDataset(object):
             features_complete_list=None,
             time_ordered_feature_name_dict=None,
             num_samples=None,
-            batch_size=FLAGS.batch_size,
-            image_augmentation=FLAGS.image_augmentation,
-            imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-            median_filter=FLAGS.median_filter,
-            random_crop=FLAGS.random_crop,
+            batch_size=None,
+            image_augmentation=None,
+            imagenet_preprocessing=None,
+            median_filter=None,
+            random_crop=None,
             sensor_image_dimensions=None,
             random_crop_dimensions=None,
             random_crop_offset=None,
-            resize=FLAGS.resize,
-            resize_height=FLAGS.resize_height,
-            resize_width=FLAGS.resize_width,
+            resize=None,
+            resize_height=None,
+            resize_width=None,
             shift_ratio=0.01,
             seed=None,
             verbose=0):
@@ -1644,6 +1656,28 @@ class GraspDataset(object):
 
                [new_feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples]
         """
+        if batch_size is None:
+            batch_size = FLAGS.batch_size
+        if image_augmentation is None:
+            image_augmentation = FLAGS.image_augmentation
+        if imagenet_preprocessing is None:
+            imagenet_preprocessing = FLAGS.imagenet_preprocessing
+        if median_filter is None:
+            median_filter = FLAGS.median_filter
+        if random_crop is None:
+            random_crop = FLAGS.random_crop
+        if sensor_image_dimensions is None:
+            sensor_image_dimensions = None
+        if random_crop_dimensions is None:
+            random_crop_dimensions = None
+        if random_crop_offset is None:
+            random_crop_offset = None
+        if resize is None:
+            resize = FLAGS.resize
+        if resize_height is None:
+            resize_height = FLAGS.resize_height
+        if resize_width is None:
+            resize_width = FLAGS.resize_width
         if sensor_image_dimensions is None:
             sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
         if feature_op_dicts is None:
