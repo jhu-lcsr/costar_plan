@@ -759,7 +759,7 @@ def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_typ
         tfrecord_filename_base = FLAGS.tfrecord_filename_base
     # must be sure that train_splits + val_splits + test_filenames = flags.num_splits
     cur_csv_path = os.path.join(data_dir, tfrecord_filename_base + '-' + split_type + csv_path)
-    with open(cur_csv_path) as csv_file:
+    with open(cur_csv_path, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
         unique_image_num = []
         for row in csv_reader:
