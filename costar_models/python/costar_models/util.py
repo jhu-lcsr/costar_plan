@@ -210,7 +210,9 @@ def MakeModel(features, model, taskdef, **kwargs):
                     features=features,
                     model=model, **kwargs)
         elif model == "secondary":
-            model_instance = HuskySecondary(taskdef, model=model, **kwargs)
+            model_instance = HuskySecondary(taskdef,
+                    features=features,
+                    model=model, **kwargs)
     
     # If we did not create a model then die.
     if model_instance is None:
