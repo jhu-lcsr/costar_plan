@@ -565,7 +565,7 @@ def train_k_fold(num_fold=None, split_type=None,
                                 tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * j) + '.tfrecord'),
                                 os.path.join(FLAGS.data_dir,
                                 tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * j + 1) + '.tfrecord')]
-            train_size += unique_image_num[j] + unique_image_num[2 * j + 1]
+            train_size += unique_image_num[2 * j] + unique_image_num[2 * j + 1]
         save_splits_weights = run_name + '-' + split_type + '-train-on-' + train_id + '-val-on-' + str(i)
         print('run kfold train, train on splits: ' + train_id + ',   val on split: ' + str(i))
         run_training(train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train_val',
@@ -939,6 +939,7 @@ def old_loss(tan, x, y, h, w):
 def main(_):
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
+    train_k_fold(hyperparams=hyperparams, **hyperparams)
     if 'k_fold' in FLAGS.pipeline_stage:
         train_k_fold(hyperparams=hyperparams, **hyperparams)
     else:
