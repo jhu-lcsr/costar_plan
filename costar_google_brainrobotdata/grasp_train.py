@@ -505,22 +505,22 @@ class GraspTrain(object):
                 raise e
             return final_weights_name
 
-    def eval(self, dataset=FLAGS.grasp_dataset_eval,
-             batch_size=FLAGS.eval_batch_size,
-             load_weights=FLAGS.load_weights,
-             save_weights=FLAGS.save_weights,
+    def eval(self, dataset=None,
+             batch_size=None,
+             load_weights=None,
+             save_weights=None,
              make_model_fn=grasp_model.grasp_model_densenet,
-             imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-             grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
-             grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-             resize=FLAGS.resize,
-             resize_height=FLAGS.resize_height,
-             resize_width=FLAGS.resize_width,
-             eval_results_file=FLAGS.eval_results_file,
-             model_name=FLAGS.grasp_model,
-             loss=FLAGS.loss,
-             metric=FLAGS.metric,
-             eval_per_epoch=FLAGS.eval_per_epoch):
+             imagenet_preprocessing=None,
+             grasp_sequence_min_time_step=None,
+             grasp_sequence_max_time_step=None,
+             resize=None,
+             resize_height=None,
+             resize_width=None,
+             eval_results_file=None,
+             model_name=None,
+             loss=None,
+             metric=None,
+             eval_per_epoch=None):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -544,7 +544,38 @@ class GraspTrain(object):
            weights_name_str or None if a new weights file was not saved.
         """
         with K.name_scope('eval') as scope:
-            data = grasp_dataset.GraspDataset(dataset=dataset)
+            if dataset is None:
+                dataset = FLAGS.grasp_dataset_eval
+            if batch_size is None:
+                batch_size = FLAGS.eval_batch_size
+            if load_weights is None:
+                load_weights = FLAGS.load_weights
+            if save_weights is None:
+                save_weights = FLAGS.save_weights
+            if make_model_fn is None:
+                make_model_fn = grasp_model.grasp_model_densenet
+            if imagenet_preprocessing is None:
+                imagenet_preprocessing = FLAGS.imagenet_preprocessing,
+            if grasp_sequence_max_time_step is None:
+                grasp_sequence_min_time_step = FLAGS.grasp_sequence_min_time_step,
+            if grasp_sequence_min_time_step is None:
+                grasp_sequence_max_time_step = FLAGS.grasp_sequence_max_time_step,
+            if resize is None:
+                resize = FLAGS.resize,
+            if resize_height is None:
+                resize_height = FLAGS.resize_height,
+            if resize_width is None:
+                resize_width = FLAGS.resize_width,
+            if eval_results_file is None:
+                eval_results_file = FLAGS.eval_results_file,
+            if model_name is None:
+                model_name = FLAGS.grasp_model,
+            if loss is None:
+                loss = FLAGS.loss,
+            if metric is None:
+                metric = FLAGS.metric,
+            if eval_per_epoch is None:
+                eval_per_epoch = FLAGS.eval_per_epoch
             # TODO(ahundt) ensure eval call to get_training_tensors() always runs in the same order and does not rotate the dataset.
             # list of dictionaries the length of batch_size
             (pregrasp_op_batch, grasp_step_op_batch,
@@ -633,20 +664,44 @@ class GraspTrain(object):
 
             return weights_name_str
 
-    def get_compiled_model(self, dataset=FLAGS.grasp_dataset_eval,
+    def get_compiled_model(self, dataset=None,
                            batch_size=1,
-                           load_weights=FLAGS.load_weights,
+                           load_weights=None,
                            make_model_fn=grasp_model.grasp_model_densenet,
-                           imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-                           grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
-                           grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-                           resize=FLAGS.resize,
-                           resize_height=FLAGS.resize_height,
-                           resize_width=FLAGS.resize_width,
-                           model_name=FLAGS.grasp_model,
-                           loss=FLAGS.loss,
-                           metric=FLAGS.metric):
+                           imagenet_preprocessing=None,
+                           grasp_sequence_min_time_step=None,
+                           grasp_sequence_max_time_step=None,
+                           resize=None,
+                           resize_height=None,
+                           resize_width=None,
+                           model_name=None,
+                           loss=None,
+                           metric=None):
         with K.name_scope('predict') as scope:
+            if dataset is None:
+                dataset = FLAGS.grasp_dataset_eval
+            if load_weights is None:
+                load_weights = FLAGS.load_weights
+            if make_model_fn is None:
+                make_model_fn = grasp_model.grasp_model_densenet
+            if imagenet_preprocessing is None:
+                imagenet_preprocessing = FLAGS.imagenet_preprocessing,
+            if grasp_sequence_max_time_step is None:
+                grasp_sequence_min_time_step = FLAGS.grasp_sequence_min_time_step,
+            if grasp_sequence_min_time_step is None:
+                grasp_sequence_max_time_step = FLAGS.grasp_sequence_max_time_step,
+            if resize is None:
+                resize = FLAGS.resize,
+            if resize_height is None:
+                resize_height = FLAGS.resize_height,
+            if resize_width is None:
+                resize_width = FLAGS.resize_width,
+            if model_name is None:
+                model_name = FLAGS.grasp_model,
+            if loss is None:
+                loss = FLAGS.loss,
+            if metric is None:
+                metric = FLAGS.metric,
             if isinstance(dataset, str):
                 data = grasp_dataset.GraspDataset(dataset=dataset)
             else:
@@ -738,7 +793,7 @@ class GraspTrain(object):
         return loss
 
 
-def choose_make_model_fn(grasp_model_name=FLAGS.grasp_model):
+def choose_make_model_fn(grasp_model_name=None):
     """ Select the Neural Network Model to use.
 
         Gets a command line specified function that
@@ -771,6 +826,8 @@ def choose_make_model_fn(grasp_model_name=FLAGS.grasp_model):
                 'grasp_model_levine_2016'
 
     """
+    if grasp_model_name is None:
+        grasp_model_name = FLAGS.grasp_model
     if grasp_model_name == 'grasp_model_resnet':
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model_resnet(
