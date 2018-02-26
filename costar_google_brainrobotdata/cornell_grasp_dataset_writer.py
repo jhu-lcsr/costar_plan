@@ -185,14 +185,14 @@ flags.DEFINE_string(
 flags.DEFINE_integer('num_fold', 10, 'number of fold for K-Fold splits, default to 5')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_boolean('plot', False, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
+flags.DEFINE_boolean('plot', True, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
 flags.DEFINE_boolean(
     'showTextBox', False,
     """If plotting is enabled, plot extra text boxes near each grasp box
        so you can check that gripper orientation is correct.
     """)
 flags.DEFINE_boolean('verbose', False, 'Print actual features for each image')
-flags.DEFINE_boolean('write', True, 'Actually write the tfrecord files if True, simply gather stats if False.')
+flags.DEFINE_boolean('write', False, 'Actually write the tfrecord files if True, simply gather stats if False.')
 flags.DEFINE_boolean('shuffle', True, 'shuffle the image order before running')
 flags.DEFINE_boolean(
     'redundant', True,
@@ -331,7 +331,7 @@ def read_label_file(path):
     """
      based on https://github.com/falcondai/robot-grasp
     """
-    with open(path) as f:
+    with open(path, mode='r') as f:
         xys = []
         has_nan = False
         for l in f:
@@ -349,7 +349,8 @@ def read_label_file(path):
 
 
 def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAGS.num_fold,
-                 tfrecord_filename_base=FLAGS.tfrecord_filename_base, do_shuffle=FLAGS.shuffle):
+                 tfrecord_filename_base=FLAGS.tfrecord_filename_base, do_shuffle=FLAGS.shuffle,
+                 write=FLAGS.write):
     """ K-Fold on dataset.
         path: path to z.txt, a file match images and objects. And *pos/neg.txt, should
         remain in same folder with z.txt.
@@ -446,15 +447,19 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
                   total_grasp_list, spilt_type_list]
     head_line = ('which_splits, num_splits, unique_image, unique_object,'
                  'num_pos, num_neg, num_total_grasp, spilt_type\n')
-    # mkdir_p(result_path)
-    file_object = open(result_path, 'w+')
-    file_object.writelines(head_line)
+
+    csv_string = ''
     for i in range(num_fold):
         cur_line = ''
         for single_list in info_lists:
             cur_line += str(single_list[i]) + ','
-        file_object.writelines(cur_line[:-1] + '\n')
-    file_object.close()
+        csv_string += cur_line[:-1] + '\n'
+
+    if write:
+        with open(result_path, 'w+') as file_object:
+            file_object.write(csv_string)
+
+    print('CSV with stats for this run:\n' + result_path + '\n\n' + csv_string + '\n\n')
 
     return fold_image_id_list
 
@@ -540,7 +545,7 @@ def bbox_info(box):
     assert np.isclose(width, width2, rtol=1e-3, atol=1e-3)
     assert np.isclose(height, height2, rtol=1e-3, atol=1e-3)
 
-    # TODO: clean this stat up
+    # TODO(ahundt): clean this stat up
     global MAX_WIDTH
     global MAX_HEIGHT
     MAX_WIDTH = max(MAX_WIDTH, width)
