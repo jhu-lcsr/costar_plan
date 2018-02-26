@@ -136,3 +136,6 @@ class NpzGeneratorDataset(object):
     def _load(self, filename):
         return np.load(filename)
 
+    def loadFile(self, filename):
+        return self._load(filename)
+
