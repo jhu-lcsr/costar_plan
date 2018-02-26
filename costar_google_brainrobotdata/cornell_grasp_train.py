@@ -110,22 +110,22 @@ flags.DEFINE_string(
 )
 flags.DEFINE_integer(
     'num_splits',
-    '10',
+    5,
     'Total number of splits, which are equal in term of either imagewise or objectwise split'
 )
 flags.DEFINE_integer(
     'num_train',
-    '8',
+    8,
     'num of fold used for training, must be less than flags.train_splits'
 )
 flags.DEFINE_integer(
     'num_validation',
-    '1',
+    2,
     'num of fold used for validation, must be less than flags.train_splits'
 )
 flags.DEFINE_integer(
     'num_test',
-    '1',
+    0,
     'num of fold used for test, must be less than flags.train_splits'
 )
 flags.DEFINE_string('load_weights', None,
@@ -276,7 +276,7 @@ def run_training(
     # loss = grasp_loss.segmentation_gaussian_measurement
 
     dataset_names_str = 'cornell_grasping'
-    run_name = grasp_utilities.timeStamped(run_name + save_splits_weights + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
+    run_name = grasp_utilities.timeStamped(run_name + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
     callbacks = []
 
     callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
@@ -284,7 +284,7 @@ def run_training(
     log_dir = os.path.join(log_dir, run_name)
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     log_dir_run_name = os.path.join(log_dir, run_name)
-    csv_logger = CSVLogger(log_dir_run_name + run_name + '.csv')
+    csv_logger = CSVLogger(log_dir_run_name + '.csv')
     callbacks = callbacks + [csv_logger]
     callbacks += [PrintLogsCallback()]
     grasp_utilities.mkdir_p(log_dir)
@@ -568,7 +568,7 @@ def train_k_fold(num_fold=None, split_type=None,
     train_size = 0
     log_dir = os.path.join(log_dir, grasp_utilities.timeStamped(run_name + '-kfold'))
 
-    for i in range(num_fold):
+    for i in tqdm(range(num_fold), desc='Training k_fold'):
         val_filenames = [os.path.join(FLAGS.data_dir,
                          tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
         val_size = unique_image_num[i]
@@ -579,11 +579,11 @@ def train_k_fold(num_fold=None, split_type=None,
             train_filenames += [os.path.join(FLAGS.data_dir,
                                 tfrecord_filename_base + '-' + split_type + '-fold-' + str(j) + '.tfrecord')]
             train_size += unique_image_num[j]
-        save_splits_weights = split_type + '-train-on-' + train_id + '-val-on-' + str(i)
-        print('run kflod train, train on splits: ' + train_id + ',   val on split: ' + str(i))
+        save_splits_weights = run_name + '-' + split_type + '-train-on-' + train_id + '-val-on-' + str(i)
+        print('run kfold train, train on splits: ' + train_id + ',   val on split: ' + str(i))
         run_training(train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train_val',
-                     train_size=train_size, val_size=val_size, save_splits_weights=save_splits_weights,
-                     log_dir=log_dir, run_name=run_name,
+                     train_size=train_size, val_size=val_size,
+                     log_dir=log_dir, run_name=save_splits_weights,
                      **kwargs)
         train_size = 0
 
