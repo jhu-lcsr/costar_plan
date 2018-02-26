@@ -161,19 +161,19 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
     else:
         x = AddConv2D(x, 64, [5,5], 2, **kwargs_dr0)
         x = AddConv2D(x, 64, [5,5], 1, **kwargs_dr0)
-    x = AddConv2DTranspose(x, 64, [5,5], 2, **kwargs)
+    x = AddConv2DTranspose(x, 64, [5,5], stride=2, **kwargs)
 
     # --- end ssm block
     if model.skip_connections:
         x = Concatenate()([x, skip])
 
-    x = AddConv2DTranspose(x, 128, [5,5], stride=2, **kwargs)
+    x = AddConv2DTranspose(x, 64, [5,5], stride=2, **kwargs)
 
     if model.skip_connections:
         x = Concatenate()([x, skip0])
 
     for _ in range(1):
-        x = AddConv2D(x, 128, [5,5], stride=1, **kwargs)
+        x = AddConv2D(x, 64, [5,5], stride=1, **kwargs)
 
     # --------------------------------------------------------------------
     # Put resulting image into the output shape

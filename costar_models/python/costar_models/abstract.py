@@ -58,7 +58,7 @@ class AbstractAgentBasedModel(object):
             zdim=16,
             features=None,
             steps_per_epoch=500,
-            validation_steps=25,
+            validation_steps=100,
             dropout_rate=0.5,
             decoder_dropout_rate=None,
             tform_dropout_rate=0.,
