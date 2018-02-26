@@ -48,6 +48,10 @@ def main(args):
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
 
+        show = False
+        correct_g1 = 0
+        correct_g2 = 0
+        total = 0
         for filename in dataset.test:
             print(filename)
             data = dataset.loadFile(filename)
@@ -67,49 +71,20 @@ def main(args):
                 h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
                 xg = model.decode(h_goal)
                 xg2 = model.decode(h_goal2)
-                plt.subplot(1,4,1); plt.imshow(x0[0])
-                plt.subplot(1,4,2); plt.imshow(xi[0])
-                plt.subplot(1,4,3); plt.imshow(xg[0])
-                plt.subplot(1,4,4); plt.imshow(xg2[0])
+                if show:
+                    plt.subplot(1,4,1); plt.imshow(x0[0])
+                    plt.subplot(1,4,2); plt.imshow(xi[0])
+                    plt.subplot(1,4,3); plt.imshow(xg[0])
+                    plt.subplot(1,4,4); plt.imshow(xg2[0])
+                    plt.show()
                 res1 = np.argmax(model.discriminator.predict([x0, xg]), axis=1)
                 res2 = np.argmax(model.discriminator.predict([x0, xg2]), axis=1)
-                print(o1[i], o2[i], res1, res2)
-                plt.show()
-
-        # Same as in training code
-        #q_a, _ = model.q(h0, h, prev_option)
-        #q = model.q(h0, h, prev_option)
-
-        if not h.shape[0] == I.shape[0]:
-            raise RuntimeError('something went wrong with dimensions')
-        print("shape =", p_a.shape)
-        action = np.argmax(p_a,axis=1)
-        # Compute effects of first action
-        #h_goal = model.transform(h0, h, o1)
-        h_goal = model.transform(h0, h, action)
-        p_a2, done2 = model.pnext(h0, h_goal, action)
-        q_a2, _ = model.q(h0, h_goal, action)
-        action2 = np.argmax(p_a2,axis=1)
-
-        # Comute effects of next action
-        #h_goal2 = model.transform(h0, h_goal, o2)
-        h_goal2 = model.transform(h0, h_goal, action2)
-        p_a3, done3 = model.pnext(h0, h_goal2, action2)
-        q_a3, _ = model.q(h0, h, action2)
-        action3 = np.argmax(p_a3,axis=1)
-
-        # Comute effects of next action
-        h_goal3 = model.transform(h0, h_goal2, action3)
-        p_a4, done4 = model.pnext(h0, h_goal3, action3)
-        q_a4, _ = model.q(h0, h,action3)
-        action4 = np.argmax(p_a4,axis=1)
-
-        # Compute values and images
-        img_goal = model.decode(h_goal)
-        img_goal2 = model.decode(h_goal2)
-        img_goal3 = model.decode(h_goal3)
-        v_goal = model.value(h0, h_goal)
-        v_goal2 = model.value(h0, h_goal2)
+                if res1[0] == o1[i]:
+                    correct_g1 += 1
+                if res2[0] == o2[i]:
+                    correct_g2 += 2
+                total += 1
+                print(correct_g1, "/", total, correct_g2, "/", total, "...", o1[i], o2[i], res1[0], res2[0])
 
     else:
         raise RuntimeError('Must provide a model to load')
