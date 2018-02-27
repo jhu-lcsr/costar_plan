@@ -11,6 +11,8 @@ from tensorflow.python.platform import flags
 from shapely.geometry import Polygon
 import sklearn
 
+import grasp_utilities
+
 # class Vector:
 #     # http://www.mathopenref.com/coordpolygonarea.html
 #     # https://stackoverflow.com/a/45268241/99379
@@ -238,8 +240,8 @@ def rectangle_intersection_polygon(rp0, rl0, rp1, rl1):
         # and determine which part is inside and which is outside.
         new_intersection = []
         # points in rp0 rotated around by one
-        rp0_rot = rp0[1:] + rp0[:1]
-        line_values_rot = line_values[1:] + line_values[:1]
+        rp0_rot = grasp_utilities.rotate(rp0)
+        line_values_rot = grasp_utilities.rotate(line_values)
         for s, t, s_value, t_value, line0 in zip(
                 rp0, rp0_rot, line_values, line_values_rot, rl0):
 
@@ -283,14 +285,18 @@ def polygon_area(poly):
     return 0.5 * sum(p[1]*q[0] - p[0]*q[1] for p, q in zip(poly, poly_rot))
 
 
-def rectangle_vertices(sin_theta, cos_theta, h, w, cy, cx):
+def rectangle_vertices(h, w, cy, cx, sin_theta=None, cos_theta=None, theta=None):
     """ Get the vertices from a parameterized bounding box.
 
-    y, x ordering.
+    y, x ordering where 0,0 is the top left corner.
+    This matches matrix indexing.
 
     # http://www.mathopenref.com/coordpolygonarea.html
     # https://stackoverflow.com/a/45268241/99379
     """
+    if theta is not None:
+        sin_theta = np.sin(theta)
+        cos_theta = np.cos(theta)
     # normalizing because this may be using the output of the neural network,
     # so we turn it into an x y coordinate on the unit circle without changing
     # the vector.
@@ -344,24 +350,22 @@ def decode_sin2_cos2(norm_sin2_cos2):
     # extract 2x the angle
     theta2 = np.arctan2(sin2, cos2)
     # return the angle
-    return theta2 / 2
+    return theta2 / 2.0
 
 
 def parse_rectangle_vertices(s2t_c2t_hw_cycx):
     """ Convert a dimensions, angle, grasp center, based rectangle to vertices.
 
-    s2t_c2t_hw_cycx: [height, width, sin(2*theta), cos(2*theta), center x, center y]
+    s2t_c2t_hw_cycx: [sin(2*theta), cos(2*theta), height, width, center x, center y]
     """
-    theta = decode_sin2_cos2(
-        s2t_c2t_hw_cycx[:2]  # sin(2*theta), cos(2*theta)
-    )
+    # sin(2*theta), cos(2*theta)
+    theta = decode_sin2_cos2(s2t_c2t_hw_cycx[:2])
     rect_vertices = rectangle_vertices(
-        np.sin(theta),       # sin(theta)
-        np.cos(theta),       # cos(theta)
         s2t_c2t_hw_cycx[2],  # height
         s2t_c2t_hw_cycx[3],  # width
         s2t_c2t_hw_cycx[4],  # center y
-        s2t_c2t_hw_cycx[5])  # center x
+        s2t_c2t_hw_cycx[5],  # center x
+        theta=theta)
     return rect_vertices
 
 
@@ -420,24 +424,40 @@ def normalize_sin_theta_cos_theta(sin_theta, cos_theta):
 def angle_difference_less_than_threshold(
         true_y_sin_theta, true_x_cos_theta,
         pred_y_sin_theta, pred_x_cos_theta,
-        angle_threshold=None, verbose=0):
+        angle_threshold=None,
+        true_angle_multiplier=1.0,
+        pred_angle_multiplier=1.0,
+        verbose=0):
     """ Returns true if the angle difference is less than the threshold, false otherwise.
+
+    Recall that angle differences are around a circle, so the shortest angular difference
+    may be in +theta or the -theta direction with wrapping around the boundaries.
+
+    # Arguments
+        angle_threshold: The maximum absolute angular difference permitted.
+        true_angle_multiplier: Linear adjustment to the true angle values.
+            For example if your data contains sin(2 * theta) cos(2 * theta)
+            use an angle_multiplier of 0.5 to get the original theta.
+        pred_angle_multiplier: Linear adjustment to the true angle values.
+            For example if your data contains sin(2 * theta) cos(2 * theta)
+            use an angle_multiplier of 0.5 to get the original theta.
     """
     if angle_threshold is None:
-        # TODO(ahundt) consider totally
         angle_threshold = np.radians(30.0)
     # print('ad0 ' + str(true_y_sin_theta) + ' cos: ' + str(true_x_cos_theta))
     # normalize the prediction but keep the vector direction the same
     true_y_sin_theta, true_x_cos_theta = normalize_sin_theta_cos_theta(true_y_sin_theta, true_x_cos_theta)
     # print('ad1')
-    true_angle = np.arctan2(true_y_sin_theta, true_x_cos_theta)
+    true_angle = np.arctan2(true_y_sin_theta, true_x_cos_theta) * true_angle_multiplier
     # print('ad2')
     # normalize the prediction but keep the vector direction the same
     pred_y_sin_theta, pred_x_cos_theta = normalize_sin_theta_cos_theta(pred_y_sin_theta, pred_x_cos_theta)
-    pred_angle = np.arctan2(pred_y_sin_theta, pred_x_cos_theta)
+    pred_angle = np.arctan2(pred_y_sin_theta, pred_x_cos_theta) * pred_angle_multiplier
     # print('pred angle: ' + str(pred_angle) + ' true angle: ' + str(true_angle))
-    angle_difference = np.abs(pred_angle - true_angle)
-    is_within_angle_threshold = angle_difference <= angle_threshold
+    true_pred_diff = true_angle - pred_angle
+    # we would have just done this directly at the start if the angle_multiplier wasn't needed
+    angle_difference = np.arctan2(np.sin(true_pred_diff), np.cos(true_pred_diff))
+    is_within_angle_threshold = np.abs(angle_difference) <= angle_threshold
     if verbose > 0:
         print('angle_difference: ' + str(int(np.degrees(angle_difference))) +
               ' threshold: ' + str(int(np.degrees(angle_threshold))) +
@@ -455,11 +475,11 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25, verb
         Feature formats accepted:
 
         grasp_success_norm_sin2_cos2_hw_5
-            [grasp_success, sin_theta, cos_theta, height, width, center_y, center_x]
+            [grasp_success, sin_2theta, cos2_theta, height, width, center_y, center_x]
             [            0,         1,         2,      3,     4,        5,        6]
 
         norm_sin2_cos2_hw_5
-            [sin_theta, cos_theta, height, width, center_y, center_x]
+            [sin2_theta, cos_2theta, height, width, center_y, center_x]
             [        0,         1,      2,     3,        4,        5]
 
 
@@ -499,10 +519,10 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25, verb
         # We're looking at a successful grasp and we've correctly predicted grasp_success.
         # First check if the angles are close enough to matching the angle_threshold.
         # print('4')
-        true_y_sin_theta = y_true[1]
-        true_x_cos_theta = y_true[2]
-        pred_y_sin_theta = y_pred[1]
-        pred_x_cos_theta = y_pred[2]
+        true_y_sin_theta = y_true[grasp_rectangle_start_index]
+        true_x_cos_theta = y_true[grasp_rectangle_start_index + 1]
+        pred_y_sin_theta = y_pred[grasp_rectangle_start_index]
+        pred_x_cos_theta = y_pred[grasp_rectangle_start_index + 1]
 
         # print('5')
         # if they aren't close enough return 0.0
@@ -510,7 +530,9 @@ def jaccard_score(y_true, y_pred, angle_threshold=None, iou_threshold=0.25, verb
                 true_y_sin_theta, true_x_cos_theta,
                 pred_y_sin_theta, pred_x_cos_theta,
                 angle_threshold,
-                verbose):
+                true_angle_multiplier=0.5,  # 2 * theta -> theta
+                pred_angle_multiplier=0.5,  # 2 * theta -> theta
+                verbose=verbose):
             return 0.0
 
         # print('6')

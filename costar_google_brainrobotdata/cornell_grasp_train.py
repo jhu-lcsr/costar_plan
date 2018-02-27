@@ -109,24 +109,30 @@ flags.DEFINE_string(
     'A string that will become part of the logged directories and filenames.'
 )
 flags.DEFINE_integer(
-    'num_splits',
+    'num_folds',
     5,
-    'Total number of splits, which are equal in term of either imagewise or objectwise split'
+    'Total number of folds, how many times should the data be split between training and validation'
 )
 flags.DEFINE_integer(
     'num_train',
     8,
-    'num of fold used for training, must be less than flags.train_splits'
+    'Number of files used for training in one fold, '
+    'must be less than the number of tfrecord files, aka splits.'
 )
 flags.DEFINE_integer(
     'num_validation',
     2,
-    'num of fold used for validation, must be less than flags.train_splits'
+    'Number of tfrecord files for validation.'
+    'must be less than the number of tfrecord files, aka splits.'
+    'This number also automatically determines the number of folds '
+    'when running when the pipeline_stage flag includes k_fold.'
 )
 flags.DEFINE_integer(
     'num_test',
     0,
-    'num of fold used for test, must be less than flags.train_splits'
+    'num of fold used for the test dataset'
+    'must be less than the number of tfrecord files, aka splits.'
+    'This must be 0 when the pipeline_stage flag includes k_fold'
 )
 flags.DEFINE_string('load_weights', None,
                     """Path to hdf5 file containing model weights to load and continue training.""")
@@ -188,7 +194,6 @@ def run_training(
         val_size=None,
         test_filenames=None,
         test_size=None,
-        save_splits_weights='',
         feature_combo_name=None,
         problem_name=None,
         image_model_name='vgg',
@@ -365,6 +370,8 @@ def run_training(
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
         if fine_tuning:
             # do fine tuning stage after initial training
+            print('')
+            print('')
             print('Initial training complete, beginning fine tuning stage')
             print('------------------------------------------------------')
             _, optimizer = choose_optimizer(optimizer_name, fine_tuning_learning_rate, [], monitor_loss_name)
@@ -395,6 +402,10 @@ def run_training(
 
     model.save_weights(log_dir_run_name + '_model_weights.h5')
 
+    print('')
+    print('')
+    print('This training run is complete')
+    print('------------------------------------------------------')
     return history
 
 
@@ -519,13 +530,16 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
     return callbacks, optimizer
 
 
-def train_k_fold(num_fold=None, split_type=None,
+def train_k_fold(split_type=None,
                  tfrecord_filename_base=None, csv_path='-k-fold-stat.csv',
-                 log_dir=None, run_name=None,
-                 **kwargs):
+                 log_dir=None, run_name=None, num_validation=None,
+                 num_train=None, num_test=None, **kwargs):
     """ Do K_Fold training
 
-        num_fold: total number of fold.
+    Please be aware that the number of train and validation steps changes every time the dataset is converted.
+    These values are automatically loaded from a csv file, but be certain you do not mix the csv files up or
+    overwrite the datasets and csv files separately.
+
         split_type: str, either 'imagewise' or 'objectwise', should be consistent with
         splits type desired when doing actual splits.
     """
@@ -537,45 +551,113 @@ def train_k_fold(num_fold=None, split_type=None,
         split_type = FLAGS.split_dataset
     if tfrecord_filename_base is None:
         tfrecord_filename_base = FLAGS.tfrecord_filename_base
+    if num_validation is None:
+        num_validation = FLAGS.num_validation
+    if num_test is None:
+        num_test = FLAGS.num_test
+    if num_train is None:
+        num_train = FLAGS.num_train
+
+    if num_test != 0:
+        raise ValueError('k_fold training does not support test data. '
+                         'Check the command line flags and set --num_test 0')
     cur_csv_path = os.path.join(FLAGS.data_dir, tfrecord_filename_base + '-' + split_type + csv_path)
     csv_reader = csv.DictReader(open(cur_csv_path, mode='r'))
     unique_image_num = []
+    num_splits = None
     for row in csv_reader:
+        if num_splits is None:
+            num_splits = int(row[' num_splits'])
         unique_image_num.append(int(row[' num_total_grasp']))  # file writer repeat each image for num_grasp
-    if num_fold is None:
-        num_fold = FLAGS.num_splits
+
+    num_fold, divides_evenly = np.divmod(num_splits, num_validation)
+    # If this fails you need to fix the number of folds splits the dataset splits evenly!
+    if divides_evenly != 0:
+        raise ValueError('You must ensure the num_validation flag divides evenly '
+                         'with the number of tfrecord files, aka splits. '
+                         'Currently %s files divided by --num_validation %s results'
+                         ' in %s folds and but this '
+                         'leaves a remainder of %s.' % (str(num_validation),
+                                                        str(num_fold),
+                                                        str(num_splits),
+                                                        str(divides_evenly)))
+
     val_filenames = []
     train_filenames = []
     train_id = ''
     val_size = 0
     train_size = 0
-    log_dir = os.path.join(log_dir, grasp_utilities.timeStamped(run_name + '-kfold'))
+    kfold_run_name = grasp_utilities.timeStamped(run_name + '-kfold')
+    log_dir = os.path.join(log_dir, kfold_run_name)
+    kfold_param_dicts = {'num_fold': num_fold, 'num_splits': num_splits, 'fold_size': num_train}
+    kfold_run_train_param_list = []
+    fold_name_list = []
+    # create the directory we will log to
+    grasp_utilities.mkdir_p(log_dir)
+
     # 2k files, but k folds, so read two file at a time
-    for i in tqdm(range(num_fold), desc='Training k_fold'):
-        val_filenames = [os.path.join(FLAGS.data_dir,
-                         tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * i) + '.tfrecord'),
-                         os.path.join(FLAGS.data_dir,
-                         tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * i + 1) + '.tfrecord')]
-        val_size = unique_image_num[2 * i] + unique_image_num[2 * i + 1]
+    for i in tqdm(range(num_fold), desc='Preparing k_fold'):
+        fold_name = 'fold-' + str(i)
+        fold_name_list += [fold_name]
+
+        val_filenames = []
+        val_sizes = []
+        val_id = ''
+        for k in range(num_validation):
+            current_file_index = num_validation * i + k
+            val_id += str(current_file_index)
+            val_filenames += [os.path.join(FLAGS.data_dir, tfrecord_filename_base + '-' + split_type + '-fold-' + str(current_file_index) + '.tfrecord')]
+            val_sizes += [unique_image_num[current_file_index]]
+        val_size = sum(val_sizes)
+
+        train_filenames = []
+        train_sizes = []
+        train_id = ''
         for j in range(num_fold):
             if j == i:
                 continue
-            train_id += str(j)
-            train_filenames += [os.path.join(FLAGS.data_dir,
-                                tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * j) + '.tfrecord'),
-                                os.path.join(FLAGS.data_dir,
-                                tfrecord_filename_base + '-' + split_type + '-fold-' + str(2 * j + 1) + '.tfrecord')]
-            train_size += unique_image_num[2 * j] + unique_image_num[2 * j + 1]
-        save_splits_weights = run_name + '-' + split_type + '-train-on-' + train_id + '-val-on-' + str(i)
-        print('run kfold train, train on splits: ' + train_id + ',   val on split: ' + str(i))
-        run_training(train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train_val',
-                     train_size=train_size, val_size=val_size,
-                     log_dir=log_dir, run_name=save_splits_weights,
-                     **kwargs)
+            for k in range(num_validation):
+                current_file_index = num_validation * j + k
+                train_id += str(current_file_index)
+                train_filenames += [os.path.join(FLAGS.data_dir, tfrecord_filename_base + '-' + split_type + '-fold-' + str(current_file_index) + '.tfrecord')]
+                train_sizes += [unique_image_num[current_file_index]]
+        train_size = sum(train_sizes)
+
+        save_splits_weights = run_name + '-' + split_type + '-train-on-' + train_id + '-val-on-' + val_id
+        print('Preparing fold ' + str(i) + ' train dataset splits: ' + train_id + ',   val dataset splits: ' + val_id)
+        training_run_params = dict(
+            train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train_val',
+            train_size=train_size, val_size=val_size,
+            log_dir=log_dir, run_name=save_splits_weights,
+            **kwargs)
+        kfold_param_dicts[fold_name + '-val-ids'] = val_id
+        kfold_param_dicts[fold_name + '-train-ids'] = train_id
+        kfold_param_dicts[fold_name] = training_run_params
+        kfold_run_train_param_list += [training_run_params]
         train_id = ''
         train_size = 0
 
-    return
+    # save all folds to disk so we can recover exactly what happened
+    json_params_path = os.path.join(log_dir, kfold_run_name + '_params.json')
+    with open(json_params_path, 'w') as fp:
+        # save out all kfold params so they can be reloaded in the future
+        json.dump(kfold_param_dicts, fp)
+
+    # json_histories_path = os.path.join(log_dir, kfold_run_name + '_histories.json')
+    run_histories = {}
+    progbar_fold_name_list = tqdm(fold_name_list, desc='Training k_fold')
+    for i, (params, fold_name) in enumerate(zip(kfold_run_train_param_list, progbar_fold_name_list)):
+        progbar_fold_name_list.write('\n------------------------------------------\n'
+                                     'Training fold ' + str(i) + ' of ' + str(len(fold_name_list)) + '\n'
+                                     '\n------------------------------------------\n')
+        history = run_training(**params)
+        run_histories[fold_name] = history
+        # TODO(ahundt) save histories in some nice way
+        # with open(json_histories_path, 'w') as fp:
+        #     # save out all kfold params so they can be reloaded in the future
+        #     json.dump(run_histories, fp)
+
+    return run_histories
 
 
 def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=None):
@@ -735,7 +817,9 @@ def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_typ
     """ Determine the number of steps to train, validate, and test
     TODO(ahundt) rename this function, it is pretty nonsensical
 
-    TODO(ahundt) WARNING: THE NUMBER OF TRAIN/VAL STEPS VARIES EVERY TIME THE DATASET IS CONVERTED, AUTOMATE SETTING THOSE NUMBERS
+    Please be aware that the number of train and validation steps changes every time the dataset is converted.
+    These values are automatically loaded from a csv file, but be certain you do not mix the csv files up or
+    overwrite the datasets and csv files separately.
     """
     if data_dir is None:
         data_dir = FLAGS.data_dir
@@ -950,5 +1034,4 @@ if __name__ == '__main__':
     # FLAGS._parse_flags()
     tf.app.run(main=main)
     print('grasp_train.py run complete, original command: ', sys.argv)
-    sys.exit()
     # tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
