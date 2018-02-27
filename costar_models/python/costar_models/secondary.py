@@ -58,13 +58,7 @@ class Secondary(PredictionSampler2):
 
         encoder = self._makeImageEncoder(img_shape)
         decoder = self._makeImageDecoder(self.hidden_shape)
-
         LoadEncoderWeights(self, encoder, decoder)
-        #image_discriminator = LoadGoalClassifierWeights(self,
-        #        make_classifier_fn=MakeImageClassifier,
-        #        img_shape=img_shape)
-        #tform = self._makeTransform()
-        #LoadTransformWeights(self, tform)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -247,8 +241,8 @@ class HuskySecondary(Secondary):
 
         self.model = train_predictor
 
-    def _getData(self, image, pose, action, label,
-        prev_label, goal_image, goal_pose, value, *args, **kwargs):
+    def _getData(self, image, pose, action, label, example,
+        prev_label, goal_image, goal_pose, value, reward, *args, **kwargs):
 
         # --------------------------------------
         # Process the data
@@ -260,22 +254,23 @@ class HuskySecondary(Secondary):
         q_target = np.array(goal_pose)
         oin = np.array(prev_label)
         o1 = np.array(label)
-        v = np.array(np.array(value) > 1.,dtype=float)
+        #v = np.array(np.array(value) > 1.,dtype=float)
+        v = np.ones_like(o1)
+        success = 1. if np.sum(reward) > 0. else 0.
+        v = v * float(success)
 
         # -------------------------------------
         I_target2, o2 = GetNextGoal(I_target, o1)
         I0 = I[0,:,:,:]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        print("num opts = ", self.num_options)
         oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))
         p_target = np.squeeze(p)
         a = np.squeeze(a)
-        print("asdf")
-        print(oin_1h.shape)
-        print(o1_1h.shape)
+        # There should probably be an assert here
+       	#print(label, example)
 
         done = np.ones_like(oin) - (oin == o1)
 
@@ -284,12 +279,9 @@ class HuskySecondary(Secondary):
         elif self.submodel == "next":
             outs = [o1_1h, done]
         elif self.submodel == "q":
-            print(v.shape, self.num_options)
             if len(v.shape) == 1:
                 v = np.expand_dims(v,axis=1)
             vs = np.repeat(v, self.num_options, axis=1)
-            print(vs.shape)
-            print (o1_1h.shape)
             outs = [o1_1h * vs, done]
         elif self.submodel == "actor":
             outs = [a]
