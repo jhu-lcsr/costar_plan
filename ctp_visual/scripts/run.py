@@ -24,13 +24,14 @@ from costar_models import MakeModel
 
 import time
 
-from ctp_visual.search import *
+from ctp_visual.search import VisualSearch
 
 def sim(args):
     model = MakeModel(taskdef=env.task, **args)
     if 'load_model' in args and args['load_model']:
         model.validate = True
         model.load(env.world)
+    search = VisualSearch(model)
 
 def dataset(args):
     pass

@@ -1,16 +1,19 @@
-from costar_task_plan import *
-from costar_models import ConditionalImage
+from costar_task_plan.abstract import *
+from costar_models.conditional_image import ConditionalImage
 
 class VisualSearch(object):
     '''
     Hold the tree and perform a short visual tree search.
     '''
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, model, *args, **kwargs):
         '''
         Create the conditional image model.
         '''
-        self.cim = ConditionalImage(*args, **kwargs)
+        self.cim = model
+        if not isinstance(self.cim, ConditionalImage):
+            raise RuntimeError('model type not supported: ' +
+                    str(type(self.cim)))
 
     class VisualSearchNode(object):
         '''
