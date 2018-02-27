@@ -1197,8 +1197,8 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
     saved_e = None
     for name in names:
         try:
-            e_nm = model.makeName(name, submodel="image_encoder")
-            d_nm = model.makeName(name, submodel="image_decoder")
+            e_nm = model.makeName(name, submodel="image_encoder", reqs_dir=True)
+            d_nm = model.makeName(name, submodel="image_decoder", reqs_dir=True)
             print("Trying to load", e_nm)
             encoder.load_weights(e_nm)
             print("Trying to load", d_nm)
