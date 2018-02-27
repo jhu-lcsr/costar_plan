@@ -69,6 +69,7 @@ class AbstractAgentBasedModel(object):
             use_ssm=1,
             hypothesis_dropout=False,
             dense_representation=True,
+            dense_transform=False,
             skip_connections=1,
             use_noise=False,
             load_pretrained_weights=False,
@@ -151,6 +152,7 @@ class AbstractAgentBasedModel(object):
         self.skip_connections = skip_connections > 0
         self.use_ssm = use_ssm > 0
         self.dense_representation = dense_representation
+        self.dense_transform = dense_transform
         self.gan_method = gan_method
         self.save_model = save_model
         self.hidden_size = hidden_size

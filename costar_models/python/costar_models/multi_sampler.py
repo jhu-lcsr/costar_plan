@@ -308,8 +308,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
-        h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
-        h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
+        x = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
+        x0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
         bn = self.use_batchnorm
 
@@ -324,8 +324,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             z = Input((self.noise_dim,), name="z_in")
 
         # 2 x "decoder" convolutions
-        x = AddConv2D(h, 64, [1,1], 1, 0., **kwargs)
-        x0 = AddConv2D(h0, 64, [1,1], 1, 0., **kwargs)
+        x = AddConv2D(x, 64, [1,1], 1, 0., **kwargs)
+        x0 = AddConv2D(x0, 64, [1,1], 1, 0., **kwargs)
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
@@ -367,6 +367,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             # block
             x = AddConv2D(x, 64, [5,5], 2, 0., **kwargs)
             x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
+
         # Transpose conv back up to 8x8: 4 + 1 = 5 (or 7, or 8)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
                 dropout_rate=self.dropout_rate,
@@ -379,6 +380,110 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Convolution to merge information from "skip": 6-9 convolutions
         for i in range(1):
             x = AddConv2D(x, 64, [5,5], stride=1, dropout_rate=self.dropout_rate, **kwargs)
+
+        # --------------------------------------------------------------------
+        # Put resulting image into the output shape
+        # Encode again -- 1x1 convolution -- 7-10 convolutions total
+        x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
+                bn=False, # disables batchnorm here
+                activation="sigmoid", # outputs in [0, 1]
+                dropout_rate=0.)
+
+        l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        self.transform_model = Model(l, x, name="tform")
+        self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
+        return self.transform_model
+
+    def _getTransform(self,i=0,rep_channels=32):
+        transform_dropout = False
+        use_options_again = self.use_next_option
+        transform_batchnorm = True
+        transform_relu = True
+        if use_options_again:
+            options = self.num_options
+        else:
+            options = None
+        if self.dense_representation:
+            transform = GetDenseTransform(
+                    dim=self.img_col_dim,
+                    input_size=self.img_col_dim,
+                    output_size=self.img_col_dim,
+                    idx=i,
+                    batchnorm=transform_batchnorm,
+                    dropout=transform_dropout,
+                    dropout_rate=self.dropout_rate,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=transform_relu,
+                    option=options,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
+        else:
+            transform_kernel_size = self.tform_kernel_size
+            transform = GetTransform(
+                    rep_size=(self.hidden_dim, self.hidden_dim,
+                        rep_channels),
+                    filters=self.tform_filters,
+                    kernel_size=transform_kernel_size,
+                    idx=i,
+                    batchnorm=True,
+                    dropout=transform_dropout,
+                    dropout_rate=self.dropout_rate,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=True,
+                    option=options,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
+        return transform
+
+    def _makeDenseTransform(self, h_dim=(8,8), perm_drop=False):
+        '''
+        Returns:
+        --------
+        transform model
+        '''
+        x = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
+        x0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
+        option = Input((self.num_options,),name="t_opt_in")
+        bn = self.use_batchnorm
+
+        # Common arguments
+        kwargs = {
+                "activation" : self.activation_fn,
+                "bn" : self.use_batchnorm,
+                "perm_drop" : perm_drop,
+                }
+
+        if self.use_noise:
+            z = Input((self.noise_dim,), name="z_in")
+
+        # 2 x "decoder" convolutions
+        #x = AddConv2D(x, 64, [1,1], 1, 0., **kwargs)
+        #x0 = AddConv2D(x0, 64, [1,1], 1, 0., **kwargs)
+
+        # Combine the hidden state observations
+        x = Concatenate()([x, x0])
+        # 1 convolution to merge h, h0
+        #x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, **kwargs) # Removed this dropout
+
+        # store this for skip connection
+        skip = x
+
+        if self.use_noise:
+            y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False, bn=bn)
+            #x = TileOnto(x, y, 32, h_dim)
+            #x = AddConv2D(x, 32, [5,5], 1, 0., **kwargs)
+            x = Concatenate([x, y])
+
+        # Add convolution to incorporate action info -- 2 + 1 + 1 = 4
+        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False, bn=bn, perm_drop=perm_drop)
+        #x = TileOnto(x, y, 64, h_dim)
+        #x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
+        x = Concatenate([x, y])
+
+        x = AddDense(x, 128, "lrelu", 0., constraint=None, bn=bn)
+        x = AddDense(x, 64, "lrelu", 0., constraint=None, bn=bn)
 
         # --------------------------------------------------------------------
         # Put resulting image into the output shape
