@@ -167,7 +167,8 @@ class ConditionalImage(PredictionSampler2):
         elif self.no_disc:
             targets = [I_target, I_target2]
         else:
-            targets = [I_target, I_target2, o1_1h, o2_1h]
+            #targets = [I_target, I_target2, o1_1h, o2_1h]
+            targets = [I_target, I_target2, o2_1h]
         if self.enc_loss:
             targets += [I_target, I_target2]
         return features, targets
