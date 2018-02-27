@@ -137,7 +137,6 @@ def GetHuskyPoseModel(x, num_options, pose_size,
                 name="P_C64B",
                 constraint=None)
 
-
         x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
                 bn=batchnorm,
                 lrelu=True,

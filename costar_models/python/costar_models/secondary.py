@@ -228,7 +228,7 @@ class HuskySecondary(Secondary):
                     self.decoder_dropout_rate)
             model.compile(loss="mae",optimizer=self.getOptimizer())
             self.pose_model = model
-            outs = model([h0, h, y, pose_in])
+            outs = model([h0, h, y])
             loss = self.loss
             metrics=[]
 
