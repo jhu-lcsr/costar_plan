@@ -11,6 +11,7 @@ instructions see the readme.
 '''
 import pybullet as pb
 pb.connect(pb.GUI)
+import matplotlib.pyplot as plt
 
 from costar_task_plan.simulation import ParseBulletArgs
 from main import main
