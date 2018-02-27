@@ -748,6 +748,8 @@ def yield_record(
 
     # Arguments
 
+        steps: integer indicating number of times to repeat the dataset.
+            None means unlimited repeats. This is not the same as a keras step!
         parse_example_proto_fn: A function which takes a single example
             from the tfrecord as input and returns a dictionary from
             strings to feature tensors as output.
@@ -860,7 +862,10 @@ def yield_record(
                 #
 
         except tf.errors.OutOfRangeError as e:
-            pass
+            if repeat is not None:
+                raise e
+            else:
+                pass
 
 
 def old_distorted_inputs(data_files, num_epochs, train=True, batch_size=None):
