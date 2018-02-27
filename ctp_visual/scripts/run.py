@@ -19,7 +19,6 @@ from costar_models.datasets.h5f_generator import H5fGeneratorDataset
 # ----------------------------------------------------------------
 # Import bullet stuff
 from costar_task_plan.simulation import ParseBulletArgs
-from costar_task_plan.gym import BulletSimulationEnv
 from costar_task_plan.agent import GetAgents, MakeAgent
 from costar_models import MakeModel
 
