@@ -49,7 +49,7 @@ def visualizeHiddenMain(args):
             for j in range(200):
                 #h = model.transform(h,h,np.array([36]))
                 h = model.transform(h,h,np.array([np.random.randint(model.num_options)]))
-            h2 = model.transform(h,h,np.array([36]))
+            h2 = h
             plt.subplot(1,4,3)
             Show(np.mean(h2[0],axis=-1))
 
