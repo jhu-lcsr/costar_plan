@@ -25,7 +25,7 @@ from costar_models import MakeModel
 
 import time
 
-from .search import *
+from ctp_visual.search import *
 
 def sim(args):
     model = MakeModel(taskdef=env.task, **args)
