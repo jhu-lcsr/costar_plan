@@ -103,11 +103,6 @@ flags.DEFINE_integer(
     100,
     'Number of epochs to run trainer with all weights marked as trainable.'
 )
-flags.DEFINE_integer(
-    'epochs',
-    100,
-    'Number of epochs to run trainer.'
-)
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
                      """DenseNet and DenseNetFCN parameter growth rate""")
@@ -157,7 +152,7 @@ flags.DEFINE_string(
 flags.DEFINE_string('load_hyperparams', None,
                     """Load hyperparams from a json file. Only applies to grasp_model_hypertree""")
 
-flags.FLAGS._parse_flags()
+# flags.FLAGS._parse_flags() not needed for tf 1.5
 FLAGS = flags.FLAGS
 
 
@@ -576,6 +571,8 @@ class GraspTrain(object):
                 metric = FLAGS.metric,
             if eval_per_epoch is None:
                 eval_per_epoch = FLAGS.eval_per_epoch
+            if isinstance(dataset, str):
+                data = grasp_dataset.GraspDataset(dataset=dataset)
             # TODO(ahundt) ensure eval call to get_training_tensors() always runs in the same order and does not rotate the dataset.
             # list of dictionaries the length of batch_size
             (pregrasp_op_batch, grasp_step_op_batch,
@@ -879,7 +876,7 @@ def choose_make_model_fn(grasp_model_name=None):
     return make_model_fn
 
 
-def main():
+def main(_):
     """Launch the training and/or evaluation script for the particular model specified on the command line.
     """
 
