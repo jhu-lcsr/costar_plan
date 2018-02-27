@@ -40,7 +40,7 @@ epochs1=100
 epochs2=100
 enc_dir=''
 skip_cond=false
-dense_transform_cmd=''
+dense_transform=false
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -68,7 +68,7 @@ while true; do
     --epochs1) epochs1="$2"; shift 2 ;;
     --epochs2) epochs2="$2"; shift 2 ;;
     --enc_dir) enc_dir="$2"; shift 2 ;;
-    --dense_transform) dense_transform_cmd="--dense_transform"; shift ;;
+    --dense_transform) dense_transform=true; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -87,9 +87,10 @@ if $wass; then wass_dir=wass; else wass_dir=nowass; fi
 if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
 if $retrain; then retrain_dir=retrain; else retrain_dir=noretrain; fi
 if $gan_encoder; then gan_dir=ganenc; else gan_dir=noganenc; fi
+if $dense_transform; then dense_dir='_dense'; else dense_dir=''; fi
 
 # Handle model directory
-MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${gan_dir}_${retrain_dir}${suffix}"
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${gan_dir}_${retrain_dir}${dense_dir}${suffix}"
 
 [[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
 
@@ -112,6 +113,7 @@ data_dir=${data_dir}.${data_suffix}
 if $wass; then wass_cmd='--wasserstein'; else wass_cmd=''; fi
 if $use_noise; then use_noise_cmd='--use_noise'; else use_noise_cmd=''; fi
 if $retrain; then retrain_cmd='--retrain'; else retrain_cmd=''; fi
+if $dense_transform; then dense_transform_cmd='--dense_transform'; else dense_transform_cmd=''; fi
 
 if $marcc; then
   cmd_prefix="$HOME/costar_plan/costar_models/scripts/"
