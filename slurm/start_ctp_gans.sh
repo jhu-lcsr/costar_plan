@@ -56,7 +56,7 @@ while true; do
     --no_husky) run_husky=false; shift ;;
     --no_jigsaws) run_jigsaws=false; shift ;;
     --no_wass) run_wass=false; shift ;;
-    --dense_transform) dense_transform=true ;;
+    --dense_transform) dense_transform=true; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
