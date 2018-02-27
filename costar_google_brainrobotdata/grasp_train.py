@@ -69,7 +69,7 @@ flags.DEFINE_string('save_weights', 'grasp_model_weights',
 # flags.DEFINE_string('load_weights', 'converted2018-01-20-06-41-24_grasp_model_weights-delta_depth_sin_cos_3-grasp_model_levine_2016-dataset_062_b_063_072_a_082_b_102-epoch-014-val_loss-0.641-val_acc-0.655.h5',
 flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
-flags.DEFINE_integer('epochs', 15,
+flags.DEFINE_integer('epochs', 5,
                      """Epochs of training""")
 flags.DEFINE_string('grasp_dataset_eval', '102',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
@@ -101,7 +101,7 @@ flags.DEFINE_float(
 )
 flags.DEFINE_integer(
     'fine_tuning_epochs',
-    10,
+    2,
     'Number of epochs to run trainer with all weights marked as trainable.'
 )
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
@@ -378,7 +378,7 @@ class GraspTrain(object):
                     # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
                     # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
                     # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
-                    hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1)
+                    hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=2, verbose=1)
                 ]
 
             scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
