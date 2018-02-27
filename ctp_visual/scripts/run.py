@@ -18,7 +18,7 @@ from costar_models.datasets.h5f_generator import H5fGeneratorDataset
 
 # ----------------------------------------------------------------
 # Import bullet stuff
-from costar_task_plan.simulation import ParseBulletArgs
+from costar_task_plan.simulation import ParseBulletArgs, BulletSimulationEnv
 from costar_task_plan.agent import GetAgents, MakeAgent
 from costar_models import MakeModel
 
@@ -27,6 +27,7 @@ import time
 from ctp_visual.search import VisualSearch
 
 def sim(args):
+    env = BulletSimulationEnv(**args)
     model = MakeModel(taskdef=env.task, **args)
     if 'load_model' in args and args['load_model']:
         model.validate = True

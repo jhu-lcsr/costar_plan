@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+
+import pybullet as pb
+pb.connect(pb.GUI)
+import matplotlib.pyplot as plt
+
 from run import sim
+
+from costar_task_plan.simulation.parse import ParseBulletArgs
 
 if __name__ == "__main__":
     args = ParseBulletArgs()
