@@ -25,8 +25,13 @@ from costar_models import MakeModel
 
 import time
 
+from .search import *
+
 def sim(args):
-    pass
+    model = MakeModel(taskdef=env.task, **args)
+    if 'load_model' in args and args['load_model']:
+        model.validate = True
+        model.load(env.world)
 
 def dataset(args):
     pass

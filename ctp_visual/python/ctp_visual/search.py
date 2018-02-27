@@ -32,17 +32,48 @@ class VisualSearch(object):
             self.expanded = False
             self.q = q
             self.h = None
+            self.h0 = None
             self.value = None
+            self.children = {}
 
         def expand(self, h0, h):
-            self.h = self.cim.transform(h0, h, self.action)
-            self.v = self.cim.value(self.h)
-            self.expanded = True
+            if not self.expanded:
+                self.h0 = h0
+                self.h = self.cim.transform(self.h0, h, self.action)
+                self.v = self.cim.value(self.h0, self.h)
+                self.expanded = True
+        
+        def explore(self, depth=0, maxdepth=5):
+            # Compute expected transitions and value function for next actions
+            p_a, done_a = self.cim.pnext(self.h0, self.h, self.prev_a)
+            q, done_qa = self.cim.q(self.h0, self.h, self.prev_a)
+            
+            # Compute the next q and action
+            print(p_a)
+            print(q)
+
+            a = np.argmax(p_a, axis=1)
+            if not a in self.children:
+                self.children[a] = VisualSearchNode(action=a)
+                self.children[a].expand(self.h0, self.h)
+            node = self.children[a]
+
+            print("action =", a, 
+                  "q(parent, a) =", q[0,a],
+                  "value =", node.v,
+                  "depth =", depth, "/", maxdepth)
+            v = node.explore(depth+1, maxdepth)
+            print(" -- ", V)
+    
+            # Return total value to parent (success probability)
+            return self.v * V
 
         def makeRoot(self, I0):
             assert(self.parent is None)
             self.h = self.cim.encode(h)
+            self.h0 = self.h
             self.v = self.cim.value(self.h)
+            self.prev_a = np.array([self.cim.null_action])
             self.expanded = True
 
     def run(self, I):
@@ -56,6 +87,7 @@ class VisualSearch(object):
                 parent=None,
                 action=self.cim.null_action, 
                 q=1.)
+        self.root.makeRoot(I)
         
 
     def _expand(self, node):

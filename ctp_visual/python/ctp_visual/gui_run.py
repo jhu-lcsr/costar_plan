@@ -5,6 +5,10 @@ from .run import sim
 
 if __name__ == "__main__":
     args = ParseBulletArgs()
+    args['task'] = "stack1"
+    args['robot'] = "ur5"
+    args['features'] = "multi"
+    args['model'] = "conditional_image"
     if args['profile']:
         import cProfile
         cProfile.run('sim(args)')
