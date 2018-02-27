@@ -105,6 +105,7 @@ class ConditionalImage(PredictionSampler2):
             image_discriminator = LoadGoalClassifierWeights(self,
                     make_classifier_fn=MakeImageClassifier,
                     img_shape=img_shape)
+            #disc_out1 = image_discriminator([img0_in, image_out])
             disc_out2 = image_discriminator([img0_in, image_out2])
 
         # Create custom encoder loss
@@ -134,9 +135,11 @@ class ConditionalImage(PredictionSampler2):
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
+                    #[image_out, image_out2, disc_out1, disc_out2] + enc_outs)
                     [image_out, image_out2, disc_out2] + enc_outs)
             train_predictor.compile(
                     loss=[self.loss, self.loss, "categorical_crossentropy"] + enc_losses,
+                    #loss_weights=[img_loss_wt, img_loss_wt, 0.9*disc_wt, disc_wt] + enc_wts,
                     loss_weights=[img_loss_wt, img_loss_wt, disc_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -164,6 +167,9 @@ class ConditionalImage(PredictionSampler2):
         elif self.no_disc:
             targets = [I_target, I_target2]
         else:
+            # Uncomment if you want to try the whole "two discriminator" thing
+            # again -- this might need a more fully supported option
+            #targets = [I_target, I_target2, o1_1h, o2_1h]
             targets = [I_target, I_target2, o2_1h]
         if self.enc_loss:
             targets += [I_target, I_target2]
@@ -176,6 +182,15 @@ class ConditionalImage(PredictionSampler2):
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
+
+        print(">>> GOAL_CLASSIFIER")
+        image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=(64, 64, 3))
+        image_discriminator.compile(loss="categorical_crossentropy",
+                                    metrics=["accuracy"],
+                                    optimizer=self.getOptimizer())
+        self.discriminator = image_discriminator
 
         print(">>> VALUE MODEL")
         self.value_model = GetValueModel(h, self.num_options, 128,
@@ -205,26 +220,7 @@ class ConditionalImage(PredictionSampler2):
         self.q_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
-        self.q_model.load_weights(self.makeName("secondary", "q"))
-
-
-    def encode(self, img):
-        '''
-        Encode available features into a new state
-
-        Parameters:
-        -----------
-        [unknown]: all are parsed via _getData() function.
-        '''
-        return self.image_encoder.predict(img)
-
-    def decode(self, hidden):
-        '''
-        Decode features and produce a set of visualizable images or other
-        feature outputs.
-
-        '''
-        return self.image_decoder.predict(hidden)
+        #self.q_model.load_weights(self.makeName("secondary", "q"))
 
     def pnext(self, hidden0, hidden, prev_option):
         '''
@@ -256,19 +252,6 @@ class ConditionalImage(PredictionSampler2):
         #v = self.value_model.predict([h0, hidden, prev_option])
         v = self.value_model.predict([hidden0, hidden])
         return v
-
-    def transform(self, hidden0, hidden, option_in=-1):
-        #if option_in < 0 or option_in > self.num_options:
-        #    option_in = self.null_option
-        #oin = MakeOption1h(option_in, self.num_options)
-        if len(option_in.shape) == 1:
-            oin = ToOneHot(option_in, self.num_options)
-        else:
-            oin = option_in
-        #length = hidden.shape[0]
-        #oin = np.repeat(oin, length, axis=0)
-        h = self.transform_model.predict([hidden0, hidden, oin])
-        return h
 
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')

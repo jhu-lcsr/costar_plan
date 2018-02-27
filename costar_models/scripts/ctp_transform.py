@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from costar_models import *
-from costar_models.planner import GetOrderedList
+from costar_models.planner import GetOrderedList, PrintTopQ
 from costar_models.sampler2 import PredictionSampler2
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
@@ -31,6 +31,8 @@ def visualizeHiddenMain(args):
         if i < len(data_file_info)-1 and i > 0:
             root += '.'
         root += tok
+
+    np.random.seed(0)
     if data_type == "npz":
         dataset = NpzGeneratorDataset(root)
         data = dataset.load(success_only = args['success_only'])
@@ -47,9 +49,7 @@ def visualizeHiddenMain(args):
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
 
-        np.random.seed(0)
-        data = next(test_generator)
-        features, targets = next(train_generator)
+        features, targets = next(test_generator)
         [I0, I, o1, o2, oin] = features
         [ I_target, I_target2, o1_1h, value, qa, ga, o2_1h] = targets
 
@@ -115,12 +115,15 @@ def visualizeHiddenMain(args):
             print(" --- 1 ---")
             print(pa_idx1)
             print(qa_idx1)
+            PrintTopQ(pa_idx1, p_a, q_a, i, n=4)
             print(" --- 2 ---")
             print(pa_idx2)
             print(qa_idx2)
+            PrintTopQ(pa_idx2, p_a2, q_a2, i, n=4)
             print(" --- 3 ---")
             print(pa_idx3)
             print(qa_idx3)
+            PrintTopQ(pa_idx3, p_a3, q_a3, i, n=4)
 
             plt.figure()
             plt.subplot(4,4,5)

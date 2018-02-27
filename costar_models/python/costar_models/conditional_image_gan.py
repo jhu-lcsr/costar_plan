@@ -150,7 +150,14 @@ class ConditionalImageGan(PretrainImageGan):
 
         # Extract the next goal
         I_target2, o2 = GetNextGoal(I_target, o1)
-        return [I0, I, o1, o2], [ I_target, I_target2 ]
+        if not self.validate:
+            return [I0, I, o1, o2], [ I_target, I_target2 ]
+        else:
+            features = [I0, I, o1, o2, oin]
+            o1_1h = ToOneHot(o1, self.num_options)
+            o2_1h = ToOneHot(o2, self.num_options)
+            return (features, 
+                    [I_target, I_target2, o1_1h, v, qa, ga, o2_1h])
 
     def _makeImageDiscriminator(self, img_shape):
         '''

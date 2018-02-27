@@ -1319,3 +1319,8 @@ def GetOrderedList(p):
     pidx = sorted(range(len(p)), key = lambda k: p[k])
     pidx.reverse()
     return pidx
+
+def PrintTopQ(idx, p, q, i=0, n=4):
+    print("Best options =")
+    for j in range(n):
+        print(idx[j], p[i, idx[j]], q[i,idx[j]])

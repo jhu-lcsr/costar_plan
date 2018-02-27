@@ -58,13 +58,7 @@ class Secondary(PredictionSampler2):
 
         encoder = self._makeImageEncoder(img_shape)
         decoder = self._makeImageDecoder(self.hidden_shape)
-
         LoadEncoderWeights(self, encoder, decoder)
-        #image_discriminator = LoadGoalClassifierWeights(self,
-        #        make_classifier_fn=MakeImageClassifier,
-        #        img_shape=img_shape)
-        #tform = self._makeTransform()
-        #LoadTransformWeights(self, tform)
 
         # =====================================================================
         # Load the arm and gripper representation
@@ -99,7 +93,7 @@ class Secondary(PredictionSampler2):
             model.compile(loss="mae", optimizer=self.getOptimizer())
             outs = model([h0,h,label_in])
             self.next_model = model
-            loss = "binary_crossentropy"
+            loss = "categorical_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "actor":
             actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
@@ -157,8 +151,13 @@ class Secondary(PredictionSampler2):
             outs = [q_target, g_target]
         return ([I0, I, q, g, o1, o2, oin], outs)
 
-
+from .husky import *
 class HuskySecondary(Secondary):
+
+    def __init__(self, *args, **kwargs):
+        super(HuskySecondary, self).__init__(*args, **kwargs)
+        self.num_options = HuskyNumOptions()
+        self.null_option = HuskyNullOption()
 
     def _makeModel(self, image, pose, action, *args, **kwargs):
        
@@ -172,31 +171,22 @@ class HuskySecondary(Secondary):
         img0_in = Input(img_shape,name="predictor_img0_in")
         label_in = Input((1,))
         pose_in = Input((pose_size,))
-        ins = [img0_in, img_in, pose_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = self._makeImageEncoder(img_shape)
+        decoder = self._makeImageDecoder(self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder, gan=False)
-        image_discriminator = LoadGoalClassifierWeights(self,
-                make_classifier_fn=MakeImageClassifier,
-                img_shape=img_shape)
 
         # =====================================================================
         # Load the arm and gripper representation
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder([img_in])
-            h0 = encoder(img0_in)
+        h = encoder([img_in])
+        h0 = encoder(img0_in)
 
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
-        ins += [next_option_in, next_option_in2]
+        ins = [img0_in, img_in, pose_in,
+               next_option_in, next_option_in2,
+               label_in]
         y = OneHot(self.num_options)(next_option_in)
         y = Flatten()(y)
 
@@ -226,7 +216,7 @@ class HuskySecondary(Secondary):
             loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "actor":
-            actor = GetHuskyActorModel(h, self.num_options, arm_size, gripper_size,
+            actor = GetHuskyActorModel(h, self.num_options, pose_size,
                     self.decoder_dropout_rate)
             actor.compile(loss="mae",optimizer=self.getOptimizer())
             model = actor
@@ -234,19 +224,25 @@ class HuskySecondary(Secondary):
             loss = self.loss
             metrics=[]
         elif self.submodel == "pose":
-            model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
+            model = GetHuskyPoseModel(h, self.num_options, pose_size,
                     self.decoder_dropout_rate)
             model.compile(loss="mae",optimizer=self.getOptimizer())
             self.pose_model = model
-            outs = model([h0, h, y, pose_in])
+            outs = model([h0, h, y])
             loss = self.loss
             metrics=[]
 
         model.summary()
-        self.model = model
+        # =====================================================================
+        train_predictor = Model(ins, outs)
+        train_predictor.compile(loss=loss,
+                metrics=metrics,
+                optimizer=self.getOptimizer())
 
-    def _getData(self, image, pose, action, label,
-        prev_label, goal_image, goal_pose, value, *args, **kwargs):
+        self.model = train_predictor
+
+    def _getData(self, image, pose, action, label, example,
+        prev_label, goal_image, goal_pose, value, reward, *args, **kwargs):
 
         # --------------------------------------
         # Process the data
@@ -258,7 +254,10 @@ class HuskySecondary(Secondary):
         q_target = np.array(goal_pose)
         oin = np.array(prev_label)
         o1 = np.array(label)
-        v = np.array(np.array(value) > 1.,dtype=float)
+        #v = np.array(np.array(value) > 1.,dtype=float)
+        v = np.ones_like(o1)
+        success = 1. if np.sum(reward) > 0. else 0.
+        v = v * float(success)
 
         # -------------------------------------
         I_target2, o2 = GetNextGoal(I_target, o1)
@@ -270,15 +269,20 @@ class HuskySecondary(Secondary):
         o2_1h = np.squeeze(ToOneHot2D(o2, self.num_options))
         p_target = np.squeeze(p)
         a = np.squeeze(a)
+        # There should probably be an assert here
+       	#print(label, example)
+
+        done = np.ones_like(oin) - (oin == o1)
+
         if self.submodel == "value":
             outs = [v]
         elif self.submodel == "next":
-            outs = [o1_1h]
+            outs = [o1_1h, done]
         elif self.submodel == "q":
             if len(v.shape) == 1:
                 v = np.expand_dims(v,axis=1)
             vs = np.repeat(v, self.num_options, axis=1)
-            outs = [o1_1h * vs]
+            outs = [o1_1h * vs, done]
         elif self.submodel == "actor":
             outs = [a]
         elif self.submodel == "pose":
