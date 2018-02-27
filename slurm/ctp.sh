@@ -13,7 +13,7 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 export DATASET="ctp_dec"
 export train_discriminator2=false
-export train_image_encoder=true
+export train_image_encoder=false
 export train_conditional_image=true
 export train_policies=false
 
@@ -28,7 +28,7 @@ export use_skips=$8
 export use_ssm=$9
 #export MODELDIR="$HOME/.costar/stack_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
-export SUBDIR="stack_$learning_rate$optimizer$dropout$noise_dim$loss$use_skips"
+export SUBDIR="stack_$learning_rate$optimizer$dropout$noise_dim${loss}_skip${use_skips}_ssm${use_ssm}"
 export USE_BN=1
 
 echo $1 $2 $3 $4 $5 $6 $7 $8 $9
