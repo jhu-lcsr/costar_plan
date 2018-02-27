@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 
 from costar_task_plan.abstract import *
@@ -18,9 +20,13 @@ class VisualSearchNode(object):
         action: integer embedding for action to perform
         q: expected q value
         '''
+        # Neural net model holder/manager -- should be ConditionalImage for now
         self.cim = cim
+        # This stores the parent node
         self.parent = parent
-        self.action = action
+        # Action stores the action that was taken to get to this state
+        self.action = np.array([action])
+        # This stores the q-value getting to this state
         self.q = q
         self.visits = 0
         self.expanded = False
@@ -36,14 +42,19 @@ class VisualSearchNode(object):
             self.v = self.cim.value(self.h0, self.h)
             self.expanded = True
     
-    def explore(self, depth=0, maxdepth=5):
+    def explore(self, depth=0, max_depth=5):
+
+        if depth >= max_depth:
+            return self.v
+
         # Compute expected transitions and value function for next actions
-        p_a, done_a = self.cim.pnext(self.h0, self.h, self.prev_a)
-        q, done_qa = self.cim.q(self.h0, self.h, self.prev_a)
+        p_a, done_a = self.cim.pnext(self.h0, self.h, self.action)
+        q, done_qa = self.cim.q(self.h0, self.h, self.action)
         
         # Compute the next q and action
         print(p_a)
         print(q)
+        print(done_a, done_qa)
 
         a = np.argmax(p_a, axis=1)[0]
         print("action =", a)
@@ -58,8 +69,8 @@ class VisualSearchNode(object):
         print("action =", a, 
               "q(parent, a) =", q[0,a],
               "value =", node.v,
-              "depth =", depth, "/", maxdepth)
-        v = node.explore(depth+1, maxdepth)
+              "depth =", depth, "/", max_depth)
+        v = node.explore(depth+1, max_depth)
         print(" -- ", V)
 
         # Return total value to parent (success probability)
@@ -100,7 +111,7 @@ class VisualSearch(object):
                 q=1.)
         self.root.makeRoot(I)
         for i in range(iter):
-            self.root.explore(depth=0, maxdepth=depth)
+            self.root.explore(depth=0, max_depth=depth)
         
 
 
