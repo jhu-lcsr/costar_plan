@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from costar_task_plan.abstract import *
@@ -41,6 +42,9 @@ class VisualSearchNode(object):
             self.h = self.cim.transform(self.h0, h, self.action)
             self.v = self.cim.value(self.h0, self.h)
             self.expanded = True
+            plt.figure()
+            plt.imshow(self.cim.decode(self.h)[0], interpolation='none')
+            plt.show()
     
     def explore(self, depth=0, max_depth=5):
 
