@@ -216,7 +216,7 @@ class HuskySecondary(Secondary):
             loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "actor":
-            actor = GetHuskyActorModel(h, self.num_options, arm_size, gripper_size,
+            actor = GetHuskyActorModel(h, self.num_options, pose_size,
                     self.decoder_dropout_rate)
             actor.compile(loss="mae",optimizer=self.getOptimizer())
             model = actor
@@ -224,7 +224,7 @@ class HuskySecondary(Secondary):
             loss = self.loss
             metrics=[]
         elif self.submodel == "pose":
-            model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
+            model = GetHuskyPoseModel(h, self.num_options, pose_size,
                     self.decoder_dropout_rate)
             model.compile(loss="mae",optimizer=self.getOptimizer())
             self.pose_model = model
