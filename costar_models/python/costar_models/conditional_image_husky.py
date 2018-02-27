@@ -131,7 +131,7 @@ class ConditionalImageHusky(ConditionalImage):
         self.actor.load_weights(self.makeName("secondary", "actor"))
 
         print(">>> POSE MODEL")
-        self.pose_model = GetHuskyPoseModel(h, self.num_options, arm_size, gripper_size,
+        self.pose_model = GetHuskyPoseModel(h, self.num_options, pose_size,
                 self.decoder_dropout_rate)
         self.pose_model.compile(loss="mae",optimizer=self.getOptimizer())
         self.pose_model.load_weights(self.makeName("secondary", "pose"))
