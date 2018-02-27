@@ -297,10 +297,10 @@ def resize_coordinate(coordinate, input_shape, output_shape, name=None):
     """
     with tf.name_scope(name, "resize_coordinate",
                        [coordinate, input_shape, output_shape]) as name:
-        input_shape = tf.cast(input_shape, tf.float32)
-        output_shape = tf.cast(output_shape, tf.float32)
+        # input_shape = tf.cast(input_shape, tf.float32)
+        # output_shape = tf.cast(output_shape, tf.float32)
         if isinstance(input_shape, list):
-            input_shape = tf.constant([[input_shape[0]][input_shape[1]]], tf.float32)
+            input_shape = tf.constant([[input_shape[0]][input_shape[1]]], tf.int32)
             proportional_dimension_change = output_shape / input_shape
         else:
             proportional_dimension_change = output_shape / input_shape[:2]
