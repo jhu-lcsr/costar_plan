@@ -71,10 +71,10 @@ class VisualSearchNode(object):
               "value =", node.v,
               "depth =", depth, "/", max_depth)
         v = node.explore(depth+1, max_depth)
-        print(" -- ", V)
+        print(" -- ", v)
 
         # Return total value to parent (success probability)
-        return self.v * V
+        return self.v * v
 
     def makeRoot(self, I0):
         assert(self.parent is None)
