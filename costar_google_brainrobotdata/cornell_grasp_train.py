@@ -387,7 +387,7 @@ def run_training(
             history = parallel_model.fit_generator(
                 train_data,
                 steps_per_epoch=train_steps,
-                epochs=fine_tuning_epochs,
+                epochs=epochs + fine_tuning_epochs,
                 validation_data=validation_data,
                 validation_steps=validation_steps,
                 callbacks=callbacks,
