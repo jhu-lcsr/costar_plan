@@ -7,6 +7,30 @@ from matplotlib import pyplot as plt
 
 import numpy as np
 
+from .datasets.npz import NpzDataset
+from .datasets.npy_generator import NpzGeneratorDataset
+from .datasets.h5f_generator import H5fGeneratorDataset
+
+def GetDataset(args):
+
+    data_file_info = args['data_file'].split('.')
+    data_type = data_file_info[-1]
+    root = ""
+    for i, tok in enumerate(data_file_info[:-1]):
+        if i < len(data_file_info)-1 and i > 0:
+            root += '.'
+        root += tok
+
+    if data_type == "npz":
+        dataset = NpzGeneratorDataset(root)
+        data = dataset.load(success_only = args['success_only'])
+    elif data_type == "h5f":
+        dataset = H5fGeneratorDataset(root)
+        data = dataset.load(success_only = args['success_only'])
+    else:
+        raise NotImplementedError('data type not implemented: %s'%data_type)
+    return data, dataset
+
 def ToOneHot2D(f, dim):
     '''
     Convert all to one-hot vectors. If we have a "-1" label, example was

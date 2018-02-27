@@ -44,56 +44,35 @@ def GetHuskyActorModel(x, num_options, pose_size,
     xin = Input([int(d) for d in x.shape[1:]], name="actor_h_in")
     x0in = Input([int(d) for d in x.shape[1:]], name="actor_h0_in")
 
+    pose_in = Input((pose_size,), name="actor_pose_in")
     option_in = Input((num_options,), name="actor_o_in")
     x = xin
     x0 = x0in
-    if len(x.shape) > 2:
-        # Project
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_project",
-                constraint=None)
-        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A0_project",
-                constraint=None)
-        x = Add()([x0,x])
+    dr, bn = dropout_rate, False
+    use_lrelu = False
 
-        # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64A",
-                constraint=None)
-        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+    x = Concatenate(axis=-1)([x, x0])
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=use_lrelu, bn=bn)
 
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64B",
-                constraint=None)
+    # Add arm, gripper
+    y = pose_in
+    y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
+    x = TileOnto(x, y, 32, (8,8), add=False)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+
+    # Add arm, gripper
+    y2 = AddDense(option_in, 64, "relu", 0., output=True, constraint=3)
+    x = TileOnto(x, y2, 64, (6,6), add=False)
+    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+
+    x = Flatten()(x)
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)    # Same setup as the state decoders
 
 
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C32A",
-                constraint=None)
-        # This is the hidden representation of the world, but it should be flat
-        # for our classifier to work.
-        x = Flatten()(x)
-
-    x = Concatenate()([x, option_in])
-
-    # Same setup as the state decoders
-    x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
-    pose = AddDense(x1, pose_size, "linear", 0., output=True)
-    #value = Dense(1, activation="sigmoid", name="V",)(x1)
-    actor = Model([x0in, xin, option_in], [pose], name="actor")
+    pose = AddDense(x, pose_size, "linear", 0., output=True)
+    actor = Model([x0in, xin, option_in, pose_in], [pose], name="actor")
     return actor
 
 def GetHuskyPoseModel(x, num_options, pose_size,
@@ -105,58 +84,36 @@ def GetHuskyPoseModel(x, num_options, pose_size,
     xin = Input([int(d) for d in x.shape[1:]], name="pose_h_in")
     x0in = Input([int(d) for d in x.shape[1:]], name="pose_h0_in")
 
+    pose_in = Input((pose_size,), name="pose_pose_in")
     option_in = Input((num_options,), name="pose_o_in")
     x = xin
     x0 = x0in
-    if len(x.shape) > 2:
-        # Project
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="P_project",
-                constraint=None)
-        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A0_project",
-                constraint=None)
-        x = Add()([x0,x])
+    dr, bn = dropout_rate, False
+    use_lrelu = False
 
-        # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="P_C64A",
-                constraint=None)
-        x = TileOnto(x, option_in, num_options, x.shape[1:3])
+    x = Concatenate(axis=-1)([x, x0])
+    x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=use_lrelu, bn=bn)
 
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="P_C64B",
-                constraint=None)
+    # Add arm, gripper
+    y = pose_in
+    y = AddDense(y, 32, "relu", 0., output=True, constraint=3)
+    x = TileOnto(x, y, 32, (8,8), add=False)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+
+    # Add arm, gripper
+    y2 = AddDense(option_in, 64, "relu", 0., output=True, constraint=3)
+    x = TileOnto(x, y2, 64, (6,6), add=False)
+    x = AddConv2D(x, 128, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+    x = AddConv2D(x, 64, [3,3], 1, dr, "valid", lrelu=use_lrelu, bn=bn)
+
+    x = Flatten()(x)
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)
+    x = AddDense(x, 512, "relu", dr, output=True, bn=bn)    # Same setup as the state decoders
 
 
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="P_C32A",
-                constraint=None)
-        # This is the hidden representation of the world, but it should be flat
-        # for our classifier to work.
-        x = Flatten()(x)
-
-    x = Concatenate()([x, option_in])
-
-    # Same setup as the state decoders
-    x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
-    pose = AddDense(x1, pose_size, "linear", 0., output=True)
-    pose = Model([x0in, xin, option_in], [pose], name="actor")
+    pose = AddDense(x, pose_size, "linear", 0., output=True)
+    pose = Model([x0in, xin, option_in, pose_in], [pose], name="pose")
     return pose
-
-
 
 def GetPolicyHuskyData(num_options, option, image, pose, action, label, *args,
         **kwargs):
@@ -175,7 +132,7 @@ def GetPolicyHuskyData(num_options, option, image, pose, action, label, *args,
     else:
         return [], []
 
-def GetConditionalHuskyData(no_disc, num_options, image, pose, action, label,
+def GetConditionalHuskyData(validate, no_disc, num_options, image, pose, action, label,
         prev_label, goal_image, goal_pose, value, *args, **kwargs):
     I = np.array(image) / 255.
     p = np.array(pose)
@@ -193,7 +150,11 @@ def GetConditionalHuskyData(no_disc, num_options, image, pose, action, label,
     oin_1h = np.squeeze(ToOneHot2D(oin, num_options))
     o2_1h = np.squeeze(ToOneHot2D(o2, num_options))
     
-    if no_disc:
+    if validate:
+        o1_1h = np.squeeze(ToOneHot2D(o1, num_options))
+        return ([I0, I, o1, o2, oin],
+             [I_target, I_target2, o1_1h, v, a, o2_1h])
+    elif no_disc:
         return [I0, I, o1, o2, oin], [I_target, I_target2,]
     else:
         return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
@@ -223,7 +184,8 @@ def MakeHuskyPolicy(model, encoder, image, pose, action, option, verbose=True):
     pose_in = Input((pose_size,), name="pose_in")
     ins = [img0_in, img_in, pose_in]
 
-    dr, bn = model.dropout_rate, model.use_batchnorm
+    dr, bn = model.dropout_rate, False
+    use_lrelu = False
 
     x = encoder(img_in)
     x0 = encoder(img0_in)
@@ -249,63 +211,5 @@ def MakeHuskyPolicy(model, encoder, image, pose, action, option, verbose=True):
     if verbose:
         policy.summary()
     return policy
-
-def GetHuskyPoseModel(x, num_options, arm_size, gripper_size,
-        dropout_rate=0.5, batchnorm=True):
-    '''
-    Make an "actor" network that takes in an encoded image and an "option"
-    label and produces the next command to execute.
-    '''
-    xin = Input([int(d) for d in x.shape[1:]], name="pose_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="pose_h0_in")
-
-    x = xin
-    x0 = x0in
-    if len(x.shape) > 2:
-        # Project
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_project",
-                constraint=None)
-        x0 = AddConv2D(x0, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A0_project",
-                constraint=None)
-        x = Add()([x0,x])
-
-        # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64A",
-                constraint=None)
-
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64B",
-                constraint=None)
-
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C32A",
-                constraint=None)
-
-        # This is the hidden representation of the world, but it should be flat
-        # for our classifier to work.
-        x = Flatten()(x)
-
-    # Same setup as the state decoders
-    x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
-    arm = AddDense(x1, arm_size, "linear", 0., output=True)
-    gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
-    #value = Dense(1, activation="sigmoid", name="V",)(x1)
-    actor = Model([x0in, xin, option_in], [arm, gripper], name="pose")
-    return actor
 
 

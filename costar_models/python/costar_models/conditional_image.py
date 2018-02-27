@@ -94,7 +94,7 @@ class ConditionalImage(PredictionSampler2):
         y = Flatten()(OneHot(self.num_options)(next_option_in))
         y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
 
-        tform = self._makeTransform()
+        tform = self._makeTransform() if not self.dense_transform else self._makeDenseTransform()
         x = tform([h0,h,y])
         x2 = tform([h0,x,y2])
 
@@ -105,6 +105,7 @@ class ConditionalImage(PredictionSampler2):
             image_discriminator = LoadGoalClassifierWeights(self,
                     make_classifier_fn=MakeImageClassifier,
                     img_shape=img_shape)
+            #disc_out1 = image_discriminator([img0_in, image_out])
             disc_out2 = image_discriminator([img0_in, image_out2])
 
         # Create custom encoder loss
@@ -124,7 +125,7 @@ class ConditionalImage(PredictionSampler2):
         if self.no_disc:
             disc_wt = 0.
         else:
-            disc_wt = 1e-2
+            disc_wt = 1e-3
         if self.no_disc:
             train_predictor = Model(ins + [label_in],
                     [image_out, image_out2] + enc_outs)
@@ -134,9 +135,11 @@ class ConditionalImage(PredictionSampler2):
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
+                    #[image_out, image_out2, disc_out1, disc_out2] + enc_outs)
                     [image_out, image_out2, disc_out2] + enc_outs)
             train_predictor.compile(
                     loss=[self.loss, self.loss, "categorical_crossentropy"] + enc_losses,
+                    #loss_weights=[img_loss_wt, img_loss_wt, 0.9*disc_wt, disc_wt] + enc_wts,
                     loss_weights=[img_loss_wt, img_loss_wt, disc_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         train_predictor.summary()
@@ -164,6 +167,9 @@ class ConditionalImage(PredictionSampler2):
         elif self.no_disc:
             targets = [I_target, I_target2]
         else:
+            # Uncomment if you want to try the whole "two discriminator" thing
+            # again -- this might need a more fully supported option
+            #targets = [I_target, I_target2, o1_1h, o2_1h]
             targets = [I_target, I_target2, o2_1h]
         if self.enc_loss:
             targets += [I_target, I_target2]
@@ -214,7 +220,7 @@ class ConditionalImage(PredictionSampler2):
         self.q_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
-        #self.q_model.load_weights(self.makeName("secondary", "q"))
+        self.q_model.load_weights(self.makeName("secondary", "q"))
 
     def pnext(self, hidden0, hidden, prev_option):
         '''

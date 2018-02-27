@@ -14,9 +14,8 @@ from costar_models.planner import GetOrderedList, PrintTopQ
 
 def visualizeHiddenMain(args):
     '''
-    Tool for running model training without the rest of the simulation/planning/ROS
-    code. This should be more or less independent and only rely on a couple
-    external features.
+    Compute multiple parallel predictions from the first frame and display
+    them. This script will only predict from h0, not from subsequent frames!
     '''
     np.random.seed(0)
     ConfigureGPU(args)
@@ -50,15 +49,13 @@ def visualizeHiddenMain(args):
         if not h.shape[0] == I.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
         print("shape =", p_a.shape)
-        #action = np.argmax(p_a,axis=1)
-        action = np.argmax(q_a,axis=1)
+        action = np.argmax(p_a,axis=1)
         # Compute effects of first action
         #h_goal = model.transform(h0, h, o1)
         h_goal = model.transform(h0, h, action)
         p_a2, done2 = model.pnext(h0, h_goal, action)
         q_a2, _ = model.q(h0, h_goal, action)
-        #action2 = np.argmax(p_a2,axis=1)
-        action2 = np.argmax(q_a2,axis=1)
+        action2 = np.argmax(p_a2,axis=1)
 
         # Comute effects of next action
         #h_goal2 = model.transform(h0, h_goal, o2)
