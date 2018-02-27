@@ -16,7 +16,8 @@ class LogCallback(keras.callbacks.Callback):
         self.directory = model_directory
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
-        self.file = open(os.path.join(self.directory,"%s_log.csv"%name),'w')
+        self.file = open(os.path.join(self.directory,"%s_log.csv"%name),'a+')
+        self.file.write("Starting new log session\n")
 
     def on_epoch_end(self, epoch, logs={}):
         if epoch == 0:
