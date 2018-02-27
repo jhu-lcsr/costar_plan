@@ -587,7 +587,7 @@ def train_k_fold(split_type=None,
     train_id = ''
     val_size = 0
     train_size = 0
-    kfold_run_name = grasp_utilities.timeStamped(run_name + '-kfold')
+    kfold_run_name = grasp_utilities.timeStamped(run_name + split_type + '-kfold')
     log_dir = os.path.join(log_dir, kfold_run_name)
     kfold_param_dicts = {'num_fold': num_fold, 'num_splits': num_splits, 'fold_size': num_train}
     kfold_run_train_param_list = []
@@ -652,6 +652,7 @@ def train_k_fold(split_type=None,
                                      '\n------------------------------------------\n')
         history = run_training(**params)
         run_histories[fold_name] = history
+        progbar_fold_name_list.update()
         # TODO(ahundt) save histories in some nice way
         # with open(json_histories_path, 'w') as fp:
         #     # save out all kfold params so they can be reloaded in the future
@@ -1023,7 +1024,6 @@ def old_loss(tan, x, y, h, w):
 def main(_):
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
-    train_k_fold(hyperparams=hyperparams, **hyperparams)
     if 'k_fold' in FLAGS.pipeline_stage:
         train_k_fold(hyperparams=hyperparams, **hyperparams)
     else:

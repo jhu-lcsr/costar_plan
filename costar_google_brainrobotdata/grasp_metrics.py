@@ -476,7 +476,7 @@ def angle_difference_less_than_threshold(
     true_pred_diff = true_angle - pred_angle
     # we would have just done this directly at the start if the angle_multiplier wasn't needed
     angle_difference = np.arctan2(np.sin(true_pred_diff), np.cos(true_pred_diff))
-    print('angle_difference: ' + str(angle_difference) + ' deg: ' + str(np.degrees(angle_difference)))
+    # print('angle_difference: ' + str(angle_difference) + ' deg: ' + str(np.degrees(angle_difference)))
     is_within_angle_threshold = np.abs(angle_difference) <= angle_threshold
     if verbose > 0:
         print(' angle_difference_less_than_threshold(): ' +

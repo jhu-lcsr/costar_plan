@@ -26,7 +26,8 @@ def main(_):
     if FLAGS.load_hyperparams is None:
         FLAGS.load_hyperparams = '/home/ahundt/datasets/logs/hyperopt_logs_cornell/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json'
     FLAGS.split_dataset = 'objectwise'
-    FLAGS.epochs = 100
+    FLAGS.epochs = 1
+    FLAGS.fine_tuning_epochs = 1
 
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
@@ -37,6 +38,13 @@ def main(_):
             problem_name=problem_type,
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
+            split_type='objectwise',
+            **hyperparams)
+        cornell_grasp_train.train_k_fold(
+            problem_name=problem_type,
+            feature_combo_name=feature_combo,
+            hyperparams=hyperparams,
+            split_type='imagewise',
             **hyperparams)
     else:
         cornell_grasp_train.run_training(

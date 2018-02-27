@@ -289,7 +289,7 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inver
     return coordinate
 
 
-def resize_coordinate(coordinate, input_shape, output_shape, name=None):
+def resize_coordinate(coordinate, input_shape, output_shape, dtype=tf.float32, name=None):
     """ Update a coordinate that changed with a tf.image.resize_images call.
 
     Update is made based on the current input shape and a new updated output shape.
@@ -297,10 +297,10 @@ def resize_coordinate(coordinate, input_shape, output_shape, name=None):
     """
     with tf.name_scope(name, "resize_coordinate",
                        [coordinate, input_shape, output_shape]) as name:
-        # input_shape = tf.cast(input_shape, tf.float32)
-        # output_shape = tf.cast(output_shape, tf.float32)
+        input_shape = tf.cast(input_shape, dtype)
+        output_shape = tf.cast(output_shape, dtype)
         if isinstance(input_shape, list):
-            input_shape = tf.constant([[input_shape[0]][input_shape[1]]], tf.int32)
+            input_shape = tf.constant([[input_shape[0]][input_shape[1]]], dtype)
             proportional_dimension_change = output_shape / input_shape
         else:
             proportional_dimension_change = output_shape / input_shape[:2]
