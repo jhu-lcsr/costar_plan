@@ -25,9 +25,11 @@ def main(_):
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     if FLAGS.load_hyperparams is None:
         FLAGS.load_hyperparams = '/home/ahundt/datasets/logs/hyperopt_logs_cornell/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json'
-    FLAGS.split_dataset = 'objectwise'
-    FLAGS.epochs = 1
-    FLAGS.fine_tuning_epochs = 1
+    FLAGS.epochs = 200
+    FLAGS.fine_tuning_epochs = 100
+    print('Regression Training On Jaccard Distance is about to begin. '
+          'It overrides some command line parameters so to change them '
+          'you will need to modify cornell_grasp_train_regression.py directly.')
 
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
