@@ -20,15 +20,15 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Start training things
 retrain=false
 use_disc=true
-sbatch ctp_husky.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc
+sbatch ctp_husky.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc 1 1
 
 retrain=false
 use_disc=false
-sbatch ctp_husky.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc
+sbatch ctp_husky.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc 1 1
 
 retrain=true
 use_disc=true
-sbatch ctp_husky.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc
+sbatch ctp_husky.sh $lr $dr $opt $noise_dim $loss $retrain $use_disc 1 1
 
 lr=0.0001
 dr=0.1
