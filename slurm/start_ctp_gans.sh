@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"/../costar_models/python
 python setup.py install --user
 cd -
 
-OPTS=$(getopt -o '' --long retrain,load_model,gan_encoder,no_gan_encoder,skip_encoder,suffix:,no_resume,epochs1:,epochs2:,skip_cond,no_husky,no_jigsaws,no_ctp,no_wass,common_encoder -n start_ctp_gans -- "$@")
+OPTS=$(getopt -o '' --long retrain,load_model,gan_encoder,no_gan_encoder,skip_encoder,suffix:,no_resume,epochs1:,epochs2:,skip_cond,no_husky,no_jigsaws,no_ctp,no_wass,common_encoder,dense_transform -n start_ctp_gans -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -37,6 +37,7 @@ run_husky=true
 run_jigsaws=true
 run_wass=true
 common_encoder=false # Use an encoder in a separate location
+dense_transform=false
 
 while true; do
   case "$1" in
@@ -55,26 +56,26 @@ while true; do
     --no_husky) run_husky=false; shift ;;
     --no_jigsaws) run_jigsaws=false; shift ;;
     --no_wass) run_wass=false; shift ;;
+    --dense_transform) dense_transform=true ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
 done
 
-#if $retrain; then retrains=--retrain; else retrains=--retrain ''; fi
-#if $gan_encoder; then gan_cmd='--gan_encoder'; else gan_cmd=''; fi
 if $skip_encoder; then skip_cmd='--skip_encoder'; else skip_cmd=''; fi
 if $load_model; then load_cmd='--load_model'; else load_cmd=''; fi
 if [[ $suffix != '' ]]; then suffix_cmd="--suffix $suffix"; else suffix_cmd=''; fi
 if $resume; then resume_cmd=''; else resume_cmd='--no_resume'; fi
 # Check for the common encoder location
 if $common_encoder; then  enc_dir_cmd='--enc_dir ~/.costar/pretrain_codec'; else enc_dir_cmd=''; fi
+if $dense_transform; then dense_transform_cmd='--dense_transform'; else dense_transform_cmd=''; fi
 
 if $run_wass; then wass_list='true false'; else wass_list=false; fi
 for do_wass in $wass_list; do
   if $do_wass; then wass_cmd='--wass'; else wass_cmd=''; fi
   if $do_wass; then opt=rmsprop; else opt=adam; fi
   for noise_cmd in --noise ''; do
-    if ! $gan_encoder; then enc_list='false'; else enc_list='true false'; fi
+    if $gan_encoder; then enc_list='true false'; else enc_list='false'; fi
     for do_gan_enc in $enc_list; do
       if $do_gan_enc; then enc_cmd='--gan_encoder'; else enc_cmd=''; fi
       # double the epochs for gan encoder
@@ -86,7 +87,7 @@ for do_wass in $wass_list; do
             --opt $opt --epochs1 $epochs1 --epochs2 $epochs2 \
             $wass_cmd $noise_cmd $retrain_cmd $enc_cmd \
             $load_cmd $skip_cmd $suffix_cmd $resume_cmd $skip_cond_cmd \
-            $enc_dir_cmd
+            $enc_dir_cmd $dense_transform_cmd
         }
         $run_ctp && call ctp_dec multi
         $run_husky && call husky_data husky

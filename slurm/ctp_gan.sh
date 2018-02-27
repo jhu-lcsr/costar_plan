@@ -17,7 +17,7 @@ else
 fi
 
 ## Option Processing ----
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,enc_dir:,skip_cond -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,enc_dir:,skip_cond,dense_transform -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -40,6 +40,7 @@ epochs1=100
 epochs2=100
 enc_dir=''
 skip_cond=false
+dense_transform_cmd=''
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -67,6 +68,7 @@ while true; do
     --epochs1) epochs1="$2"; shift 2 ;;
     --epochs2) epochs2="$2"; shift 2 ;;
     --enc_dir) enc_dir="$2"; shift 2 ;;
+    --dense_transform) dense_transform_cmd="--dense_transform"; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -219,6 +221,7 @@ if ! $skip_cond; then
       $wass_cmd \
       $use_noise_cmd \
       $load_cmd \
-      $req_dir_cmd
+      $req_dir_cmd \
+      $dense_transform_cmd
   fi
 fi
