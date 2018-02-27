@@ -130,6 +130,7 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
     #dr, bn = dropout_rate, batchnorm
     x0, x = x0in, xin
     dr, bn = dropout_rate, False
+    use_lrelu = False
 
     x = Concatenate(axis=-1)([x, x0])
     x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=use_lrelu, bn=bn)
