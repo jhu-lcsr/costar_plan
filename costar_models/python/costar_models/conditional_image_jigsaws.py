@@ -64,7 +64,10 @@ class ConditionalImageJigsaws(ConditionalImage):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
+        if not self.dense_transform:
+            tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
+        else:
+            tform = self._makeDenseTransform(h_dim=(12, 16), small=True)
         l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
         x = tform(l)
         l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]

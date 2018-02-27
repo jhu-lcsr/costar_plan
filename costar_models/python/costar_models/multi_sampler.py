@@ -437,7 +437,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                     noise_dim=self.noise_dim,)
         return transform
 
-    def _makeDenseTransform(self, h_dim=(8,8), perm_drop=False):
+    def _makeDenseTransform(self, h_dim=(8,8), perm_drop=False, small=False):
         '''
         Returns:
         --------
@@ -460,8 +460,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         else:
             x = Concatenate()([x, x0, option])
 
-        x = AddDense(x, l0 * l1 * c * 2, "relu", 0., constraint=None, bn=bn, perm_drop=perm_drop)
-        x = AddDense(x, l0 * l1 * c * 2, "relu", dr, constraint=None, bn=bn, perm_drop=perm_drop)
+        factor = 0.25 if small else 1.
+
+        x = AddDense(x, int(l0 * l1 * c * factor), "relu", 0., constraint=None, bn=bn, perm_drop=perm_drop)
+        x = AddDense(x, int(l0 * l1 * c * factor), "relu", dr, constraint=None, bn=bn, perm_drop=perm_drop)
         x = AddDense(x, l0 * l1 * c, "relu", dr, constraint=None, bn=bn, perm_drop=perm_drop)
 
         x = Reshape([l0, l1, c])(x)
