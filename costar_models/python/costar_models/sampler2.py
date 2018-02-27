@@ -311,33 +311,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         else:
             return [I, q, g, oin], [tt, o1, v]
 
-    def encode(self, obs):
-        '''
-        Encode available features into a new state
-
-        Parameters:
-        -----------
-        obs: list of observation data
-        '''
-        return self.hidden_encoder.predict(obs)
-
-    def decode(self, hidden):
-        '''
-        Decode features and produce a set of visualizable images or other
-        feature outputs.
-
-        '''
-        return self.hidden_decoder.predict(hidden)
-
-    def pnext(self, hidden):
-        raise NotImplementedError('next() not implemented')
-
-    def transform(self, hidden, option_in=-1):
-        raise NotImplementedError('transform() not implemented')
-
-    def act(self, *args, **kwargs):
-        raise NotImplementedError('act() not implemented')
-
     def decodedInfo(self, features):
         '''
         Take decoded information and show it somewhere.
@@ -350,9 +323,6 @@ class PredictionSampler2(RobotMultiPredictionSampler):
         for i, f in enumerate(features):
             print("-->", i, f.shape)
             print(f)
-
-    def prevOption(self, features):
-        return features[3]
 
     def debugImage(self, features):
         if self.use_noise:

@@ -124,10 +124,13 @@ class Task(object):
                     inodes[name].append(iname)
                 for child in task.children[iname]:
                     self.children[iname].add(child)
+                for wt in task.weights[iname]:
+                    self.weights[iname].append(wt)
             else:
                 inodes[name] = [iname]
                 self.nodes[iname] = option
                 self.children[iname] = task.children[iname]
+                self.weights[iname] = task.weights[iname]
 
         return inodes
 
@@ -244,7 +247,8 @@ class Task(object):
                     continue
                 for iname in inodes[name]:
                     self.generic_names[iname] = name
-                    self.weights[iname] = []
+                    if iname not in self.weights:
+                        self.weights[iname] = []
                     # loop over all templated (abstract) actions
                     for child, frequency in zip(template.children, template.frequencies):
                         # If this child is in the set of instantiated nodes...
@@ -258,8 +262,8 @@ class Task(object):
                                 self.children[iname].add(ichild)
                                 self.weights[iname].append(
                                     float(frequency) / num_ichildren)
-                    self.weights[iname] = (np.array(self.weights[iname]) / 
-                                           np.sum(self.weights[iname]))
+                    #self.weights[iname] = (np.array(self.weights[iname]) / 
+                    #                       np.sum(self.weights[iname]))
 
         if self.subtask_name == None:
                 # WARNING: this is kind of terrible and might be sort of inefficient.
@@ -286,6 +290,7 @@ class Task(object):
                 inodes[name] = [iname]
             self.nodes[iname] = option
             self.children[iname] = set()
+            self.weights[iname] = []
 
     def clear(self):
         self.nodes = {}

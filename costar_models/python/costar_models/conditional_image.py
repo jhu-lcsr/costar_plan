@@ -124,7 +124,7 @@ class ConditionalImage(PredictionSampler2):
         if self.no_disc:
             disc_wt = 0.
         else:
-            disc_wt = 1e-3
+            disc_wt = 1e-2
         if self.no_disc:
             train_predictor = Model(ins + [label_in],
                     [image_out, image_out2] + enc_outs)
@@ -177,6 +177,15 @@ class ConditionalImage(PredictionSampler2):
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
 
+        print(">>> GOAL_CLASSIFIER")
+        image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=(64, 64, 3))
+        image_discriminator.compile(loss="categorical_crossentropy",
+                                    metrics=["accuracy"],
+                                    optimizer=self.getOptimizer())
+        self.discriminator = image_discriminator
+
         print(">>> VALUE MODEL")
         self.value_model = GetValueModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
@@ -205,26 +214,7 @@ class ConditionalImage(PredictionSampler2):
         self.q_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
-        self.q_model.load_weights(self.makeName("secondary", "q"))
-
-
-    def encode(self, img):
-        '''
-        Encode available features into a new state
-
-        Parameters:
-        -----------
-        [unknown]: all are parsed via _getData() function.
-        '''
-        return self.image_encoder.predict(img)
-
-    def decode(self, hidden):
-        '''
-        Decode features and produce a set of visualizable images or other
-        feature outputs.
-
-        '''
-        return self.image_decoder.predict(hidden)
+        #self.q_model.load_weights(self.makeName("secondary", "q"))
 
     def pnext(self, hidden0, hidden, prev_option):
         '''
@@ -256,19 +246,6 @@ class ConditionalImage(PredictionSampler2):
         #v = self.value_model.predict([h0, hidden, prev_option])
         v = self.value_model.predict([hidden0, hidden])
         return v
-
-    def transform(self, hidden0, hidden, option_in=-1):
-        #if option_in < 0 or option_in > self.num_options:
-        #    option_in = self.null_option
-        #oin = MakeOption1h(option_in, self.num_options)
-        if len(option_in.shape) == 1:
-            oin = ToOneHot(option_in, self.num_options)
-        else:
-            oin = option_in
-        #length = hidden.shape[0]
-        #oin = np.repeat(oin, length, axis=0)
-        h = self.transform_model.predict([hidden0, hidden, oin])
-        return h
 
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')
