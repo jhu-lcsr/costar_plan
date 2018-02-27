@@ -67,6 +67,9 @@ class ConditionalImageHusky(ConditionalImage):
         image_out = decoder([x])
         image_out2 = decoder([x2])
 
+        if self.validate:
+            self.loadValidationModels(pose_size, h0, h)
+
         if not self.no_disc:
             image_discriminator = LoadGoalClassifierWeights(self,
                     make_classifier_fn=MakeImageClassifier,
@@ -94,6 +97,52 @@ class ConditionalImageHusky(ConditionalImage):
                     loss_weights=[1., 1., disc_wt],
                     optimizer=self.getOptimizer())
         self.model = model
+
+    def loadValidationModels(self, pose_size, h0, h):
+
+        pose_in = Input((pose_size,))
+        label_in = Input((1,))
+
+        print(">>> GOAL_CLASSIFIER")
+        image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=(64, 64, 3))
+        image_discriminator.compile(loss="categorical_crossentropy",
+                                    metrics=["accuracy"],
+                                    optimizer=self.getOptimizer())
+        self.discriminator = image_discriminator
+
+        print(">>> VALUE MODEL")
+        self.value_model = GetValueModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        self.value_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.value_model.load_weights(self.makeName("secondary", "value"))
+
+        print(">>> NEXT MODEL")
+        self.next_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        self.next_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.next_model.load_weights(self.makeName("secondary", "next"))
+
+        print(">>> ACTOR MODEL")
+        self.actor = GetHuskyActorModel(h, self.num_options, pose_size,
+                self.decoder_dropout_rate)
+        self.actor.compile(loss="mae",optimizer=self.getOptimizer())
+        self.actor.load_weights(self.makeName("secondary", "actor"))
+
+        print(">>> POSE MODEL")
+        self.pose_model = GetHuskyPoseModel(h, self.num_options, arm_size, gripper_size,
+                self.decoder_dropout_rate)
+        self.pose_model.compile(loss="mae",optimizer=self.getOptimizer())
+        self.pose_model.load_weights(self.makeName("secondary", "pose"))
+
+        print(">>> Q MODEL")
+        self.q_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.q_model.load_weights(self.makeName("secondary", "q"))
+
+
 
     def _getData(self, *args, **kwargs):
         return GetConditionalHuskyData(self.validate, self.no_disc, self.num_options, *args, **kwargs)

@@ -89,6 +89,7 @@ def GetHuskyPoseModel(x, num_options, pose_size,
     x = xin
     x0 = x0in
     dr, bn = dropout_rate, False
+    use_lrelu = False
 
     x = Concatenate(axis=-1)([x, x0])
     x = AddConv2D(x, 32, [3,3], 1, dr, "same", lrelu=use_lrelu, bn=bn)
@@ -110,9 +111,9 @@ def GetHuskyPoseModel(x, num_options, pose_size,
     x = AddDense(x, 512, "relu", dr, output=True, bn=bn)    # Same setup as the state decoders
 
 
-    pose = AddDense(x1, pose_size, "linear", 0., output=True)
-    #value = Dense(1, activation="sigmoid", name="V",)(x1)
+    pose = AddDense(x, pose_size, "linear", 0., output=True)
     pose = Model([x0in, xin, option_in, pose_in], [pose], name="pose")
+    return pose
 
 def GetPolicyHuskyData(num_options, option, image, pose, action, label, *args,
         **kwargs):
@@ -184,6 +185,7 @@ def MakeHuskyPolicy(model, encoder, image, pose, action, option, verbose=True):
     ins = [img0_in, img_in, pose_in]
 
     dr, bn = model.dropout_rate, False
+    use_lrelu = False
 
     x = encoder(img_in)
     x0 = encoder(img0_in)
