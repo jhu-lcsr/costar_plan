@@ -1,8 +1,18 @@
 
 
-
-
 # Some Validation Notes
+
+## Data for Stack Task
+
+Data set was created with an old version of pybullet, sort of unstable:
+```
+sudo -H pip install pybullet==1.2.2 -I
+```
+
+Command to get the data set:
+```
+./commands/collect_stack1_goals.sh gui_start
+```
 
 ## Training/Target-wise Error
 

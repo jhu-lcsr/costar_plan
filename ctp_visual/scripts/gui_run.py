@@ -9,6 +9,8 @@ if __name__ == "__main__":
     args['robot'] = "ur5"
     args['features'] = "multi"
     args['model'] = "conditional_image"
+    args['verbose'] = True
+    args['agent'] = "task"
     if args['profile']:
         import cProfile
         cProfile.run('sim(args)')
