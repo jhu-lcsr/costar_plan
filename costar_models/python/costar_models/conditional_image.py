@@ -167,6 +167,8 @@ class ConditionalImage(PredictionSampler2):
         elif self.no_disc:
             targets = [I_target, I_target2]
         else:
+            # Uncomment if you want to try the whole "two discriminator" thing
+            # again -- this might need a more fully supported option
             #targets = [I_target, I_target2, o1_1h, o2_1h]
             targets = [I_target, I_target2, o2_1h]
         if self.enc_loss:
