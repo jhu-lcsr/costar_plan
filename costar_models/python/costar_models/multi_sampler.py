@@ -308,8 +308,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
-        x = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
-        x0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
+        h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
+        h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
         bn = self.use_batchnorm
 
@@ -324,8 +324,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             z = Input((self.noise_dim,), name="z_in")
 
         # 2 x "decoder" convolutions
-        x = AddConv2D(x, 64, [1,1], 1, 0., **kwargs)
-        x0 = AddConv2D(x0, 64, [1,1], 1, 0., **kwargs)
+        x = AddConv2D(h, 64, [1,1], 1, 0., **kwargs)
+        x0 = AddConv2D(h0, 64, [1,1], 1, 0., **kwargs)
 
         # Combine the hidden state observations
         x = Concatenate()([x, x0])
