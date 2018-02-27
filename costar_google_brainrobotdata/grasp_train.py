@@ -446,7 +446,7 @@ class GraspTrain(object):
             callbacks = callbacks + [checkpoint]
 
             # progress bar
-            callbacks += [TQDMCallback()]
+            # callbacks += [TQDMCallback()]
             # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
             # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
@@ -493,7 +493,7 @@ class GraspTrain(object):
                 fp.write(model.to_json())
 
             try:
-                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks, verbose=0)
+                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks, verbose=1)
                 final_weights_name = log_dir_run_name + '-final.h5'
                 model.save_weights(final_weights_name)
             except (Exception, KeyboardInterrupt) as e:
