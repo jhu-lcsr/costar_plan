@@ -64,6 +64,8 @@ def main(args):
         total = 0
         err1_sum = 0.
         err2_sum = 0.
+        v_sum = 0.
+        ii = 0
         for filename in dataset.test:
             print(filename)
             data = dataset.loadFile(filename)
@@ -72,6 +74,7 @@ def main(args):
             [I0, I, o1, o2, oin] = features
             [I_target, I_target2, o1_1h, value, qa, ga, o2_1h] = targets
             for i in range(length):
+                ii += 1
                 xi = np.expand_dims(I[i],axis=0)
                 x0 = np.expand_dims(I0[i],axis=0)
                 prev_option = np.array([oin[i]])
@@ -97,12 +100,25 @@ def main(args):
                     correct_g2 += 1
                 err1 = np.mean(np.abs((xg[0] - I_target[i])))
                 err2 = np.mean(np.abs((xg2[0] - I_target2[i])))
+                v = model.value(h0, h_goal2)
+                if v[0] > 0.5 and value[i] > 0.5:
+                   vacc = 1.
+                elif v[0] < 0.5 and value[i] < 0.5:
+                   vacc = 1.
+                else:
+                   vacc = 0. 
                 err1_sum += err1
                 err2_sum += err2
                 total += 1
+                v_sum += vacc
                 mean1 = err1_sum / total
                 mean2 = err2_sum / total
-                print(correct_g1, "/", total, correct_g2, "/", total, "...", o1[i], o2[i], res1[0], res2[0], "errs =", err1, err2, "means =", mean1, mean2)
+                print(correct_g1, "/", total, correct_g2, "/", total, "...",
+                      o1[i], o2[i],
+                      res1[0], res2[0],
+                      #"errs =", err1, err2,
+                      "means =", mean1, mean2,
+                      "value =", v, value[i], "avg =", (v_sum/total))
 
     else:
         raise RuntimeError('Must provide a model to load')
