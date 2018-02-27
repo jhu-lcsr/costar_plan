@@ -94,7 +94,7 @@ class ConditionalImage(PredictionSampler2):
         y = Flatten()(OneHot(self.num_options)(next_option_in))
         y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
 
-        tform = self._makeTransform()
+        tform = self._makeTransform() if not self.dense_transform else self._makeDenseTransform()
         x = tform([h0,h,y])
         x2 = tform([h0,x,y2])
 

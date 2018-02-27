@@ -443,55 +443,28 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
-        x = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
-        x0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
+        l0, l1, c = h_dim[0], h_dim[1], self.encoder_channels
+        h = Input((l0, l1, c), name="h_in")
+        h0 = Input((l0, l1, c), name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
         bn = self.use_batchnorm
+        dr = self.dropout_rate
 
-        # Common arguments
-        kwargs = {
-                "activation" : self.activation_fn,
-                "bn" : self.use_batchnorm,
-                "perm_drop" : perm_drop,
-                }
+        # Combine the hidden state observations
+        x = Flatten()(h)
+        x0 = Flatten()(h0)
 
         if self.use_noise:
             z = Input((self.noise_dim,), name="z_in")
+            x = Concatenate([x, x0, option, z])
+        else:
+            x = Concatenate()([x, x0, option])
 
-        # 2 x "decoder" convolutions
-        #x = AddConv2D(x, 64, [1,1], 1, 0., **kwargs)
-        #x0 = AddConv2D(x0, 64, [1,1], 1, 0., **kwargs)
+        x = AddDense(x, l0 * l1 * c * 2, "relu", 0., constraint=None, bn=bn, perm_drop=perm_drop)
+        x = AddDense(x, l0 * l1 * c * 2, "relu", dr, constraint=None, bn=bn, perm_drop=perm_drop)
+        x = AddDense(x, l0 * l1 * c, "relu", dr, constraint=None, bn=bn, perm_drop=perm_drop)
 
-        # Combine the hidden state observations
-        x = Concatenate()([x, x0])
-        # 1 convolution to merge h, h0
-        #x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, **kwargs) # Removed this dropout
-
-        # store this for skip connection
-        skip = x
-
-        if self.use_noise:
-            y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False, bn=bn)
-            #x = TileOnto(x, y, 32, h_dim)
-            #x = AddConv2D(x, 32, [5,5], 1, 0., **kwargs)
-            x = Concatenate([x, y])
-
-        # Add convolution to incorporate action info -- 2 + 1 + 1 = 4
-        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False, bn=bn, perm_drop=perm_drop)
-        #x = TileOnto(x, y, 64, h_dim)
-        #x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
-        x = Concatenate([x, y])
-
-        x = AddDense(x, 128, "lrelu", 0., constraint=None, bn=bn)
-        x = AddDense(x, 64, "lrelu", 0., constraint=None, bn=bn)
-
-        # --------------------------------------------------------------------
-        # Put resulting image into the output shape
-        # Encode again -- 1x1 convolution -- 7-10 convolutions total
-        x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
-                bn=False, # disables batchnorm here
-                activation="sigmoid", # outputs in [0, 1]
-                dropout_rate=0.)
+        x = Reshape([l0, l1, c])(x)
 
         l = [h0, h, option, z] if self.use_noise else [h0, h, option]
         self.transform_model = Model(l, x, name="tform")
