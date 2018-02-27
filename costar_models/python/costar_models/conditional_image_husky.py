@@ -96,4 +96,4 @@ class ConditionalImageHusky(ConditionalImage):
         self.model = model
 
     def _getData(self, *args, **kwargs):
-        return GetConditionalHuskyData(self.no_disc, self.num_options, *args, **kwargs)
+        return GetConditionalHuskyData(self.validate, self.no_disc, self.num_options, *args, **kwargs)

@@ -51,7 +51,10 @@ def visualizeHiddenMain(args):
 
         features, targets = next(test_generator)
         [I0, I, o1, o2, oin] = features
-        [ I_target, I_target2, o1_1h, value, qa, ga, o2_1h] = targets
+        if model.features == "multi" or model.features == None:
+            [ I_target, I_target2, o1_1h, value, qa, ga, o2_1h] = targets
+        else:
+            [ I_target, I_target2, o1_1h, value, a, o2_1h] = targets
 
         # Same as in training code
         model.model.predict([I0, I, o1, o2, oin])
