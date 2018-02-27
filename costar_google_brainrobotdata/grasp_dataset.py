@@ -89,9 +89,9 @@ flags.DEFINE_integer('median_filter_width', 5,
 flags.DEFINE_integer('median_filter_height', 5,
                      """Height of median filter kernel.
                      """)
-flags.DEFINE_integer('crop_width', 560,
+flags.DEFINE_integer('crop_width', 448,  # formerly 560
                      """Width to crop images""")
-flags.DEFINE_integer('crop_height', 448,
+flags.DEFINE_integer('crop_height', 448,  # formerly 448
                      """Height to crop images""")
 flags.DEFINE_boolean('random_crop', True,
                      """random_crop will apply the tf random crop function with
@@ -105,9 +105,9 @@ flags.DEFINE_boolean('random_crop', True,
                         that you crop images to the same size during both training
                         and test time.
                      """)
-flags.DEFINE_integer('resize_width', 160,
+flags.DEFINE_integer('resize_width', 224,  # formerly 160
                      """Width to resize images before prediction, if enabled.""")
-flags.DEFINE_integer('resize_height', 128,
+flags.DEFINE_integer('resize_height', 224,  # formerly 128
                      """Height to resize images before prediction, if enabled.""")
 flags.DEFINE_boolean('resize', True,
                      """resize will resize the input images to the desired dimensions specified by the
@@ -1512,11 +1512,25 @@ class GraspDataset(object):
             imagenet_preprocessing=None,
             resize=None,
             resize_height=None,
-            resize_width=None):
+            resize_width=None,
+            mode='tf'):
         """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired.
 
         Please note that cropped images are generated in `_image_decode()` and given separate feature names.
         Also please be very careful about resizing the rgb image
+
+        # Arguments
+
+            mode: One of "caffe", "tf" or "torch".
+                - caffe: will convert the images from RGB to BGR,
+                    then will zero-center each color channel with
+                    respect to the ImageNet dataset,
+                    without scaling.
+                - tf: will scale pixels between -1 and 1,
+                    sample-wise.
+                - torch: will scale pixels between 0 and 1 and then
+                    will normalize each channel with respect to the
+                    ImageNet dataset.
         """
         with tf.name_scope('rgb_preprocessing'):
             if image_augmentation is None:
@@ -1537,9 +1551,9 @@ class GraspDataset(object):
                                                       tf.constant([resize_height, resize_width],
                                                                   name='resize_height_width'))
             if imagenet_preprocessing:
+                data_format = K.image_data_format()
                 # TODO(ahundt) add scaling to augmentation and use that to augment delta depth parameters
                 # TODO(ahundt) possibly subtract imagenet mean if using pretrained weights, also simply divide channels by 255, and  see https://github.com/tensorflow/tensorflow/issues/15722
-                # rgb_image_op = tf.image.per_image_standardization(rgb_image_op)
                 rgb_image_op = inception_preprocessing.preprocess_image(
                     rgb_image_op,
                     is_training=image_augmentation,
@@ -1880,7 +1894,7 @@ class GraspDataset(object):
                     # not just the pregrasp_image_rgb_op's size.
                     if 'cropped' in feature_key:
                         # After cropping the images are resized, so apply the resize step to the coordinate.
-                        coordinate = rcp.resize_coordinate(feature, img_shape, output_shape)
+                        coordinate = rcp.resize_coordinate(feature, img_shape, output_shape, dtype=tf.int32)
                         coordinate_name = feature_key.replace(preprocessed_suffix, 'cropped_resized')
                         resized_coordinate_dict[coordinate_name] = coordinate
                         if batch_i == 0:
@@ -2161,6 +2175,8 @@ class GraspDataset(object):
                 random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset,
                 shift_ratio=shift_ratio, seed=seed)
 
+            # print('<<<<<<<<<time_ordered_feature_name_dict:' + str(time_ordered_feature_name_dict))
+
             # convert the dictionary with only feature strings to a dictionary with actual tensors
             time_ordered_feature_tensor_dicts = GraspDataset.to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
 
@@ -2174,6 +2190,7 @@ class GraspDataset(object):
             # grasp success labels from the motion
             grasp_success_op_batch = self.to_training_tensor(time_ordered_feature_tensor_dicts, grasp_success_label)
 
+            print('motion_command_feature: ' + str(motion_command_feature))
             # motion commands, such as pose or transform features
             simplified_grasp_command_op_batch = self.to_training_tensor(time_ordered_feature_tensor_dicts, motion_command_feature)
 

@@ -423,13 +423,13 @@ def choose_hypertree_model(
         images=None, vectors=None,
         image_shapes=None, vector_shapes=None,
         dropout_rate=0.25,
-        vector_dense_filters=64,
+        vector_dense_filters=256,
         dilation_rate=2,
         activation='sigmoid',
         final_pooling=None,
         include_top=True,
         top='classification',
-        top_block_filters=128,
+        top_block_filters=64,
         classes=1,
         output_shape=None,
         trainable=False,
@@ -437,8 +437,9 @@ def choose_hypertree_model(
         image_model_name='vgg',
         vector_model_name='dense',
         trunk_layers=4,
-        trunk_filters=256,
-        vector_branch_num_layers=3):
+        trunk_filters=128,
+        vector_branch_num_layers=3,
+        image_model_weights='shared'):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
@@ -446,8 +447,18 @@ def choose_hypertree_model(
         dropout_rate: a dropout rate of None will disable dropout
         top_block_filters: the number of filters for the two final fully connected layers,
             before a prediction is made based on the number of classes.
+        image_model_weights: How should the image model weights be stored for each image?
+            Options are 'shared' and 'separate'.
 
     # Notes
+
+    Best result for classification 2018-02-23-09-35-21
+
+        - 0.25 dropout
+        - hyperopt_logs_cornell/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success
+          {"vector_dense_filters": 256, "vector_branch_num_layers": 0, "trunk_filters": 128,
+          "image_model_name": "vgg", "vector_model_name": "dense", "preprocessing_mode": "tf",
+          "trainable": true, "top_block_filters": 64, "learning_rate": 0.02, "trunk_layers": 4}
 
     Best 1 epoch run with image_preprocessed_sin_cos_height_3 and 0.25 dropout, 2018-02-19:
         - val_binary_accuracy 0.9115646390282378
@@ -499,32 +510,82 @@ def choose_hypertree_model(
         name_prefix = 'single_'
         dilation_rate = 1
     with K.name_scope(name_prefix + 'hypertree') as scope:
+
+        # input_image_tensor = None
+        # get the shape of images
+        # currently assumes all images have the same shape
+        if image_shapes is None and isinstance(images[0], tf.Tensor):
+            image_input_shape = K.int_shape(images[0])
+        elif isinstance(image_shapes[0], tf.Tensor):
+            image_input_shape = K.int_shape(image_shapes[0])
+        elif image_shapes is None:
+            raise ValueError(
+                'image_shapes is None and could not be determined'
+                'automatically. Try specifying it again or correcting it.'
+                'The images param was also: ' + str(images)
+            )
+        else:
+            image_input_shape = image_shapes[0]
+        print('image_input_shape: ' + str(image_input_shape))
+        print('images: ' + str(images))
+
+        if image_input_shape is not None and len(image_input_shape) == 4:
+            # cut off batch size
+            image_input_shape = image_input_shape[1:]
+
+        if image_model_weights not in ['shared', 'separate']:
+            raise ValueError('Unsupported image_model_weights: ' +
+                             str(image_model_weights) +
+                             'Options are shared and separate')
+
+        print('image_input_shape sans batch: ' + str(image_input_shape))
         # VGG16 weights are shared and not trainable
         if top == 'segmentation':
-            image_model = fcn.AtrousFCN_Vgg16_16s(
-                input_shape=image_shapes[0], include_top=False,
-                classes=classes, upsample=False)
-        else:
             if image_model_name == 'vgg':
-                image_model = keras.applications.vgg16.VGG16(
-                    input_shape=image_shapes[0], include_top=False,
-                    classes=classes)
+                if image_model_weights == 'shared':
+                    image_model = fcn.AtrousFCN_Vgg16_16s(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes, upsample=False)
+                elif image_model_weights == 'separate':
+                    image_model = fcn.AtrousFCN_Vgg16_16s
+            elif image_model_name == 'resnet':
+                if image_model_weights == 'shared':
+                    image_model = fcn.AtrousFCN_Resnet50_16s(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes, upsample=False)
+                elif image_model_weights == 'separate':
+                    image_model = fcn.AtrousFCN_Resnet50_16s
+            else:
+                raise ValueError('Unsupported segmentation model name: ' +
+                                 str(image_model_name) + 'options are vgg and resnet.')
+        else:
+
+            if image_model_name == 'vgg':
+                if image_model_weights == 'shared':
+                    image_model = keras.applications.vgg16.VGG16(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.vgg16.VGG16
             elif image_model_name == 'nasnet_large':
                 image_model = keras.applications.nasnet.NASNetLarge(
-                    input_shape=image_shapes[0], include_top=False,
+                    input_shape=image_input_shape, include_top=False,
                     classes=classes
                 )
             elif image_model_name == 'nasnet_mobile':
                 image_model = keras.applications.nasnet.NASNetMobile(
-                    input_shape=image_shapes[0], include_top=False,
+                    input_shape=image_input_shape, include_top=False,
                     classes=classes
                 )
             elif image_model_name == 'resnet':
                 # resnet model is special because we need to
                 # skip the average pooling part.
-                resnet_model = keras.applications.resnet50.ResNet50(
-                    input_shape=image_shapes[0], include_top=False,
-                    classes=classes)
+                if image_model_weights == 'shared':
+                    resnet_model = keras.applications.resnet50.ResNet50(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.resnet50.ResNet50
                 if not trainable:
                     for layer in resnet_model.layers:
                         layer.trainable = False
@@ -532,7 +593,7 @@ def choose_hypertree_model(
                 image_model = resnet_model.layers[-2]
             elif image_model_name == 'densenet':
                 image_model = keras.applications.densenet.DenseNet169(
-                    input_shape=image_shapes[0], include_top=False,
+                    input_shape=image_input_shape, include_top=False,
                     classes=classes)
             else:
                 raise ValueError('Unsupported image_model_name')
@@ -541,10 +602,42 @@ def choose_hypertree_model(
             for layer in image_model.layers:
                 layer.trainable = False
 
+        class ImageModelCarrier():
+            # Create a temporary scope for the list
+            # compatible with python 2.7 and 3.5
+            # note this may be affected if multiple
+            # instances of choose_hypertree_model
+            # are created ast once.
+            image_models = []
+            image_model_num = 0
+
         def create_image_model(tensor):
-            """ Image classifier weights are shared.
+            """ Image classifier weights are shared or separate.
+
+            This function helps set up the weights.
             """
-            return image_model(tensor)
+            if image_model_weights == 'shared':
+                ImageModelCarrier.image_models += [image_model]
+                return image_model(tensor)
+            elif image_model_weights == 'separate':
+                imodel = image_model(
+                    input_tensor=tensor,
+                    include_top=False,
+                    classes=classes)
+                # TODO(ahundt) Can't have duplicate layer names in a network, figure out a solution
+                # It is needed for when two of a model are used in a network
+                # see https://stackoverflow.com/questions/43452441/keras-all-layer-names-should-be-unique
+                # and https://github.com/keras-team/keras/issues/7412
+                if ImageModelCarrier.image_model_num > 0:
+                    for layer in imodel.layers:
+                        layer.name += str(ImageModelCarrier.image_model_num)
+                if not trainable:
+                    for layer in imodel.layers:
+                        layer.trainable = False
+                ImageModelCarrier.image_models += [imodel]
+                ImageModelCarrier.image_model_num += 1
+                print('create_image_model')
+                return imodel.outputs[0]
 
         def vector_branch_dense(
                 tensor, vector_dense_filters=vector_dense_filters,
@@ -603,6 +696,7 @@ def choose_hypertree_model(
             output_shape=output_shape,
             verbose=verbose
         )
+    print('have hypertree model')
     return model
 
 

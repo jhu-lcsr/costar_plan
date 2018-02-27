@@ -297,16 +297,16 @@ def resize_coordinate(coordinate, input_shape, output_shape, dtype=tf.float32, n
     """
     with tf.name_scope(name, "resize_coordinate",
                        [coordinate, input_shape, output_shape]) as name:
-        input_shape = tf.cast(input_shape, dtype)
-        output_shape = tf.cast(output_shape, dtype)
+        input_shape = tf.cast(input_shape, tf.float32)
+        output_shape = tf.cast(output_shape, tf.float32)
         if isinstance(input_shape, list):
-            input_shape = tf.constant([[input_shape[0]][input_shape[1]]], dtype)
+            input_shape = tf.constant([[input_shape[0]][input_shape[1]]], tf.float32)
             proportional_dimension_change = output_shape / input_shape
         else:
             proportional_dimension_change = output_shape / input_shape[:2]
 
-        resized_coordinate = tf.squeeze(coordinate) * proportional_dimension_change
-    return resized_coordinate
+        resized_coordinate = tf.squeeze(tf.cast(coordinate, tf.float32)) * proportional_dimension_change
+    return tf.cast(resized_coordinate, dtype)
 
 
 def transform_crop_and_resize_image(

@@ -27,7 +27,7 @@ def main(_):
         FLAGS.load_hyperparams = '/home/ahundt/datasets/logs/hyperopt_logs_cornell/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json'
     FLAGS.epochs = 150
     FLAGS.fine_tuning_epochs = 50
-    print('Regression Training On Jaccard Distance is about to begin. '
+    print('Regression Training on Jaccard Distance is about to begin. '
           'It overrides some command line parameters so to change them '
           'you will need to modify cornell_grasp_train_regression.py directly.')
 

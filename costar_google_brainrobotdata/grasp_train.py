@@ -33,6 +33,7 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
 from keras.models import Model
+from keras.losses import binary_crossentropy
 
 from tensorflow.python.platform import flags
 
@@ -64,11 +65,11 @@ flags.DEFINE_string('grasp_model', 'grasp_model_levine_2016_segmentation',
                        grasp_model_levine_2016, grasp_model, grasp_model_resnet, grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
                     """Save a file with the trained model weights.""")
-#flags.DEFINE_string('load_weights', None,
 # flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
-flags.DEFINE_string('load_weights', 'converted2018-01-20-06-41-24_grasp_model_weights-delta_depth_sin_cos_3-grasp_model_levine_2016-dataset_062_b_063_072_a_082_b_102-epoch-014-val_loss-0.641-val_acc-0.655.h5',
+# flags.DEFINE_string('load_weights', 'converted2018-01-20-06-41-24_grasp_model_weights-delta_depth_sin_cos_3-grasp_model_levine_2016-dataset_062_b_063_072_a_082_b_102-epoch-014-val_loss-0.641-val_acc-0.655.h5',
+flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
-flags.DEFINE_integer('epochs', 300,
+flags.DEFINE_integer('epochs', 15,
                      """Epochs of training""")
 flags.DEFINE_string('grasp_dataset_eval', '102',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
@@ -82,7 +83,7 @@ flags.DEFINE_boolean('eval_per_epoch', True,
                         Weight flies for every epoch and single txt file of dataset
                         will be saved.
                      """)
-flags.DEFINE_string('pipeline_stage', 'eval',
+flags.DEFINE_string('pipeline_stage', 'train_eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
                        data for training and grasp_dataset_eval for evaluation.""")
 flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
@@ -91,7 +92,7 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Training from scratch within an initial learning rate of 0.1 might find a
                          power decay value of 2 to be useful.
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
-flags.DEFINE_float('grasp_learning_rate', 0.001,
+flags.DEFINE_float('grasp_learning_rate', 0.02,
                    """Determines the initial learning rate""")
 flags.DEFINE_float(
     'fine_tuning_learning_rate',
@@ -100,7 +101,7 @@ flags.DEFINE_float(
 )
 flags.DEFINE_integer(
     'fine_tuning_epochs',
-    100,
+    10,
     'Number of epochs to run trainer with all weights marked as trainable.'
 )
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
@@ -158,7 +159,7 @@ FLAGS = flags.FLAGS
 
 class GraspTrain(object):
 
-    def __init__(self, tf_session=None, distributed=FLAGS.distributed):
+    def __init__(self, tf_session=None, distributed=None):
         """ Create GraspTrain object
 
             This function configures Keras and the tf session if the tf_session parameter is None.
@@ -168,6 +169,8 @@ class GraspTrain(object):
             tf_session: The tf session you wish to use, this is reccommended to remain None.
             distributed: The distributed training utility you wish to use, options are 'horovod' and None.
         """
+        if distributed is None:
+            distributed = FLAGS.distributed
         self.distributed = distributed
         if hvd is not None and self.distributed is 'horovod':
             # Initialize Horovod.
@@ -393,6 +396,7 @@ class GraspTrain(object):
 
             # add evalation callback, calls evalation of self.eval_model
             if eval_per_epoch:
+                print('make_model_fn: ' + str(make_model_fn) + ' model_name: ' + model_name + ' eval_per_epoch: ' + str(eval_per_epoch))
                 eval_model, step_num = self.eval(make_model_fn=make_model_fn,
                                                  model_name=model_name,
                                                  eval_per_epoch=eval_per_epoch)
@@ -597,11 +601,12 @@ class GraspTrain(object):
             if not eval_per_epoch:
                 csv_logger = CSVLogger(load_weights + '_eval.csv')
 
+            print('simplified_grasp_command_op_batch: ' + str(simplified_grasp_command_op_batch))
             # create the model
             model = make_model_fn(
-                pregrasp_op_batch,
-                grasp_step_op_batch,
-                simplified_grasp_command_op_batch,
+                clear_view_image_op=pregrasp_op_batch,
+                current_time_image_op=grasp_step_op_batch,
+                input_vector_op=simplified_grasp_command_op_batch,
                 # input_image_shape=input_image_shape,
                 dropout_rate=0.0)
 
@@ -609,10 +614,12 @@ class GraspTrain(object):
 
             metrics, monitor_metric_name = self.gather_metrics(metric)
 
+            print('about to compile')
             model.compile(optimizer='sgd',
                           loss=loss,
                           metrics=metrics,
                           target_tensors=[grasp_success_op_batch])
+            print('compile complete')
 
             if not eval_per_epoch:
                 if(load_weights):
@@ -623,9 +630,11 @@ class GraspTrain(object):
                         raise ValueError('Could not load weights {}, '
                                          'the file does not exist.'.format(load_weights))
 
-            model.save_weights('converted'+load_weights)
-            return
+            # TODO(ahundt) look back in the history and figure out when/how converted and the return should be used
+            # model.save_weights('converted' + load_weights)
+            # return
 
+            print('num_samples: ' + str(num_samples) + ' batch size: ' + str(batch_size))
             steps = float(num_samples) / float(batch_size)
 
             if not steps.is_integer():
@@ -635,11 +644,14 @@ class GraspTrain(object):
                                  'the last sample, so in a worst case choose a batch size of 1. Not ideal,'
                                  'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
 
+            print('<<<<<<<<<<<<')
             if eval_per_epoch:
+                print('<<<<<<<<<<<<2')
                 return model, int(steps)
             model.summary()
 
             try:
+                print('evaluating')
                 results = model.evaluate(None, None, steps=int(steps))
                 # results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
                 metrics_str = 'metrics:\n' + str(model.metrics_names) + 'results:' + str(results)
@@ -729,9 +741,9 @@ class GraspTrain(object):
 
             # create the model
             model = make_model_fn(
-                pregrasp_op_batch,
-                grasp_step_op_batch,
-                simplified_grasp_command_op_batch,
+                clear_view_image_op=pregrasp_op_batch,
+                current_time_image_op=grasp_step_op_batch,
+                input_vector_op=simplified_grasp_command_op_batch,
                 # input_image_shape=input_image_shape,
                 dropout_rate=0.0)
 
@@ -787,6 +799,10 @@ class GraspTrain(object):
         if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_gaussian_binary_crossentropy
             loss_name = 'segmentation_gaussian_binary_crossentropy'
+        if isinstance(loss, (list, tuple)) and len(loss) == 1:
+            # strip it to just one element
+            [loss] = loss
+
         return loss
 
 
@@ -860,13 +876,30 @@ def choose_make_model_fn(grasp_model_name=None):
             return grasp_model.grasp_model_levine_2016(
                 *a, **kw)
     elif grasp_model_name == 'grasp_model_hypertree':
-        def make_model_fn(*a, **kw):
+        def make_model_fn(
+                clear_view_image_op=None,
+                current_time_image_op=None,
+                input_vector_op=None,
+                input_image_shape=None,
+                **kw):
             if FLAGS.load_hyperparams:
                 hyperparams = grasp_utilities.load_hyperparams_json(
                     FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate)
                 kw.update(hyperparams)
+            print('kw: ', kw)
+            images = [clear_view_image_op, current_time_image_op]
+            vectors = [input_vector_op]
+            print('vectors: ' + str(vectors))
+            vector_shapes = [K.int_shape(input_vector_op)]
+            image_shapes = [input_image_shape] * 2
+            # TODO(ahundt) consider making image_model_weights shared vs separate configurable
             return grasp_model.choose_hypertree_model(
-                *a, **kw)
+                images=images,
+                vectors=vectors,
+                image_shapes=image_shapes,
+                vector_shapes=vector_shapes,
+                image_model_weights='separate',
+                **kw)
     else:
         available_functions = globals()
         if grasp_model_name in available_functions:
