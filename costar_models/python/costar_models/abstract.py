@@ -18,9 +18,9 @@ class AbstractAgentBasedModel(object):
     will also provide the model with a way to collect data or whatever.
     '''
 
-    def makeName(self, prefix, submodel=None):
+    def makeName(self, prefix, submodel=None, reqs_dir=False):
         dir = self.model_directory
-        if submodel is not None and self.reqs_directory is not None:
+        if reqs_dir and self.reqs_directory is not None:
             dir = self.reqs_directory
         name = os.path.join(dir, prefix) + "_model"
         if self.features is not None:
