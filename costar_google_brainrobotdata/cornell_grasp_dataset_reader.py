@@ -701,6 +701,11 @@ def parse_and_preprocess(
     feature['norm_sin2_cos2_hw_yx_6'] = grasp_success_norm_sin2_cos2_hw_yx_7[1:]
     feature['grasp_success_norm_sin2_cos2_hw_5'] = grasp_success_norm_sin2_cos2_hw_yx_7[:5]
     feature['sin2_cos2_hw_4'] = grasp_success_norm_sin2_cos2_hw_yx_7[1:5]
+    preprocessed_norm_sin2_cos2_w_yx_5 = K.concatenate(
+        [feature['bbox/preprocessed/norm_sin2_cos2_2'],
+         feature['bbox/preprocessed/width'], feature['bbox/preprocessed/cy_cx_normalized_2']])
+    feature['preprocessed_norm_sin2_cos2_w_yx_5'] = preprocessed_norm_sin2_cos2_w_yx_5
+    feature['preprocessed_norm_sin2_cos2_w_3'] = preprocessed_norm_sin2_cos2_w_yx_5[:-2]
 
     # TODO(ahundt) reenable pixelwise gaussians but with separate success and failure layers and compare performance against segmentation_gaussian_measurement()
     if False:

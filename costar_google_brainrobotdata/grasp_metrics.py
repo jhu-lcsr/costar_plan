@@ -475,8 +475,10 @@ def decode_prediction_vector(y_true):
     return true_y_sin_theta, true_x_cos_theta, true_rp
 
 
-def decode_prediction_vector_theta(y_true):
+def decode_prediction_vector_theta_center_polygon(y_true):
     """ Decode a prediction vector into theta and four rectangle vertices
+
+    Only supports vector format that includes center information!
     """
     rect_index = get_prediction_vector_rectangle_start_index(y_true)
     end_angle_index = rect_index + 2
@@ -486,24 +488,27 @@ def decode_prediction_vector_theta(y_true):
     true_y_sin_theta, true_x_cos_theta = normalize_sin_theta_cos_theta(true_y_sin_theta, true_x_cos_theta)
     # right now it is 2 theta, so get theta
     theta = np.arctan2(true_y_sin_theta, true_x_cos_theta) / 2.0
-    return theta, true_rp
+    # center should be last two entries y, x order
+    center = y_true[-2:]
+    return theta, center, true_rp
 
 
 def angle_difference_less_than_threshold(
         true_y_sin_theta, true_x_cos_theta,
         pred_y_sin_theta, pred_x_cos_theta,
-        angle_threshold=None,
+        angle_threshold=np.radians(60.0),
         verbose=0):
     """ Returns true if the angle difference is less than the threshold, false otherwise.
 
     Recall that angle differences are around a circle, so the shortest angular difference
     may be in +theta or the -theta direction with wrapping around the boundaries.
 
+    Note that the angle threshold is set to 60 because we are working with 2*theta.
+    TODO(ahundt) double check the implications of this.
+
     # Arguments
         angle_threshold: The maximum absolute angular difference permitted.
     """
-    if angle_threshold is None:
-        angle_threshold = np.radians(30.0)
     # print('ad0 ' + str(true_y_sin_theta) + ' cos: ' + str(true_x_cos_theta))
     # normalize the prediction but keep the vector direction the same
     true_y_sin_theta, true_x_cos_theta = normalize_sin_theta_cos_theta(true_y_sin_theta, true_x_cos_theta)
@@ -531,20 +536,31 @@ def angle_difference_less_than_threshold(
 
 
 def jaccard_score(y_true, y_pred, angle_threshold=np.radians(60.0), iou_threshold=0.25, verbose=0):
-    """
+    """ Scoring for regression
+    Note that the angle threshold is set to 60 because we are working with 2*theta.
+    TODO(ahundt) double check the implications of this.
 
     # Arguments
 
-
         Feature formats accepted:
 
-        grasp_success_norm_sin2_cos2_hw_5
+        grasp_success_norm_sin2_cos2_hw_yx_7:
             [grasp_success, sin_2theta, cos2_theta, height, width, center_y, center_x]
             [            0,         1,         2,      3,     4,        5,        6]
 
+        norm_sin2_cos2_hw_yx_6:
+            [sin_2theta, cos2_theta, height, width, center_y, center_x]
+            [            0,         1,         2,      3,     4,        5,        6]
+
+
+        Not yet accepted:
         norm_sin2_cos2_hw_5
             [sin2_theta, cos_2theta, height, width, center_y, center_x]
             [        0,           1,      2,     3,        4,        5]
+
+        grasp_success_norm_sin2_cos2_hw_5
+            [grasp_success, sin_2theta, cos2_theta, height, width]
+            [            0,         1,         2,      3,     4,]
 
 
         y_true: a numpy array of features
@@ -563,6 +579,9 @@ def jaccard_score(y_true, y_pred, angle_threshold=np.radians(60.0), iou_threshol
     has_grasp_success = prediction_vector_has_grasp_success(y_pred)
 
     # print('0')
+    # round grasp success to 0 or 1
+    # note this is not valid and not used if
+    # has grasp success is false.
     predicted_success = np.rint(y_pred[0])
     # print('1')
     if has_grasp_success and predicted_success != int(y_true[0]):

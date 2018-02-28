@@ -761,12 +761,7 @@ def visualize_example(img, bbox_example_features, gt_images=None, showTextBox=FL
         grasp_success = example['bbox/grasp_success']
         cx = example['bbox/cx']
         cy = example['bbox/cy']
-        num_bboxes = 4
-        x_current = [[] for k in range(num_bboxes)]
-        y_current = [[] for k in range(num_bboxes)]
-        for j in range(num_bboxes):
-            x_current[j] += [example['bbox/x'+str(j)], example['bbox/x'+str((j+1) % 4)]]
-            y_current[j] += [example['bbox/y'+str(j)], example['bbox/y'+str((j+1) % 4)]]
+        x_current, y_current = grasp_visualization.get_grasp_polygon_lines_from_example(example)
         h = i % gt_plot_height + 1
         w = int(i / gt_plot_height)
         z = 0
