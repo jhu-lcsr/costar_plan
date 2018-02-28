@@ -135,18 +135,20 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
     skip0 = x
 
     # store this for skip connection
-    x = AddConv2D(x, 64, [5,5], 2, **kwargs)
-    h_dim_down = (int(h_dim[0]/2), int(h_dim[1]/2))
-    skip = x
+    #x = AddConv2D(x, 64, [5,5], 2, **kwargs)
+    #h_dim_down = (int(h_dim[0]/2), int(h_dim[1]/2))
+    #skip = x
 
     if model.use_noise:
         y = AddDense(z, 32, activation_fn, 0., constraint=None, output=False)
-        x = TileOnto(x, y, 32, h_dim_down)
+        #x = TileOnto(x, y, 32, h_dim_down)
+        x = TileOnto(x, y, 32, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0.)
 
     # Add dense information
     y = AddDense(option, 64, activation_fn, 0., constraint=None, output=False)
-    x = TileOnto(x, y, 64, h_dim_down, add=False)
+    #x = TileOnto(x, y, 64, h_dim_down, add=False)
+    x = TileOnto(x, y, 64, h_dim, add=False)
     x = AddConv2D(x, 64, [5,5], 1, **kwargs_dr0)
 
     # --- start ssm block
@@ -164,8 +166,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
     x = AddConv2DTranspose(x, 64, [5,5], stride=2, **kwargs)
 
     # --- end ssm block
-    if model.skip_connections:
-        x = Concatenate()([x, skip])
+    #if model.skip_connections:
+    #    x = Concatenate()([x, skip])
 
     x = AddConv2DTranspose(x, 64, [5,5], stride=2, **kwargs)
 
