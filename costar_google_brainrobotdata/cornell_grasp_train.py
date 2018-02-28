@@ -938,39 +938,7 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
             # Now we have to load the best model
             # '200_epoch_real_run' is for backwards compatibility before
             # the fold nums were put into each fold's log_dir and run_name.
-            directory_listing = os.listdir(fold_log_dir)
-            fold_checkpoint_files = []
-            for name in directory_listing:
-                name = os.path.join(fold_log_dir, name)
-                if not os.path.isdir(name) and '.h5' in name:
-                    if '200_epoch_real_run' in name or fold_name in name:
-                        fold_checkpoint_files += [name]
-
-            # check the filenames for the highest val score
-            fold_checkpoint_file = None
-            best_val = 0.0
-            for filename in fold_checkpoint_files:
-                if 'val_' in filename:
-                    # pull out all the floating point numbers
-                    # source: https://stackoverflow.com/a/4703409/99379
-                    nums = re.findall(r"[-+]?\d*\.\d+|\d+", filename)
-                    if len(nums) > 0:
-                        # don't forget about the .h5 at the end...
-                        cur_num = np.abs(float(nums[-2]))
-                        if verbose > 0:
-                            progbar_folds.write('old best ' + str(best_val) + ' current ' + str(cur_num))
-                        if cur_num > best_val:
-                            if verbose > 0:
-                                progbar_folds.write('new best: ' + str(cur_num) + ' file: ' + filename)
-                            best_val = cur_num
-                            fold_checkpoint_file = filename
-
-            if fold_checkpoint_file is None:
-                raise ValueError('\n\nSomething went wrong when looking for model checkpoints, '
-                                 'you need to take a look at model_predict_k_fold() '
-                                 'in cornell_grasp_train.py. Here are the '
-                                 'model checkpoint files we were looking at: \n\n' +
-                                 str(fold_checkpoint_files))
+            fold_checkpoint_file = grasp_utilities.find_best_weights(fold_log_dir, fold_name, verbose, progbar_folds)
 
             progbar_folds.write('Fold ' + str(i) + ' Loading checkpoint: ' + str(fold_checkpoint_file))
 
