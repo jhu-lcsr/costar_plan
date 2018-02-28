@@ -30,10 +30,16 @@ FLAGS = flags.FLAGS
 
 def main(_):
 
+    FLAGS.crop_to = 'image_contains_grasp_box_center'
+    feature_combo = 'image_preprocessed'
     # TODO(ahundt) remove the hardcoded folder or put it on a github release server
     kfold_params = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/'
                     'logs_cornell/2018-02-26-22-57-58_200_epoch_real_run_-objectwise-kfold/'
                     '2018-02-26-22-57-58_200_epoch_real_run_-objectwise-kfold_params.json')
+
+    print('Model evaluation on Jaccard Distance is about to begin. '
+          'It overrides some command line parameters so to change them '
+          'you will need to modify cornell_evaluate.py directly.')
     cornell_grasp_train.model_predict_k_fold(kfold_params)
     # problem_type = 'grasp_regression'
     # feature_combo = 'image_preprocessed'
