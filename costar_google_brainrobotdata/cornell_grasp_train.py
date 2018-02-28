@@ -25,6 +25,8 @@ from shapely.geometry import Polygon
 import cornell_grasp_dataset_reader
 import time
 from tensorflow.python.platform import flags
+# TODO(ahundt) consider removing this dependency
+import grasp_visualization
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -72,7 +74,7 @@ flags.DEFINE_float(
 )
 flags.DEFINE_float(
     'fine_tuning_learning_rate',
-    0.001,
+    0.005,
     'Initial learning rate, this is the learning rate used if load_weights is passed.'
 )
 flags.DEFINE_integer(
@@ -708,14 +710,25 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
     if feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed':
         data_features = ['image/preprocessed']
         vector_shapes = None
+    elif feature_combo_name == 'image_preprocessed_norm_sin2_cos2_width_3':
+        # recommended for pixelwise classification and image center grasp regression
+        data_features = ['image/preprocessed', 'preprocessed_norm_sin2_cos2_w_3']
+        vector_shapes = [(3,)]
     elif feature_combo_name == 'image_preprocessed_norm_sin2_cos2_height_width_4':
+        # recommended for pixelwise regression, don't use for classification!
+        # An exception is ok if you are classifying the results of regression.
+        # TODO(ahundt) add losses configured for pixelwise regression
         data_features = ['image/preprocessed', 'preprocessed_sin2_cos2_height_width_4']
         vector_shapes = [(4,)]
+    elif feature_combo_name == 'image_preprocessed_norm_sin2_cos2_w_yx_5':
+        # recommended for classification of single predictions
+        data_features = ['image/preprocessed', 'preprocessed_norm_sin2_cos2_w_yx_5']
+        vector_shapes = [(5,)]
     elif feature_combo_name == 'image_preprocessed_norm_sin2_cos2_width_3':
         data_features = ['image/preprocessed', 'preprocessed_norm_sin2_cos2_width_3']
         vector_shapes = [(3,)]
     elif feature_combo_name == 'image_preprocessed_width_1':
-        data_features = ['image/preprocessed', 'bbox/width']
+        data_features = ['image/preprocessed', 'bbox/preprocessed/width']
         vector_shapes = [(1,)]
     elif feature_combo_name == 'preprocessed':
         data_features = ['image/preprocessed', 'bbox/preprocessed/cy_cx_normalized_2',
@@ -1003,6 +1016,11 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
                     score = metric_fn(ground_truth, result)
                     progbar_folds.write('score: ' + str(score))
                     image_filename = example_dict[unique_score_category][0]
+
+                    # TODO(ahundt) make this a flag
+                    visualize = True
+                    if visualize:
+                        grasp_visualization.visualize_redundant_example(example_dict, predictions=result)
 
                     # save this score and prediction if there is no score yet
                     # or this score is a new best
