@@ -37,7 +37,7 @@ def sim(args):
     h = model.encode(I)
     Id = model.decode(h)
     plt.figure()
-    search(I, iter=1, depth=5, draw=True)
+    search(I, iter=5, depth=5, draw=True)
     plt.show()
     plt.figure()
     plt.subplot(1,3,1)
