@@ -131,7 +131,7 @@ class ConditionalImage(PredictionSampler2):
                     [image_out, image_out2] + enc_outs)
             train_predictor.compile(
                     loss=[self.loss, self.loss,] + enc_losses,
-                    loss_weights=[img_loss_wt, img_loss_wt] + enc_wts,
+                    loss_weights=[img_loss_wt, 0.*img_loss_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
