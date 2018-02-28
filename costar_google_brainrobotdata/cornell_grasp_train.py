@@ -9,6 +9,7 @@ Cornell Dataset Code Based on:
 
 '''
 import os
+import re
 import errno
 import sys
 import json
@@ -843,7 +844,7 @@ def load_dataset(
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 
-def model_predict_k_fold(kfold_params=None):
+def model_predict_k_fold(kfold_params=None, verbose=0):
     """ Load past runs and make predictions with the model and data.
         model: compiled model instance.
         input_data: generator instance.
@@ -918,13 +919,38 @@ def model_predict_k_fold(kfold_params=None):
                     if '200_epoch_real_run' in name or fold_name in name:
                         fold_checkpoint_files += [name]
 
-            # Just take the last one
-            # TODO(ahundt) the filenames should probably be checked for the highest val score
-            fold_checkpoint_file = fold_checkpoint_files[-1]
+            # check the filenames for the highest val score
+            fold_checkpoint_file = None
+            best_val = 0.0
+            for filename in fold_checkpoint_files:
+                if 'val_' in filename:
+                    # pull out all the floating point numbers
+                    # source: https://stackoverflow.com/a/4703409/99379
+                    nums = re.findall(r"[-+]?\d*\.\d+|\d+", filename)
+                    if len(nums) > 0:
+                        # don't forget about the .h5 at the end...
+                        cur_num = np.abs(float(nums[-2]))
+                        if verbose > 0:
+                            progbar_folds.write('old best ' + str(best_val) + ' current ' + str(cur_num))
+                        if cur_num > best_val:
+                            if verbose > 0:
+                                progbar_folds.write('new best: ' + str(cur_num) + ' file: ' + filename)
+                            best_val = cur_num
+                            fold_checkpoint_file = filename
+
+            if fold_checkpoint_file is None:
+                raise ValueError('\n\nSomething went wrong when looking for model checkpoints, '
+                                 'you need to take a look at model_predict_k_fold() '
+                                 'in cornell_grasp_train.py. Here are the '
+                                 'model checkpoint files we were looking at: \n\n' +
+                                 str(fold_checkpoint_files))
+
             progbar_folds.write('Fold ' + str(i) + ' Loading checkpoint: ' + str(fold_checkpoint_file))
 
             # load the model
             model = get_compiled_model(load_weights=fold_checkpoint_file, **training_run_params)
+
+            model.load_weights(fold_checkpoint_file)
 
             # TODO(ahundt) low priority: automatically choose feature and metric strings
             # choose_features_and_metrics(feature_combo_name, problem_name)
