@@ -72,7 +72,7 @@ flags.DEFINE_float(
 )
 flags.DEFINE_float(
     'fine_tuning_learning_rate',
-    0.0005,
+    0.001,
     'Initial learning rate, this is the learning rate used if load_weights is passed.'
 )
 flags.DEFINE_integer(
@@ -709,7 +709,6 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         data_features = ['image/preprocessed']
         vector_shapes = None
     elif feature_combo_name == 'image_preprocessed_sin2_cos2_height_width_4':
-        # don't use this one as an input! height appears highly correlated with grasp_success.
         data_features = ['image/preprocessed', 'preprocessed_sin2_cos2_height_width_4']
         vector_shapes = [(4,)]
     elif feature_combo_name == 'image_preprocessed_sin_cos_width_3':
@@ -778,6 +777,24 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
                          'feature selection options are segmentation and classification, '
                          'image_center_grasp_regression, grasp_regression, grasp_classification'
                          'grasp_segmentation')
+
+    if('classification' in problem_name and 'height' in feature_combo_name):
+        print(
+            """
+            # WARNING: DO NOT use height as an input for classification tasks,
+            # except to demonstrate the problems described below!
+            #
+            # The "height" parameter indicates the length of the graspable region,
+            # which is highly correlated with the ground truth grasp_success
+            # and would not be useful on a real robot.
+            # Note that these parameters are used for classification
+            # results in several previous papers but they also include
+            # regression results and are thus OK overall.
+            #
+            # Instead, we suggest using image_preprocessed_sin2_cos2_width_3,
+            # width is a proposed gripper openness which should be OK.
+            """)
+
     return image_shapes, vector_shapes, data_features, model_name, monitor_loss_name, label_features, monitor_metric_name, loss, metrics, classes, success_only
 
 
