@@ -9,13 +9,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from costar_models import *
+from costar_models.data_utils import *
 from costar_models.plotting import *
 from costar_models.planner import GetOrderedList, PrintTopQ
-from costar_models.sampler2 import PredictionSampler2
-from costar_models.datasets.npz import NpzDataset
-from costar_models.datasets.npy_generator import NpzGeneratorDataset
-from costar_models.datasets.h5f_generator import H5fGeneratorDataset
-
 
 def visualizeHiddenMain(args):
     '''
@@ -23,25 +19,9 @@ def visualizeHiddenMain(args):
     code. This should be more or less independent and only rely on a couple
     external features.
     '''
-    ConfigureGPU(args)
-
-    data_file_info = args['data_file'].split('.')
-    data_type = data_file_info[-1]
-    root = ""
-    for i, tok in enumerate(data_file_info[:-1]):
-        if i < len(data_file_info)-1 and i > 0:
-            root += '.'
-        root += tok
-
     np.random.seed(0)
-    if data_type == "npz":
-        dataset = NpzGeneratorDataset(root)
-        data = dataset.load(success_only = args['success_only'])
-    elif data_type == "h5f":
-        dataset = H5fGeneratorDataset(root)
-        data = dataset.load(success_only = args['success_only'])
-    else:
-        raise NotImplementedError('data type not implemented: %s'%data_type)
+    ConfigureGPU(args)
+    data, dataset = GetDataset(args)
 
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
@@ -69,7 +49,7 @@ def visualizeHiddenMain(args):
             for j in range(200):
                 #h = model.transform(h,h,np.array([36]))
                 h = model.transform(h,h,np.array([np.random.randint(model.num_options)]))
-            h2 = model.transform(h,h,np.array([36]))
+            h2 = h
             plt.subplot(1,4,3)
             Show(np.mean(h2[0],axis=-1))
 

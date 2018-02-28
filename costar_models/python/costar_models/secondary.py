@@ -223,6 +223,7 @@ class HuskySecondary(Secondary):
             outs = actor([h0, h, y, pose_in])
             loss = self.loss
             metrics=[]
+            self.actor = actor
         elif self.submodel == "pose":
             model = GetHuskyPoseModel(h, self.num_options, pose_size,
                     self.decoder_dropout_rate)

@@ -220,7 +220,7 @@ class ConditionalImage(PredictionSampler2):
         self.q_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
-        #self.q_model.load_weights(self.makeName("secondary", "q"))
+        self.q_model.load_weights(self.makeName("secondary", "q"))
 
     def pnext(self, hidden0, hidden, prev_option):
         '''
