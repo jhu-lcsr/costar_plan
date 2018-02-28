@@ -649,6 +649,8 @@ def parse_and_preprocess(
     feature['bbox/preprocessed/theta'] = grasp_center_rotation_theta
     feature['bbox/preprocessed/sin_cos_2'] = K.concatenate(
         [K.sin(grasp_center_rotation_theta), K.cos(grasp_center_rotation_theta)])
+    feature['bbox/preprocessed/sin2_cos2_2'] = K.concatenate(
+        [K.sin(grasp_center_rotation_theta * 2.0), K.cos(grasp_center_rotation_theta * 2.0)])
     # Here we are mapping sin(theta) cos(theta) such that:
     #  - every 180 degrees is a rotation because the grasp plates are symmetrical
     #  - the values are from 0 to 1 so sigmoid can correctly approximate them
@@ -675,8 +677,8 @@ def parse_and_preprocess(
     feature['grasp_success_yx_3'] = grasp_success_coordinate_label
     # preprocessing adds some extra normalization and incorporates changes in the values due to augmentatation.
     feature['preprocessed_sin_cos_width_3'] = K.concatenate([feature['bbox/preprocessed/sin_cos_2'], feature['bbox/preprocessed/width']])
-    feature['preprocessed_sin2_cos2_width_3'] = K.concatenate([feature['bbox/preprocessed/norm_sin2_cos2_2'], feature['bbox/preprocessed/width']])
-    feature['preprocessed_sin2_cos2_height_width_4'] = K.concatenate(
+    feature['preprocessed_norm_sin2_cos2_width_3'] = K.concatenate([feature['bbox/preprocessed/norm_sin2_cos2_2'], feature['bbox/preprocessed/width']])
+    feature['preprocessed_norm_sin2_cos2_height_width_4'] = K.concatenate(
         [feature['bbox/preprocessed/norm_sin2_cos2_2'], feature['bbox/preprocessed/height'], feature['bbox/preprocessed/width']])
 
     # This feature should be useful for pixelwise predictions
@@ -899,6 +901,7 @@ def print_feature(feature_map, feature_name):
 def visualize_redundant_example(features_dicts, showTextBox=None):
     """ Visualize numpy dictionary containing a grasp example.
     """
+    # TODO(ahundt) remove me once version in grasp_visualization.py is working
     if showTextBox is None:
         showTextBox = FLAGS.showTextBox
     # TODO(ahundt) don't duplicate this in cornell_grasp_dataset_writer

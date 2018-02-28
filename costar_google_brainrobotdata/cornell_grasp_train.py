@@ -148,11 +148,11 @@ flags.DEFINE_string(
     """Options are imagewise and objectwise, this is the type of split chosen when the tfrecords were generated.""")
 flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
 flags.DEFINE_string(
-    'feature_combo', 'image_preprocessed_sin2_cos2_width_3',
+    'feature_combo', 'image_preprocessed_norm_sin2_cos2_width_3',
     """
     feature_combo: The name for the combination of input features being utilized.
         Options include 'image_preprocessed', image_preprocessed_width_1,
-        'image_preprocessed_sin2_cos2_width_3'
+        'image_preprocessed_norm_sin2_cos2_width_3'
         See choose_features_and_metrics() for details.
     """
 )
@@ -423,7 +423,7 @@ def get_compiled_model(learning_rate=None,
                        epochs=None,
                        preprocessing_mode=None,
                        input_filenames=None,
-                       feature_combo_name='image_preprocessed_sin2_cos2_width_3',
+                       feature_combo_name='image_preprocessed_norm_sin2_cos2_width_3',
                        problem_name=None,
                        image_model_name='vgg',
                        optimizer_name='sgd',
@@ -708,14 +708,11 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
     if feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed':
         data_features = ['image/preprocessed']
         vector_shapes = None
-    elif feature_combo_name == 'image_preprocessed_sin2_cos2_height_width_4':
+    elif feature_combo_name == 'image_preprocessed_norm_sin2_cos2_height_width_4':
         data_features = ['image/preprocessed', 'preprocessed_sin2_cos2_height_width_4']
         vector_shapes = [(4,)]
-    elif feature_combo_name == 'image_preprocessed_sin_cos_width_3':
-        data_features = ['image/preprocessed', 'preprocessed_sin_cos_width_3']
-        vector_shapes = [(3,)]
-    elif feature_combo_name == 'image_preprocessed_sin2_cos2_width_3':
-        data_features = ['image/preprocessed', 'preprocessed_sin2_cos2_width_3']
+    elif feature_combo_name == 'image_preprocessed_norm_sin2_cos2_width_3':
+        data_features = ['image/preprocessed', 'preprocessed_norm_sin2_cos2_width_3']
         vector_shapes = [(3,)]
     elif feature_combo_name == 'image_preprocessed_width_1':
         data_features = ['image/preprocessed', 'bbox/width']
