@@ -520,9 +520,10 @@ def jaccard_score(y_true, y_pred, angle_threshold=np.radians(60.0), iou_threshol
     """
 
     has_grasp_success = (y_pred.size == 7)
-    grasp_rectangle_start_index = 0
+    # the grasp rectangle start index
+    rect_index = 0
     if has_grasp_success:
-        grasp_rectangle_start_index = 1
+        rect_index = 1
 
     # print('0')
     predicted_success = np.rint(y_pred[0])
@@ -542,13 +543,16 @@ def jaccard_score(y_true, y_pred, angle_threshold=np.radians(60.0), iou_threshol
         # We're looking at a successful grasp and we've correctly predicted grasp_success.
         # First check if the angles are close enough to matching the angle_threshold.
         # print('4')
-        true_y_sin_theta = y_true[grasp_rectangle_start_index]
-        true_x_cos_theta = y_true[grasp_rectangle_start_index + 1]
-        pred_y_sin_theta = y_pred[grasp_rectangle_start_index]
-        pred_x_cos_theta = y_pred[grasp_rectangle_start_index + 1]
+
+        # denormalize the values from (0, 1) back to (-1, 1 range) and get the array entries
+        end_angle_index = rect_index + 2
+        y_true[rect_index: end_angle_index] = denorm_sin2_cos2(y_true[rect_index:end_angle_index])
+        true_y_sin_theta, true_x_cos_theta = y_true[rect_index:end_angle_index]
+        y_pred[rect_index: end_angle_index] = denorm_sin2_cos2(y_pred[rect_index:end_angle_index])
+        pred_y_sin_theta, pred_x_cos_theta = y_pred[rect_index:end_angle_index]
 
         # print('5')
-        # if they aren't close enough return 0.0
+        # if the angle difference isn't close enough to ground truth return 0.0
         if not angle_difference_less_than_threshold(
                 true_y_sin_theta, true_x_cos_theta,
                 pred_y_sin_theta, pred_x_cos_theta,
@@ -560,8 +564,8 @@ def jaccard_score(y_true, y_pred, angle_threshold=np.radians(60.0), iou_threshol
         # We passed all the other checks so
         # let's find out if the grasp boxes match
         # via the jaccard distance.
-        true_rp = parse_rectangle_vertices(y_true[grasp_rectangle_start_index:])
-        pred_rp = parse_rectangle_vertices(y_pred[grasp_rectangle_start_index:])
+        true_rp = parse_rectangle_vertices(y_true[rect_index:])
+        pred_rp = parse_rectangle_vertices(y_pred[rect_index:])
 
         # print('7')
         iou = shapely_intersection_over_union(true_rp, pred_rp)
