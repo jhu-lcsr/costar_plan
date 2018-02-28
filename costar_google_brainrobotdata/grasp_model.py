@@ -536,7 +536,7 @@ def choose_hypertree_model(
         if image_model_weights not in ['shared', 'separate']:
             raise ValueError('Unsupported image_model_weights: ' +
                              str(image_model_weights) +
-                             'Options are shared and separate')
+                             'Options are shared and separate.')
 
         print('image_input_shape sans batch: ' + str(image_input_shape))
         # VGG16 weights are shared and not trainable
