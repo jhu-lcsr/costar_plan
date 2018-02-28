@@ -21,6 +21,11 @@ from .robot_multi_models import *
 from .planner import *
 
 # =============================================================================
+# More models
+from .conditional_image import ConditionalImage
+from .conditional_image_gan import ConditionalImageGan
+
+# =============================================================================
 # Models for visualizing and generating results
 from .ctp_sampler_keypoints import *
 from .ctp_visualize_decoder import *
