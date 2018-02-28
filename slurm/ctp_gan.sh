@@ -17,7 +17,7 @@ else
 fi
 
 ## Option Processing ----
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,gan_transform,no_gan_transform,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,enc_dir:,skip_cond,dense_transform -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,gan_transform,no_gan_transform,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,enc_dir:,skip_cond,dense_transform,no_dense_transform,vae_transform,no_vae_transform -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -42,6 +42,7 @@ enc_dir=''
 skip_cond=false
 dense_transform=false
 gan_transform=true
+vae_transform=false
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -70,6 +71,9 @@ while true; do
     --epochs2) epochs2="$2"; shift 2 ;;
     --enc_dir) enc_dir="$2"; shift 2 ;;
     --dense_transform) dense_transform=true; shift ;;
+    --no_dense_transform) dense_transform=false; shift ;;
+    --vae_transform) vae_transform=true; shift ;;
+    --no_vae_transform) vae_transform=false; shift ;;
     --no_gan_transform) gan_transform=false; shift ;;
     --gan_transform) gan_transform=true; shift ;;
     --) shift; break ;;
@@ -92,9 +96,10 @@ if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
 if $retrain; then retrain_dir=retrain; else retrain_dir=noretrain; fi
 if $gan_encoder; then gan_enc_dir=ganenc; else gan_enc_dir=noganenc; fi
 if $dense_transform; then dense_dir='_dense'; else dense_dir=''; fi
+if $vae_transform; then vae_dir='_vae'; else vae_dir=''; fi
 
 # Handle model directory
-MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${gan_enc_dir}_${retrain_dir}${dense_dir}${gan_transform_dir}${suffix}"
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${gan_enc_dir}_${retrain_dir}${dense_dir}${gan_transform_dir}${vae_dir}${suffix}"
 
 [[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
 
@@ -118,6 +123,7 @@ if $wass; then wass_cmd='--wasserstein'; else wass_cmd=''; fi
 if $use_noise; then use_noise_cmd='--use_noise'; else use_noise_cmd=''; fi
 if $retrain; then retrain_cmd='--retrain'; else retrain_cmd=''; fi
 if $dense_transform; then dense_transform_cmd='--dense_transform'; else dense_transform_cmd=''; fi
+if $vae_transform; then vae_transform_cmd='--vae_transform'; else vae_transform_cmd=''; fi
 
 if $marcc; then
   cmd_prefix="$HOME/costar_plan/costar_models/scripts/"
@@ -237,6 +243,7 @@ if ! $skip_cond; then
       $load_cmd \
       $req_dir_cmd \
       $dense_transform_cmd \
+      $vae_transform_cmd \
       $disc_suffix
   fi
 fi

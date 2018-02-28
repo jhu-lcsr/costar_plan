@@ -70,6 +70,7 @@ class AbstractAgentBasedModel(object):
             hypothesis_dropout=False,
             dense_representation=True,
             dense_transform=False,
+            vae_transform=False,
             skip_connections=1,
             use_noise=False,
             load_pretrained_weights=False,
@@ -153,6 +154,7 @@ class AbstractAgentBasedModel(object):
         self.use_ssm = use_ssm > 0
         self.dense_representation = dense_representation
         self.dense_transform = dense_transform
+        self.vae_transform = vae_transform
         self.gan_method = gan_method
         self.save_model = save_model
         self.hidden_size = hidden_size
@@ -227,6 +229,8 @@ class AbstractAgentBasedModel(object):
         print("Optimizer =", self.optimizer)
         print("Learning Rate =", self.lr)
         print("Clip Norm =", self.clipnorm)
+        print("VAE Transform =", self.vae_transform)
+        print("Dense Transform =", self.dense_transform)
         print("===========================================================")
 
         try:

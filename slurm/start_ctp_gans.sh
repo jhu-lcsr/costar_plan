@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"/../costar_models/python
 python setup.py install --user
 cd -
 
-OPTS=$(getopt -o '' --long retrain,load_model,gan_encoder,no_gan_encoder,gan_transform,no_gan_transform,skip_encoder,suffix:,no_resume,epochs1:,epochs2:,skip_cond,no_husky,no_jigsaws,no_ctp,no_wass,common_encoder,dense_transform -n start_ctp_gans -- "$@")
+OPTS=$(getopt -o '' --long retrain,load_model,gan_encoder,no_gan_encoder,gan_transform,no_gan_transform,skip_encoder,suffix:,no_resume,epochs1:,epochs2:,skip_cond,no_husky,no_jigsaws,no_ctp,wass,no_wass,common_encoder,dense_transform,no_dense_transform,vae_transform,no_vae_transform -n start_ctp_gans -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -26,7 +26,6 @@ noise_dim=4
 wass=wass
 loss=mae
 gan_encoder=false
-gan_transform=true
 skip_encoder=false
 suffix=''
 resume=true # resume a job
@@ -36,9 +35,11 @@ skip_cond_cmd=''
 run_ctp=true
 run_husky=true
 run_jigsaws=true
-run_wass=true
+run_wass=false
 common_encoder=false # Use an encoder in a separate location
 dense_transform=false
+vae_transform=false
+gan_transform=true
 
 while true; do
   case "$1" in
@@ -57,9 +58,12 @@ while true; do
     --no_husky) run_husky=false; shift ;;
     --no_jigsaws) run_jigsaws=false; shift ;;
     --no_wass) run_wass=false; shift ;;
+    --wass) run_wass=true; shift ;;
     --dense_transform) dense_transform=true; shift ;;
     --no_gan_transform) gan_transform=false; shift ;;
     --gan_transform) gan_transform=true; shift ;;
+    --no_vae_transform) vae_transform=false; shift ;;
+    --vae_transform) vae_transform=true; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -73,6 +77,7 @@ if $resume; then resume_cmd=''; else resume_cmd='--no_resume'; fi
 if $common_encoder; then  enc_dir_cmd='--enc_dir ~/.costar/pretrain_codec'; else enc_dir_cmd=''; fi
 if $dense_transform; then dense_transform_cmd='--dense_transform'; else dense_transform_cmd=''; fi
 if $gan_transform; then gan_transform_cmd='--gan_transform'; else gan_transform_cmd='--no_gan_transform'; fi
+if $vae_transform; then vae_transform_cmd='--vae_transform'; else vae_transform_cmd='--no_vae_transform'; fi
 
 if $run_wass; then wass_list='true false'; else wass_list=false; fi
 for do_wass in $wass_list; do
@@ -91,7 +96,8 @@ for do_wass in $wass_list; do
             --opt $opt --epochs1 $epochs1 --epochs2 $epochs2 \
             $wass_cmd $noise_cmd $retrain_cmd $enc_cmd \
             $load_cmd $skip_cmd $suffix_cmd $resume_cmd $skip_cond_cmd \
-            $enc_dir_cmd $dense_transform_cmd $gan_transform_cmd
+            $enc_dir_cmd $dense_transform_cmd $gan_transform_cmd \
+            $vae_transform_cmd
         }
         $run_ctp && call ctp_dec multi
         $run_husky && call husky_data husky

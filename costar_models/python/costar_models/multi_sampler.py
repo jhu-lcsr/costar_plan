@@ -13,6 +13,7 @@ from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
+from keras import metrics
 from matplotlib import pyplot as plt
 
 from .abstract import *
@@ -471,6 +472,57 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         l = [h0, h, option, z] if self.use_noise else [h0, h, option]
         self.transform_model = Model(l, x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
+        return self.transform_model
+
+    def _makeVaeTransform(self, h_dim=(8,8), perm_drop=False, small=False, latent_dim=16):
+        '''
+        Returns:
+        --------
+        transform model
+        '''
+
+        epsilon_std = 1.
+
+        l0, l1, c = h_dim[0], h_dim[1], self.encoder_channels
+        h = Input((l0, l1, c), name="h_in")
+        h0 = Input((l0, l1, c), name="h0_in")
+        option = Input((self.num_options,),name="t_opt_in")
+        bn = self.use_batchnorm
+        dr = self.dropout_rate
+
+        # Combine the hidden state observations
+        x = Flatten()(h)
+        x0 = Flatten()(h0)
+
+        z_mean = Dense(latent_dim)(x)
+        z_log_var = Dense(latent_dim)(x)
+
+        def sampling(args):
+            z_mean, z_log_var = args # for Lambda
+            epsilon = K.random_normal(shape=(K.shape(z_mean)[0], latent_dim), mean=0.,
+                                      stddev=epsilon_std)
+            return z_mean + K.exp(z_log_var / 2) * epsilon
+
+        # Create sampling layer
+        z = Lambda(sampling)([z_mean, z_log_var])
+
+        x = Concatenate()([z, x0, option])
+        # Decode
+        factor = 0.25 if small else 1.
+        x = AddDense(x, int(l0 * l1 * c * factor), "relu", 0., constraint=None, bn=bn, perm_drop=perm_drop)
+        x = AddDense(x, int(l0 * l1 * c * factor), "relu", 0., constraint=None, bn=bn, perm_drop=perm_drop)
+        x = AddDense(x, l0 * l1 * c, "sigmoid", dr, constraint=None, bn=bn, perm_drop=perm_drop)
+
+        x = Reshape([l0, l1, c])(x)
+
+        self.transform_model = Model([h0, h, option], x, name="tform_vae")
+
+        # Compute VAE loss
+        xent_loss = l0 * l1 * c * metrics.binary_crossentropy(x0, x)
+        kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
+        vae_loss = K.mean(xent_loss + kl_loss)
+
+        self.transform_model.compile(loss=vae_loss, optimizer=self.getOptimizer())
         return self.transform_model
 
     def _getTransform(self,i=0,rep_channels=32):

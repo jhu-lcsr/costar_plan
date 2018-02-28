@@ -211,7 +211,11 @@ def GetModelParser():
                         help="Unique id to differentiate status file",
                         default="")
     parser.add_argument("--dense_transform",
-                        help="Use dense layer for trasform",
+                        help="Use dense layer for transform",
+                        default=False,
+                        action='store_true')
+    parser.add_argument("--vae_transform",
+                        help="Use variational auto-encoder for transform",
                         default=False,
                         action='store_true')
     return parser
