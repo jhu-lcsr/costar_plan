@@ -337,12 +337,12 @@ def run_training(
     #TODO(ahundt) enable when https://github.com/keras-team/keras/pull/9105 is resolved
     # callbacks += [FineTuningCallback(epoch=0)]
 
-    if num_gpus > 1:
-        parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
-    else:
-        parallel_model = model
+    # if num_gpus > 1:
+    #     model = keras.utils.multi_gpu_model(model, num_gpus)
+    # else:
+    #     model = model
 
-    parallel_model.compile(
+    model.compile(
         optimizer=optimizer,
         loss=loss,
         metrics=metrics)
@@ -367,7 +367,7 @@ def run_training(
                                                 verbose=0)] + callbacks
 
         # print('calling model.fit_generator()')
-        history = parallel_model.fit_generator(
+        history = model.fit_generator(
             train_data,
             steps_per_epoch=train_steps,
             epochs=epochs,
@@ -385,15 +385,15 @@ def run_training(
             print('------------------------------------------------------')
             _, optimizer = choose_optimizer(optimizer_name, fine_tuning_learning_rate, [], monitor_loss_name)
 
-            for layer in parallel_model.layers:
+            for layer in model.layers:
                 layer.trainable = True
 
-            parallel_model.compile(
+            model.compile(
                 optimizer=optimizer,
                 loss=loss,
                 metrics=metrics)
 
-            history = parallel_model.fit_generator(
+            history = model.fit_generator(
                 train_data,
                 steps_per_epoch=train_steps,
                 epochs=epochs + fine_tuning_epochs,
@@ -404,7 +404,7 @@ def run_training(
                 initial_epoch=epochs)
 
     elif 'test' in pipeline:
-        history = parallel_model.evaluate_generator(generator=test_data, steps=test_steps)
+        history = model.evaluate_generator(generator=test_data, steps=test_steps)
     else:
         raise ValueError('unknown pipeline configuration ' + pipeline + ' chosen, try '
                          'train, test, train_test, or train_test_kfold')
@@ -499,9 +499,9 @@ def get_compiled_model(learning_rate=None,
         **kwargs)
 
     # if num_gpus > 1:
-    #     parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
+    #     model = keras.utils.multi_gpu_model(model, num_gpus)
     # else:
-    #     parallel_model = model
+    #     model = model
 
     model.load_weights(load_weights)
 
@@ -946,6 +946,7 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
             model = get_compiled_model(load_weights=fold_checkpoint_file, **training_run_params)
 
             model.load_weights(fold_checkpoint_file)
+            print('WEIGHTS: \n', model.get_weights())
 
             # TODO(ahundt) low priority: automatically choose feature and metric strings
             # choose_features_and_metrics(feature_combo_name, problem_name)
