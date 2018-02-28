@@ -448,6 +448,47 @@ def normalize_sin_theta_cos_theta(sin_theta, cos_theta):
     return sin_theta, cos_theta
 
 
+def prediction_vector_has_grasp_success(y_pred):
+    has_grasp_success = (y_pred.size == 7)
+    return has_grasp_success
+
+
+def get_prediction_vector_rectangle_start_index(y_pred):
+    """ Get the rectangle start index from an encoded prediction vector of length 6 or 7
+    """
+    has_grasp_success = prediction_vector_has_grasp_success(y_pred)
+    # the grasp rectangle start index
+    rect_index = 0
+    if has_grasp_success:
+        rect_index = 1
+    return rect_index
+
+
+def decode_prediction_vector(y_true):
+    """ Decode a prediction vector into sin(2 * theta), cos(2 * theta), and 4 vertices
+    """
+    rect_index = get_prediction_vector_rectangle_start_index(y_true)
+    end_angle_index = rect_index + 2
+    y_true[rect_index: end_angle_index] = denorm_sin2_cos2(y_true[rect_index:end_angle_index])
+    true_y_sin_theta, true_x_cos_theta = y_true[rect_index:end_angle_index]
+    true_rp = parse_rectangle_vertices(y_true[rect_index:])
+    return true_y_sin_theta, true_x_cos_theta, true_rp
+
+
+def decode_prediction_vector_theta(y_true):
+    """ Decode a prediction vector into theta and four rectangle vertices
+    """
+    rect_index = get_prediction_vector_rectangle_start_index(y_true)
+    end_angle_index = rect_index + 2
+    y_true[rect_index: end_angle_index] = denorm_sin2_cos2(y_true[rect_index:end_angle_index])
+    true_y_sin_theta, true_x_cos_theta = y_true[rect_index:end_angle_index]
+    true_rp = parse_rectangle_vertices(y_true[rect_index:])
+    true_y_sin_theta, true_x_cos_theta = normalize_sin_theta_cos_theta(true_y_sin_theta, true_x_cos_theta)
+    # right now it is 2 theta, so get theta
+    theta = np.arctan2(true_y_sin_theta, true_x_cos_theta) / 2.0
+    return theta, true_rp
+
+
 def angle_difference_less_than_threshold(
         true_y_sin_theta, true_x_cos_theta,
         pred_y_sin_theta, pred_x_cos_theta,
@@ -519,11 +560,7 @@ def jaccard_score(y_true, y_pred, angle_threshold=np.radians(60.0), iou_threshol
 
     """
 
-    has_grasp_success = (y_pred.size == 7)
-    # the grasp rectangle start index
-    rect_index = 0
-    if has_grasp_success:
-        rect_index = 1
+    has_grasp_success = prediction_vector_has_grasp_success(y_pred)
 
     # print('0')
     predicted_success = np.rint(y_pred[0])
@@ -545,11 +582,8 @@ def jaccard_score(y_true, y_pred, angle_threshold=np.radians(60.0), iou_threshol
         # print('4')
 
         # denormalize the values from (0, 1) back to (-1, 1 range) and get the array entries
-        end_angle_index = rect_index + 2
-        y_true[rect_index: end_angle_index] = denorm_sin2_cos2(y_true[rect_index:end_angle_index])
-        true_y_sin_theta, true_x_cos_theta = y_true[rect_index:end_angle_index]
-        y_pred[rect_index: end_angle_index] = denorm_sin2_cos2(y_pred[rect_index:end_angle_index])
-        pred_y_sin_theta, pred_x_cos_theta = y_pred[rect_index:end_angle_index]
+        true_y_sin_theta, true_x_cos_theta, true_rp = decode_prediction_vector(y_true)
+        pred_y_sin_theta, pred_x_cos_theta, pred_rp = decode_prediction_vector(y_pred)
 
         # print('5')
         # if the angle difference isn't close enough to ground truth return 0.0
@@ -564,10 +598,6 @@ def jaccard_score(y_true, y_pred, angle_threshold=np.radians(60.0), iou_threshol
         # We passed all the other checks so
         # let's find out if the grasp boxes match
         # via the jaccard distance.
-        true_rp = parse_rectangle_vertices(y_true[rect_index:])
-        pred_rp = parse_rectangle_vertices(y_pred[rect_index:])
-
-        # print('7')
         iou = shapely_intersection_over_union(true_rp, pred_rp)
         if verbose:
             print('iou: ' + str(iou))
