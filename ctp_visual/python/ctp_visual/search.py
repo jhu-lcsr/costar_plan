@@ -60,7 +60,8 @@ class VisualSearchNode(object):
         print(q)
         print(done_a, done_qa)
 
-        a = np.argmax(p_a, axis=1)[0]
+        #a = np.argmax(p_a, axis=1)[0]
+        a = np.random.choice(range(self.cim.num_options),p=p_a[0])
         print("action =", a)
         if not a in self.children:
             self.children[a] = VisualSearchNode(
