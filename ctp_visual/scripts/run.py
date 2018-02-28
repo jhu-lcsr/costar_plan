@@ -27,26 +27,25 @@ import time
 from ctp_visual.search import VisualSearch
 
 def sim(args):
+    np.random.seed(0)
     env = BulletSimulationEnv(**args)
     model = MakeModel(taskdef=env.task, **args)
     model.validate = True
     model.load(env.world)
-    search = VisualSearch(model)
+    search = VisualSearch(env.task, model)
     features = env.reset()
     I = np.expand_dims(features[0], axis=0) / 255.
     h = model.encode(I)
     Id = model.decode(h)
-    plt.figure()
     search(I, iter=5, depth=5, draw=True)
-    plt.show()
-    plt.figure()
-    plt.subplot(1,3,1)
-    plt.imshow(I[0])
-    plt.subplot(1,3,2)
-    plt.imshow(np.mean(h[0],axis=-1))
-    plt.subplot(1,3,3)
-    plt.imshow(Id[0])
-    plt.show()
+    #plt.figure()
+    #plt.subplot(1,3,1)
+    #plt.imshow(I[0])
+    #plt.subplot(1,3,2)
+    #plt.imshow(np.mean(h[0],axis=-1))
+    #plt.subplot(1,3,3)
+    #plt.imshow(Id[0])
+    #plt.show()
 
 def dataset(args):
     pass
