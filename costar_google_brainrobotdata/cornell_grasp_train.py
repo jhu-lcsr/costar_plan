@@ -496,19 +496,19 @@ def get_compiled_model(learning_rate=None,
         image_model_name=image_model_name,
         **kwargs)
 
-    if num_gpus > 1:
-        parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
-    else:
-        parallel_model = model
+    # if num_gpus > 1:
+    #     parallel_model = keras.utils.multi_gpu_model(model, num_gpus)
+    # else:
+    #     parallel_model = model
 
     model.load_weights(load_weights)
 
-    parallel_model.compile(
+    model.compile(
         optimizer=optimizer_name,
         loss=loss,
         metrics=metrics)
 
-    return parallel_model
+    return model
 
 
 def choose_preprocessing_mode(preprocessing_mode, image_model_name):
