@@ -83,7 +83,7 @@ def draw_grasp(axs, grasp_success, center, theta, x_current=None, y_current=None
     if title is not None:
         if grasp_success:
             title += ' - positive example - grasp success'
-        if grasp_success:
+        else:
             title += ' - negative example - grasp failure'
         axs.set_title(title)
     return z
@@ -177,10 +177,11 @@ def visualize_redundant_example(features_dicts, predictions=None, predictions_gr
 
     if predictions is None:
         predictions = [None] * len(features_dicts)
-    if isinstance(predictions_grasp_success, bool):
-        predictions_grasp_success = [predictions_grasp_success] * len(features_dicts)
     elif not isinstance(predictions, list):
         predictions = [predictions]
+
+    if isinstance(predictions_grasp_success, bool):
+        predictions_grasp_success = [predictions_grasp_success] * len(features_dicts)
 
     preprocessed_examples = []
     for example in features_dicts:
@@ -242,7 +243,7 @@ def visualize_redundant_example(features_dicts, predictions=None, predictions_gr
     #                 np.array(coordinates_list[1]) - np.array(coordinates_list[3]), c=grasp_success)
     axs[0, 0].scatter(np.array(center_x_list), np.array(center_y_list), zorder=2, c=grasp_success, alpha=0.5, lw=2)
     axs[0, 1].imshow(np.squeeze(img), zorder=0)
-    axs[0, 0].set_title('Original Image')
+    axs[0, 1].set_title('Original Image')
     # plt.show()
     # axs[1, 0].scatter(data[0], data[1])
     # axs[2, 0].imshow(gt_image)
