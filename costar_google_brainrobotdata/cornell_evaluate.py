@@ -31,7 +31,9 @@ FLAGS = flags.FLAGS
 def main(_):
 
     # TODO(ahundt) remove the hardcoded folder or put it on a github release server
-    kfold_params = '/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/logs_cornell/2018-02-26-22-57-58_200_epoch_real_run_-objectwise-kfold'
+    kfold_params = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/'
+                    'logs_cornell/2018-02-26-22-57-58_200_epoch_real_run_-objectwise-kfold/'
+                    '2018-02-26-22-57-58_200_epoch_real_run_-objectwise-kfold_params.json')
     cornell_grasp_train.model_predict_k_fold(kfold_params)
     # problem_type = 'grasp_regression'
     # feature_combo = 'image_preprocessed'

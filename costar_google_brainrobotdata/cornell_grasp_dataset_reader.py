@@ -862,7 +862,7 @@ def yield_record(
                 #
 
         except tf.errors.OutOfRangeError as e:
-            if repeat is not None:
+            if steps is not None:
                 raise e
             else:
                 pass

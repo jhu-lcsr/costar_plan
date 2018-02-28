@@ -503,7 +503,7 @@ def jaccard_score(y_true, y_pred, angle_threshold=np.radians(60.0), iou_threshol
 
         norm_sin2_cos2_hw_5
             [sin2_theta, cos_2theta, height, width, center_y, center_x]
-            [        0,         1,      2,     3,        4,        5]
+            [        0,           1,      2,     3,        4,        5]
 
 
         y_true: a numpy array of features

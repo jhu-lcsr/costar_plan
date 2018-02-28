@@ -19,6 +19,7 @@ import glob
 import datetime
 import tensorflow as tf
 import numpy as np
+import six
 from shapely.geometry import Polygon
 import cornell_grasp_dataset_reader
 import time
@@ -428,6 +429,14 @@ def get_compiled_model(learning_rate=None,
                        log_dir=None,
                        hyperparams=None,
                        load_weights=None,
+                       pipeline=None,
+                       train_size=None,
+                       val_size=None,
+                       test_size=None,
+                       run_name=None,
+                       train_filenames=None,
+                       test_filenames=None,
+                       val_filenames=None,
                        **kwargs):
     """
     Get a compiled model instance and input data.
@@ -491,12 +500,14 @@ def get_compiled_model(learning_rate=None,
     else:
         parallel_model = model
 
+    model.load_weights(load_weights)
+
     parallel_model.compile(
         optimizer=optimizer_name,
         loss=loss,
         metrics=metrics)
 
-    return parallel_model, data_features
+    return parallel_model
 
 
 def choose_preprocessing_mode(preprocessing_mode, image_model_name):
@@ -865,105 +876,133 @@ def model_predict_k_fold(kfold_params=None):
     num_fold = kfold_param_dicts['num_fold']
 
     fold_averages = np.zeros((num_fold))
-    for i in tqdm(range(num_fold), desc='kfold prediction'):
-        # This is a special string,
-        # make sure to maintain backwards compatibility
-        # if you modify it.
-        fold_name = 'fold-' + str(i)
+    with tqdm(range(num_fold), desc='kfold prediction') as progbar_folds:
+        for i in progbar_folds:
+            # This is a special string,
+            # make sure to maintain backwards compatibility
+            # if you modify it.
+            fold_name = 'fold-' + str(i)
 
-        # load all the settings from a past run
-        training_run_params = kfold_param_dicts[fold_name]
+            # load all the settings from a past run
+            training_run_params = kfold_param_dicts[fold_name]
 
-        val_filenames = training_run_params['val_filenames']
-        log_dir = training_run_params['log_dir']
-        # we prefix every fold with a timestamp, therefore we assume:
-        #   lexicographic order == time order == fold order
-        # '200_epoch_real_run' is for backwards compatibility before
-        # the fold nums were put into each fold's log_dir and run_name.
-        fold_log_dir = [name for name in os.listdir(log_dir) if os.path.isdir(name) and
-                        ('200_epoch_real_run' in name or fold_name in name)]
+            val_filenames = training_run_params['val_filenames']
+            log_dir = training_run_params['log_dir']
+            # we prefix every fold with a timestamp, therefore we assume:
+            #   lexicographic order == time order == fold order
+            # '200_epoch_real_run' is for backwards compatibility before
+            # the fold nums were put into each fold's log_dir and run_name.
+            directory_listing = os.listdir(log_dir)
+            fold_log_dir = []
+            for name in directory_listing:
+                name = os.path.join(log_dir, name)
+                if os.path.isdir(name):
+                    if '200_epoch_real_run' in name or fold_name in name:
+                        fold_log_dir += [name]
 
-        if len(fold_log_dir) > 1:
-            # more backwards compatibility tricks
-            fold_log_dir = fold_log_dir[i]
-        else:
-            # this should work in most cases excluding the first k_fold run log
-            [fold_log_dir] = fold_log_dir
+            if len(fold_log_dir) > 1:
+                # more backwards compatibility tricks
+                fold_log_dir = fold_log_dir[i]
+            else:
+                # this should work in most cases excluding the first k_fold run log
+                [fold_log_dir] = fold_log_dir
 
-        # Now we have to load the best model
-        # '200_epoch_real_run' is for backwards compatibility before
-        # the fold nums were put into each fold's log_dir and run_name.
-        fold_checkpoint_files = [name for name in os.listdir(log_dir) if not os.path.isdir(name) and
-                                 '.h5' in name and
-                                 ('200_epoch_real_run' in name or fold_name in name)]
+            # Now we have to load the best model
+            # '200_epoch_real_run' is for backwards compatibility before
+            # the fold nums were put into each fold's log_dir and run_name.
+            directory_listing = os.listdir(fold_log_dir)
+            fold_checkpoint_files = []
+            for name in directory_listing:
+                name = os.path.join(fold_log_dir, name)
+                if not os.path.isdir(name) and '.h5' in name:
+                    if '200_epoch_real_run' in name or fold_name in name:
+                        fold_checkpoint_files += [name]
 
-        # Just take the last one
-        # TODO(ahundt) the filenames should probably be checked for the highest val score
-        fold_checkpoint_file = fold_checkpoint_files[-1]
+            # Just take the last one
+            # TODO(ahundt) the filenames should probably be checked for the highest val score
+            fold_checkpoint_file = fold_checkpoint_files[-1]
+            progbar_folds.write('Fold ' + str(i) + ' Loading checkpoint: ' + str(fold_checkpoint_file))
 
-        # load the model
-        model = get_compiled_model(**training_run_params, load_weights=fold_checkpoint_file)
+            # load the model
+            model = get_compiled_model(load_weights=fold_checkpoint_file, **training_run_params)
 
-        # TODO(ahundt) low priority: automatically choose feature and metric strings
-        # choose_features_and_metrics(feature_combo_name, problem_name)
-        prediction_name = 'norm_sin2_cos2_hw_yx_6'
-        metric_name = 'val_grasp_jaccard'
-        unique_score_category = 'image/filename'
-        data_features = ['image/preprocessed']
+            # TODO(ahundt) low priority: automatically choose feature and metric strings
+            # choose_features_and_metrics(feature_combo_name, problem_name)
+            prediction_name = 'norm_sin2_cos2_hw_yx_6'
+            metric_name = 'val_grasp_jaccard'
+            unique_score_category = 'image/filename'
+            data_features = ['image/preprocessed']
+            metric_fn = grasp_metrics.jaccard_score
 
-        # TODO(ahundt) low-medium priority: save iou scores
-        # metric_name = 'intersection_over_union'
+            # TODO(ahundt) low-medium priority: save iou scores
+            # metric_name = 'intersection_over_union'
 
-        # Load the validation data and traverse it exactly once
-        input_data = cornell_grasp_dataset_reader.yield_record(
-            val_filenames, batch_size=1, is_training=False,
-            shuffle=False, steps=1
-            preprocessing_mode=training_run_params['preprocessing_mode'])
+            # Load the validation data and traverse it exactly once
+            input_data = cornell_grasp_dataset_reader.yield_record(
+                val_filenames, batch_size=1, is_training=False,
+                shuffle=False, steps=1,
+                preprocessing_mode=training_run_params['preprocessing_mode'])
 
-        # go over every data entry
-        best_results_for_each_image = {}
-        try:
-            for example_dict in tqdm(input_data):
-                sess = K.get_session()
-                init_g = tf.global_variables_initializer()
-                init_l = tf.local_variables_initializer()
-                sess.run(init_g)
-                sess.run(init_l)
+            # go over every data entry
+            best_results_for_each_image = {}
+            try:
+                for example_dict in tqdm(input_data):
+                    sess = K.get_session()
+                    init_g = tf.global_variables_initializer()
+                    init_l = tf.local_variables_initializer()
+                    sess.run(init_g)
+                    sess.run(init_l)
 
-                # todo get
-                predict_input = [example_dict[feature_name] for feature_name in data_features]
-                result = model.predict_on_batch(predict_input)
-                score = grasp_metrics.grasp_jaccard_batch(example_dict[], result)
-                image_filename = example_dict[unique_score_category]
+                    # todo get
+                    predict_input = [example_dict[feature_name] for feature_name in data_features]
+                    ground_truth = np.squeeze(example_dict[prediction_name])
+                    result = np.squeeze(model.predict_on_batch(predict_input))
+                    progbar_folds.write('ground_truth: ' + str(ground_truth))
+                    progbar_folds.write('result: ' + str(result))
 
-                # save this score and prediction if there is no score yet
-                # or this score is a new best
-                if(image_filename not in best_results_for_each_image or
-                        prediction_name not in best_results_for_each_image[image_filename] or
-                        score > best_results_for_each_image[image_filename][prediction_name]):
-                    # We have a new best score!
-                    best_score = {
-                        prediction_name: result,
-                        metric_name: score}
+                    score = metric_fn(ground_truth, result)
+                    progbar_folds.write('score: ' + str(score))
+                    image_filename = example_dict[unique_score_category][0]
 
-                    best_results_for_each_image[image_filename] = best_score
-        except tf.errors.OutOfRangeError as e:
-            # finished going through the dataset once
-            pass
+                    # save this score and prediction if there is no score yet
+                    # or this score is a new best
+                    if(len(best_results_for_each_image) == 0 or
+                            image_filename not in best_results_for_each_image or
+                            prediction_name not in best_results_for_each_image[image_filename] or
+                            score > best_results_for_each_image[image_filename][metric_name]):
+                        # We have a new best score!
+                        best_score = {
+                            prediction_name: result,
+                            metric_name: score}
+                        if image_filename in best_results_for_each_image:
+                            # old_best = best_results_for_each_image.pop(image_filename)
+                            progbar_folds.write('replacing score ' +
+                                                str(best_results_for_each_image[image_filename][prediction_name]) +
+                                                ' with score ' + str(score) + ' in ' + image_filename)
+                        best_results_for_each_image[image_filename] = best_score
+            except tf.errors.OutOfRangeError as e:
+                # finished going through the dataset once
+                pass
 
-        best_scores = np.zeros([len(best_results_for_each_image)])
-        for j, (filename, best_score) in enumerate(six.iteritems(best_results_for_each_image)):
+            best_scores = np.zeros([len(best_results_for_each_image)])
+            for j, (filename, best_score) in enumerate(six.iteritems(best_results_for_each_image)):
+                best_scores[j] = best_score[metric_name]
+                # TODO(ahundt) calculate mean here
+                # TODO(ahundt) low priority: calculate other stats like stddev?
+                continue
 
-            # TODO(ahundt) calculate mean here
-            # TODO(ahundt) low priority: calculate other stats like stddev?
-            continue
+            fold_averages[i] = np.average(best_scores)
+            progbar_folds.write('---------------------------------------------')
+            progbar_folds.write('Completed fold ' + str(i) + ' averages so far: ' + str(fold_averages))
+            progbar_folds.write('---------------------------------------------')
+            progbar_folds.update()
+            # TODO(ahundt) low-medium priority: save out all best scores and averages
 
-        fold_averages[i] = np.average(best_scores)
-        # TODO(ahundt) low-medium priority: save out all best scores and averages
-
-    print('averages for each fold: ' + str(fold_averages))
-    overall_average = np.average(fold_averages)
-    print('overall average of all folds: ' str(overall_average))
+        progbar_folds.write('---------------------------------------------')
+        progbar_folds.write('averages for each fold: ' + str(fold_averages))
+        progbar_folds.write('---------------------------------------------')
+        overall_average = np.average(fold_averages)
+        progbar_folds.write('overall average of all folds: ' + str(overall_average))
 
 
 def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_type=None,
