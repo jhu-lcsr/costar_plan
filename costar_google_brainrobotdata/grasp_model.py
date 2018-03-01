@@ -652,8 +652,15 @@ def choose_hypertree_model(
             if num_layers is None or num_layers == 0:
                 return x
             elif model_name == 'dense':
-                for i in range(num_layers):
-                    x = Dense(vector_dense_filters)(x)
+                x = Dense(vector_dense_filters)(x)
+                # Important! some old models are invalidated
+                # by the next BatchNorm and Dropout,
+                # comment them if you really neeed to go back
+                x = BatchNormalization(x)
+                x = Dropout(dropout_rate)(x)
+                if num_layers > 1:
+                    for i in range(num_layers - 1):
+                        x = Dense(vector_dense_filters)(x)
             elif model_name == 'dense_block':
                 keras.backend.expand_dims
                 densenet.__dense_block(
