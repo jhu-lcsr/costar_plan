@@ -453,7 +453,9 @@ def choose_hypertree_model(
 
     # Notes
 
-    Best result for classification 2018-02-23-09-35-21
+    Best result for classification
+
+    2018-02-23-09-35-21
 
         - 0.25 dropout
         - hyperopt_logs_cornell/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success
@@ -504,7 +506,6 @@ def choose_hypertree_model(
     if trainable is None:
         trainable = False
 
-    # TODO(ahundt) deal with model names being too long due to https://github.com/keras-team/keras/issues/5253
     if top == 'segmentation':
         name_prefix = 'dilated_'
     else:
@@ -527,8 +528,8 @@ def choose_hypertree_model(
             )
         else:
             image_input_shape = image_shapes[0]
-        print('image_input_shape: ' + str(image_input_shape))
-        print('images: ' + str(images))
+        print('hypertree image_input_shape: ' + str(image_input_shape))
+        print('hypertree images: ' + str(images))
 
         if image_input_shape is not None and len(image_input_shape) == 4:
             # cut off batch size
@@ -539,7 +540,7 @@ def choose_hypertree_model(
                              str(image_model_weights) +
                              'Options are shared and separate.')
 
-        print('image_input_shape sans batch: ' + str(image_input_shape))
+        print('hypertree image_input_shape with batch stripped: ' + str(image_input_shape))
         # VGG16 weights are shared and not trainable
         if top == 'segmentation':
             if image_model_name == 'vgg':
@@ -606,9 +607,9 @@ def choose_hypertree_model(
         class ImageModelCarrier():
             # Create a temporary scope for the list
             # compatible with python 2.7 and 3.5
-            # note this may be affected if multiple
+            # note this may not work as expected if multiple
             # instances of choose_hypertree_model
-            # are created ast once.
+            # are created at once.
             image_models = []
             image_model_num = 0
 
@@ -637,7 +638,7 @@ def choose_hypertree_model(
                         layer.trainable = False
                 ImageModelCarrier.image_models += [imodel]
                 ImageModelCarrier.image_model_num += 1
-                print('create_image_model')
+                print('Hypertree create_image_model called for tensor: ' + str(tensor))
                 return imodel.outputs[0]
 
         def vector_branch_dense(
@@ -653,9 +654,9 @@ def choose_hypertree_model(
                 return x
             elif model_name == 'dense':
                 x = Dense(vector_dense_filters)(x)
-                # Important! some old models are invalidated
-                # by the next BatchNorm and Dropout,
-                # comment them if you really neeed to go back
+                # Important! some old models saved to disk
+                # are invalidated by the BatchNorm and Dropout
+                # lines below, comment them if you really neeed to go back
                 x = BatchNormalization(x)
                 x = Dropout(dropout_rate)(x)
                 if num_layers > 1:
@@ -668,6 +669,11 @@ def choose_hypertree_model(
                     nb_filter=vector_dense_filters,
                     growth_rate=48, dropout_rate=dropout_rate,
                     dims=0)
+            else:
+                raise ValueError('vector_branch_dense called with '
+                                 'unsupported model name %s, options '
+                                 'are dense and dense_block.' % model_name)
+            print('Hypertree create_image_model completed for tensor: ' + str(tensor))
             return x
 
         def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers):
@@ -682,24 +688,30 @@ def choose_hypertree_model(
             if num_layers is None or num_layers == 0:
                 return x
             elif num_layers is not None:
-                if trunk_model_name == 'dense':
+                if trunk_model_name == 'dense_block' or trunk_model_name == 'dense':
+                    # unfortunately, dense above really means dense_block
+                    # but some past hyperopt logs have dense so we need to keep it
+                    #
+                    # growth rate is 48 due to the "wider convolutional network" papers
+                    # and comments by the densenet authors in favor of this param choice.
+                    # see https://github.com/liuzhuang13/DenseNet
                     x, num_filters = densenet.__dense_block(
                         x, nb_layers=trunk_layers, nb_filter=channels,
                         growth_rate=48, dropout_rate=dropout_rate)
-                elif trunk_model_name == 'resnet':
+                elif trunk_model_name == 'resnet_conv_identity_block':
                     stage = 'trunk'
                     x = fcn.conv_block(3, [filters, filters, filters * 4], stage, '_' + str(0))(x)
                     if num_layers > 1:
                         for l in range(num_layers - 1):
                             x = fcn.identity_block(3, [filters, filters, filters * 4], stage, '_' + str(l + 1))(x)
-                elif trunk_model_name == 'vgg':
+                elif trunk_model_name == 'vgg_conv_block':
                     # Vgg "Block 6"
                     name = 'trunk'
                     weight_decay = 0.
                     for l in range(num_layers):
                         x = Conv2D(filters, (3, 3), activation='relu', padding='same',
                                    name=name + 'block6_conv%d' % l, kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
-                elif trunk_model_name == 'nasnet':
+                elif trunk_model_name == 'nasnet_normal_a_cell':
                     filter_multiplier = 2
                     p = None
                     for l in range(num_layers):
@@ -727,7 +739,7 @@ def choose_hypertree_model(
             output_shape=output_shape,
             verbose=verbose
         )
-    print('have hypertree model')
+    print('hypertree model complete')
     return model
 
 

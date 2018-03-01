@@ -258,6 +258,7 @@ def run_training(
         fine_tuning_learning_rate=None,
         fine_tuning=None,
         fine_tuning_epochs=None,
+        loss=None,
         **kwargs):
     """
 
@@ -303,7 +304,7 @@ def run_training(
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
-     loss, metrics, classes, success_only] = choose_features_and_metrics(feature_combo_name, problem_name)
+     loss, metrics, classes, success_only] = choose_features_and_metrics(feature_combo_name, problem_name, loss=loss)
 
     keras.backend.get_session().run([tf.global_variables_initializer(), tf.local_variables_initializer()])
     # see parse_and_preprocess() for the creation of these features
@@ -452,7 +453,7 @@ def run_training(
             verbose=0)
 
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
-        if fine_tuning:
+        if fine_tuning and fine_tuning_epochs is not None and fine_tuning_epochs > 0:
             # do fine tuning stage after initial training
             print('')
             print('')
@@ -769,7 +770,7 @@ def train_k_fold(split_type=None,
     return run_histories
 
 
-def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=None):
+def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=None, loss=None):
     """ Choose the features to load from the dataset and losses to use during training
     """
     if image_shapes is None:
@@ -842,8 +843,9 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         label_features = ['norm_sin2_cos2_hw_yx_6']
         monitor_metric_name = 'val_grasp_jaccard'
         monitor_loss_name = 'val_loss'
+        if loss is None:
+            loss = keras.losses.mean_squared_error
         metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
-        loss = keras.losses.mean_squared_error
         model_name = '_regression_model'
         classes = 6
     elif problem_name == 'image_center_grasp_regression':

@@ -5,6 +5,7 @@ import six
 import GPy
 import GPyOpt
 import numpy as np
+import grasp_utilities
 import cornell_grasp_train
 import cornell_grasp_dataset_reader
 import tensorflow as tf
@@ -103,6 +104,9 @@ class HyperparameterOptions(object):
             x: the callback parameter of the GPyOpt Bayesian Optimizer
             index_dict: a dictionary with all the information necessary to convert back to function call arguments
         """
+        if len(x.shape) == 1:
+            # if we get a 1d array convert it to 2d so we are consistent
+            x = np.expand_dims(x, axis=0)
         # x is a funky 2d numpy array, so we convert it back to normal parameters
         kwargs = {}
         for key, opt_dict in six.iteritems(self.index_dict):
@@ -140,32 +144,31 @@ class HyperparameterOptions(object):
         return self.search_space
 
 
-def optimize(seed=1, verbose=1):
+def optimize(
+        seed=1,
+        verbose=1,
+        initial_num_samples=200,
+        num_cores=15,
+        baysean_batch_size=1,
+        problem_type=None,
+        log_dir='./',
+        run_name='',
+        param_to_optimize='val_loss'):
+    """ Run hyperparameter optimization
+    """
     np.random.seed(seed)
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
     # I'm going with super conservative values for the first run to get an idea how it works
-
-    # it seems loading the dataset in advance leads
-    # to longer and longer loading times as previous
-    # models are not cleared. Extra time is required to
-    # load the dataset each time around, however, so
-    # there is a tradeoff and we need to figure out
-    # what works best
-    #
-    # Note: feature_combo_name only works
-    # when load_dataset_in_advance is False
-    load_dataset_in_advance = False
     # since we adaptively initialize the dataset
     # we can also optimize batch size.
     # This will be noticeably slower.
     batch_size = FLAGS.batch_size
-    hyperopt_mode = 'grasp_regression'
-    if hyperopt_mode == 'classification':
+    if problem_type == 'classification':
+        FLAGS.problem_type = problem_type
         feature_combo_name = 'image_preprocessed_width_1'
         top = 'classification'
-    elif hyperopt_mode == 'grasp_regression':
-        problem_type = 'grasp_regression'
+    elif problem_type == 'grasp_regression':
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
         # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
@@ -173,8 +176,6 @@ def optimize(seed=1, verbose=1):
         FLAGS.feature_combo = feature_combo_name
         FLAGS.crop_to = 'image_contains_grasp_box_center'
 
-    train_data = None
-    validation_data = None
     learning_rate_enabled = False
 
     hyperoptions = HyperparameterOptions()
@@ -198,15 +199,23 @@ def optimize(seed=1, verbose=1):
     # TODO(ahundt) run a separate search for the best dropout rate after finding a good model
     hyperoptions.add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75],
                            enable=False, required=True, default=0.25)
-    hyperoptions.add_param('vector_dense_filters', [2**x for x in range(6, 13)])
-    hyperoptions.add_param('vector_branch_num_layers', [x for x in range(0, 5)])
-    # leaving out 'resnet' for now, it is causing too many crashes, and nasnet_large because it needs different input dimensions.
+
+    if problem_type == 'grasp_regression':
+        # Right now only grasp_regression can configure the loss function
+        hyperoptions.add_param('loss', ['mse', 'mae', 'logcosh'])
+    else:
+        # There is no vector branch for grasp regression so we only add it in the other cases
+        # Handle motion command inputs and search for the best configuration
+        hyperoptions.add_param('vector_dense_filters', [2**x for x in range(6, 13)])
+        hyperoptions.add_param('vector_branch_num_layers', [x for x in range(0, 5)])
+        hyperoptions.add_param('vector_model_name', ['dense', 'dense_block'])
+    # leaving out nasnet_large for now because it needs different input dimensions.
     hyperoptions.add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile', 'resnet'])
-    hyperoptions.add_param('vector_model_name', ['dense', 'dense_block'])
-    # TODO(ahundt) add a None option for trunk_filters, [None] + [2**x for x in range(5, 12)], because it will automatically match input data's filter count
-    hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 11)])
+    # Zero maps to the None option for trunk_filters,
+    # because it will automatically match the input data's filter count
+    hyperoptions.add_param('trunk_filters', [0] + [2**x for x in range(5, 11)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 8)])
-    hyperoptions.add_param('trunk_model_name', ['vgg', 'densenet', 'nasnet', 'resnet'])
+    hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'nasnet_normal_a_cell', 'resnet_conv_identity_block'])
     hyperoptions.add_param('top_block_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
@@ -216,10 +225,6 @@ def optimize(seed=1, verbose=1):
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
                            enable=False, required=True, default='tf')
 
-    # number of samples to take before trying hyperopt
-    initial_num_samples = 200
-    num_cores = 15
-    baysean_batch_size = 1
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
     # how many optimization steps to take after the initial sampling
@@ -279,13 +284,20 @@ def optimize(seed=1, verbose=1):
 
         # TODO(ahundt) consider shutting down dataset generators and clearing the session when there is an exception
         # https://github.com/tensorflow/tensorflow/issues/4735#issuecomment-363748412
-        if not load_dataset_in_advance:
-            keras.backend.clear_session()
+        keras.backend.clear_session()
 
         if history is not None:
             # hyperopt seems to be done on val_loss
             # may try 1-val_acc sometime (since the hyperopt minimizes)
-            loss = history.history['val_loss'][-1]
+            if param_to_optimize in history.history:
+                loss = history.history[param_to_optimize][-1]
+            else:
+                raise ValueError('A hyperopt step completed, but the parameter '
+                                 'being optimized over is %s and it '
+                                 'was missing from the history'
+                                 'so hyperopt must exit. Here are the contents '
+                                 'of the history.history dictionary:\n\n %s' %
+                                 (param_to_optimize, str(history.history)))
             if verbose > 0:
                 if 'val_binary_accuracy' in history.history:
                     acc = history.history['val_binary_accuracy'][-1]
@@ -311,7 +323,11 @@ def optimize(seed=1, verbose=1):
     hyperopt.run_optimization(max_iter=maximum_hyperopt_steps)
     x_best = hyperopt.x_opt
     # myBopt.X[np.argmin(myBopt.Y)]
-    print('Hyperparameter Optimization final best result:\n' + str(hyperoptions.params_to_args(x_best)))
+    best_hyperparams = hyperoptions.params_to_args(x_best)
+    result_file = os.path.join(log_dir, run_name + '_optimized_hyperparams.json')
+    with open(result_file, 'w') as fp:
+        json.dump(best_hyperparams, fp)
+    print('Hyperparameter Optimization final best result:\n' + str(best_hyperparams))
     print("Optimized loss: {0}".format(hyperopt.fx_opt))
 
     hyperopt.plot_convergence()
@@ -320,12 +336,22 @@ def optimize(seed=1, verbose=1):
 
 
 def main(_):
+
+    FLAGS.problem_type = 'grasp_regression'
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
+    FLAGS.epochs = 1
+    FLAGS.fine_tuning_epochs = 0
     print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
-          ' num_validation flag: ' + str(FLAGS.num_validation) +
-          ' num_test flag: ' + str(FLAGS.num_test))
-    optimize()
+          ' num_validation: ' + str(FLAGS.num_validation) +
+          ' num_test: ' + str(FLAGS.num_test) +
+          ' epochs: ' + str(FLAGS.epochs) +
+          ' fine_tuning_epochs: ' + str(FLAGS.fine_tuning_epochs) +
+          ' problem_type:' + str(FLAGS.problem_type))
+    run_name = FLAGS.run_name
+    log_dir = FLAGS.log_dir
+    run_name = grasp_utilities.timeStamped(run_name)
+    optimize(problem_type=FLAGS.problem_type, run_name=run_name, log_dir=log_dir)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
