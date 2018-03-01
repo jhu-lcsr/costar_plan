@@ -215,7 +215,8 @@ def optimize(
     # because it will automatically match the input data's filter count
     hyperoptions.add_param('trunk_filters', [0] + [2**x for x in range(5, 11)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 8)])
-    hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'nasnet_normal_a_cell', 'resnet_conv_identity_block'])
+    # TODO(ahundt) Enable 'nasnet_normal_a_cell' the option is disabled for now due to a tensor dimension conflict
+    hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'resnet_conv_identity_block'])
     hyperoptions.add_param('top_block_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
