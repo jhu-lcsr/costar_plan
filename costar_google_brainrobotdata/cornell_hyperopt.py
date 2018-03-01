@@ -320,6 +320,11 @@ def optimize(seed=1, verbose=1):
 
 
 def main(_):
+    FLAGS.num_validation = 1
+    FLAGS.num_test = 1
+    print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
+          ' num_validation flag: ' + str(FLAGS.num_validation) +
+          ' num_test flag: ' + str(FLAGS.num_test))
     optimize()
 
 if __name__ == '__main__':
