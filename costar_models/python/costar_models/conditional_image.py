@@ -248,9 +248,8 @@ class ConditionalImage(PredictionSampler2):
         print(q[0])
         
 
-    def value(self, hidden0, hidden):
-        #v = self.value_model.predict([h0, hidden, prev_option])
-        v = self.value_model.predict([hidden0, hidden])
+    def value(self, hidden0, hidden, prev_action):
+        v = self.value_model.predict([hidden0, hidden, prev_action])
         return v
 
     def act(self, *args, **kwargs):
