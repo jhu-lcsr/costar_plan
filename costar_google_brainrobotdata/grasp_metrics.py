@@ -637,7 +637,7 @@ def grasp_jaccard_batch(y_true, y_pred, verbose=0):
         # print(' i: ' + str(i))
         # TODO(ahundt) comment the next few lines when not debugging
         verbose = 0
-        if np.random.randint(0, 1000) % 1000 == 0:
+        if np.random.randint(0, 10000) % 10000 == 0:
             verbose = 1
             print('')
             print('')
