@@ -46,8 +46,8 @@
   <!--build_depend>robotiq_85_bringup</build_depend-->
   <build_depend>robotiq_85_description</build_depend>
   <build_depend>ur_description</build_depend>
-  <!--build_depend>ur_gazebo</build_depend-->
-  <!--build_depend>fetch_gazebo</build_depend-->
+  <build_depend>ur_gazebo</build_depend>
+  <build_depend>fetch_gazebo</build_depend>
   <build_depend>simple_grasping</build_depend>
 
   <!--<run_depend>costar_gazebo_plugins</run_depend>-->
@@ -57,9 +57,9 @@
   <run_depend>robotiq_85_bringup</run_depend>
   <run_depend>robotiq_85_description</run_depend>
   <run_depend>ur_description</run_depend>
-  <!--run_depend>ur_gazebo</run_depend-->
+  <run_depend>ur_gazebo</run_depend>
   <run_depend>ur5_moveit_config</run_depend>
-  <!--run_depend>fetch_gazebo</run_depend-->
+  <run_depend>fetch_gazebo</run_depend>
   <run_depend>simple_grasping</run_depend>
 
 
