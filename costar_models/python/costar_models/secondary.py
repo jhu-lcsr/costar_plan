@@ -77,7 +77,7 @@ class Secondary(PredictionSampler2):
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
             outs = model([h0, h,label_in])
-            loss = "mae"
+            loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "q":
             model = GetNextModel(h, self.num_options, 128,

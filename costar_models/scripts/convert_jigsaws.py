@@ -36,7 +36,7 @@ def getArgs():
                         help="directory to make")
     parser.add_argument("--drop_chance", "-d",
                         type=int,
-                        default=20)
+                        default=0)
     return parser.parse_args()
 
 
@@ -56,7 +56,8 @@ def main():
     trans_dir = os.path.join(args.base_dir, "transcriptions")
     filenames = os.listdir(trans_dir)
 
-    for file_num, filename in enumerate(filenames):
+    file_num = 0
+    for _, filename in enumerate(filenames):
 
         print(filename)
 
@@ -176,19 +177,30 @@ def main():
         for k, v in data.items():
             data[k] = np.array(v)
 
-        write(args.out_dir, data, file_num, 1)
+        file_num = write(args.out_dir, data, file_num, 1)
 
-def write(directory, data, i, r):
+def write(directory, data, i0, r):
     '''
     Write to disk.
     '''
     status = "success" if r > 0. else "failure"
-    filename = "example%06d.%s.h5f"%(i, status)
-    filename = os.path.join(directory, filename)
-    f = h5py.File(filename, 'w')
-    for key, value in data.items():
-        f.create_dataset(key, data=value)
-    f.close()
+    length = data['label'].shape[0]
+    num_files = length/1000
+    if num_files > int(num_files):
+        num_files = int(num_files) + 1
+    else:
+        num_files = int(num_files)
+    for i in range(num_files):
+        idx = i + i0
+        filename = "example%06d.%s.h5f"%(i, status)
+        filename = os.path.join(directory, filename)
+        f = h5py.File(filename, 'w')
+        for key, value in data.items():
+            vidx0 = 1000 * i
+            vidx1 = min(1000 * (i+1), length)
+            print(i, vidx0, vidx1, i0, key)
+            f.create_dataset(key, data=value[vidx0:vidx1])
+        f.close()
 
 if __name__ == "__main__":
     main()
