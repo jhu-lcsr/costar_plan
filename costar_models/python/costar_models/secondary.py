@@ -213,7 +213,7 @@ class HuskySecondary(Secondary):
             outs = model([h0,h,label_in])
             self.q_model = model
             loss = "binary_crossentropy"
-            loss_wts = [1,0.1,0.01]
+            loss_wts = [1,1]
             metrics=["accuracy"]
         elif self.submodel == "next":
             model = GetNextModel(h, self.num_options, 128,
@@ -221,7 +221,7 @@ class HuskySecondary(Secondary):
             model.compile(loss="mae", optimizer=self.getOptimizer())
             outs = model([h0,h,label_in])
             self.next_model = model
-            loss_wts = [1,0.1,0.01]
+            loss_wts = [1,1]
             loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "actor":

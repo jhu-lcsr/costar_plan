@@ -42,9 +42,10 @@ def visualizeHiddenMain(args):
         h0 = model.encode(I0)
         prev_option = oin
         null_option = np.ones_like(prev_option) * model.null_option
-        p_a, done1, _ = model.pnext(h0, h, prev_option)
-        q_a, _, _= model.q(h0, h, prev_option)
-        v = model.value(h0, h, prev_option)
+        p_a, done1 = model.pnext(h0, h, prev_option)
+        q_a, _ = model.q(h0, h, prev_option)
+        q = model.q(h0, h, prev_option)
+        v = model.value(h0, h)
 
         if not h.shape[0] == I.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
@@ -54,31 +55,31 @@ def visualizeHiddenMain(args):
         # Compute effects of first action
         #h_goal = model.transform(h0, h, o1)
         h_goal = model.transform(h0, h, action)
-        p_a2, done2, _ = model.pnext(h0, h_goal, action)
-        q_a2, _, v1 = model.q(h0, h_goal, action)
+        p_a2, done2 = model.pnext(h0, h_goal, action)
+        q_a2, _ = model.q(h0, h_goal, action)
         #action2 = np.argmax(p_a2,axis=1)
         action2 = np.argmax(q_a2,axis=1)
 
         # Comute effects of next action
         #h_goal2 = model.transform(h0, h_goal, o2)
         h_goal2 = model.transform(h0, h_goal, action2)
-        p_a3, done3, _ = model.pnext(h0, h_goal2, action2)
-        q_a3, _, v2 = model.q(h0, h, action2)
+        p_a3, done3 = model.pnext(h0, h_goal2, action2)
+        q_a3, _ = model.q(h0, h, action2)
         action3 = np.argmax(p_a3,axis=1)
 
         # Comute effects of next action
         h_goal3 = model.transform(h0, h_goal2, action3)
         p_a4, done4 = model.pnext(h0, h_goal3, action3)
-        q_a4, _, v3 = model.q(h0, h,action3)
+        q_a4, _ = model.q(h0, h,action3)
         action4 = np.argmax(p_a4,axis=1)
 
         # Compute values and images
         img_goal = model.decode(h_goal)
         img_goal2 = model.decode(h_goal2)
         img_goal3 = model.decode(h_goal3)
-        v_goal = model.value(h0, h_goal, action)
-        v_goal2 = model.value(h0, h_goal2, action2)
-        v_goal3 = model.value(h0, h_goal3, action3)
+        v_goal = model.value(h0, h_goal)
+        v_goal2 = model.value(h0, h_goal2)
+        v_goal3 = model.value(h0, h_goal3)
         print("--------------\nHidden state:\n--------------\n")
         print("shape of hidden samples =", h.shape)
         print("shape of images =", I.shape)
