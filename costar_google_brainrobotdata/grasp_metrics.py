@@ -428,12 +428,20 @@ def shapely_intersection_over_union(rect0_points, rect1_points, verbose=0):
     """
     p0 = Polygon(rect0_points)
     p1 = Polygon(rect1_points)
-    intersection_area = p0.intersection(p1).area
+    if p0.is_valid and p1.is_valid:
+        intersection_area = p0.intersection(p1).area
 
-    iou = intersection_area / (p0.area + p1.area - intersection_area)
-    if verbose > 0:
-        print('iou: ' + str(iou))
-    return iou
+        iou = intersection_area / (p0.area + p1.area - intersection_area)
+        if verbose > 0:
+            print('iou: ' + str(iou))
+        return iou
+    else:
+        # TODO(ahundt) determine and fix the source of invalid polygons.
+        print('Warning: shapely_intersection_over_union() encountered an'
+              'invalid polygon. We will return an IOU of 0 so execution'
+              'might continue, but this bug should be addressed.'
+              ' p0: ' + str(p0) + ' p1: ' + str(p1))
+        return 0.0
 
 
 def normalize_sin_theta_cos_theta(sin_theta, cos_theta):
