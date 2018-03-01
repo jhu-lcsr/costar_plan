@@ -533,6 +533,8 @@ def choose_hypertree_model(
             image_input_shape = image_shapes[0]
         print('hypertree image_input_shape: ' + str(image_input_shape))
         print('hypertree images: ' + str(images))
+        if trunk_filters == 0:
+            trunk_filters = None
 
         if image_input_shape is not None and len(image_input_shape) == 4:
             # cut off batch size
