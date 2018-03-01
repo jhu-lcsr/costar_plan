@@ -394,9 +394,11 @@ def run_training(
         metrics=metrics)
 
     val_all_features = False
-    if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
-            problem_name == 'grasp_regression'):
-        val_all_features = True
+    # # # TODO(ahundt) check this more carefully, currently a hack
+    # # # Special case for jaccard regression
+    # if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
+    #         problem_name == 'grasp_regression'):
+    #     val_all_features = True
 
     train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
         train_filenames=train_filenames, train_size=train_size,
@@ -407,14 +409,14 @@ def run_training(
         success_only=success_only, val_batch_size=1, val_all_features=val_all_features
     )
 
-    # Special case for jaccard regression
-    if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
-            problem_name == 'grasp_regression'):
-        # TODO(ahundt) check this more carefully, currently a hack
-        # TODO(ahundt) VAL_ON_TRAIN_TEMP_REMOVEME
-        callbacks = [GraspJaccardEvaluateCallback(example_generator=validation_data, steps=validation_steps)] + callbacks
-        validation_data = None
-        validation_steps = None
+    # # TODO(ahundt) check this more carefully, currently a hack
+    # # Special case for jaccard regression
+    # if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
+    #         problem_name == 'grasp_regression'):
+    #     # TODO(ahundt) VAL_ON_TRAIN_TEMP_REMOVEME
+    #     callbacks = [GraspJaccardEvaluateCallback(example_generator=validation_data, steps=validation_steps)] + callbacks
+    #     validation_data = None
+    #     validation_steps = None
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
