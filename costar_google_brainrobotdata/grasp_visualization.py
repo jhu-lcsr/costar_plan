@@ -296,6 +296,7 @@ def visualize_redundant_example(features_dicts, predictions=None, predictions_gr
     # plt.draw()
     # plt.pause(0.25)
 
+
 def plot_coordinate(i, gt_plot_height):
     h = i % gt_plot_height + 1
     w = int(i / gt_plot_height)

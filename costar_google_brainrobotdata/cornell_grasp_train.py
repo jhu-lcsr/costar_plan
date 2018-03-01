@@ -188,6 +188,51 @@ FLAGS = flags.FLAGS
 # TODO(ahundt) put these utility functions in utils somewhere
 
 
+class GraspJaccardEvaluateCallback(keras.callbacks.Callback):
+    """ Validate a model which needs custom numpy metrics during training.
+
+    Note that this may have bugs due to issues when multiple tf sessions are created.
+    Therefore, this may be deleted in the future.
+    #TODO(ahundt) replace when https://github.com/keras-team/keras/pull/9105 is available
+
+    # Arguments
+        model: Keras model on which to call model.evaluate().
+        steps: Integer or `None`.
+            Total number of steps (batches of samples)
+            before declaring the evaluation round finished.
+            Ignored with the default value of `None`.
+    """
+
+    def __init__(self, filenames=None, example_generator=None, steps=None, metrics_prefix='val', verbose=1):
+        # parameter of callbacks passed during initialization
+        # pass evalation mode directly
+        super(GraspJaccardEvaluateCallback, self).__init__()
+        print('filenames: ' + str(filenames))
+        print('generator: ' + str(example_generator))
+        self.num_steps = steps
+        self.verbose = verbose
+        self.metrics_prefix = metrics_prefix
+        self.filenames = filenames
+        self.example_generator = example_generator
+
+    def on_epoch_end(self, epoch, logs={}):
+        # results = self.model.evaluate_generator(self.generator, steps=int(self.num_steps))
+        metrics_str = '\n'
+        metric_name = self.metrics_prefix + '_grasp_jaccard'
+        # all our results come together in this call
+
+        # TODO(ahundt) VAL_ON_TRAIN_TEMP_REMOVEME
+        results = evaluate(self.model, example_generator=self.example_generator, val_filenames=self.filenames, visualize=True)
+        for name, result in results:
+            metric_name = self.metrics_prefix + '_' + name
+            logs[metric_name] = result
+        if self.verbose > 0:
+            metrics_str = metrics_str + metric_name + ': ' + str(result) + ' '
+
+        if self.verbose > 0:
+            print(metrics_str)
+
+
 def run_training(
         learning_rate=None,
         batch_size=None,
@@ -262,6 +307,7 @@ def run_training(
      monitor_loss_name, label_features, monitor_metric_name,
      loss, metrics, classes, success_only] = choose_features_and_metrics(feature_combo_name, problem_name)
 
+    keras.backend.get_session().run([tf.global_variables_initializer(), tf.local_variables_initializer()])
     # see parse_and_preprocess() for the creation of these features
     model_name = image_model_name + model_name
 
@@ -347,14 +393,28 @@ def run_training(
         loss=loss,
         metrics=metrics)
 
+    val_all_features = False
+    if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
+            problem_name == 'grasp_regression'):
+        val_all_features = True
+
     train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
         train_filenames=train_filenames, train_size=train_size,
         val_filenames=val_filenames, val_size=val_size,
         test_filenames=test_filenames, test_size=test_size,
         label_features=label_features, data_features=data_features, batch_size=batch_size,
         train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
-        success_only=success_only
+        success_only=success_only, val_batch_size=1, val_all_features=val_all_features
     )
+
+    # Special case for jaccard regression
+    if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
+            problem_name == 'grasp_regression'):
+        # TODO(ahundt) check this more carefully, currently a hack
+        # TODO(ahundt) VAL_ON_TRAIN_TEMP_REMOVEME
+        callbacks = [GraspJaccardEvaluateCallback(example_generator=validation_data, steps=validation_steps)] + callbacks
+        validation_data = None
+        validation_steps = None
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
@@ -367,6 +427,19 @@ def run_training(
                                                 verbose=0)] + callbacks
 
         # print('calling model.fit_generator()')
+
+        # Workaround for some combined tf/keras bug
+        # see https://github.com/keras-team/keras/issues/4875#issuecomment-313166165
+        # keras.backend.manual_variable_initialization(True)
+
+        sess = keras.backend.get_session()
+        # init_g = tf.global_variables_initializer()
+        # init_l = tf.local_variables_initializer()
+        # sess.run(init_g)
+        # sess.run(init_l)
+        init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+        sess.run(init_op)
+        # fit the model
         history = model.fit_generator(
             train_data,
             steps_per_epoch=train_steps,
@@ -817,7 +890,8 @@ def load_dataset(
         val_batch_size=1, test_batch_size=1,
         train_data=None, validation_data=None, test_data=None,
         in_memory_validation=False,
-        preprocessing_mode='tf', success_only=False):
+        preprocessing_mode='tf', success_only=False,
+        val_all_features=False):
     """ Load the cornell grasping dataset from the file if it isn't already available.
 
     # Arguments
@@ -825,6 +899,7 @@ def load_dataset(
     success_only: only traverse successful grasps
     preprocessing_mode: 'tf', 'caffe', or 'torch' preprocessing.
         See keras/applications/imagenet_utils.py for details.
+    val_all_features: Instead of getting the specific feature strings, the whole dictionary will be returned.
 
     """
     if train_filenames is None and val_filenames is None and test_filenames is None:
@@ -838,8 +913,16 @@ def load_dataset(
         val_batch_size = val_size
 
     if validation_data is None and val_filenames is not None:
+        if val_all_features:
+            # Workaround for special evaluation call needed for jaccard regression.
+            # All features will be returned in a dictionary in this mode
+            val_label_features = None
+            val_data_features = None
+        else:
+            val_label_features = label_features
+            val_data_features = data_features
         validation_data = cornell_grasp_dataset_reader.yield_record(
-            val_filenames, label_features, data_features,
+            val_filenames, val_label_features, val_data_features,
             batch_size=val_batch_size,
             parse_example_proto_fn=parse_and_preprocess,
             preprocessing_mode=preprocessing_mode,
@@ -851,6 +934,7 @@ def load_dataset(
         validation_data = next(validation_data)
 
     if train_data is None and train_filenames is not None:
+        # TODO(ahundt) VAL_ON_TRAIN_TEMP_REMOVEME
         train_data = cornell_grasp_dataset_reader.yield_record(
             train_filenames, label_features, data_features,
             batch_size=batch_size,
@@ -867,6 +951,9 @@ def load_dataset(
             preprocessing_mode=preprocessing_mode,
             apply_filter=success_only,
             is_training=False)
+
+            # val_filenames, batch_size=1, is_training=False,
+            # shuffle=False, steps=1,
 
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
@@ -903,7 +990,8 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
 
     num_fold = kfold_param_dicts['num_fold']
 
-    fold_averages = np.zeros((num_fold))
+    metric_fold_averages = np.zeros((num_fold))
+    loss_fold_averages = np.zeros((num_fold))
     with tqdm(range(num_fold), desc='kfold prediction') as progbar_folds:
         for i in progbar_folds:
             # This is a special string,
@@ -945,91 +1033,172 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
             # load the model
             model = get_compiled_model(load_weights=fold_checkpoint_file, **training_run_params)
 
-            model.load_weights(fold_checkpoint_file)
-            print('WEIGHTS: \n', model.get_weights())
+            # print('WEIGHTS: \n', model.get_weights())
 
             # TODO(ahundt) low priority: automatically choose feature and metric strings
             # choose_features_and_metrics(feature_combo_name, problem_name)
             prediction_name = 'norm_sin2_cos2_hw_yx_6'
-            metric_name = 'val_grasp_jaccard'
+            metric_name = 'grasp_jaccard'
             unique_score_category = 'image/filename'
             data_features = ['image/preprocessed']
-            metric_fn = grasp_metrics.jaccard_score
+            metric_fn = grasp_metrics.grasp_jaccard_batch
 
             # TODO(ahundt) low-medium priority: save iou scores
             # metric_name = 'intersection_over_union'
-
-            # Load the validation data and traverse it exactly once
-            input_data = cornell_grasp_dataset_reader.yield_record(
-                val_filenames, batch_size=1, is_training=False,
-                shuffle=False, steps=1,
-                preprocessing_mode=training_run_params['preprocessing_mode'])
+            preprocessing_mode = training_run_params['preprocessing_mode']
 
             # go over every data entry
-            best_results_for_each_image = {}
-            try:
-                for example_dict in tqdm(input_data):
-                    sess = K.get_session()
-                    init_g = tf.global_variables_initializer()
-                    init_l = tf.local_variables_initializer()
-                    sess.run(init_g)
-                    sess.run(init_l)
-
-                    # todo get
-                    predict_input = [example_dict[feature_name] for feature_name in data_features]
-                    ground_truth = np.squeeze(example_dict[prediction_name])
-                    result = np.squeeze(model.predict_on_batch(predict_input))
-                    progbar_folds.write('ground_truth: ' + str(ground_truth))
-                    progbar_folds.write('result: ' + str(result))
-
-                    score = metric_fn(ground_truth, result)
-                    progbar_folds.write('score: ' + str(score))
-                    image_filename = example_dict[unique_score_category][0]
-
-                    # TODO(ahundt) make this a flag
-                    visualize = True
-                    if visualize:
-                        grasp_visualization.visualize_redundant_example(example_dict, predictions=result)
-
-                    # save this score and prediction if there is no score yet
-                    # or this score is a new best
-                    if(len(best_results_for_each_image) == 0 or
-                            image_filename not in best_results_for_each_image or
-                            prediction_name not in best_results_for_each_image[image_filename] or
-                            score > best_results_for_each_image[image_filename][metric_name]):
-                        # We have a new best score!
-                        best_score = {
-                            prediction_name: result,
-                            metric_name: score}
-                        if image_filename in best_results_for_each_image:
-                            # old_best = best_results_for_each_image.pop(image_filename)
-                            progbar_folds.write('replacing score ' +
-                                                str(best_results_for_each_image[image_filename][prediction_name]) +
-                                                ' with score ' + str(score) + ' in ' + image_filename)
-                        best_results_for_each_image[image_filename] = best_score
-            except tf.errors.OutOfRangeError as e:
-                # finished going through the dataset once
-                pass
-
-            best_scores = np.zeros([len(best_results_for_each_image)])
-            for j, (filename, best_score) in enumerate(six.iteritems(best_results_for_each_image)):
-                best_scores[j] = best_score[metric_name]
-                # TODO(ahundt) calculate mean here
-                # TODO(ahundt) low priority: calculate other stats like stddev?
-                continue
-
-            fold_averages[i] = np.average(best_scores)
-            progbar_folds.write('---------------------------------------------')
-            progbar_folds.write('Completed fold ' + str(i) + ' averages so far: ' + str(fold_averages))
-            progbar_folds.write('---------------------------------------------')
+            result = evaluate(
+                model, val_filenames=val_filenames, data_features=data_features,
+                prediction_name=prediction_name, metric_fn=metric_fn,
+                progbar_folds=progbar_folds, unique_score_category=unique_score_category,
+                metric_name=metric_name, should_initialize=True, load_weights=fold_checkpoint_file)
             progbar_folds.update()
+
+            # [(metric_name, fold_average), (loss_name, loss_average)]
+            metric_fold_averages[i] = result[0][1]
+            metric_name = result[0][0]
+            if len(result) > 1:
+                loss_fold_averages[i] = loss_average[1][1]
+                loss_name = result[0][0]
             # TODO(ahundt) low-medium priority: save out all best scores and averages
 
-        progbar_folds.write('---------------------------------------------')
-        progbar_folds.write('averages for each fold: ' + str(fold_averages))
-        progbar_folds.write('---------------------------------------------')
-        overall_average = np.average(fold_averages)
-        progbar_folds.write('overall average of all folds: ' + str(overall_average))
+        metric_overall_average = np.average(metric_fold_averages)
+        loss_overall_average = np.average(loss_fold_averages)
+        final_result = ('---------------------------------------------\n'
+                        '    overall average metric ' + str(metric_name) + ' score for all folds: ' + str(metric_overall_average) +
+                        '    averages for each fold: ' + str(metric_fold_averages))
+
+        if len(result) > 1:
+            final_result += ('    overall average loss ' + str(loss_name) + ' score for all folds: ' + str(loss_overall_average) +
+                             '    averages for each fold: ' + str(loss_fold_averages))
+
+        final_result += '\n---------------------------------------------\n'
+        progbar_folds.write(final_result)
+        with open(os.path.join(log_dir, 'summary_results.txt'), 'w') as summary_results:
+            summary_results.write(final_result)
+
+
+def evaluate(
+        model, example_generator=None, val_filenames=None, data_features=None, prediction_name='norm_sin2_cos2_hw_yx_6',
+        metric_fn=grasp_metrics.grasp_jaccard_batch,
+        progbar_folds=sys.stdout, unique_score_category='image/filename', metric_name='grasp_jaccard',
+        steps=None, visualize=False,
+        preprocessing_mode='tf', apply_filter=True, loss_fn=None, loss_name='loss',
+        should_initialize=False, load_weights=None, verbose=0):
+    """ This is specialized for running grasp regression right now,
+        so check the defaults if you want to use it for something else.
+    """
+    if data_features is None:
+        data_features = ['image/preprocessed']
+
+    if example_generator is not None:
+        input_data = example_generator
+    elif val_filenames is not None:
+        # Load the validation data and traverse it exactly once
+        input_data = cornell_grasp_dataset_reader.yield_record(
+            val_filenames, batch_size=1, is_training=False,
+            shuffle=False, steps=1,
+            preprocessing_mode=preprocessing_mode)
+    else:
+        raise ValueError('Must provide example generator or val_filenames.')
+
+    if load_weights is not None:
+            model.load_weights(load_weights)
+
+    losses = []
+    # go over every data entry
+    best_results_for_each_image = {}
+    sess = keras.backend.get_session()
+
+    try:
+        for i, example_dict in enumerate(tqdm(input_data, desc='Evaluating', total=steps)):
+            # sess = K.get_session()
+            # init_g = tf.global_variables_initializer()
+            # init_l = tf.local_variables_initializer()
+            # sess.run(init_g)
+            # sess.run(init_l)
+            # TODO(ahundt) Do insane hack resetting & reloading weights for now... will fix later
+            if should_initialize:
+                    # tensorflow setup to make sure all variables are initialized
+                    init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+                    sess.run(init_op)
+                    should_initialize = False
+
+                    if load_weights is not None:
+                            model.load_weights(load_weights)
+
+            # todo get
+            predict_input = [example_dict[feature_name] for feature_name in data_features]
+            ground_truth = example_dict[prediction_name]
+            import matplotlib
+            matplotlib.pyplot.imshow((np.squeeze(predict_input) / 2.0) + 0.5)
+            result = model.predict_on_batch(predict_input)
+            if verbose > 0:
+                progbar_folds.write('\nground_truth: ' + str(ground_truth))
+                progbar_folds.write('\nresult: ' + str(result))
+
+            score = metric_fn(ground_truth, result)
+            if loss_fn is not None:
+                loss = loss_fn(ground_truth, result)
+                losses += [loss]
+
+            if verbose > 0:
+                progbar_folds.write('\nscore: ' + str(score))
+
+            image_filename = example_dict[unique_score_category][0]
+
+            # TODO(ahundt) make this a flag
+            if visualize:
+                # TODO(ahundt) account for other setups
+                if len(np.squeeze(result)) == 1:
+                    predictions = None
+                else:
+                    predictions = np.squeeze(result)
+                grasp_visualization.visualize_redundant_example(example_dict, predictions=predictions)
+
+            score = np.squeeze(score)
+            # save this score and prediction if there is no score yet
+            # or this score is a new best
+            if(len(best_results_for_each_image) == 0 or
+                    image_filename not in best_results_for_each_image or
+                    prediction_name not in best_results_for_each_image[image_filename] or
+                    score > best_results_for_each_image[image_filename][metric_name]):
+                # We have a new best score!
+                best_score = {
+                    prediction_name: result,
+                    metric_name: score}
+                if image_filename in best_results_for_each_image:
+                    # old_best = best_results_for_each_image.pop(image_filename)
+                    if verbose > 0:
+                        progbar_folds.write('\nreplacing score ' +
+                                            str(best_results_for_each_image[image_filename][metric_name]) +
+                                            ' \nwith score ' + str(score) + ' \nin ' + image_filename + '\n')
+                best_results_for_each_image[image_filename] = best_score
+    except tf.errors.OutOfRangeError as e:
+        # finished going through the dataset once
+        pass
+
+    best_scores = np.zeros([len(best_results_for_each_image)])
+    for j, (filename, best_score) in enumerate(six.iteritems(best_results_for_each_image)):
+        best_scores[j] = best_score[metric_name]
+        # TODO(ahundt) low priority: calculate other stats like stddev?
+        continue
+
+    # it is a lot faster to do the losses at the end,
+    # if it takes too much memory, move it.
+    losses = np.array(sess.run(losses))
+    loss_average = np.average(losses)
+    fold_average = np.average(best_scores)
+
+    result = [(metric_name, fold_average)]
+    progbar_folds.write('---------------------------------------------')
+    progbar_folds.write('Completed fold ' + str(i) + ' average jaccard metric score: ' + str(fold_average))
+    if loss_fn is not None:
+        progbar_folds.write(' average loss: ' + str(loss_average))
+        result += [(loss_name, loss_average)]
+    progbar_folds.write('---------------------------------------------')
+    return result
 
 
 def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_type=None,
@@ -1241,6 +1410,7 @@ def old_loss(tan, x, y, h, w):
 
 
 def main(_):
+
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     if 'k_fold' in FLAGS.pipeline_stage:

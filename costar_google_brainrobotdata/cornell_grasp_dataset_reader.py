@@ -786,6 +786,9 @@ def yield_record(
         random.shuffle(tfrecord_filenames)
     # based_on https://github.com/visipedia/tfrecords/blob/master/iterate_tfrecords.py
     # with tf.device(device):
+    # sess = keras.backend.get_session()
+    # tf_graph = tf.get_default_graph()
+
     with tf.Session() as sess:
 
         dataset = tf.data.TFRecordDataset(
@@ -819,6 +822,7 @@ def yield_record(
                 num_parallel_calls=num_parallel_calls)
         dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
         dataset = dataset.prefetch(batch_size * 5)
+        # tensor_iterator = dataset.make_initializable_iterator()
         tensor_iterator = dataset.make_one_shot_iterator()
         #     # Construct a Reader to read examples from the .tfrecords file
         #     reader = tf.TFRecordReader()
