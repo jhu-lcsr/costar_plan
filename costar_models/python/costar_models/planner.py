@@ -1004,13 +1004,14 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     # Next options
     x1 = AddDense(x, dense_size, "relu", 0., constraint=None,
             output=True, bn=False)
-    x = Dropout(0.5)(x)
+    x1 = Dropout(0.5)(x1)
+
+    x1 = Concatenate()([x1, option_x])
     x1 = AddDense(x1, dense_size, "relu", 0., constraint=None,
             output=True, bn=False)
-    x = Dropout(0.5)(x)
 
     next_option_out = Dense(num_options,
-            activation="softmax", name="lnext",)(x1)
+            activation="sigmoid", name="lnext",)(x1)
     done_out = Dense(1, activation="sigmoid", name="done",)(x1)
     next_model = Model([x0in, xin, option_in], [next_option_out, done_out], name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
@@ -1023,6 +1024,7 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
     x0in = Input([int(d) for d in x.shape[1:]], name="V_h0_in")
+    option_in = Input((1,), name="Nx_prev_o_in")
     use_lrelu = False
     bn = batchnorm
     x = xin
@@ -1043,17 +1045,22 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 constraint=None)
         x = Concatenate()([x0,x])
 
+        if num_options > 0:
+            option_x = OneHot(num_options)(option_in)
+            option_x = Flatten()(option_x)
+            x = TileOnto(x, option_x, num_options, x.shape[1:3])
+
         x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = Flatten()(x)
 
     # Next options
     x = Dropout(0.5)(x)
+    x = Concatenate()([x, option_x])
     x = AddDense(x, dense_size, "relu", 0, bn=False)
-    x = Dropout(0.5)(x)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x)
-    next_model = Model([x0in, xin], value_out, name="V")
+    next_model = Model([x0in, xin, option_in], value_out, name="V")
     return next_model
 
 
