@@ -956,7 +956,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     x = xin
     x0 = x0in
     use_lrelu = False
-    bn = batchnorm
+    bn = batchnorm and False
 
     # Combine these two to get information that may be obscured
 
@@ -1008,6 +1008,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     x1 = AddDense(x1, dense_size, "relu", 0., constraint=None,
             output=True, bn=False)
+    x1 = Dropout(0.5)(x1)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)

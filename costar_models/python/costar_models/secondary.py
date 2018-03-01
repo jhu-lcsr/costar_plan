@@ -87,7 +87,7 @@ class Secondary(PredictionSampler2):
             outs = model([h0,h,label_in])
             self.q_model = model
             loss = "binary_crossentropy"
-            loss_wts = [1,0.1,0.01]
+            loss_wts = [1,1]
             metrics=["accuracy"]
         elif self.submodel == "next":
             model = GetNextModel(h, self.num_options, 128,
@@ -96,7 +96,7 @@ class Secondary(PredictionSampler2):
             outs = model([h0,h,label_in])
             self.next_model = model
             loss = "binary_crossentropy"
-            loss_wts = [1,0.1,0.01]
+            loss_wts = [1,1]
             metrics=["accuracy"]
         elif self.submodel == "actor":
             actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
@@ -145,12 +145,12 @@ class Secondary(PredictionSampler2):
         if self.submodel == "value":
             outs = [v]
         elif self.submodel == "next":
-            outs = [o1_1h, done, v]
+            outs = [o1_1h, done]
         elif self.submodel == "q":
             if len(v.shape) == 1:
                 v = np.expand_dims(v,axis=1)
             vs = np.repeat(v, self.num_options, axis=1)
-            outs = [o1_1h * vs, done, v]
+            outs = [o1_1h * vs, done]
         elif self.submodel == "actor":
             outs = [qa, ga]
         elif self.submodel == "pose":
