@@ -214,7 +214,7 @@ def optimize(seed=1, verbose=1):
     hyperoptions.add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
                            enable=False, required=True, default=feature_combo_name)
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
-                           enable=True, required=True, default='tf')
+                           enable=False, required=True, default='tf')
 
     # number of samples to take before trying hyperopt
     initial_num_samples = 200
