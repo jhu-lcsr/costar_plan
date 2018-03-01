@@ -1024,9 +1024,9 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
     use_lrelu = False
-    bn = batchnorm
+    bn = batchnorm and False
     x = xin
-    x0 = x0in
+    #x0 = x0in
     if len(x.shape) > 2:
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
@@ -1036,7 +1036,7 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 lrelu=use_lrelu,
                 name="A_project",
                 constraint=None)
-        x = Concatenate()([x0,x])
+        #x = Concatenate()([x0,x])
 
         x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = AddConv2D(x, 128, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
@@ -1044,7 +1044,6 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     # Next options
     x = Dropout(0.5)(x)
-    x = Concatenate()([x, option_x])
     x = AddDense(x, dense_size, "relu", 0, bn=False)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x)

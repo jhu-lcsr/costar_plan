@@ -76,7 +76,7 @@ class Secondary(PredictionSampler2):
                     self.decoder_dropout_rate)
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
-            outs = model([h0, h,label_in])
+            outs = model([h])
             loss = "binary_crossentropy"
             loss_wts = [1,]
             metrics=["accuracy"]
@@ -203,7 +203,7 @@ class HuskySecondary(Secondary):
                     self.decoder_dropout_rate)
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
-            outs = model([h0, h])
+            outs = model([h])
             loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "q":
