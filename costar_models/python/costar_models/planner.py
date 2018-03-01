@@ -1045,18 +1045,18 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 constraint=None)
         x = Concatenate()([x0,x])
 
-        if num_options > 0:
-            option_x = OneHot(num_options)(option_in)
-            option_x = Flatten()(option_x)
-            x = TileOnto(x, option_x, num_options, x.shape[1:3])
+        #if num_options > 0:
+        #    option_x = OneHot(num_options)(option_in)
+        #    option_x = Flatten()(option_x)
+        #    x2 = AddDense(option_x, 32, "relu", 0, bn=False)
+        #    x = TileOnto(x, x2, 32, x.shape[1:3])
 
-        x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
-        x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
+        x = AddConv2D(x, 128, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = Flatten()(x)
 
     # Next options
     x = Dropout(0.5)(x)
-    x = Concatenate()([x, option_x])
+    #x = Concatenate()([x, option_x])
     x = AddDense(x, dense_size, "relu", 0, bn=False)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x)
