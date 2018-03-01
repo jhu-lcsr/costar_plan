@@ -421,6 +421,8 @@ def run_training(
     if 'train' in pipeline:
         if 'test' in pipeline:
             # we need this callback to be at the beginning!
+            print('test_data function: ' + str(test_data) + ' steps: ' + str(test_steps) +
+                  'test filenames: ' + str(test_filenames))
             callbacks = [EvaluateInputGenerator(generator=test_data,
                                                 steps=test_steps,
                                                 metrics_prefix='test',
