@@ -234,7 +234,7 @@ class ConditionalImage(PredictionSampler2):
         p, done = self.q_model.predict([hidden0, hidden, prev_option])
         return p, done
 
-    def value(self, hidden0, hidden, *args, **kwargs):
+    def value(self, hidden, *args, **kwargs):
         v = self.value_model.predict([hidden])
         return v
 
