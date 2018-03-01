@@ -185,8 +185,6 @@ flags.DEFINE_string(
 
 FLAGS = flags.FLAGS
 
-# TODO(ahundt) put these utility functions in utils somewhere
-
 
 class GraspJaccardEvaluateCallback(keras.callbacks.Callback):
     """ Validate a model which needs custom numpy metrics during training.
@@ -1291,124 +1289,6 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
         steps_test = steps_in_test_dataset
 
     return steps_train, steps_val, steps_test
-
-
-def old_bboxes_to_grasps(bboxes):
-    # converting and scaling bounding boxes into grasps, g = {x, y, tan, h, w}
-    box = tf.unstack(bboxes, axis=1)
-    x = (box[0] + (box[4] - box[0])/2) * 0.35
-    y = (box[1] + (box[5] - box[1])/2) * 0.47
-    tan = (box[3] - box[1]) / (box[2] - box[0]) * 0.47/0.35
-    h = tf.sqrt(tf.pow((box[2] - box[0]) * 0.35, 2) + tf.pow((box[3] - box[1]) * 0.47, 2))
-    w = tf.sqrt(tf.pow((box[6] - box[0]) * 0.35, 2) + tf.pow((box[7] - box[1]) * 0.47, 2))
-    return x, y, tan, h, w
-
-
-def old_grasp_to_bbox(x, y, tan, h, w):
-    theta = tf.atan(tan)
-    edge1 = (x - w / 2 * tf.cos(theta) + h / 2 * tf.sin(theta), y - w / 2 * tf.sin(theta) - h / 2 * tf.cos(theta))
-    edge2 = (x + w / 2 * tf.cos(theta) + h / 2 * tf.sin(theta), y + w / 2 * tf.sin(theta) - h / 2 * tf.cos(theta))
-    edge3 = (x + w / 2 * tf.cos(theta) - h / 2 * tf.sin(theta), y + w / 2 * tf.sin(theta) + h / 2 * tf.cos(theta))
-    edge4 = (x - w / 2 * tf.cos(theta) - h / 2 * tf.sin(theta), y - w / 2 * tf.sin(theta) + h / 2 * tf.cos(theta))
-    return [edge1, edge2, edge3, edge4]
-
-
-def old_iou(bbox_value, bbox_model):
-    bbox_value = np.reshape(bbox_value, -1)
-    bbox_value = [(bbox_value[0] * 0.35, bbox_value[1] * 0.47),
-                  (bbox_value[2] * 0.35, bbox_value[3] * 0.47),
-                  (bbox_value[4] * 0.35, bbox_value[5] * 0.47),
-                  (bbox_value[6] * 0.35, bbox_value[7] * 0.47)]
-    p1 = Polygon(bbox_value)
-    p2 = Polygon(bbox_model)
-    iou = p1.intersection(p2).area / (p1.area + p2.area - p1.intersection(p2).area)
-    return iou
-
-
-def old_angle_diff(tan_model, tan_value):
-    angle_diff = np.abs(np.arctan(tan_model)*180/np.pi - np.arctan(tan_value)*180/np.pi)
-    return angle_diff
-
-
-def old_run_training():
-    print(FLAGS.train_or_validation)
-    if FLAGS.train_or_validation == 'train':
-        print('distorted_inputs')
-        data_files_ = TRAIN_FILE
-        features = cornell_grasp_dataset_reader.distorted_inputs(
-                  [data_files_], FLAGS.epochs, batch_size=FLAGS.batch_size)
-    else:
-        print('inputs')
-        data_files_ = VALIDATE_FILE
-        features = cornell_grasp_dataset_reader.inputs([data_files_])
-
-    # loss, x_hat, tan_hat, h_hat, w_hat, y_hat = old_loss(tan, x, y, h, w)
-    train_op = tf.train.AdamOptimizer(epsilon=0.1).minimize(loss)
-    init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-    sess = keras.backend.get_session()
-    sess.run(init_op)
-    coord = tf.train.Coordinator()
-    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-    #save/restore model
-    d={}
-    l = ['w1', 'b1', 'w2', 'b2', 'w3', 'b3', 'w4', 'b4', 'w5', 'b5', 'w_fc1', 'b_fc1', 'w_fc2', 'b_fc2']
-    for i in l:
-        d[i] = [v for v in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) if v.name == i+':0'][0]
-
-    dg={}
-    lg = ['w1', 'b1', 'w2', 'b2', 'w3', 'b3', 'w4', 'b4', 'w5', 'b5', 'w_fc1', 'b_fc1', 'w_fc2', 'b_fc2', 'w_output', 'b_output']
-    for i in lg:
-        dg[i] = [v for v in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) if v.name == i+':0'][0]
-
-    saver = tf.train.Saver(d)
-    saver_g = tf.train.Saver(dg)
-    #saver.restore(sess, "/root/grasp/grasp-detection/models/imagenet/m2/m2.ckpt")
-    saver_g.restore(sess, FLAGS.model_path)
-    try:
-        count = 0
-        step = 0
-        start_time = time.time()
-        while not coord.should_stop():
-            start_batch = time.time()
-            #train
-            if FLAGS.train_or_validation == 'train':
-                _, loss_value, x_value, x_model, tan_value, tan_model, h_value, h_model, w_value, w_model = sess.run([train_op, loss, x, x_hat, tan, tan_hat, h, h_hat, w, w_hat])
-                duration = time.time() - start_batch
-                if step % 100 == 0:
-                    print('Step %d | loss = %s\n | x = %s\n | x_hat = %s\n | tan = %s\n | tan_hat = %s\n | h = %s\n | h_hat = %s\n | w = %s\n | w_hat = %s\n | (%.3f sec/batch\n')%(step, loss_value, x_value[:3], x_model[:3], tan_value[:3], tan_model[:3], h_value[:3], h_model[:3], w_value[:3], w_model[:3], duration)
-                if step % 1000 == 0:
-                    saver_g.save(sess, FLAGS.model_path)
-            else:
-                bbox_hat = old_grasp_to_bbox(x_hat, y_hat, tan_hat, h_hat, w_hat)
-                bbox_value, bbox_model, tan_value, tan_model = sess.run([bboxes, bbox_hat, tan, tan_hat])
-                iou = old_iou(bbox_value, bbox_model)
-                angle_diff = old_angle_diff(tan_model, tan_value)
-                duration = time.time() - start_batch
-                if angle_diff < 30. and iou >= 0.25:
-                    count += 1
-                    print('image: %d | duration = %.2f | count = %d | iou = %.2f | angle_difference = %.2f' %(step, duration, count, iou, angle_diff))
-            step += 1
-    except tf.errors.OutOfRangeError:
-        print('Done training for %d epochs, %d steps, %.1f min.' % (FLAGS.epochs, step, (time.time()-start_time)/60))
-    finally:
-        coord.request_stop()
-
-    coord.join(threads)
-    sess.close()
-
-
-def old_loss(tan, x, y, h, w):
-    from grasp_inf import inference
-    x_hat, y_hat, tan_hat, h_hat, w_hat = tf.unstack(inference(images), axis=1)  # list
-    # tangent of 85 degree is 11
-    tan_hat_confined = tf.minimum(11., tf.maximum(-11., tan_hat))
-    tan_confined = tf.minimum(11., tf.maximum(-11., tan))
-    # Loss function
-    gamma = tf.constant(10.)
-    loss = tf.reduce_sum(tf.pow(x_hat - x, 2) + tf.pow(y_hat - y, 2) +
-                         gamma * tf.pow(tan_hat_confined - tan_confined, 2) +
-                         tf.pow(h_hat - h, 2) + tf.pow(w_hat - w, 2))
-    return loss, x_hat, tan_hat, h_hat, w_hat, y_hat
 
 
 def main(_):
