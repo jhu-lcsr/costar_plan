@@ -445,11 +445,14 @@ def choose_hypertree_model(
 
     # Arguments
 
-        dropout_rate: a dropout rate of None will disable dropout
+        dropout_rate: a dropout rate of None will disable dropout.
         top_block_filters: the number of filters for the two final fully connected layers,
             before a prediction is made based on the number of classes.
         image_model_weights: How should the image model weights be stored for each image?
             Options are 'shared' and 'separate'.
+        trunk_filters: the initial number of filters for the concatenated network trunk.
+            Setting the parameters to None or 0 will use the number of cannels in the
+            input data provided.
 
     # Notes
 
@@ -677,8 +680,13 @@ def choose_hypertree_model(
             return x
 
         def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers):
+            """
+                filters: the initial number of filters for the concatenated network trunk.
+                    Setting the parameters to None or 0 will use the number of cannels in the
+                    input data provided.
+            """
             x = tensor
-            if filters is None:
+            if filters is None or filters == 0:
                 channels = K.int_shape(tensor)[-1]
             else:
                 channels = filters
