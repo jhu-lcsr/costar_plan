@@ -681,25 +681,26 @@ def choose_hypertree_model(
                         growth_rate=48, dropout_rate=dropout_rate)
                 elif trunk_model_name == 'resnet':
                     stage = 'trunk'
-                    x = fcn.conv_block(3, [filters, filters, filters * 4], stage, 0)(x)
-                    for l in range(num_layers):
-                        x = fcn.identity_block(3, [filters, filters, filters * 4], stage, l + 1)
+                    x = fcn.conv_block(3, [filters, filters, filters * 4], stage, '_' + str(0))(x)
+                    if num_layers > 1:
+                        for l in range(num_layers - 1):
+                            x = fcn.identity_block(3, [filters, filters, filters * 4], stage, '_' + str(l + 1))(x)
                 elif trunk_model_name == 'vgg':
-                    # Block 6
+                    # Vgg "Block 6"
                     name = 'trunk'
                     weight_decay = 0.
-                    x = Conv2D(filters, (3, 3), activation='relu', padding='same',
-                               name=name + 'block6_conv1', kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
-                    x = Conv2D(filters, (3, 3), activation='relu', padding='same',
-                               name=name + 'block6_conv2', kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
-                    x = Conv2D(filters, (3, 3), activation='relu', padding='same',
-                               name=name + 'block6_conv3', kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
+                    for l in range(num_layers):
+                        x = Conv2D(filters, (3, 3), activation='relu', padding='same',
+                                   name=name + 'block6_conv%d' % l, kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
                 elif trunk_model_name == 'nasnet':
                     filter_multiplier = 2
                     p = None
                     for l in range(num_layers):
                         x, p = keras.applications.nasnet._normal_a_cell(x, p, filters, block_id='trunk_%d' % l)
                         filters *= filter_multiplier
+                else:
+                    raise ValueError('Unsupported trunk_model_name ' + str(trunk_model_name) +
+                                     ' options are dense, resnet, vgg, nasnet')
 
             return x
 

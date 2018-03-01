@@ -89,7 +89,7 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_integer(
     'batch_size',
-    16,
+    8,
     'Batch size.'
 )
 flags.DEFINE_string(

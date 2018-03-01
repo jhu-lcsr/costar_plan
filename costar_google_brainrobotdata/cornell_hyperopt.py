@@ -160,8 +160,19 @@ def optimize(seed=1, verbose=1):
     # we can also optimize batch size.
     # This will be noticeably slower.
     batch_size = FLAGS.batch_size
-    feature_combo_name = 'image_preprocessed_width_1'
-    top = 'classification'
+    hyperopt_mode = 'grasp_regression'
+    if hyperopt_mode == 'classification':
+        feature_combo_name = 'image_preprocessed_width_1'
+        top = 'classification'
+    elif hyperopt_mode == 'grasp_regression':
+        problem_type = 'grasp_regression'
+        feature_combo_name = 'image_preprocessed'
+        # Override some default flags for this configuration
+        # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
+        FLAGS.problem_type = problem_type
+        FLAGS.feature_combo = feature_combo_name
+        FLAGS.crop_to = 'image_contains_grasp_box_center'
+
     train_data = None
     validation_data = None
     learning_rate_enabled = False
@@ -181,7 +192,7 @@ def optimize(seed=1, verbose=1):
     # input and map it from 1 to 3e-5 on an exponential scale.
     # with a base of 0.9.
     # Therefore the value 50 is 0.9^50 == 0.005 (approx).
-    hyperoptions.add_param('learning_rate', (0.0, 100), 'continuous',
+    hyperoptions.add_param('learning_rate', (0.0, 100.0), 'continuous',
                            enable=learning_rate_enabled, required=True, default=0.01)
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
     # TODO(ahundt) run a separate search for the best dropout rate after finding a good model
@@ -190,16 +201,18 @@ def optimize(seed=1, verbose=1):
     hyperoptions.add_param('vector_dense_filters', [2**x for x in range(6, 13)])
     hyperoptions.add_param('vector_branch_num_layers', [x for x in range(0, 5)])
     # leaving out 'resnet' for now, it is causing too many crashes, and nasnet_large because it needs different input dimensions.
-    hyperoptions.add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile'])
+    hyperoptions.add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile', 'resnet'])
     hyperoptions.add_param('vector_model_name', ['dense', 'dense_block'])
     # TODO(ahundt) add a None option for trunk_filters, [None] + [2**x for x in range(5, 12)], because it will automatically match input data's filter count
-    hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
+    hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 11)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 8)])
+    hyperoptions.add_param('trunk_model_name', ['vgg', 'densenet', 'nasnet', 'resnet'])
     hyperoptions.add_param('top_block_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
+    # enable this if you're search for grasp classifications
     hyperoptions.add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
-                           enable=True, required=True, default=feature_combo_name)
+                           enable=False, required=True, default=feature_combo_name)
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
                            enable=True, required=True, default='tf')
 
