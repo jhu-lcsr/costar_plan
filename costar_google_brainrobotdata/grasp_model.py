@@ -438,6 +438,7 @@ def choose_hypertree_model(
         vector_model_name='dense',
         trunk_layers=4,
         trunk_filters=128,
+        trunk_model_name='dense',
         vector_branch_num_layers=3,
         image_model_weights='shared'):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
@@ -674,9 +675,31 @@ def choose_hypertree_model(
             if num_layers is None or num_layers == 0:
                 return x
             elif num_layers is not None:
-                x, num_filters = densenet.__dense_block(
-                    x, nb_layers=trunk_layers, nb_filter=channels,
-                    growth_rate=48, dropout_rate=dropout_rate)
+                if trunk_model_name == 'dense':
+                    x, num_filters = densenet.__dense_block(
+                        x, nb_layers=trunk_layers, nb_filter=channels,
+                        growth_rate=48, dropout_rate=dropout_rate)
+                elif trunk_model_name == 'resnet':
+                    stage = 'trunk'
+                    x = fcn.conv_block(3, [filters, filters, filters * 4], stage, 0)(x)
+                    for l in range(num_layers):
+                        x = fcn.identity_block(3, [filters, filters, filters * 4], stage, l + 1)
+                elif trunk_model_name == 'vgg':
+                    # Block 6
+                    name = 'trunk'
+                    weight_decay = 0.
+                    x = Conv2D(filters, (3, 3), activation='relu', padding='same',
+                               name=name + 'block6_conv1', kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
+                    x = Conv2D(filters, (3, 3), activation='relu', padding='same',
+                               name=name + 'block6_conv2', kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
+                    x = Conv2D(filters, (3, 3), activation='relu', padding='same',
+                               name=name + 'block6_conv3', kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
+                elif trunk_model_name == 'nasnet':
+                    filter_multiplier = 2
+                    p = None
+                    for l in range(num_layers):
+                        x, p = keras.applications.nasnet._normal_a_cell(x, p, filters, block_id='trunk_%d' % l)
+                        filters *= filter_multiplier
 
             return x
 
