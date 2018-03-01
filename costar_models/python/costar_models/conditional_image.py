@@ -226,14 +226,14 @@ class ConditionalImage(PredictionSampler2):
         '''
         Visualize based on hidden
         '''
-        p, done = self.next_model.predict([hidden0, hidden, prev_option])
+        p, done, value = self.next_model.predict([hidden0, hidden, prev_option])
         #p = np.exp(p)
         #p /= np.sum(p)
-        return p, done
+        return p, done, value
 
     def q(self, hidden0, hidden, prev_option):
-        p, done = self.q_model.predict([hidden0, hidden, prev_option])
-        return p, done
+        p, done, value = self.q_model.predict([hidden0, hidden, prev_option])
+        return p, done, value
 
     def next(self, hidden0, hidden, prev_option,
              done_threshold=0.1):

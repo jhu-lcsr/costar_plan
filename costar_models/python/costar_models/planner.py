@@ -981,7 +981,7 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [4,4], 2, 0., "same",
+        x = AddConv2D(x, 64, [4,4], 2, 0.1, "same",
                 bn=bn,
                 lrelu=use_lrelu,
                 name="Nx_C64A",
@@ -1004,16 +1004,16 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     # Next options
     x1 = AddDense(x, dense_size, "relu", 0., constraint=None,
             output=True, bn=False)
-    x1 = Dropout(0.5)(x1)
+    x1 = Dropout(0.2)(x1)
 
-    x1 = Concatenate()([x1, option_x])
     x1 = AddDense(x1, dense_size, "relu", 0., constraint=None,
             output=True, bn=False)
 
     next_option_out = Dense(num_options,
-            activation="sigmoid", name="lnext",)(x1)
+            activation="softmax", name="lnext",)(x1)
     done_out = Dense(1, activation="sigmoid", name="done",)(x1)
-    next_model = Model([x0in, xin, option_in], [next_option_out, done_out], name="next")
+    value_out = Dense(1, activation="sigmoid", name="value",)(x1)
+    next_model = Model([x0in, xin, option_in], [next_option_out, done_out, value_out], name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
     return next_model
 

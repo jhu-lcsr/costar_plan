@@ -41,8 +41,8 @@ def visualizeHiddenMain(args):
         h0 = model.encode(I0)
         prev_option = oin
         null_option = np.ones_like(prev_option) * model.null_option
-        p_a, _ = model.pnext(h0, h0, null_option)
-        v = model.value(h0, h, prev_option)
+        p_a, _, v = model.q(h0, h0, null_option)
+        #v = model.value(h0, h, prev_option)
 
         if not h.shape[0] == I.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
@@ -57,8 +57,8 @@ def visualizeHiddenMain(args):
                 action = np.array([pa_idx[j]])
                 H0 = np.array([h0[i]])
                 h = model.transform(H0, H0, action)
-                _, done = model.pnext(H0, h, action)
-                print("option =", j, "val =", model.value(H0, h, prev_option), "is done =", done)
+                _, done, val = model.q(H0, h, action)
+                print("option =", j, "val =", val, "is done =", done)
                 I = model.decode(h)
                 plt.subplot(1,n+1,j+2)
                 Show(I[0])
