@@ -439,10 +439,10 @@ def shapely_intersection_over_union(rect0_points, rect1_points, verbose=0):
         return iou
     else:
         # TODO(ahundt) determine and fix the source of invalid polygons.
-        print('Warning: shapely_intersection_over_union() encountered an'
-              'invalid polygon. We will return an IOU of 0 so execution'
-              'might continue, but this bug should be addressed.'
-              ' p0: ' + str(p0) + ' p1: ' + str(p1))
+        print('Warning: shapely_intersection_over_union() encountered an '
+              'invalid polygon. We will return an IOU of 0 so execution '
+              'might continue, but this bug should be addressed. '
+              'p0: ' + str(p0) + ' p1: ' + str(p1))
         return 0.0
 
 
