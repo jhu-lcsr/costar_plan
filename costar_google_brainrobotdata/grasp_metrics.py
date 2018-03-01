@@ -426,8 +426,10 @@ def intersection_over_union(true_rp, pred_rp, true_rl, pred_rl):
 def shapely_intersection_over_union(rect0_points, rect1_points, verbose=0):
     """ Find the intersection over union of two polygons using shapely
     """
-    p0 = Polygon(rect0_points)
-    p1 = Polygon(rect1_points)
+    # create and clean the polygons to eliminate any overlapping points
+    # https://toblerity.org/shapely/manual.html
+    p0 = Polygon(rect0_points).buffer(0)
+    p1 = Polygon(rect1_points).buffer(0)
     if p0.is_valid and p1.is_valid:
         intersection_area = p0.intersection(p1).area
 
