@@ -1049,7 +1049,8 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             option_x = Flatten()(option_x)
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
-        x = AddConv2D(x, 128, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
+        x = AddConv2D(x, 128, [4,4], 2, 0.2, "same", lrelu=use_lrelu, bn=bn)
+        x = AddConv2D(x, 256, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = Flatten()(x)
 
     # Next options
