@@ -37,7 +37,7 @@ def sim(args):
     I = np.expand_dims(features[0], axis=0) / 255.
     h = model.encode(I)
     Id = model.decode(h)
-    search(I, iter=5, depth=5, draw=True)
+    search(I, iter=8, depth=8, draw=True)
     #plt.figure()
     #plt.subplot(1,3,1)
     #plt.imshow(I[0])

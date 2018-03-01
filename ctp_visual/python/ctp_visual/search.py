@@ -39,8 +39,10 @@ class VisualSearchNode(object):
 
         self.done = 0.
         self.q = None
+        self.p = None
         self.child_max = np.zeros((self.cim.num_options,))
         self.child_value = np.zeros((self.cim.num_options,))
+        self.child_p = np.zeros((self.cim.num_options,))
         self.child_visits = np.ones((self.cim.num_options,))
         self.terminal = False
 
@@ -48,15 +50,12 @@ class VisualSearchNode(object):
         if not self.expanded:
             self.h0 = h0
             self.h = self.cim.transform(self.h0, h, self.action)
-            self.v = self.cim.value(self.h0, self.h)
             self.expanded = True
+            self._setPQ()
 
-            # Compute probabilities and next probabilities
-            p_a, done_a = self.cim.pnext(self.h0, self.h, self.action)
-            q, done_qa = self.cim.q(self.h0, self.h, self.action)
-            self.q = q[0]
-            self.done = done_qa[0]
-            self.child_value = self.q
+            self.v = self.cim.value(self.h0, self.h)
+            print (self.v, self.done)
+
             if self.done < 0.1:
                 # Was not able to finish the motion
                 self.terminal = True
@@ -72,31 +71,39 @@ class VisualSearchNode(object):
         '''
         Update the stored value of a particular action if it's better
         '''
-        print(" --> ", value, "from", action)
-        print(action, value, self.child_value[action], self.q[action],
-                self.child_visits[action], self.child_max[action])
+        #print(" --> ", value, "from", action)
+        #print(action, value, self.child_value[action], self.q[action],
+        #        self.child_visits[action], self.child_max[action])
         self.child_visits[action] += 1
         if self.child_max[action] < value:
             self.child_max[action] = value
+            self.best = action
+        cv = self.child_value[action]
         self.child_value[action] = ((self.q[action] / self.child_visits[action])
-                + self.child_max[action])
-        print(action, value, self.child_value[action], self.q[action],
-                self.child_visits[action], self.child_max[action])
-        self.child_value /= np.sum(self.child_value)
+                + (self.child_max[action]))
+        print("updating (%d, %d): %f -> %f v=%f (%s)" %(self.action, action, cv,
+                self.child_value[action],value,self.task.names[action]))
+        self.child_p = self.child_value / np.sum(self.child_value)
     
     def explore(self, depth=0, max_depth=5, i=0, num_iter=0, draw=False):
 
         if depth >= max_depth or self.terminal:
             return self.v
 
-        # Compute the next q and action
-        print ("--------------", self.action, depth)
-        #print(self.q, self.done, self.child_value)
-
-        #a = np.argmax(p_a, axis=1)[0]
-        print(GetOrderedList(self.child_value))
-        print(self.child_value)
-        a = np.random.choice(range(self.cim.num_options),p=self.child_value)
+        a = np.random.choice(range(self.cim.num_options),p=self.child_p)
+        #a = np.argmax(self.child_value)
+        if self.child_value[a] < 0.01:
+            # print debyug info
+            print("weirdly low", self.child_value[a], self.task.names[a], a)
+            print(self.child_value)
+            qc = GetOrderedList(self.child_value)
+            pc = GetOrderedList(self.p)
+            print(qc)
+            print(pc)
+            qq = qc[1:5]
+            for qqq in qq:
+                if qqq < self.cim.null_option:
+                    print(self.task.names[qqq], self.q[qqq])
         if not a in self.children:
             self.children[a] = VisualSearchNode(
                     task=self.task,
@@ -110,14 +117,16 @@ class VisualSearchNode(object):
             plt.subplot(num_iter, max_depth, idx)
             plt.axis('off')
             plt.tight_layout()
-            plt.title(self.task.names[a])
+            #plt.title(self.task.names[a])
             plt.imshow(self.cim.decode(self.children[a].h)[0], interpolation='nearest')
             plt.subplots_adjust(wspace=0.05, hspace=0.05)
 
         node = self.children[a]
 
         print("action =", a, self.action,
-              "q(parent, a) =", self.q[a],
+              "q(a, parent) =", self.q[a],
+              "p(a | parent) =", self.p[a],
+              "cv =", self.child_value[a],
               "value =", node.v,
               "depth =", depth, "/", max_depth)
         v = node.explore(depth+1, max_depth, i, num_iter, draw)
@@ -135,14 +144,20 @@ class VisualSearchNode(object):
         self.expanded = True
         self.done = 1.
 
+        self._setPQ()
+
+    def _setPQ(self):
         p_a, done_a = self.cim.pnext(self.h0, self.h, self.action)
         q, done_qa = self.cim.q(self.h0, self.h, self.action)
-        print("p =")
-        print (p_a[0])
-        print ("Q =")
+        self.p = p_a[0]
         self.q = q[0]
-        print(self.q)
-        self.child_value = self.q
+        self.q[self.action] = 0
+        self.p[self.action] = 0
+        self.q[self.q < 1e-2] = 0.
+        self.p[self.p < 1e-2] = 0.
+        self.child_value = np.copy(self.q)
+        self.child_p = self.child_value / np.sum(self.child_value)
+        self.done = done_qa[0]
 
 class VisualSearch(object):
     '''
@@ -174,6 +189,7 @@ class VisualSearch(object):
         if draw:
             plt.figure()
         for i in range(iter):
+            print("----------------- %d -------------------"%(i))
             self.root.explore(depth=0, max_depth=depth, i=i, num_iter=iter,
                     draw=draw)
         if draw:
