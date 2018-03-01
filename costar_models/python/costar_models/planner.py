@@ -1006,12 +1006,12 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             output=True, bn=False)
     x1 = Dropout(0.5)(x1)
 
-    x1 = Concatenate()([x1, option_x])
     x1 = AddDense(x1, dense_size, "relu", 0., constraint=None,
             output=True, bn=False)
+    x1 = Dropout(0.5)(x1)
 
     next_option_out = Dense(num_options,
-            activation="sigmoid", name="lnext",)(x1)
+            activation="softmax", name="lnext",)(x1)
     done_out = Dense(1, activation="sigmoid", name="done",)(x1)
     next_model = Model([x0in, xin, option_in], [next_option_out, done_out], name="next")
     #next_model = Model([xin, option_in], next_option_out, name="next")
@@ -1023,12 +1023,10 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="V_h0_in")
-    option_in = Input((1,), name="Nx_prev_o_in")
     use_lrelu = False
-    bn = batchnorm
+    bn = batchnorm and False
     x = xin
-    x0 = x0in
+    #x0 = x0in
     if len(x.shape) > 2:
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
@@ -1038,17 +1036,9 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 lrelu=use_lrelu,
                 name="A_project",
                 constraint=None)
-        x0 = AddConv2D(x0, 32, [4,4], 1, 0., "same",
-                bn=bn,
-                lrelu=use_lrelu,
-                name="A0_project",
-                constraint=None)
-        x = Concatenate()([x0,x])
-        if option_in is not None:
-            option_x = OneHot(num_options)(option_in)
-            option_x = Flatten()(option_x)
-            x = TileOnto(x, option_x, num_options, x.shape[1:3])
+        #x = Concatenate()([x0,x])
 
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = AddConv2D(x, 128, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = Flatten()(x)
 
@@ -1057,7 +1047,7 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     x = AddDense(x, dense_size, "relu", 0, bn=False)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x)
-    next_model = Model([x0in, xin, option_in], value_out, name="V")
+    next_model = Model([xin], value_out, name="V")
     return next_model
 
 

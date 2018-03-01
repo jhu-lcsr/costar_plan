@@ -76,8 +76,9 @@ class Secondary(PredictionSampler2):
                     self.decoder_dropout_rate)
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
-            outs = model([h0, h,label_in])
+            outs = model([h])
             loss = "binary_crossentropy"
+            loss_wts = [1,]
             metrics=["accuracy"]
         elif self.submodel == "q":
             model = GetNextModel(h, self.num_options, 128,
@@ -86,6 +87,7 @@ class Secondary(PredictionSampler2):
             outs = model([h0,h,label_in])
             self.q_model = model
             loss = "binary_crossentropy"
+            loss_wts = [1,1]
             metrics=["accuracy"]
         elif self.submodel == "next":
             model = GetNextModel(h, self.num_options, 128,
@@ -94,6 +96,7 @@ class Secondary(PredictionSampler2):
             outs = model([h0,h,label_in])
             self.next_model = model
             loss = "binary_crossentropy"
+            loss_wts = [1,1]
             metrics=["accuracy"]
         elif self.submodel == "actor":
             actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
@@ -102,6 +105,7 @@ class Secondary(PredictionSampler2):
             model = actor
             outs = actor([h0, h, arm_in, gripper_in, y])
             loss = self.loss
+            loss_wts = [1,0.2]
             metrics=[]
         elif self.submodel == "pose":
             model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
@@ -110,12 +114,14 @@ class Secondary(PredictionSampler2):
             self.pose_model = model
             outs = model([h0, h, y, arm_in, gripper_in])
             loss = self.loss
+            loss_wts = [1,0.2]
             metrics=[]
 
         model.summary()
         # =====================================================================
         train_predictor = Model(ins, outs)
         train_predictor.compile(loss=loss,
+                loss_weights=loss_wts,
                 metrics=metrics,
                 optimizer=self.getOptimizer())
         return None, train_predictor, actor, ins, h
@@ -191,12 +197,13 @@ class HuskySecondary(Secondary):
         y = Flatten()(y)
 
         actor = None
+        loss_wts = [1.]
         if self.submodel == "value":
             model = GetValueModel(h, self.num_options, 128,
                     self.decoder_dropout_rate)
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
-            outs = model([h0, h])
+            outs = model([h])
             loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "q":
@@ -206,6 +213,7 @@ class HuskySecondary(Secondary):
             outs = model([h0,h,label_in])
             self.q_model = model
             loss = "binary_crossentropy"
+            loss_wts = [1,1]
             metrics=["accuracy"]
         elif self.submodel == "next":
             model = GetNextModel(h, self.num_options, 128,
@@ -213,6 +221,7 @@ class HuskySecondary(Secondary):
             model.compile(loss="mae", optimizer=self.getOptimizer())
             outs = model([h0,h,label_in])
             self.next_model = model
+            loss_wts = [1,1]
             loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "actor":
@@ -222,6 +231,7 @@ class HuskySecondary(Secondary):
             model = actor
             outs = actor([h0, h, y, pose_in])
             loss = self.loss
+            loss_wts = [1,0.2,]
             metrics=[]
             self.actor = actor
         elif self.submodel == "pose":
@@ -230,6 +240,7 @@ class HuskySecondary(Secondary):
             model.compile(loss="mae",optimizer=self.getOptimizer())
             self.pose_model = model
             outs = model([h0, h, y, pose_in])
+            loss_wts = [1,0.2,]
             loss = self.loss
             metrics=[]
 
@@ -237,6 +248,7 @@ class HuskySecondary(Secondary):
         # =====================================================================
         train_predictor = Model(ins, outs)
         train_predictor.compile(loss=loss,
+                loss_weights=loss_wts,
                 metrics=metrics,
                 optimizer=self.getOptimizer())
 
