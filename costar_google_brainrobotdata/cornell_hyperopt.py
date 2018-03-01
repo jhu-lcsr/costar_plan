@@ -201,8 +201,10 @@ def optimize(
                            enable=False, required=True, default=0.25)
 
     if problem_type == 'grasp_regression':
+        # TODO(ahundt) determine how to try out different losses because otherwise we can't compare runs
         # Right now only grasp_regression can configure the loss function
-        hyperoptions.add_param('loss', ['mse', 'mae', 'logcosh'])
+        # hyperoptions.add_param('loss', ['mse', 'mae', 'logcosh'])
+        pass
     else:
         # There is no vector branch for grasp regression so we only add it in the other cases
         # Handle motion command inputs and search for the best configuration
