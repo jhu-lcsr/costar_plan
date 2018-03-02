@@ -76,7 +76,7 @@ class Secondary(PredictionSampler2):
                     self.decoder_dropout_rate)
             model.compile(loss="mae", optimizer=self.getOptimizer())
             self.value_model = model
-            outs = model([h0, h])
+            outs = model([h0, h,label_in])
             loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "q":
@@ -93,7 +93,7 @@ class Secondary(PredictionSampler2):
             model.compile(loss="mae", optimizer=self.getOptimizer())
             outs = model([h0,h,label_in])
             self.next_model = model
-            loss = "categorical_crossentropy"
+            loss = "binary_crossentropy"
             metrics=["accuracy"]
         elif self.submodel == "actor":
             actor = GetActorModel(h, self.num_options, arm_size, gripper_size,

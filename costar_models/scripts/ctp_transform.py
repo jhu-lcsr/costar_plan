@@ -45,7 +45,7 @@ def visualizeHiddenMain(args):
         p_a, done1 = model.pnext(h0, h, prev_option)
         q_a, _ = model.q(h0, h, prev_option)
         q = model.q(h0, h, prev_option)
-        v = model.value(h0, h)
+        v = model.value(h0, h, prev_option)
 
         if not h.shape[0] == I.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
@@ -77,9 +77,9 @@ def visualizeHiddenMain(args):
         img_goal = model.decode(h_goal)
         img_goal2 = model.decode(h_goal2)
         img_goal3 = model.decode(h_goal3)
-        v_goal = model.value(h0, h_goal)
-        v_goal2 = model.value(h0, h_goal2)
-        v_goal3 = model.value(h0, h_goal3)
+        v_goal = model.value(h0, h_goal, action)
+        v_goal2 = model.value(h0, h_goal2, action2)
+        v_goal3 = model.value(h0, h_goal3, action3)
         print("--------------\nHidden state:\n--------------\n")
         print("shape of hidden samples =", h.shape)
         print("shape of images =", I.shape)
