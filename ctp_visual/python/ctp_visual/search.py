@@ -90,12 +90,17 @@ class VisualSearchNode(object):
         if depth >= max_depth or self.terminal:
             return self.v
 
-        a = np.random.choice(range(self.cim.num_options),p=self.child_p)
-        #a = np.argmax(self.child_value)
-        if self.child_value[a] < 0.01:
-            # print debyug info
+        #a = np.random.choice(range(self.cim.num_options),p=self.child_p)
+        a = np.argmax(self.child_value)
+        if self.child_value[a] < 0.01 or a == 1:
+            print ("-------")
+            #for _ in range(10):
+            #    a2 = np.random.choice(range(self.cim.num_options),p=self.child_p)
+            #    print(a2)
+            # print debug info
             print("weirdly low", self.child_value[a], self.task.names[a], a)
             print(self.child_value)
+            print(self.child_p)
             qc = GetOrderedList(self.child_value)
             pc = GetOrderedList(self.p)
             print(qc)
@@ -157,7 +162,7 @@ class VisualSearchNode(object):
         self.q[self.q < 1e-2] = 0.
         self.q[self.p < 1e-2] = 0.
         self.p[self.p < 1e-2] = 0.
-        self.child_value = np.copy(self.q)
+        self.child_value = 10 * np.copy(self.q)
         self.child_p = self.child_value / np.sum(self.child_value)
         self.done = done_qa[0]
 
