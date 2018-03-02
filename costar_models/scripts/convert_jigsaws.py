@@ -192,7 +192,7 @@ def write(directory, data, i0, r):
         num_files = int(num_files)
     for i in range(num_files):
         idx = i + i0
-        filename = "example%06d.%s.h5f"%(i, status)
+        filename = "example%06d.%s.h5f"%(idx, status)
         filename = os.path.join(directory, filename)
         f = h5py.File(filename, 'w')
         for key, value in data.items():
@@ -201,6 +201,7 @@ def write(directory, data, i0, r):
             print(i, vidx0, vidx1, i0, key)
             f.create_dataset(key, data=value[vidx0:vidx1])
         f.close()
+    return idx + 1
 
 if __name__ == "__main__":
     main()

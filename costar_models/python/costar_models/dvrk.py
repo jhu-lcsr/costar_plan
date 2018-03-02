@@ -220,8 +220,9 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False, perm_drop=False):
     model.encoder_channels = 8
     x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr, **kwargs)
     model.steps_down = 3
-    model.hidden_dim = int(img_shape[0]/(2**model.steps_down))
-    model.hidden_shape = (model.hidden_dim,model.hidden_dim,model.encoder_channels)
+    model.hidden_dim1 = int(img_shape[0]/(2**model.steps_down))
+    model.hidden_dim2 = int(img_shape[1]/(2**model.steps_down))
+    model.hidden_shape = (model.hidden_dim1, model.hidden_dim2, model.encoder_channels)
 
     if not disc:
         image_encoder = Model([img], x, name="Ienc")
@@ -256,9 +257,8 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False, per
     
     if model.use_spatial_softmax:
         model.steps_up = 3
-        hidden_dim = int(img_shape[0]/(2**model.steps_up))
-        (h,w,c) = (hidden_dim,
-                   hidden_dim,
+        (h,w,c) = (model.hidden_dim1,
+                   model.hidden_dim2,
                    model.encoder_channels)
         x = AddDense(x, int(h*w*c), "relu", dr, bn=bn)
         x = Reshape((h,w,c))(x)
