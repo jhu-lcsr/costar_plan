@@ -53,7 +53,7 @@ class VisualSearchNode(object):
             self.expanded = True
             self._setPQ()
 
-            self.v = self.cim.value(self.h0, self.h)
+            self.v = self.cim.value(self.h)
             print (self.v, self.done)
 
             if self.done < 0.1:
@@ -139,8 +139,9 @@ class VisualSearchNode(object):
         assert(self.parent is None)
         self.h = self.cim.encode(I0)
         self.h0 = self.h
-        self.v = self.cim.value(self.h, self.h)
         self.action = np.array([self.cim.null_option])
+        #self.v = self.cim.value(self.h, self.h, self.action)
+        self.v = self.cim.value(self.h)
         self.expanded = True
         self.done = 1.
 
@@ -154,6 +155,7 @@ class VisualSearchNode(object):
         self.q[self.action] = 0
         self.p[self.action] = 0
         self.q[self.q < 1e-2] = 0.
+        self.q[self.p < 1e-2] = 0.
         self.p[self.p < 1e-2] = 0.
         self.child_value = np.copy(self.q)
         self.child_p = self.child_value / np.sum(self.child_value)
