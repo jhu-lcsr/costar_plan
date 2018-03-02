@@ -116,7 +116,9 @@ class CostarBulletSimulation(object):
                                      physicsClientId=self.client)
 
         if plot_task:
+            print("SHOWING TASK")
             showTask(self.task.task)
+            print("DONE")
             sys.exit(0)
 
     def _start_ros(self, name):
