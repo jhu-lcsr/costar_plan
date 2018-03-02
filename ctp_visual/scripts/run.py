@@ -27,7 +27,7 @@ import time
 from ctp_visual.search import VisualSearch
 
 def sim(args):
-    np.random.seed(9)
+    np.random.seed(8)
     env = BulletSimulationEnv(**args)
     model = MakeModel(taskdef=env.task, **args)
     model.validate = True
