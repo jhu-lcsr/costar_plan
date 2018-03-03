@@ -219,6 +219,8 @@ def optimize(
     # TODO(ahundt) Enable 'nasnet_normal_a_cell' the option is disabled for now due to a tensor dimension conflict
     hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'resnet_conv_identity_block'])
     hyperoptions.add_param('top_block_filters', [2**x for x in range(5, 12)])
+    # number of dense layers before the final dense layer that performs classification in the top block
+    hyperoptions.add_param('top_block_dense_layers', [0, 1, 2, 3])
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
     # enable this if you're search for grasp classifications
