@@ -688,7 +688,7 @@ def choose_hypertree_model(
                 # Important! some old models saved to disk
                 # are invalidated by the BatchNorm and Dropout
                 # lines below, comment them if you really neeed to go back
-                x = BatchNormalization(x)
+                x = BatchNormalization()(x)
                 x = Dropout(dropout_rate)(x)
                 if num_layers > 1:
                     for i in range(num_layers - 1):
