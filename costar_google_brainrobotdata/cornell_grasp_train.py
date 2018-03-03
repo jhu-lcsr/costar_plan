@@ -74,7 +74,7 @@ flags.DEFINE_float(
 )
 flags.DEFINE_float(
     'fine_tuning_learning_rate',
-    0.0001,
+    0.001,
     'Initial learning rate, this is the learning rate used if load_weights is passed.'
 )
 flags.DEFINE_integer(
