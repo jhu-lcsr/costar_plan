@@ -74,7 +74,7 @@ flags.DEFINE_float(
 )
 flags.DEFINE_float(
     'fine_tuning_learning_rate',
-    0.005,
+    0.0001,
     'Initial learning rate, this is the learning rate used if load_weights is passed.'
 )
 flags.DEFINE_integer(
@@ -125,7 +125,7 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_integer(
     'num_validation',
-    2,
+    1,
     'Number of tfrecord files for validation.'
     'must be less than the number of tfrecord files, aka splits.'
     'This number also automatically determines the number of folds '
@@ -133,7 +133,7 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_integer(
     'num_test',
-    0,
+    1,
     'num of fold used for the test dataset'
     'must be less than the number of tfrecord files, aka splits.'
     'This must be 0 when the pipeline_stage flag includes k_fold'
@@ -302,6 +302,13 @@ def run_training(
     if feature_combo_name is None:
         feature_combo_name = FLAGS.feature_combo
 
+    if image_model_name == 'nasnet_large':
+        # set special dimensions for nasnet
+        FLAGS.crop_height = 331
+        FLAGS.crop_width = 331
+        FLAGS.resize_height = 331
+        FLAGS.resize_width = 331
+
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
      loss, metrics, classes, success_only] = choose_features_and_metrics(feature_combo_name, problem_name, loss=loss)
@@ -332,6 +339,7 @@ def run_training(
             print('Could not load weights {}, '
                   'the file does not exist, '
                   'starting fresh....'.format(load_weights))
+
     print('Saving weights as ' + monitor_loss_name + ' improves.')
     # TODO(ahundt) add a loss that changes size with how open the gripper is
     # loss = grasp_loss.segmentation_gaussian_measurement
@@ -339,6 +347,17 @@ def run_training(
     dataset_names_str = 'cornell_grasping'
     run_name = grasp_utilities.timeStamped(run_name + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
     callbacks = []
+
+    loss_weights = None
+    if image_model_name == 'nasnet_large':
+        # nasnet_large has an auxilliary network,
+        # so we apply the loss on both
+        loss = [loss, loss]
+        loss_weights = [1.0, 0.4]
+        label_features += label_features
+        print('Note: special overrides have been applied '
+              'to support nasnet_large. Loss is repeated, and '
+              ' crop + resize width/height have been set to 331.')
 
     callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
 
@@ -390,7 +409,8 @@ def run_training(
     model.compile(
         optimizer=optimizer,
         loss=loss,
-        metrics=metrics)
+        metrics=metrics,
+        loss_weights=loss_weights)
 
     val_all_features = False
     # # # TODO(ahundt) check this more carefully, currently a hack

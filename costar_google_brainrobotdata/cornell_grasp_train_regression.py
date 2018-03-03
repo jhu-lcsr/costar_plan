@@ -24,7 +24,18 @@ def main(_):
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     if FLAGS.load_hyperparams is None:
-        FLAGS.load_hyperparams = '/home/ahundt/datasets/logs/hyperopt_logs_cornell/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json'
+        # Results from classification hyperparameter run
+        # FLAGS.load_hyperparams = ('/home/ahundt/datasets/logs/hyperopt_logs_cornell/'
+        #                           '2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success/'
+        #                           '2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+
+        # Results from first regression hyperparameter run
+        # FLAGS.load_hyperparams = ('/home/ahundt/datasets/logs/hyperopt_logs_cornell_regression/'
+        #                           '2018-03-01-15-12-20_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
+        #                           '2018-03-01-15-12-20_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+
+        # Just try out NasNet directly
+        FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/nasnet_large.json')
     FLAGS.epochs = 60
     FLAGS.fine_tuning_epochs = 5
     print('Regression Training on Jaccard Distance is about to begin. '

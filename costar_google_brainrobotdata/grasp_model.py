@@ -222,7 +222,7 @@ def create_tree_roots(inputs=None, input_shapes=None, make_layer_fn=None, traina
 
 def classifier_block(input_tensor, include_top=True, top='classification',
                      classes=1, activation='sigmoid',
-                     input_shape=None, final_pooling=None, verbose=0):
+                     input_shape=None, final_pooling=None, name='', verbose=1):
     """ Performs the final Activation for the classification of a given problem.
 
     # Arguments
@@ -234,13 +234,13 @@ def classifier_block(input_tensor, include_top=True, top='classification',
     x = input_tensor
     if include_top and top == 'classification':
         if verbose:
-            print("    classification")
+            print("    classification of x: " + str(x))
         x = Dense(units=classes, activation=activation,
-                  kernel_initializer="he_normal", name='fc' + str(classes))(x)
+                  kernel_initializer="he_normal", name=name + 'fc' + str(classes))(x)
 
     elif include_top and top == 'segmentation':
         if verbose > 0:
-            print("    segmentation")
+            print("    segmentation of x: " + str(x))
         x = Conv2D(classes, (1, 1), activation='linear', padding='same')(x)
 
         if K.image_data_format() == 'channels_first':
@@ -266,7 +266,7 @@ def classifier_block(input_tensor, include_top=True, top='classification',
 
 def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0, include_top=True,
               classes=1, activation='sigmoid', final_pooling=None,
-              filters=64, verbose=0):
+              filters=64, dense_layers=0, name='', verbose=0):
     """ Perform final convolutions for decision making, then apply the classification block.
 
         The top block adds the final "decision making" layers
@@ -285,40 +285,35 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
         include_top: Whether to include the fully-connected
             layer at the top of the network. Also maps to require_flatten
             option in `keras.applications.imagenet_utils._obtain_input_shape()`.
+        dense_layers: Number of additional dense layers before the final dense layer.
+            The final dense layer defines number of output classes is created.
     """
+    print('top block top: ' + str(top))
     # Extra Global Average Pooling allows more flexible input dimensions
     # but only use if necessary.
     if top == 'classification':
         feature_shape = K.int_shape(x)
-        if (feature_shape[1] > 1 or feature_shape[2] > 1):
+        if len(feature_shape) == 4:
             x = GlobalMaxPooling2D()(x)
             # x = Flatten()(x)
 
-        # combined full connected layers
-        if dropout_rate is not None:
-            x = Dropout(dropout_rate)(x)
+        for i in range(dense_layers):
+            # combined full connected layers
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
 
-        x = Dense(filters, activation='relu')(x)
-
-        if dropout_rate is not None:
-            x = Dropout(dropout_rate)(x)
-
-        x = Dense(filters, activation='relu')(x)
+            x = Dense(filters, activation='relu')(x)
 
         if dropout_rate is not None:
             x = Dropout(dropout_rate)(x)
 
     elif top == 'segmentation':
 
-        if dropout_rate is not None:
-            x = Dropout(dropout_rate)(x)
+        for i in range(dense_layers):
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
 
-        x = Conv2D(filters, (1, 1), activation='relu', padding='same')(x)
-
-        if dropout_rate is not None:
-            x = Dropout(dropout_rate)(x)
-
-        x = Conv2D(filters, (1, 1), activation='relu', padding='same')(x)
+            x = Conv2D(filters, (1, 1), activation='relu', padding='same')(x)
 
         if dropout_rate is not None:
             x = Dropout(dropout_rate)(x)
@@ -337,8 +332,10 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             x = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(x)
 
     # calculate the final classification output
-    x = classifier_block(x, include_top, top, classes, activation,
-                         output_image_shape, final_pooling, verbose)
+    x = classifier_block(x, include_top=include_top, top=top, classes=classes,
+                         activation=activation, input_shape=output_image_shape,
+                         final_pooling=final_pooling, name=name, verbose=verbose)
+    print('top_block x: ' + str(x))
     return x
 
 
@@ -356,6 +353,7 @@ def hypertree_model(
         create_image_tree_roots_fn=None,
         create_vector_tree_roots_fn=None,
         create_tree_trunk_fn=None,
+        top_block_dense_layers=0,
         verbose=0):
 
     if images is None and image_shapes is None:
@@ -402,18 +400,38 @@ def hypertree_model(
     if create_tree_trunk_fn is not None:
         x = create_tree_trunk_fn(x)
 
-    # The top block adds the final "decision making" layers
-    # and the classifier block according to the problem type.
-    # Dense layers for single prediction problems, and
-    # Conv2D layers for pixel-wise prediction problems.
-    x = top_block(x, output_shape, top, dropout_rate,
-                  include_top, classes, activation,
-                  final_pooling, top_block_filters, verbose)
+    if not isinstance(x, list):
+        x = [x]
+
+    # handle multiple outputs for networks like NASNet
+    xs = []
+    name = ''
+    for i, xi in enumerate(x):
+        if len(x) > 1:
+            # multiple separate outputs need multiple names
+            name = str(i)
+        # The top block adds the final "decision making" layers
+        # and the classifier block according to the problem type.
+        # Dense layers for single prediction problems, and
+        # Conv2D layers for pixel-wise prediction problems.
+        xi = top_block(
+            xi, output_shape, top, dropout_rate,
+            include_top, classes, activation,
+            final_pooling, top_block_filters,
+            dense_layers=top_block_dense_layers,
+            name=name, verbose=verbose)
+        xs += [xi]
+
+    if len(xs) == 1:
+        [x] = xs
+    else:
+        x = xs
 
     # Make a list of all inputs into the model
     # Each of these should be a list or the empty list [].
     inputs = image_inputs + vector_inputs
 
+    print('hypertree_model x: ' + str(x))
     # create the model
     model = keras.models.Model(inputs=inputs, outputs=x)
     return model
@@ -430,6 +448,7 @@ def choose_hypertree_model(
         include_top=True,
         top='classification',
         top_block_filters=64,
+        top_block_dense_layers=0,
         classes=1,
         output_shape=None,
         trainable=False,
@@ -440,7 +459,8 @@ def choose_hypertree_model(
         trunk_filters=128,
         trunk_model_name='dense',
         vector_branch_num_layers=3,
-        image_model_weights='shared'):
+        image_model_weights='shared',
+        use_auxiliary_branch=True):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
@@ -533,6 +553,7 @@ def choose_hypertree_model(
             image_input_shape = image_shapes[0]
         print('hypertree image_input_shape: ' + str(image_input_shape))
         print('hypertree images: ' + str(images))
+        print('hypertree classes: ' + str(classes))
         if trunk_filters == 0:
             trunk_filters = None
 
@@ -575,14 +596,19 @@ def choose_hypertree_model(
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.vgg16.VGG16
             elif image_model_name == 'nasnet_large':
-                image_model = keras.applications.nasnet.NASNetLarge(
-                    input_shape=image_input_shape, include_top=False,
-                    classes=classes
+                # please note that with nasnet_large, no pooling,
+                # and an aux network the two outputs will be different
+                # dimensions! Therefore, we need to add our own pooling
+                # for the aux network.
+                # TODO(ahundt) just max pooling in NasNetLarge for now, but need to figure out pooling for the segmentation case.
+                image_model = keras_contrib.applications.nasnet.NASNetLarge(
+                    input_shape=image_input_shape, include_top=False, pooling=None,
+                    classes=classes, use_auxiliary_branch=use_auxiliary_branch
                 )
             elif image_model_name == 'nasnet_mobile':
                 image_model = keras.applications.nasnet.NASNetMobile(
                     input_shape=image_input_shape, include_top=False,
-                    classes=classes
+                    classes=classes, pooling=False
                 )
             elif image_model_name == 'resnet':
                 # resnet model is special because we need to
@@ -668,7 +694,6 @@ def choose_hypertree_model(
                     for i in range(num_layers - 1):
                         x = Dense(vector_dense_filters)(x)
             elif model_name == 'dense_block':
-                keras.backend.expand_dims
                 densenet.__dense_block(
                     x, nb_layers=num_layers,
                     nb_filter=vector_dense_filters,
