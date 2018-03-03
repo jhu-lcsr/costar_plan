@@ -2,6 +2,7 @@ import os
 import sys
 import copy
 import six
+import json
 import GPy
 import GPyOpt
 import numpy as np
@@ -153,7 +154,7 @@ def optimize(
         problem_type=None,
         log_dir='./',
         run_name='',
-        param_to_optimize='val_loss'):
+        param_to_optimize='val_acc'):
     """ Run hyperparameter optimization
     """
     np.random.seed(seed)
@@ -168,6 +169,7 @@ def optimize(
         FLAGS.problem_type = problem_type
         feature_combo_name = 'image_preprocessed_width_1'
         top = 'classification'
+        FLAGS.crop_to = 'center_on_gripper_grasp_box_and_rotate_upright'
     elif problem_type == 'grasp_regression':
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
@@ -175,6 +177,8 @@ def optimize(
         FLAGS.problem_type = problem_type
         FLAGS.feature_combo = feature_combo_name
         FLAGS.crop_to = 'image_contains_grasp_box_center'
+        if param_to_optimize == 'val_acc':
+            param_to_optimize = 'val_grasp_jaccard'
 
     learning_rate_enabled = False
 
@@ -188,6 +192,7 @@ def optimize(
     # found when trainable is false. This is due to limitations in processing time availability at the time of writing and
     # multi stage training not yet being configurable during hyperopt.
     hyperoptions.add_param('trainable', [True, False], enable=False)
+    # TODO(ahundt) add trainable fraction param which enables training for a number of layers proportional to the total, starting at the top
 
     # Learning rates are exponential so we take a uniform random
     # input and map it from 1 to 3e-5 on an exponential scale.
@@ -344,8 +349,8 @@ def main(_):
     FLAGS.problem_type = 'grasp_regression'
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
-    FLAGS.epochs = 1
-    FLAGS.fine_tuning_epochs = 0
+    FLAGS.epochs = 5
+    FLAGS.fine_tuning_epochs = 1
     print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
           ' num_validation: ' + str(FLAGS.num_validation) +
           ' num_test: ' + str(FLAGS.num_test) +
