@@ -2,6 +2,7 @@ import os
 import sys
 import copy
 import six
+import json
 import GPy
 import GPyOpt
 import numpy as np
@@ -153,7 +154,7 @@ def optimize(
         problem_type=None,
         log_dir='./',
         run_name='',
-        param_to_optimize='val_loss'):
+        param_to_optimize='val_acc'):
     """ Run hyperparameter optimization
     """
     np.random.seed(seed)
@@ -168,13 +169,20 @@ def optimize(
         FLAGS.problem_type = problem_type
         feature_combo_name = 'image_preprocessed_width_1'
         top = 'classification'
-    elif problem_type == 'grasp_regression':
+        FLAGS.crop_to = 'center_on_gripper_grasp_box_and_rotate_upright'
+        if param_to_optimize == 'val_acc':
+            param_to_optimize = 'val_binary_accuracy'
+        min_top_block_filter_multiplier = 6
+    elif problem_type == 'grasp_regression' or 'regression':
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
         # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
         FLAGS.problem_type = problem_type
         FLAGS.feature_combo = feature_combo_name
         FLAGS.crop_to = 'image_contains_grasp_box_center'
+        if param_to_optimize == 'val_acc':
+            param_to_optimize = 'val_grasp_jaccard'
+        min_top_block_filter_multiplier = 8
 
     learning_rate_enabled = False
 
@@ -188,6 +196,7 @@ def optimize(
     # found when trainable is false. This is due to limitations in processing time availability at the time of writing and
     # multi stage training not yet being configurable during hyperopt.
     hyperoptions.add_param('trainable', [True, False], enable=False)
+    # TODO(ahundt) add trainable fraction param which enables training for a number of layers proportional to the total, starting at the top
 
     # Learning rates are exponential so we take a uniform random
     # input and map it from 1 to 3e-5 on an exponential scale.
@@ -218,7 +227,9 @@ def optimize(
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 8)])
     # TODO(ahundt) Enable 'nasnet_normal_a_cell' the option is disabled for now due to a tensor dimension conflict
     hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'resnet_conv_identity_block'])
-    hyperoptions.add_param('top_block_filters', [2**x for x in range(5, 12)])
+    hyperoptions.add_param('top_block_filters', [2**x for x in range(min_top_block_filter_multiplier, 12)])
+    # number of dense layers before the final dense layer that performs classification in the top block
+    hyperoptions.add_param('top_block_dense_layers', [0, 1, 2, 3])
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
     # enable this if you're search for grasp classifications
@@ -343,7 +354,7 @@ def main(_):
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
     FLAGS.epochs = 1
-    FLAGS.fine_tuning_epochs = 0
+    FLAGS.fine_tuning_epochs = 1
     print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
           ' num_validation: ' + str(FLAGS.num_validation) +
           ' num_test: ' + str(FLAGS.num_test) +
