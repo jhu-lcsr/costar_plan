@@ -574,6 +574,13 @@ def choose_hypertree_model(
                         classes=classes)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.vgg16.VGG16
+            elif image_model_name == 'vgg19':
+                if image_model_weights == 'shared':
+                    image_model = keras.applications.vgg19.VGG19(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.vgg19.VGG19
             elif image_model_name == 'nasnet_large':
                 image_model = keras.applications.nasnet.NASNetLarge(
                     input_shape=image_input_shape, include_top=False,

@@ -212,7 +212,7 @@ def optimize(
         hyperoptions.add_param('vector_branch_num_layers', [x for x in range(0, 5)])
         hyperoptions.add_param('vector_model_name', ['dense', 'dense_block'])
     # leaving out nasnet_large for now because it needs different input dimensions.
-    hyperoptions.add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile', 'resnet'])
+    hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet'])
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
     hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 11)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 8)])
