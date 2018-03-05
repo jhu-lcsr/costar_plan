@@ -227,29 +227,15 @@ class ConditionalImage(PredictionSampler2):
         Visualize based on hidden
         '''
         p, done = self.next_model.predict([hidden0, hidden, prev_option])
-        #p = np.exp(p)
-        #p /= np.sum(p)
         return p, done
 
     def q(self, hidden0, hidden, prev_option):
+        #p, done, value = self.q_model.predict([hidden0, hidden, prev_option])
         p, done = self.q_model.predict([hidden0, hidden, prev_option])
         return p, done
 
-    def next(self, hidden0, hidden, prev_option,
-             done_threshold=0.1):
-        p, done1 = self.next_model.predict([hidden0, hidden, prev_option])
-        q, done2 = self.q_model.predict([hidden0, hidden, prev_option])
-        
-        # Done will predict whether or not the current value is done or not
-        done1 = done1 > done_threshold
-        done2 = done2 > done_threshold
-        print(done1[0], done2[0])
-        print(p[0])
-        print(q[0])
-        
-
-    def value(self, hidden0, hidden, prev_action):
-        v = self.value_model.predict([hidden0, hidden, prev_action])
+    def value(self, hidden, *args, **kwargs):
+        v = self.value_model.predict([hidden])
         return v
 
     def act(self, *args, **kwargs):
