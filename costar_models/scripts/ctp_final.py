@@ -83,8 +83,7 @@ def main(args):
                 h0 = model.encode(x0)
                 h_goal = model.transform(h0, h, np.array([o1[i]]))
                 h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
-                a_next = np.argmax(model.next(h0, h_goal, np.array([o1[i]])),axis=-1)[0]
-                print(a_next, o2[i])
+                p = model.pnext(h0, h_goal, np.array([o1[i]]))[0]
                 xg = model.decode(h_goal)
                 xg2 = model.decode(h_goal2)
                 if show:
@@ -108,8 +107,12 @@ def main(args):
                    vacc = 1.
                 else:
                    vacc = 0. 
-                if a_next == o2[i]:
+                if p[0,o2[i]] > 0.1:
                    osum += 1.
+                else:
+                   #print(GetOrderedList(p[0]))
+                   #print(p[0,o2[i]], o2[i])
+                   pass
                 err1_sum += err1
                 err2_sum += err2
                 total += 1
