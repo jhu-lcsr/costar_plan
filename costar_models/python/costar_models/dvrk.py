@@ -43,10 +43,10 @@ def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [1,1], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
     x = Dropout(0.5)(x)
