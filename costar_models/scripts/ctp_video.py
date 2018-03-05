@@ -8,6 +8,7 @@ import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
 import imageio
+import moviepy.editor as mpy
 
 from costar_models import *
 from costar_models.planner import GetOrderedList, PrintTopQ
@@ -101,9 +102,9 @@ def main(args):
             err2 = np.mean(np.abs((xg2[0] - I_target2[i])))
             yimg, ximg = 70, 3
             img[yimg:(yimg+ht),ximg:(ximg+w),:] = xi[0]
-            yimg, ximg = 5, 130
+            yimg, ximg = 4, 130
             img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg[0]
-            yimg, ximg = 100, 130
+            yimg, ximg = 102, 130
             img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg2[0]
             #plt.imshow(img)
             #plt.show()
@@ -124,8 +125,13 @@ def main(args):
             print( o1[i], o2[i],
                     "means =", mean1, mean2,
                     "avg =", v_sum/total )
+            if ii > 100:
+                break
         break
-    imageio.mimsave('movie.gif', imgs)
+    print(len(imgs))
+    #imageio.mimsave('movie.gif', imgs, duration=0.04)
+    clip = mpy.ImageSequenceClip(imgs, fps=30)
+    clip.write_gif('movie.gif')
 
 
 if __name__ == '__main__':
