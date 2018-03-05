@@ -7,6 +7,7 @@ import matplotlib as mpl
 
 import numpy as np
 import matplotlib.pyplot as plt
+import imageio
 
 from costar_models import *
 from costar_models.planner import GetOrderedList, PrintTopQ
@@ -66,6 +67,9 @@ def main(args):
     err2_sum = 0.
     v_sum = 0.
     ii = 0
+    imgs = []
+    ht = 96
+    w = 128
     for filename in dataset.test:
         print(filename)
         data = dataset.loadFile(filename)
@@ -73,6 +77,7 @@ def main(args):
         [I0, I, o1, o2, oin] = features
         length = I0.shape[0]
         [I_target, I_target2] = targets[:2]
+        img = np.zeros((200,260,3))
         for i in range(length):
             ii += 1
             xi = np.expand_dims(I[i],axis=0)
@@ -94,6 +99,15 @@ def main(args):
                 plt.show()
             err1 = np.mean(np.abs((xg[0] - I_target[i])))
             err2 = np.mean(np.abs((xg2[0] - I_target2[i])))
+            yimg, ximg = 70, 3
+            img[yimg:(yimg+ht),ximg:(ximg+w),:] = xi[0]
+            yimg, ximg = 5, 130
+            img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg[0]
+            yimg, ximg = 100, 130
+            img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg2[0]
+            #plt.imshow(img)
+            #plt.show()
+            imgs.append(img)
             #v = model.value(h0, h_goal2)
             #if v[0] > 0.5 and value[i] > 0.5:
             #    vacc = 1.
@@ -110,6 +124,8 @@ def main(args):
             print( o1[i], o2[i],
                     "means =", mean1, mean2,
                     "avg =", v_sum/total )
+        break
+    imageio.mimsave('movie.gif', imgs)
 
 
 if __name__ == '__main__':
