@@ -7,8 +7,8 @@ import matplotlib as mpl
 
 import numpy as np
 import matplotlib.pyplot as plt
-import imageio
-import moviepy.editor as mpy
+#import imageio
+#import moviepy.editor as mpy
 
 from costar_models import *
 from costar_models.planner import GetOrderedList, PrintTopQ
@@ -92,7 +92,7 @@ def main(args):
             h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
             xg = model.decode(h_goal)
             xg2 = model.decode(h_goal2)
-            if show:
+            if False:
                 plt.subplot(1,4,1); plt.imshow(x0[0])
                 plt.subplot(1,4,2); plt.imshow(xi[0])
                 plt.subplot(1,4,3); plt.imshow(xg[0])
@@ -125,13 +125,14 @@ def main(args):
             print( o1[i], o2[i],
                     "means =", mean1, mean2,
                     "avg =", v_sum/total )
-            if ii > 100:
-                break
+            fig = plt.figure()
+            plt.imshow(img)
+            fig.savefig("movie/%05d.jpg"%ii)
         break
-    print(len(imgs))
+    #print(len(imgs))
     #imageio.mimsave('movie.gif', imgs, duration=0.04)
-    clip = mpy.ImageSequenceClip(imgs, fps=30)
-    clip.write_gif('movie.gif')
+    #clip = mpy.ImageSequenceClip(imgs, fps=30)
+    #clip.write_gif('movie.gif')
 
 
 if __name__ == '__main__':
