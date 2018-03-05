@@ -149,15 +149,33 @@ def optimize(
         seed=1,
         verbose=1,
         initial_num_samples=200,
+        maximum_hyperopt_steps=100,
         num_cores=15,
         baysean_batch_size=1,
         problem_type=None,
         log_dir='./',
         run_name='',
-        param_to_optimize='val_acc'):
+        param_to_optimize='val_acc',
+        maximize=None):
     """ Run hyperparameter optimization
     """
     np.random.seed(seed)
+
+    optimize_loss = False
+    if maximize is None:
+        if 'loss' in param_to_optimize:
+            maximize = False
+        elif 'acc' in param_to_optimize:
+            maximize = True
+            optimize_loss = True
+        else:
+            raise ValueError(
+                'The parameter "maximize" operates with respect to param_to_optimize, but it '
+                'is not one of the valid options. Here is what you can do: '
+                'If the string "loss" is in param_to_optimize we will minimize by default, '
+                'if the string "acc" is in param_to_optimize we will maximize by default, '
+                'alternately you can set the maximize flag to True or False and we '
+                'will go with your choice.')
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
     # I'm going with super conservative values for the first run to get an idea how it works
@@ -210,10 +228,10 @@ def optimize(
                            enable=False, required=True, default=0.25)
 
     if problem_type == 'grasp_regression':
-        # TODO(ahundt) determine how to try out different losses because otherwise we can't compare runs
         # Right now only grasp_regression can configure the loss function
-        # hyperoptions.add_param('loss', ['mse', 'mae', 'logcosh'])
-        pass
+        # Make sure you don't optimize loss when it is being used for your objective function!
+        if optimize_loss:
+            hyperoptions.add_param('loss', ['mse', 'mae', 'logcosh'])
     else:
         # There is no vector branch for grasp regression so we only add it in the other cases
         # Handle motion command inputs and search for the best configuration
@@ -241,7 +259,7 @@ def optimize(
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
     # how many optimization steps to take after the initial sampling
-    maximum_hyperopt_steps = 100
+
     total_max_steps = initial_num_samples + maximum_hyperopt_steps
     # defining a temporary variable scope for the callbacks
     class ProgUpdate():
@@ -321,6 +339,8 @@ def optimize(
 
         return loss
 
+    log_run_prefix = os.path.join(log_dir, run_name)
+
     hyperopt = GPyOpt.methods.BayesianOptimization(
         f=train_callback,  # function to optimize
         domain=hyperoptions.get_domain(),  # where are we going to search
@@ -330,7 +350,11 @@ def optimize(
         evaluator_type="predictive",  # Expected Improvement
         batch_size=baysean_batch_size,
         num_cores=num_cores,
-        exact_feval=algorithm_gives_exact_results)
+        exact_feval=algorithm_gives_exact_results,
+        report_file=log_run_prefix + '_bayesian_optimization_report.txt',
+        models_file=log_run_prefix + '_bayesian_optimization_models.txt',
+        evaluations_file=log_run_prefix + '_bayesian_optimization_evaluations.txt',
+        maximize=maximize)
 
     # run the optimization, this will take a long time!
     hyperopt.run_optimization(max_iter=maximum_hyperopt_steps)
@@ -341,7 +365,7 @@ def optimize(
     with open(result_file, 'w') as fp:
         json.dump(best_hyperparams, fp)
     print('Hyperparameter Optimization final best result:\n' + str(best_hyperparams))
-    print("Optimized loss: {0}".format(hyperopt.fx_opt))
+    print('Optimized ' + param_to_optimize + ': {0}'.format(hyperopt.fx_opt))
 
     hyperopt.plot_convergence()
     hyperopt.plot_acquisition()
