@@ -336,6 +336,9 @@ def optimize(
         else:
             # we probably hit an exception so consider this infinite loss
             loss = float('inf')
+            if maximize:
+                # use negative infinity if we are maximizing!
+                loss = -loss
 
         return loss
 
