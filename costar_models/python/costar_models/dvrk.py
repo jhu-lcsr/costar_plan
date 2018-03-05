@@ -43,10 +43,10 @@ def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
     x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [1,1], 1, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 128, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
     x = Dropout(0.5)(x)
@@ -158,7 +158,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), perm_drop=False):
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
         x = Concatenate(axis=-1)([x, y])
         x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16),
-              activation_fn, self.dropout_rate, constraint=None, bn=False, output=False)
+              activation_fn, model.dropout_rate, constraint=None, bn=False, output=False)
         x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
     else:
         x = AddConv2D(x, 64, [5,5], 2, **kwargs_dr0)
