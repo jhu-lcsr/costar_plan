@@ -9,7 +9,7 @@ instructions see the readme.
 '''
 
 from costar_task_plan.simulation import ParseBulletArgs
-from costar_task_plan.gym import BulletSimulationEnv
+from costar_task_plan.simulation import BulletSimulationEnv
 from costar_task_plan.agent import GetAgents, MakeAgent
 from costar_models import MakeModel
 

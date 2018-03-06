@@ -92,7 +92,7 @@ def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
 
     return mm
 
-def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
+def MakeJigsawsTransform(model, h_dim=(12,16), perm_drop=False):
     '''
     This is the version made for the newer code, it is set up to use both
     the initial and current observed world and creates a transform
@@ -109,13 +109,13 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
 
     This will also set the "transform_model" field of "model".
     '''
-    features = 8 if small else 64
-    h = Input((h_dim[0], h_dim[1], features),name="h_in")
+    h = Input((h_dim[0], h_dim[1], model.encoder_channels),name="h_in")
     h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,), name="t_opt_in")
     activation_fn = model.activation_fn
     if model.use_noise:
         z = Input((model.noise_dim,), name="z_in")
+    perm_drop = True
 
     kwargs = {
             "activation": activation_fn,
@@ -126,8 +126,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
     kwargs_dr0 = kwargs.copy()
     kwargs_dr0["dropout_rate"] = 0.
 
-    x = h # This is already encoded
-    x0 = AddConv2D(h0, 64, [1,1], 1, **kwargs_dr0)
+    x = AddConv2D(h, 64, [1,1], 1, **kwargs)
+    x0 = AddConv2D(h0, 64, [1,1], 1, **kwargs)
 
     # Combine the hidden state observations
     x = Concatenate()([x, x0])
@@ -158,7 +158,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
         x = Concatenate(axis=-1)([x, y])
         x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16),
-              activation_fn, 0., constraint=None, bn=False, output=False)
+              activation_fn, self.dropout_rate, constraint=None, bn=False, output=False)
         x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
     else:
         x = AddConv2D(x, 64, [5,5], 2, **kwargs_dr0)
@@ -168,7 +168,6 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
     # --- end ssm block
     #if model.skip_connections:
     #    x = Concatenate()([x, skip])
-
     x = AddConv2DTranspose(x, 64, [5,5], stride=2, **kwargs)
 
     if model.skip_connections:
@@ -179,12 +178,11 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True, perm_drop=False):
 
     # --------------------------------------------------------------------
     # Put resulting image into the output shape
-    if small:
-        x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1, **kwargs_dr0)
+    x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1, **kwargs_dr0)
     l = [h0, h, option, z] if model.use_noise else [h0, h, option]
     model.transform_model = Model(l, x, name="tform")
     model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
-    #model.transform_model.summary()
+    model.transform_model.summary()
     return model.transform_model
 
 
@@ -224,7 +222,7 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False, perm_drop=False):
     model.steps_down = 3
     model.hidden_dim1 = int(img_shape[0]/(2**model.steps_down))
     model.hidden_dim2 = int(img_shape[1]/(2**model.steps_down))
-    model.hidden_shape = (model.hidden_dim1,model.hidden_dim2,model.encoder_channels)
+    model.hidden_shape = (model.hidden_dim1, model.hidden_dim2, model.encoder_channels)
 
     if not disc:
         image_encoder = Model([img], x, name="Ienc")
@@ -259,9 +257,8 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False, per
     
     if model.use_spatial_softmax:
         model.steps_up = 3
-        hidden_dim = int(img_shape[0]/(2**model.steps_up))
-        (h,w,c) = (hidden_dim,
-                   hidden_dim,
+        (h,w,c) = (model.hidden_dim1,
+                   model.hidden_dim2,
                    model.encoder_channels)
         x = AddDense(x, int(h*w*c), "relu", dr, bn=bn)
         x = Reshape((h,w,c))(x)
