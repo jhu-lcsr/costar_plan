@@ -75,7 +75,8 @@ def main(args):
     if model_features in ["husky", "multi", "def"]:
         ht = 64
         w = 64
-        imgpos = [(30, 3), (2, 66), (66,66)]
+        imgpos = [(30, 0), (0, 66), (66,66)]
+        imgw, imgh = 130, 130
     elif model_features == "jigsaws":
         ht = 96
         w = 128
@@ -87,7 +88,7 @@ def main(args):
         [I0, I, o1, o2, oin] = features
         length = I0.shape[0]
         [I_target, I_target2] = targets[:2]
-        img = np.zeros((130,130,3))
+        img = np.zeros((imgw,imgh,3))
         for i in range(length):
             ii += 1
             xi = np.expand_dims(I[i],axis=0)
@@ -124,10 +125,15 @@ def main(args):
             print( o1[i], o2[i],
                     "means =", mean1, mean2,
                     "avg =", v_sum/total )
-            fig = plt.figure()
-            plt.imshow(img)
+            fig = plt.figure(frameon=False)
+            fig.set_size_inches(3,3)
+            ax = plt.Axes(fig, [0., 0., 1., 1.])
+            ax.set_axis_off()
+            fig.add_axes(ax)
+            ax.imshow(img)
             fig.savefig("movie_%s/%05d.jpg"%(model_features,ii))
-        if fnum > 5:
+            plt.close(fig)
+        if fnum >= 9:
              break
     #print(len(imgs))
     #imageio.mimsave('movie.gif', imgs, duration=0.04)
