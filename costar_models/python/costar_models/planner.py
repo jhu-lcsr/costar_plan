@@ -1004,10 +1004,11 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     # Next options
     x1 = AddDense(x, dense_size, "relu", 0., constraint=None,
             output=True, bn=False)
-    x = Dropout(0.5)(x)
+    x1 = Dropout(0.5)(x1)
+
     x1 = AddDense(x1, dense_size, "relu", 0., constraint=None,
             output=True, bn=False)
-    x = Dropout(0.5)(x)
+    x1 = Dropout(0.5)(x1)
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
@@ -1022,11 +1023,10 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="V_h0_in")
     use_lrelu = False
-    bn = batchnorm
+    bn = batchnorm and False
     x = xin
-    x0 = x0in
+    #x0 = x0in
     if len(x.shape) > 2:
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
@@ -1036,24 +1036,18 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 lrelu=use_lrelu,
                 name="A_project",
                 constraint=None)
-        x0 = AddConv2D(x0, 32, [4,4], 1, 0., "same",
-                bn=bn,
-                lrelu=use_lrelu,
-                name="A0_project",
-                constraint=None)
-        x = Concatenate()([x0,x])
+        #x = Concatenate()([x0,x])
 
         x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
-        x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
+        x = AddConv2D(x, 128, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = Flatten()(x)
 
     # Next options
     x = Dropout(0.5)(x)
     x = AddDense(x, dense_size, "relu", 0, bn=False)
-    x = Dropout(0.5)(x)
     value_out = Dense(1,
             activation="sigmoid", name="value",)(x)
-    next_model = Model([x0in, xin], value_out, name="V")
+    next_model = Model([xin], value_out, name="V")
     return next_model
 
 
@@ -1197,8 +1191,8 @@ def LoadEncoderWeights(model, encoder, decoder, gan=False):
     saved_e = None
     for name in names:
         try:
-            e_nm = model.makeName(name, submodel="image_encoder")
-            d_nm = model.makeName(name, submodel="image_decoder")
+            e_nm = model.makeName(name, submodel="image_encoder", reqs_dir=True)
+            d_nm = model.makeName(name, submodel="image_decoder", reqs_dir=True)
             print("Trying to load", e_nm)
             encoder.load_weights(e_nm)
             print("Trying to load", d_nm)
@@ -1319,3 +1313,8 @@ def GetOrderedList(p):
     pidx = sorted(range(len(p)), key = lambda k: p[k])
     pidx.reverse()
     return pidx
+
+def PrintTopQ(idx, p, q, i=0, n=4):
+    print("Best options =")
+    for j in range(n):
+        print(idx[j], p[i, idx[j]], q[i,idx[j]])

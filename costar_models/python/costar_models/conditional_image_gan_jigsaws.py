@@ -66,7 +66,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
+        tform = MakeJigsawsTransform(self, h_dim=(12,16))
         l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
         x = tform(l)
         l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]
@@ -185,11 +185,11 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
             x = Flatten()(x)
             x = AddDense(x, 1, "linear", 0., output=True, bn=False)
         else:
-            x = Flatten()(x)
-            x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False)
-            #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="linear",
-            #    bn=False)
-            #x = GlobalAveragePooling2D()(x)
+            #x = Flatten()(x)
+            #x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False)
+            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="linear",
+                bn=False)
+            x = GlobalAveragePooling2D()(x)
 
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.

@@ -18,9 +18,9 @@ class AbstractAgentBasedModel(object):
     will also provide the model with a way to collect data or whatever.
     '''
 
-    def makeName(self, prefix, submodel=None):
+    def makeName(self, prefix, submodel=None, reqs_dir=False):
         dir = self.model_directory
-        if submodel is not None and self.reqs_directory is not None:
+        if reqs_dir and self.reqs_directory is not None:
             dir = self.reqs_directory
         name = os.path.join(dir, prefix) + "_model"
         if self.features is not None:
@@ -58,7 +58,7 @@ class AbstractAgentBasedModel(object):
             zdim=16,
             features=None,
             steps_per_epoch=500,
-            validation_steps=25,
+            validation_steps=100,
             dropout_rate=0.5,
             decoder_dropout_rate=None,
             tform_dropout_rate=0.,
@@ -69,6 +69,7 @@ class AbstractAgentBasedModel(object):
             use_ssm=1,
             hypothesis_dropout=False,
             dense_representation=True,
+            dense_transform=False,
             skip_connections=1,
             use_noise=False,
             load_pretrained_weights=False,
@@ -151,6 +152,7 @@ class AbstractAgentBasedModel(object):
         self.skip_connections = skip_connections > 0
         self.use_ssm = use_ssm > 0
         self.dense_representation = dense_representation
+        self.dense_transform = dense_transform
         self.gan_method = gan_method
         self.save_model = save_model
         self.hidden_size = hidden_size

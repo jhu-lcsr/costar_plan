@@ -150,7 +150,14 @@ class ConditionalImageGan(PretrainImageGan):
 
         # Extract the next goal
         I_target2, o2 = GetNextGoal(I_target, o1)
-        return [I0, I, o1, o2], [ I_target, I_target2 ]
+        if not self.validate:
+            return [I0, I, o1, o2], [ I_target, I_target2 ]
+        else:
+            features = [I0, I, o1, o2, oin]
+            o1_1h = ToOneHot(o1, self.num_options)
+            o2_1h = ToOneHot(o2, self.num_options)
+            return (features, 
+                    [I_target, I_target2, o1_1h, v, qa, ga, o2_1h])
 
     def _makeImageDiscriminator(self, img_shape):
         '''
@@ -208,11 +215,11 @@ class ConditionalImageGan(PretrainImageGan):
             x = Flatten()(x)
             x = AddDense(x, 1, "linear", 0., output=True, bn=False)
         else:
-            #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
-            #    bn=False)
-            #x = GlobalAveragePooling2D()(x)
-            x = Flatten()(x)
-            x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False, perm_drop=True)
+            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
+                bn=False)
+            x = GlobalAveragePooling2D()(x)
+            #x = Flatten()(x)
+            #x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False, perm_drop=True)
 
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.

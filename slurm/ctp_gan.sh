@@ -17,7 +17,7 @@ else
 fi
 
 ## Option Processing ----
-OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,enc_dir:,skip_cond -n ctp_gan -- "$@")
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,gan_transform,no_gan_transform,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,enc_dir:,skip_cond,dense_transform -n ctp_gan -- "$@")
 
 [[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
@@ -40,6 +40,8 @@ epochs1=100
 epochs2=100
 enc_dir=''
 skip_cond=false
+dense_transform=false
+gan_transform=true
 
 echo "$OPTS"
 eval set -- "$OPTS"
@@ -67,6 +69,9 @@ while true; do
     --epochs1) epochs1="$2"; shift 2 ;;
     --epochs2) epochs2="$2"; shift 2 ;;
     --enc_dir) enc_dir="$2"; shift 2 ;;
+    --dense_transform) dense_transform=true; shift ;;
+    --no_gan_transform) gan_transform=false; shift ;;
+    --gan_transform) gan_transform=true; shift ;;
     --) shift; break ;;
     *) echo "Internal error!" ; exit 1 ;;
   esac
@@ -81,13 +86,15 @@ done
 
 ## End of option processing ---------------------
 
+if ! $gan_transform; then gan_transform_dir='_nogantrans'; else gan_transform_dir=''; fi
 if $wass; then wass_dir=wass; else wass_dir=nowass; fi
 if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
 if $retrain; then retrain_dir=retrain; else retrain_dir=noretrain; fi
-if $gan_encoder; then gan_dir=ganenc; else gan_dir=noganenc; fi
+if $gan_encoder; then gan_enc_dir=ganenc; else gan_enc_dir=noganenc; fi
+if $dense_transform; then dense_dir='_dense'; else dense_dir=''; fi
 
 # Handle model directory
-MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${gan_dir}_${retrain_dir}${suffix}"
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${gan_enc_dir}_${retrain_dir}${dense_dir}${gan_transform_dir}${suffix}"
 
 [[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
 
@@ -110,6 +117,7 @@ data_dir=${data_dir}.${data_suffix}
 if $wass; then wass_cmd='--wasserstein'; else wass_cmd=''; fi
 if $use_noise; then use_noise_cmd='--use_noise'; else use_noise_cmd=''; fi
 if $retrain; then retrain_cmd='--retrain'; else retrain_cmd=''; fi
+if $dense_transform; then dense_transform_cmd='--dense_transform'; else dense_transform_cmd=''; fi
 
 if $marcc; then
   cmd_prefix="$HOME/costar_plan/costar_models/scripts/"
@@ -177,7 +185,7 @@ if ! $skip_encoder; then
   fi
 fi
 
-## Conditional gan ---------------------------------
+## Conditional model ---------------------------------
 
 if ! $skip_cond; then
 
@@ -187,7 +195,15 @@ if ! $skip_cond; then
   $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
 
   req_dir_cmd=''
-  [[ $enc_dir ]] && req_dir_cmd="--req_directory $enc_dir"
+  [[ $enc_dir ]] && req_dir_cmd="--reqs_directory $enc_dir"
+
+  if $gan_transform; then
+    model=conditional_image_gan
+    disc_suffix=''
+  else
+    model=conditional_image
+    disc_suffix=--no_disc
+  fi
 
   # Calculate epochs left
   epochs_done=0
@@ -197,14 +213,14 @@ if ! $skip_cond; then
   fi
   # Check for resume after finish
   if $resume && (($epochs_done >= $epochs2)); then
-    echo Skipping conditional gan due to resume!
+    echo Skipping conditional model due to resume!
   else
-    echo "Training conditional gan. $epochs_done/$epochs2 epochs done."
+    echo "Training conditional model. $epochs_done/$epochs2 epochs done."
       ${cmd_prefix}ctp_model_tool \
       --features $features \
       -e $epochs2 \
       --initial_epoch $epochs_done \
-      --model conditional_image_gan \
+      --model $model \
       --data_file $data_dir \
       --lr $lr \
       --dropout_rate $dropout \
@@ -219,6 +235,8 @@ if ! $skip_cond; then
       $wass_cmd \
       $use_noise_cmd \
       $load_cmd \
-      $req_dir_cmd
+      $req_dir_cmd \
+      $dense_transform_cmd \
+      $disc_suffix
   fi
 fi

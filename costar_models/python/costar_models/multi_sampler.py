@@ -311,7 +311,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
+        # Never use the BN here?
         bn = self.use_batchnorm
+        # Always use dropout here
+        perm_dropout = True
 
         # Common arguments
         kwargs = {
@@ -358,7 +361,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             #x = Concatenate(axis=-1)([x, y])
             x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
                          self.activation_fn,
-                         self.dropout_rate*0.,
+                         self.dropout_rate,
                          constraint=None, bn=False)
             x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
@@ -367,6 +370,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             # block
             x = AddConv2D(x, 64, [5,5], 2, 0., **kwargs)
             x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
+
         # Transpose conv back up to 8x8: 4 + 1 = 5 (or 7, or 8)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
                 dropout_rate=self.dropout_rate,
@@ -387,6 +391,85 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 bn=False, # disables batchnorm here
                 activation="sigmoid", # outputs in [0, 1]
                 dropout_rate=0.)
+
+        l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        self.transform_model = Model(l, x, name="tform")
+        self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
+        return self.transform_model
+
+    def _getTransform(self,i=0,rep_channels=32):
+        transform_dropout = False
+        use_options_again = self.use_next_option
+        transform_batchnorm = True
+        transform_relu = True
+        if use_options_again:
+            options = self.num_options
+        else:
+            options = None
+        if self.dense_representation:
+            transform = GetDenseTransform(
+                    dim=self.img_col_dim,
+                    input_size=self.img_col_dim,
+                    output_size=self.img_col_dim,
+                    idx=i,
+                    batchnorm=transform_batchnorm,
+                    dropout=transform_dropout,
+                    dropout_rate=self.dropout_rate,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=transform_relu,
+                    option=options,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
+        else:
+            transform_kernel_size = self.tform_kernel_size
+            transform = GetTransform(
+                    rep_size=(self.hidden_dim, self.hidden_dim,
+                        rep_channels),
+                    filters=self.tform_filters,
+                    kernel_size=transform_kernel_size,
+                    idx=i,
+                    batchnorm=True,
+                    dropout=transform_dropout,
+                    dropout_rate=self.dropout_rate,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=True,
+                    option=options,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
+        return transform
+
+    def _makeDenseTransform(self, h_dim=(8,8), perm_drop=False, small=False):
+        '''
+        Returns:
+        --------
+        transform model
+        '''
+        l0, l1, c = h_dim[0], h_dim[1], self.encoder_channels
+        h = Input((l0, l1, c), name="h_in")
+        h0 = Input((l0, l1, c), name="h0_in")
+        option = Input((self.num_options,),name="t_opt_in")
+        bn = self.use_batchnorm
+        dr = self.dropout_rate
+
+        # Combine the hidden state observations
+        x = Flatten()(h)
+        x0 = Flatten()(h0)
+
+        if self.use_noise:
+            z = Input((self.noise_dim,), name="z_in")
+            x = Concatenate([x, x0, option, z])
+        else:
+            x = Concatenate()([x, x0, option])
+
+        factor = 0.25 if small else 1.
+
+        x = AddDense(x, int(l0 * l1 * c * factor), "relu", 0., constraint=None, bn=bn, perm_drop=perm_drop)
+        x = AddDense(x, int(l0 * l1 * c * factor), "relu", dr, constraint=None, bn=bn, perm_drop=perm_drop)
+        x = AddDense(x, l0 * l1 * c, "relu", dr, constraint=None, bn=bn, perm_drop=perm_drop)
+
+        x = Reshape([l0, l1, c])(x)
 
         l = [h0, h, option, z] if self.use_noise else [h0, h, option]
         self.transform_model = Model(l, x, name="tform")
@@ -505,7 +588,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             predictor = self.model
         if self.PredictorCb is not None:
             imageCb = self.PredictorCb(
-                predictor,
+                saved_model=self,
+                predictor=predictor,
                 name=self.name_prefix,
                 features_name=self.features,
                 features=cbf,
@@ -1043,4 +1127,47 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 sums += np.array(losses)
 
         return sums, train_sum, length
+
+
+    def addNoiseIfNeeded(self, in_data):
+        if not self.use_noise:
+            return in_data
+        out = [in_data] if type(in_data).__name__ != 'list' else in_data[:]
+        sz = out[0].shape[0]
+        for _ in range(self.noise_iters):
+            x = np.random.random((sz, self.noise_dim))
+            out.append(x)
+        return out
+
+    def encode(self, img):
+        '''
+        Encode available features into a new state
+
+        Parameters:
+        -----------
+        [unknown]: all are parsed via _getData() function.
+        '''
+        return self.image_encoder.predict(img)
+
+    def decode(self, hidden):
+        '''
+        Decode features and produce a set of visualizable images or other
+        feature outputs.
+
+        '''
+        return self.image_decoder.predict(hidden)
+
+    def transform(self, hidden0, hidden, option_in=-1):
+        #if option_in < 0 or option_in > self.num_options:
+        #    option_in = self.null_option
+        #oin = MakeOption1h(option_in, self.num_options)
+        if len(option_in.shape) == 1:
+            oin = ToOneHot(option_in, self.num_options)
+        else:
+            oin = option_in
+        #length = hidden.shape[0]
+        #oin = np.repeat(oin, length, axis=0)
+        h = self.transform_model.predict([hidden0, hidden, oin])
+        return h
+
 
