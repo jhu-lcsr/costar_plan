@@ -30,6 +30,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         super(PretrainImageJigsaws, self).__init__(taskdef, *args, **kwargs)
         self.num_options = SuturingNumOptions()
         self.save_encoder_decoder = True
+        self.num_generator_files = 1
 
     def _makePredictor(self, image):
         '''
@@ -88,7 +89,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
             raise RuntimeError('did not make trainable model')
 
     def _getData(self, image, label, *args, **kwargs):
-        I = np.array(JpegToNumpy(image)) / 255.
+        I = np.array(image) / 255.
         o1 = np.array(label)
         I0 = I[0,:,:,:]
         length = I.shape[0]
