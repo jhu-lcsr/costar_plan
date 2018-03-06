@@ -80,8 +80,8 @@ def main(args):
         ht = 96
         w = 128
         imgpos = [(70,3), (4,130), (102,130)]
-    for filename in dataset.test:
-        print(filename)
+    for fnum, filename in enumerate(dataset.test):
+        print(fnum, filename)
         data = dataset.loadFile(filename)
         features, targets = model._getData(**data)
         [I0, I, o1, o2, oin] = features
@@ -127,7 +127,8 @@ def main(args):
             fig = plt.figure()
             plt.imshow(img)
             fig.savefig("movie_%s/%05d.jpg"%(model_features,ii))
-        break
+        if fnum > 5:
+             break
     #print(len(imgs))
     #imageio.mimsave('movie.gif', imgs, duration=0.04)
     #clip = mpy.ImageSequenceClip(imgs, fps=30)
