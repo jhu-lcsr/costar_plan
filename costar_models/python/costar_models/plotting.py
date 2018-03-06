@@ -25,4 +25,4 @@ def GetJpeg(img, tmp_filename=".tmp.jpg"):
 def JpegToNumpy(jpeg):
     stream = io.BytesIO(jpeg)
     im = Image.open(stream)
-    return np.asarray(im, dtype=np.float64) / 255.
+    return np.asarray(im, dtype=np.float64) #/ 255.
