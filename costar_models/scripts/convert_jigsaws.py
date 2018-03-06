@@ -163,7 +163,7 @@ def main():
 
             # save goal_image
             if goal_frame:
-                goal_images.append((frame_num, image))
+                goal_images.append((frame_num, jpeg))
 
                 #if gesture == 8:
                 #    print("Gesture =", gesture, "Frame num =", frame_num)
@@ -183,7 +183,7 @@ def main():
         for i in frame_nums:
             frame = lookup(i, goal_images)
             #TODO: re-enable this
-            #data["goal_image"].append(frame)
+            data["goal_image"].append(frame)
 
         for k, v in data.items():
             data[k] = np.array(v)

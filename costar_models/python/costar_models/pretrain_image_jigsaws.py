@@ -17,6 +17,7 @@ from .loss import *
 from .multi_sampler import *
 from .pretrain_image import *
 
+from .plotting import *
 from .dvrk import *
 
 class PretrainImageJigsaws(PretrainImageAutoencoder):
@@ -87,7 +88,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
             raise RuntimeError('did not make trainable model')
 
     def _getData(self, image, label, *args, **kwargs):
-        I = np.array(image) / 255.
+        I = np.array(JpegToNumpy(image)) / 255.
         o1 = np.array(label)
         I0 = I[0,:,:,:]
         length = I.shape[0]
