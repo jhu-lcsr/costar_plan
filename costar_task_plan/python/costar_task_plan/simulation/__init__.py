@@ -11,8 +11,10 @@ from .world import *
 from .option import *
 from .features import *
 from .reward import *
+from .bullet_gym import BulletSimulationEnv
 
 __all__ = ["CostarBulletSimulation",
+           "BuleltSimulationEnv",
            "ParseBulletArgs", "GetSimulationParser",
            "ParseGazeboArgs",
            "GetTaskDefinition",

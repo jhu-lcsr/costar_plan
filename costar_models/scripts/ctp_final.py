@@ -65,6 +65,7 @@ def main(args):
         err1_sum = 0.
         err2_sum = 0.
         v_sum = 0.
+        osum = 0.
         ii = 0
         for filename in dataset.test:
             print(filename)
@@ -80,10 +81,9 @@ def main(args):
                 prev_option = np.array([oin[i]])
                 h = model.encode(xi)
                 h0 = model.encode(x0)
-                #p_a, done1 = model.pnext(h0, h, prev_option)
-                #v2 = model.value(h0, h)
                 h_goal = model.transform(h0, h, np.array([o1[i]]))
                 h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
+                p = model.pnext(h0, h_goal, np.array([o1[i]]))[0]
                 xg = model.decode(h_goal)
                 xg2 = model.decode(h_goal2)
                 if show:
@@ -100,13 +100,19 @@ def main(args):
                     correct_g2 += 1
                 err1 = np.mean(np.abs((xg[0] - I_target[i])))
                 err2 = np.mean(np.abs((xg2[0] - I_target2[i])))
-                v = model.value(h0, h_goal2)
+                v = model.value(h_goal2)
                 if v[0] > 0.5 and value[i] > 0.5:
                    vacc = 1.
                 elif v[0] < 0.5 and value[i] < 0.5:
                    vacc = 1.
                 else:
                    vacc = 0. 
+                if p[0,o2[i]] > 0.1:
+                   osum += 1.
+                else:
+                   #print(GetOrderedList(p[0]))
+                   #print(p[0,o2[i]], o2[i])
+                   pass
                 err1_sum += err1
                 err2_sum += err2
                 total += 1
@@ -118,6 +124,7 @@ def main(args):
                       res1[0], res2[0],
                       #"errs =", err1, err2,
                       "means =", mean1, mean2,
+                      "next =", osum, (osum/total),
                       "value =", v, value[i], "avg =", (v_sum/total))
 
     else:

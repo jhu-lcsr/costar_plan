@@ -7,8 +7,6 @@ import matplotlib as mpl
 
 import numpy as np
 import matplotlib.pyplot as plt
-#import imageio
-#import moviepy.editor as mpy
 
 from costar_models import *
 from costar_models.planner import GetOrderedList, PrintTopQ
@@ -68,18 +66,6 @@ def main(args):
     err2_sum = 0.
     v_sum = 0.
     ii = 0
-    imgs = []
-    model_features = model.features
-    if model_features is None:
-        model_features = "def"
-    if model_features in ["husky", "multi", "def"]:
-        ht = 64
-        w = 64
-        imgpos = [(30, 3), (2, 66), (66,66)]
-    elif model_features == "jigsaws":
-        ht = 96
-        w = 128
-        imgpos = [(70,3), (4,130), (102,130)]
     for filename in dataset.test:
         print(filename)
         data = dataset.loadFile(filename)
@@ -87,7 +73,6 @@ def main(args):
         [I0, I, o1, o2, oin] = features
         length = I0.shape[0]
         [I_target, I_target2] = targets[:2]
-        img = np.zeros((130,130,3))
         for i in range(length):
             ii += 1
             xi = np.expand_dims(I[i],axis=0)
@@ -101,7 +86,7 @@ def main(args):
             h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
             xg = model.decode(h_goal)
             xg2 = model.decode(h_goal2)
-            if False:
+            if show:
                 plt.subplot(1,4,1); plt.imshow(x0[0])
                 plt.subplot(1,4,2); plt.imshow(xi[0])
                 plt.subplot(1,4,3); plt.imshow(xg[0])
@@ -109,29 +94,22 @@ def main(args):
                 plt.show()
             err1 = np.mean(np.abs((xg[0] - I_target[i])))
             err2 = np.mean(np.abs((xg2[0] - I_target2[i])))
-            yimg, ximg = imgpos[0]
-            img[yimg:(yimg+ht),ximg:(ximg+w),:] = xi[0]
-            yimg, ximg = imgpos[1]
-            img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg[0]
-            yimg, ximg = imgpos[2]
-            img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg2[0]
-            imgs.append(img)
+            #v = model.value(h0, h_goal2)
+            #if v[0] > 0.5 and value[i] > 0.5:
+            #    vacc = 1.
+            #elif v[0] < 0.5 and value[i] < 0.5:
+            #    vacc = 1.
+            #else:
+            #    vacc = 0.
             err1_sum += err1
             err2_sum += err2
             total += 1.
+            #v_sum += vacc
             mean1 = err1_sum / total
             mean2 = err2_sum / total
             print( o1[i], o2[i],
                     "means =", mean1, mean2,
                     "avg =", v_sum/total )
-            fig = plt.figure()
-            plt.imshow(img)
-            fig.savefig("movie_%s/%05d.jpg"%(model_features,ii))
-        break
-    #print(len(imgs))
-    #imageio.mimsave('movie.gif', imgs, duration=0.04)
-    #clip = mpy.ImageSequenceClip(imgs, fps=30)
-    #clip.write_gif('movie.gif')
 
 
 if __name__ == '__main__':
