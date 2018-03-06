@@ -343,8 +343,11 @@ class AbstractAgentBasedModel(object):
 
             #print("Collected ", n_samples, " samples")
             idx = np.random.randint(n_samples,size=(self.batch_size,))
-            yield ([f[idx] for f in features],
-                   [t[idx] for t in targets])
+            features, targets = ([f[idx] for f in features],
+                                 [t[idx] for t in targets])
+            for f in features:
+                print(f)
+            yield features, targets
 
     def save(self):
         '''

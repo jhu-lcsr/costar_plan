@@ -30,12 +30,10 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
                 load_jpeg = s.lower() == "jpeg"
             else:
                 load_jpeg = False
+            self.load_jpeg = load_jpeg
             for k, v in f.items():
                 if k == "image_type":
                     continue
-                if load_jpeg and k in ["image", "goal_image"]:
-                    data[k] = ConvertJpegListToNumpy(v)
-                else:
-                    data[k] = np.array(v)        
+                data[k] = np.array(v)        
         return data
 
