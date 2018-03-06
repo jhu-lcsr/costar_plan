@@ -17,7 +17,7 @@ def GetJpeg(img, tmp_filename=".tmp.jpg"):
     '''
     Save a numpy array as a Jpeg, then get it out as a binary blob
     '''
-    im = Image.fromarray(np.uint8(img*255))
+    im = Image.fromarray(np.uint8(img))
     output = io.BytesIO()
     im.save(output, format="JPEG")
     return output.getvalue()
@@ -25,4 +25,4 @@ def GetJpeg(img, tmp_filename=".tmp.jpg"):
 def JpegToNumpy(jpeg):
     stream = io.BytesIO(jpeg)
     im = Image.open(stream)
-    return np.asarray(im, dtype=np.float64) #/ 255.
+    return np.asarray(im, dtype=np.uint8)
