@@ -13,6 +13,7 @@ import keras.backend as K
 import keras.optimizers as optimizers
 
 from datasets.image import *
+from .plotting import *
 
 class AbstractAgentBasedModel(object):
     '''
@@ -20,6 +21,9 @@ class AbstractAgentBasedModel(object):
     possibly the null agent (which would just load a dataset). The Agent class
     will also provide the model with a way to collect data or whatever.
     '''
+
+    def scale(self, img):
+        return img / 255.
 
     def makeName(self, prefix, submodel=None, reqs_dir=False):
         dir = self.model_directory
@@ -354,16 +358,11 @@ class AbstractAgentBasedModel(object):
                 for i, f in enumerate(features):
                     if str(f.dtype)[:2] == "|S":
                         f = ConvertJpegListToNumpy(np.squeeze(f))
-                        print("converted", type(f), f.shape, f.dtype)
-                        print(f[0], f[0].dtype)
-                        plt.figure()
-                        plt.subplot(1,1,1)
-                        #plt.imshow(f[0])
-                        plt.show()
-                        features[i] = f
+                        #print("converted", type(f), f.shape, f.dtype)
+                        features[i] = self.scale(f)
                 for i, f in enumerate(targets):
                     if str(f.dtype)[:2] == "|S":
-                        targets[i] = ConvertJpegListToNumpy(np.squeeze(f))
+                        targets[i] = self.scale(ConvertJpegListToNumpy(np.squeeze(f)))
                 
             yield features, targets
 
