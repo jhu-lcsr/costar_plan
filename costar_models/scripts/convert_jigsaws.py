@@ -53,7 +53,7 @@ def main():
 
     if not os.path.exists(args.out_dir):
         os.makedirs(args.out_dir)
-    
+
     trans_dir = os.path.join(args.base_dir, "transcriptions")
     filenames = os.listdir(trans_dir)
 
@@ -100,7 +100,7 @@ def main():
         data = {}
         data["image"] = []
         data["label"] = []
-        data["goal_image"] = []
+        data["goal_idx"] = []
         data["goal_label"] = []
         data["prev_label"] = []
         frame_nums = []
@@ -125,6 +125,7 @@ def main():
 
             return False, False, None, None, None
 
+        included_frame_idx = 0
         for i, frame in enumerate(frames):
             frame_num = i + 1
 
@@ -164,27 +165,27 @@ def main():
 
             # save goal_image
             if goal_frame:
-                goal_images.append((frame_num, jpeg))
+                goal_images.append((frame_num, included_frame_idx))
 
                 #if gesture == 8:
                 #    print("Gesture =", gesture, "Frame num =", frame_num)
                 #    plt.imshow(image)
                 #    plt.show()
 
+            included_frame_idx += 1
+
         # Helper function: look for goals that might work
         # This one will take num and search for entries in the array of goals
         # where those entries occur after this one
-        def lookup(num, arr):
-            for frame_num, frame in arr:
+        def lookup(num):
+            for (frame_num, frame_idx) in goal_images:
                 if frame_num > num:
-                    return frame
-            return frame
-            
+                    break
+            return frame_idx
+
         # Add goal images
         for i in frame_nums:
-            frame = lookup(i, goal_images)
-            #TODO: re-enable this
-            data["goal_image"].append(frame)
+            data["goal_idx"].append(lookup(i))
 
         for k, v in data.items():
             data[k] = np.array(v)
@@ -203,7 +204,7 @@ def write(directory, data, i, r):
     for key, value in data.items():
         f.create_dataset(key, data=value)
     dt = h5py.special_dtype(vlen=bytes)
-    f.create_dataset("image_type", data=["jpeg"]) 
+    f.create_dataset("image_type", data=["jpeg"])
     f.close()
 
 if __name__ == "__main__":
