@@ -18,6 +18,7 @@ from ctp_integration import MakeStackTask
 from ctp_integration.observer import IdentityObserver, Observer
 from ctp_integration.collector import DataCollector
 from ctp_integration.util import GetDetectObjectsService
+from ctp_integration.stack import *
 
 def getArgs():
     '''
@@ -136,19 +137,29 @@ def main():
                 camera_frame="camera_link",
                 tf_listener=tf_buffer)
 
+    stack_task = GetStackManager()
+    rate = rospy.Rate(args.rate)
     for i in range(args.execute):
         print("Executing trial %d..."%(i))
-        task, world = observe()
-        names, options = task.sampleSequence()
-        plan = OptionsExecutionManager(options)
+        _, world = observe()
+        # NOTE: not using CTP task execution framework right now
+        # It's just overkill
+        #names, options = task.sampleSequence()
+        #plan = OptionsExecutionManager(options)
 
-        rate = rospy.Rate(args.rate)
+        # Reset the task manager
+        stack_task.reset()
+
         # Update the plan and the collector in synchrony.
         while not rospy.is_shutdown():
             # Note: this will be "dummied out" for most of 
-            control = plan.apply(world)
-            ok = collector.update()
+            done = stack_task.tick()
+            if not collector.update():
+                raise RuntimeError('could not handle data collection')
             rate.sleep()
+
+            if done:
+                break
 
         if collector is not None:
             collector.save(i, 1.)

@@ -4,11 +4,11 @@ import PyKDL as kdl
 import rospy
 import tf_conversions.posemath as pm
 
-from costar_robot_msgs.srv import SmartMove
 from geometry_msgs.msg import Pose
-
+from costar_robot_msgs.srv import SmartMove
 from costar_task_plan.abstract.task import *
 
+from .stack_manager import *
 
 def GetPoses():
     '''
@@ -86,7 +86,7 @@ def GetStackManager():
     for color in ["red", "blue", "yellow", "green"]:
         name = "grab_%s"%color
         req = _makeSmartGraspRequest(color)
-        sm.addRequest(name, "/costar/SmartGrasp")
+        sm.addRequest(None, name, "/costar/SmartGrasp", req)
 
 def _makeSmartGraspRequest(color):
     '''
