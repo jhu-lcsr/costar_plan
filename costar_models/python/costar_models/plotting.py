@@ -13,16 +13,3 @@ def Show(img):
 def Title(msg):
     plt.title(msg, fontsize=16)
 
-def GetJpeg(img, tmp_filename=".tmp.jpg"):
-    '''
-    Save a numpy array as a Jpeg, then get it out as a binary blob
-    '''
-    im = Image.fromarray(np.uint8(img))
-    output = io.BytesIO()
-    im.save(output, format="JPEG")
-    return output.getvalue()
-
-def JpegToNumpy(jpeg):
-    stream = io.BytesIO(jpeg)
-    im = Image.open(stream)
-    return np.asarray(im, dtype=np.uint8)

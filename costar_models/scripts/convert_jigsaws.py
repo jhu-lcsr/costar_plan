@@ -12,7 +12,7 @@ import os
 import sys
 import h5py
 
-from costar_models.plotting import GetJpeg, JpegToNumpy
+from costar_models.datasets.image import GetJpeg, JpegToNumpy
 
 def getArgs():
     '''
@@ -146,14 +146,15 @@ def main():
             frame_nums.append(frame_num)
             jpeg = GetJpeg(image)
             img = JpegToNumpy(jpeg)
-            #plt.figure()
-            #plt.subplot(1,3,1)
-            #plt.imshow(image)
-            #plt.subplot(1,3,2)
-            #plt.imshow(img)
-            #plt.subplot(1,3,3)
-            #plt.imshow(img/255.)
-            #plt.show()
+            if False:
+                plt.figure()
+                plt.subplot(1,3,1)
+                plt.imshow(image)
+                plt.subplot(1,3,2)
+                plt.imshow(img)
+                plt.subplot(1,3,3)
+                plt.imshow(img/255.)
+                plt.show()
             data["image"].append(jpeg)
             data["label"].append(gesture)
             data["goal_label"].append(next_gesture)
@@ -196,12 +197,13 @@ def write(directory, data, i, r):
     '''
     status = "success" if r > 0. else "failure"
     length = data['label'].shape[0]
-    data['image_type'] = "jpeg"
     filename = "example%06d.%s.h5f"%(i, status)
     filename = os.path.join(directory, filename)
     f = h5py.File(filename, 'w')
     for key, value in data.items():
         f.create_dataset(key, data=value)
+    dt = h5py.special_dtype(vlen=bytes)
+    f.create_dataset("image_type", data=["jpeg"]) 
     f.close()
 
 if __name__ == "__main__":

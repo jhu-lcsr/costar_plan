@@ -5,11 +5,15 @@ Chris Paxton
 (c) 2017 Johns Hopkins University
 See license for details
 '''
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 
 import keras.backend as K
 import keras.optimizers as optimizers
+
+from datasets.image import *
+from .plotting import *
 
 class AbstractAgentBasedModel(object):
     '''
@@ -17,6 +21,9 @@ class AbstractAgentBasedModel(object):
     possibly the null agent (which would just load a dataset). The Agent class
     will also provide the model with a way to collect data or whatever.
     '''
+
+    def scale(self, img):
+        return img / 255.
 
     def makeName(self, prefix, submodel=None, reqs_dir=False):
         dir = self.model_directory
@@ -157,6 +164,7 @@ class AbstractAgentBasedModel(object):
         self.save_model = save_model
         self.hidden_size = hidden_size
         self.option_num = option_num
+        self.load_jpeg = False
 
         if self.noise_dim < 1:
             self.use_noise = False
@@ -343,8 +351,20 @@ class AbstractAgentBasedModel(object):
 
             #print("Collected ", n_samples, " samples")
             idx = np.random.randint(n_samples,size=(self.batch_size,))
-            yield ([f[idx] for f in features],
-                   [t[idx] for t in targets])
+            features, targets = ([f[idx] for f in features],
+                                 [t[idx] for t in targets])
+
+            if self.load_jpeg:
+                for i, f in enumerate(features):
+                    if str(f.dtype)[:2] == "|S":
+                        f = ConvertJpegListToNumpy(np.squeeze(f))
+                        #print("converted", type(f), f.shape, f.dtype)
+                        features[i] = self.scale(f)
+                for i, f in enumerate(targets):
+                    if str(f.dtype)[:2] == "|S":
+                        targets[i] = self.scale(ConvertJpegListToNumpy(np.squeeze(f)))
+                
+            yield features, targets
 
     def save(self):
         '''
