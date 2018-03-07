@@ -83,10 +83,12 @@ def _makeSmartPlaceRequest(poses, name):
 
 def GetStackManager():
     sm = StackManager()
+    grasp = GetSmartGraspService()
     for color in ["red", "blue", "yellow", "green"]:
         name = "grab_%s"%color
         req = _makeSmartGraspRequest(color)
-        sm.addRequest(None, name, "/costar/SmartGrasp", req)
+        sm.addRequest(None, name, grasp, req)
+    return sm
 
 def _makeSmartGraspRequest(color):
     '''

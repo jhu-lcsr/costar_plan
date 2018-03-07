@@ -1,16 +1,19 @@
+
+import numpy as np
+
 from .util import *
 from .service_caller import ServiceCaller
 
-class StackManager(ServiceCaller):
+class StackManager(object):
     '''
     This class creates and holds the different services we need to call to
     create the stacking task and execute it.
     '''
     objs = ["red_cube", "green_cube", "blue_cube", "yellow_cube"]
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        self.service = ServiceCaller(*args, **kwargs)
         self.detect = GetDetectObjectsService()
-        self.grasp = GetSmartGraspService()
         self.place = GetSmartPlaceService()
         self.reset()
         self.reqs = {}
@@ -30,13 +33,22 @@ class StackManager(ServiceCaller):
             self.children[parent].append(name)
 
     def tick(self):
-        if self.running:
+        if self.service.running:
             self.done = False
         elif self.current in self.children:
             # This one has a child to execute
             self.done = False
         else:
             self.done = True
+
         print self.children
         print self.children[self.current]
+
+        if not self.done:
+            children = self.children[self.current]
+            idx = np.random.randint(self.children))
+            next_action = self.children[idx]
+            srv, req = self.reqs[next_action]
+            print(srv, req)
+            self.service(srv, req)
 

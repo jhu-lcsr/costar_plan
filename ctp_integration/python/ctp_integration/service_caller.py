@@ -5,14 +5,20 @@ class ServiceCaller(object):
     '''
     Simple helper class built around calling a ROS service
     '''
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.thread = None
         self.result = None
-        self.proxy = proxy
+        self.proxy = None
         self.req = None
         self.running = False
 
     def _service_call(self):
+        if self.proxy is None:
+            raise RuntimeError('no proxy specified')
+        elif self.req is None:
+            raise RuntimeError('no request specified')
+        print("RUNNING:", self.proxy, self.req)
+        asdf
         self.result = self.proxy(self.req)
 
     def __call__(self, proxy, req):
@@ -22,6 +28,9 @@ class ServiceCaller(object):
             self.proxy = proxy
             self.req = req
             self.thread = Thread(target=self._service_call)
+
+    def call(self, *args, **kwargs):
+        self(*args, **kwargs)
 
     def update(self):
         if self.thread is None:
