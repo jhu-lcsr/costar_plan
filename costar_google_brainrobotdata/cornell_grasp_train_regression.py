@@ -34,17 +34,36 @@ def main(_):
         #                           '2018-03-01-15-12-20_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
         #                           '2018-03-01-15-12-20_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
 
-        # Just try out NasNet directly
-        FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/nasnet_large.json')
-    FLAGS.epochs = 60
-    FLAGS.fine_tuning_epochs = 5
+        # Just try out NasNet directly without hyperopt (it didn't work well on 2017-03-04)
+        # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/nasnet_large.json')
+
+        # decent, but didn't run kfold 2018-03-05, + 2018-03-07 trying with mae
+        # FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
+        #                           '2018-03-03-16-33-06_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
+        #                           '2018-03-03-16-33-06_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+
+        # Current best performance with mae on val + test 2018-03-07, haven't tried on kfold yet 2018-03-06
+        FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
+                                  '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
+                                  '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+
+        # Best first epoch on hyperopt run 2018-03-06:
+        # FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
+        #                           '2018-03-06-00-20-24_-vgg19_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
+        #                           '2018-03-06-00-20-24_-vgg19_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+    FLAGS.epochs = 80
+    FLAGS.fine_tuning_epochs = 40
     print('Regression Training on Jaccard Distance is about to begin. '
-          'It overrides some command line parameters so to change them '
+          'It overrides some command line parameters including '
+          'training on mae loss so to change them '
           'you will need to modify cornell_grasp_train_regression.py directly.')
 
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
         feature_combo_name=feature_combo)
+
+    # TODO: remove loss if it doesn't work or make me the default in the other files if it works really well
+    hyperparams['loss'] = 'mae'
 
     if 'k_fold' in FLAGS.pipeline_stage:
         cornell_grasp_train.train_k_fold(

@@ -125,7 +125,7 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_integer(
     'num_validation',
-    1,
+    2,
     'Number of tfrecord files for validation.'
     'must be less than the number of tfrecord files, aka splits.'
     'This number also automatically determines the number of folds '
@@ -133,7 +133,7 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_integer(
     'num_test',
-    1,
+    0,
     'num of fold used for the test dataset'
     'must be less than the number of tfrecord files, aka splits.'
     'This must be 0 when the pipeline_stage flag includes k_fold'
