@@ -29,6 +29,7 @@ class ConditionalImageJigsaws(ConditionalImage):
         super(ConditionalImageJigsaws, self).__init__(*args, **kwargs)
         self.num_options = SuturingNumOptions()
         self.PredictorCb = ImageWithFirstCb
+        self.load_jpeg = True
 
     def _makeModel(self, image, *args, **kwargs):
 
@@ -106,13 +107,12 @@ class ConditionalImageJigsaws(ConditionalImage):
     def _getData(self, image, label, goal_image, goal_label,
             prev_label, *args, **kwargs):
 
-        image = np.array(image) / 255.
-        goal_image = np.array(goal_image) / 255.
-
+        image = image
+        goal_image = goal_image
         goal_image2, label2 = GetNextGoal(goal_image, label)
 
         # Extend image_0 to full length of sequence
-        image0 = image[0,:,:,:]
+        image0 = image[0]
         length = image.shape[0]
         image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
 
