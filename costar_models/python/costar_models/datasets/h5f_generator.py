@@ -5,6 +5,7 @@ import numpy as np
 import os
 
 from .npy_generator import NpzGeneratorDataset
+from .image import *
 
 class H5fGeneratorDataset(NpzGeneratorDataset):
     '''
@@ -24,7 +25,15 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
         '''
         data = {}
         with h5f.File(filename, 'r') as f:
+            if "image" in f:
+                s = f['image_type'][0]
+                load_jpeg = s.lower() == "jpeg"
+            else:
+                load_jpeg = False
+            self.load_jpeg = load_jpeg
             for k, v in f.items():
+                if k == "image_type":
+                    continue
                 data[k] = np.array(v)        
         return data
-    
+
