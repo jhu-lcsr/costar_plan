@@ -95,14 +95,16 @@ class DataCollector(object):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
             self.rgb_img = np.asarray(cv_image)
+            #print(self.rgb_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
 
     def _depthCb(self, msg):
         try:
-            cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+            cv_image = self._bridge.imgmsg_to_cv2(msg)
             self.depth_img = np.asarray(cv_image)
+            #print (self.depth_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
@@ -114,6 +116,7 @@ class DataCollector(object):
         self.data["pose"] = []
         self.data["camera"] = []
         self.data["image"] = []
+        #self.data["depth"] = []
 
     def _jointsCb(self, msg):
         self.q = msg.position
@@ -167,7 +170,7 @@ class DataCollector(object):
         self.data["pose"].append(ee_xyz + ee_quat)
         self.data["camera"].append(c_xyz + c_quat)
         self.data["image"].append(GetJpeg(self.rgb_img))
-        self.data["depth"].append(GetJpeg(self.depth_img))
+        #self.data["depth"].append(GetJpeg(self.depth_img))
 
         return True
 

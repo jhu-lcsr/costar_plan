@@ -142,12 +142,12 @@ def main():
         names, options = task.sampleSequence()
         plan = OptionsExecutionManager(options)
 
-        rate = rospy.Rate(args.tick)
+        rate = rospy.Rate(args.rate)
         # Update the plan and the collector in synchrony.
         while not rospy.is_shutdown():
             # Note: this will be "dummied out" for most of 
             control = plan.apply(world)
-            ok = collector.tick()
+            ok = collector.update()
             rate.sleep()
 
         if collector is not None:
