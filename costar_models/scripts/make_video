@@ -7,8 +7,8 @@ import matplotlib as mpl
 
 import numpy as np
 import matplotlib.pyplot as plt
-import imageio
-import moviepy.editor as mpy
+#import imageio
+#import moviepy.editor as mpy
 
 from costar_models import *
 from costar_models.planner import GetOrderedList, PrintTopQ
@@ -69,16 +69,26 @@ def main(args):
     v_sum = 0.
     ii = 0
     imgs = []
-    ht = 96
-    w = 128
-    for filename in dataset.test:
-        print(filename)
+    model_features = model.features
+    if model_features is None:
+        model_features = "def"
+    if model_features in ["husky", "multi", "def"]:
+        ht = 64
+        w = 64
+        imgpos = [(30, 0), (0, 66), (66,66)]
+        imgw, imgh = 130, 130
+    elif model_features == "jigsaws":
+        ht = 96
+        w = 128
+        imgpos = [(70,3), (4,130), (102,130)]
+    for fnum, filename in enumerate(dataset.test):
+        print(fnum, filename)
         data = dataset.loadFile(filename)
         features, targets = model._getData(**data)
         [I0, I, o1, o2, oin] = features
         length = I0.shape[0]
         [I_target, I_target2] = targets[:2]
-        img = np.zeros((200,260,3))
+        img = np.zeros((imgw,imgh,3))
         for i in range(length):
             ii += 1
             xi = np.expand_dims(I[i],axis=0)
@@ -92,7 +102,7 @@ def main(args):
             h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
             xg = model.decode(h_goal)
             xg2 = model.decode(h_goal2)
-            if show:
+            if False:
                 plt.subplot(1,4,1); plt.imshow(x0[0])
                 plt.subplot(1,4,2); plt.imshow(xi[0])
                 plt.subplot(1,4,3); plt.imshow(xg[0])
@@ -100,38 +110,35 @@ def main(args):
                 plt.show()
             err1 = np.mean(np.abs((xg[0] - I_target[i])))
             err2 = np.mean(np.abs((xg2[0] - I_target2[i])))
-            yimg, ximg = 70, 3
+            yimg, ximg = imgpos[0]
             img[yimg:(yimg+ht),ximg:(ximg+w),:] = xi[0]
-            yimg, ximg = 4, 130
+            yimg, ximg = imgpos[1]
             img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg[0]
-            yimg, ximg = 102, 130
+            yimg, ximg = imgpos[2]
             img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg2[0]
-            #plt.imshow(img)
-            #plt.show()
             imgs.append(img)
-            #v = model.value(h0, h_goal2)
-            #if v[0] > 0.5 and value[i] > 0.5:
-            #    vacc = 1.
-            #elif v[0] < 0.5 and value[i] < 0.5:
-            #    vacc = 1.
-            #else:
-            #    vacc = 0.
             err1_sum += err1
             err2_sum += err2
             total += 1.
-            #v_sum += vacc
             mean1 = err1_sum / total
             mean2 = err2_sum / total
             print( o1[i], o2[i],
                     "means =", mean1, mean2,
                     "avg =", v_sum/total )
-            if ii > 100:
-                break
-        break
-    print(len(imgs))
+            fig = plt.figure(frameon=False)
+            fig.set_size_inches(3,3)
+            ax = plt.Axes(fig, [0., 0., 1., 1.])
+            ax.set_axis_off()
+            fig.add_axes(ax)
+            ax.imshow(img)
+            fig.savefig("movie_%s/%05d.jpg"%(model_features,ii))
+            plt.close(fig)
+        if fnum >= 9:
+             break
+    #print(len(imgs))
     #imageio.mimsave('movie.gif', imgs, duration=0.04)
-    clip = mpy.ImageSequenceClip(imgs, fps=30)
-    clip.write_gif('movie.gif')
+    #clip = mpy.ImageSequenceClip(imgs, fps=30)
+    #clip.write_gif('movie.gif')
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@ import os
 import sys
 import h5py
 
+from costar_models.plotting import GetJpeg, JpegToNumpy
 
 def getArgs():
     '''
@@ -56,8 +57,7 @@ def main():
     trans_dir = os.path.join(args.base_dir, "transcriptions")
     filenames = os.listdir(trans_dir)
 
-    file_num = 0
-    for _, filename in enumerate(filenames):
+    for file_num, filename in enumerate(filenames):
 
         print(filename)
 
@@ -144,7 +144,17 @@ def main():
                     continue
 
             frame_nums.append(frame_num)
-            data["image"].append(image)
+            jpeg = GetJpeg(image)
+            img = JpegToNumpy(jpeg)
+            #plt.figure()
+            #plt.subplot(1,3,1)
+            #plt.imshow(image)
+            #plt.subplot(1,3,2)
+            #plt.imshow(img)
+            #plt.subplot(1,3,3)
+            #plt.imshow(img/255.)
+            #plt.show()
+            data["image"].append(jpeg)
             data["label"].append(gesture)
             data["goal_label"].append(next_gesture)
             data["prev_label"].append(last_gesture)
@@ -153,7 +163,7 @@ def main():
 
             # save goal_image
             if goal_frame:
-                goal_images.append((frame_num, image))
+                goal_images.append((frame_num, jpeg))
 
                 #if gesture == 8:
                 #    print("Gesture =", gesture, "Frame num =", frame_num)
@@ -172,36 +182,27 @@ def main():
         # Add goal images
         for i in frame_nums:
             frame = lookup(i, goal_images)
+            #TODO: re-enable this
             data["goal_image"].append(frame)
 
         for k, v in data.items():
             data[k] = np.array(v)
 
-        file_num = write(args.out_dir, data, file_num, 1)
+        write(args.out_dir, data, file_num, 1)
 
-def write(directory, data, i0, r):
+def write(directory, data, i, r):
     '''
     Write to disk.
     '''
     status = "success" if r > 0. else "failure"
     length = data['label'].shape[0]
-    num_files = length/1000
-    if num_files > int(num_files):
-        num_files = int(num_files) + 1
-    else:
-        num_files = int(num_files)
-    for i in range(num_files):
-        idx = i + i0
-        filename = "example%06d.%s.h5f"%(idx, status)
-        filename = os.path.join(directory, filename)
-        f = h5py.File(filename, 'w')
-        for key, value in data.items():
-            vidx0 = 1000 * i
-            vidx1 = min(1000 * (i+1), length)
-            print(i, vidx0, vidx1, i0, key)
-            f.create_dataset(key, data=value[vidx0:vidx1])
-        f.close()
-    return idx + 1
+    data['image_type'] = "jpeg"
+    filename = "example%06d.%s.h5f"%(i, status)
+    filename = os.path.join(directory, filename)
+    f = h5py.File(filename, 'w')
+    for key, value in data.items():
+        f.create_dataset(key, data=value)
+    f.close()
 
 if __name__ == "__main__":
     main()
