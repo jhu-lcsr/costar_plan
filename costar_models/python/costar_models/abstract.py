@@ -5,11 +5,14 @@ Chris Paxton
 (c) 2017 Johns Hopkins University
 See license for details
 '''
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 
 import keras.backend as K
 import keras.optimizers as optimizers
+
+from datasets.image import *
 
 class AbstractAgentBasedModel(object):
     '''
@@ -157,6 +160,7 @@ class AbstractAgentBasedModel(object):
         self.save_model = save_model
         self.hidden_size = hidden_size
         self.option_num = option_num
+        self.load_jpeg = False
 
         if self.noise_dim < 1:
             self.use_noise = False
@@ -345,8 +349,22 @@ class AbstractAgentBasedModel(object):
             idx = np.random.randint(n_samples,size=(self.batch_size,))
             features, targets = ([f[idx] for f in features],
                                  [t[idx] for t in targets])
-            for f in features:
-                print(f)
+
+            if self.load_jpeg:
+                for i, f in enumerate(features):
+                    if str(f.dtype)[:2] == "|S":
+                        f = ConvertJpegListToNumpy(np.squeeze(f))
+                        print("converted", type(f), f.shape, f.dtype)
+                        print(f[0], f[0].dtype)
+                        plt.figure()
+                        plt.subplot(1,1,1)
+                        #plt.imshow(f[0])
+                        plt.show()
+                        features[i] = f
+                for i, f in enumerate(targets):
+                    if str(f.dtype)[:2] == "|S":
+                        targets[i] = ConvertJpegListToNumpy(np.squeeze(f))
+                
             yield features, targets
 
     def save(self):
