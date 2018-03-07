@@ -100,7 +100,12 @@ class DataCollector(object):
         self.rgb_img = np.asarray(cv_image)
 
     def _depthCb(self, msg):
-        self.depth_img = msg
+        try:
+            cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+        except CvBridgeError as e:
+            rospy.logwarn(str(e))
+
+        self.rgb_img = np.asarray(cv_image)
 
     def _resetData(self):
         self.data = {}
@@ -161,7 +166,8 @@ class DataCollector(object):
         self.data["dq"].append(np.copy(self.dq))
         self.data["pose"].append(ee_xyz + ee_quat)
         self.data["camera"].append(c_xyz + c_quat)
-        self.data["image"].append(np.copy(self.rgb_img))
+        self.data["image"].append(GetJpeg(self.rgb_img))
+        self.data["depth"].append(GetJpeg(self.depth_img))
 
         return True
 

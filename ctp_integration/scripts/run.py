@@ -83,7 +83,7 @@ def fakeTaskArgs():
 def main():
 
     # Create node and read options from command line
-    rospy.init_node("ctp_integration_runner")
+    rospy.init_node("ctp_data_collection_runner")
     args = getArgs()
 
     # Default joints for the motion planner when it needs to go to the home
@@ -99,6 +99,8 @@ def main():
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
     tf_buffer = tf2.Buffer()
     tf_listener = tf2.TransformListener(tf_buffer)
+    
+    rospy.loginfo("Node started, waiting for transform data...")
     rospy.sleep(0.5) # wait to cache incoming transforms
 
     if args.fake:
