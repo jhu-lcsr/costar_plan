@@ -94,18 +94,18 @@ class DataCollector(object):
     def _rgbCb(self, msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+            self.rgb_img = np.asarray(cv_image)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
-        self.rgb_img = np.asarray(cv_image)
 
     def _depthCb(self, msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+            self.depth_img = np.asarray(cv_image)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
-        self.rgb_img = np.asarray(cv_image)
 
     def _resetData(self):
         self.data = {}

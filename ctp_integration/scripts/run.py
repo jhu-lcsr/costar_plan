@@ -95,8 +95,11 @@ def main():
         q0 = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
 
     # Create the task model, world, and other tools
+    rospy.loginfo("Making stack task...")
     task = MakeStackTask()
+    rospy.loginfo("Making world...")
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
+    rospy.loginfo("Aggregating TF data...")
     tf_buffer = tf2.Buffer()
     tf_listener = tf2.TransformListener(tf_buffer)
     

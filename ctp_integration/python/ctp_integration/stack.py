@@ -105,15 +105,15 @@ def MakeStackTask():
     Create a version of the robot task for stacking two blocks.
     '''
 
-    task = Task()
-
     # Make services
+    rospy.loginfo("Waiting for SmartMove services...")
     rospy.wait_for_service("/costar/SmartPlace")
     rospy.wait_for_service("/costar/SmartGrasp")
     place = rospy.ServiceProxy("/costar/SmartPlace", SmartMove)
     grasp = rospy.ServiceProxy("/costar/SmartGrasp", SmartMove)
 
     # Create sub-tasks for left and right
+    rospy.loginfo("Creating subtasks...")
     pickup_left = _makePickupLeft()
     pickup_right = _makePickupRight()
     place_left = _makePlaceLeft()
@@ -121,6 +121,7 @@ def MakeStackTask():
 
     # Create the task: pick up any one block and put it down in a legal
     # position somewhere on the other side of the bin.
+    rospy.loginfo("Creating task...")
     task = Task()
     task.add("pickup_left", None, pickup_left)
     task.add("pickup_right", None, pickup_right)
