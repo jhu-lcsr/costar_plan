@@ -41,14 +41,13 @@ class StackManager(object):
         else:
             self.done = True
 
-        print self.children
-        print self.children[self.current]
-
         if not self.done:
             children = self.children[self.current]
-            idx = np.random.randint(self.children))
-            next_action = self.children[idx]
+            idx = np.random.randint(len(children))
+            next_action = children[idx]
             srv, req = self.reqs[next_action]
             print(srv, req)
-            self.service(srv, req)
+            if not self.service(srv, req):
+                raise RuntimeError('could not start service')
+            self.current = next_action
 

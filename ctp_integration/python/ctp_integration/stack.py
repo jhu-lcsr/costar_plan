@@ -5,7 +5,7 @@ import rospy
 import tf_conversions.posemath as pm
 
 from geometry_msgs.msg import Pose
-from costar_robot_msgs.srv import SmartMove
+from costar_robot_msgs.srv import SmartMove, SmartMoveRequest
 from costar_task_plan.abstract.task import *
 
 from .stack_manager import *
@@ -94,7 +94,7 @@ def _makeSmartGraspRequest(color):
     '''
     Helper function to create a grasp request via smartmove.
     '''
-    req = SmartMove()
+    req = SmartMoveRequest()
     req.pose = pm.toMsg(GetGraspPose())
     if not color in ["red", "blue", "green", "yellow"]:
         raise RuntimeError("color %s not recognized" % color)

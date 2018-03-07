@@ -18,7 +18,6 @@ class ServiceCaller(object):
         elif self.req is None:
             raise RuntimeError('no request specified')
         print("RUNNING:", self.proxy, self.req)
-        asdf
         self.result = self.proxy(self.req)
 
     def __call__(self, proxy, req):
@@ -28,6 +27,8 @@ class ServiceCaller(object):
             self.proxy = proxy
             self.req = req
             self.thread = Thread(target=self._service_call)
+            self.thread.start()
+            return True
 
     def call(self, *args, **kwargs):
         self(*args, **kwargs)
