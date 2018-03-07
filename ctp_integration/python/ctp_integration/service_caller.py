@@ -17,7 +17,6 @@ class ServiceCaller(object):
             raise RuntimeError('no proxy specified')
         elif self.req is None:
             raise RuntimeError('no request specified')
-        print("RUNNING:", self.proxy, self.req)
         self.result = self.proxy(self.req)
 
     def __call__(self, proxy, req):

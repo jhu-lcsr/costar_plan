@@ -5,7 +5,8 @@ import rospy
 import tf_conversions.posemath as pm
 
 from geometry_msgs.msg import Pose
-from costar_robot_msgs.srv import SmartMove, SmartMoveRequest
+from costar_robot_msgs.srv import SmartMoveRequest
+from costar_robot_msgs.srv import ServoToJointStateRequest
 from costar_task_plan.abstract.task import *
 
 from .stack_manager import *
@@ -81,8 +82,8 @@ def _makeSmartPlaceRequest(poses, name):
     req.obj_class = "place"
     return req
 
-def GetStackManager():
-    sm = StackManager()
+def GetStackManager(collector):
+    sm = StackManager(collector)
     grasp = GetSmartGraspService()
     for color in ["red", "blue", "yellow", "green"]:
         name = "grab_%s"%color

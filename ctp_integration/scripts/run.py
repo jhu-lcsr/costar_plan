@@ -128,6 +128,7 @@ def main():
     if args.mode == "show":
         from costar_task_plan.tools import showTask
         showTask(task)
+        return
     elif args.mode == "collect":
         collector = DataCollector(
                 data_root="~/.costar/data",
@@ -137,7 +138,7 @@ def main():
                 camera_frame="camera_link",
                 tf_listener=tf_buffer)
 
-    stack_task = GetStackManager()
+    stack_task = GetStackManager(collector)
     rate = rospy.Rate(args.rate)
     for i in range(args.execute):
         print("Executing trial %d..."%(i))

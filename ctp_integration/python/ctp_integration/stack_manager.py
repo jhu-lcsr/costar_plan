@@ -11,7 +11,8 @@ class StackManager(object):
     '''
     objs = ["red_cube", "green_cube", "blue_cube", "yellow_cube"]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, collector=None, *args, **kwargs):
+        self.collector = collector
         self.service = ServiceCaller(*args, **kwargs)
         self.detect = GetDetectObjectsService()
         self.place = GetSmartPlaceService()
@@ -46,7 +47,6 @@ class StackManager(object):
             idx = np.random.randint(len(children))
             next_action = children[idx]
             srv, req = self.reqs[next_action]
-            print(srv, req)
             if not self.service(srv, req):
                 raise RuntimeError('could not start service')
             self.current = next_action
