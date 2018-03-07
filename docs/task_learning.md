@@ -98,6 +98,8 @@ We automatically call the `task.compile()` function to create the task model.
 
 # Creating a Data Set
 
+We use three different data sets: navigation task, pybullet stacking task, and [JIGSAWS](https://cirl.lcsr.jhu.edu/research/hmm/datasets/jigsaws_release/) suturing dataset.
+
 You can create a small data set in the normal way:
 
 ```
@@ -116,6 +118,7 @@ Some notes:
   - For learning from demonstration, the `--success_only` flag will make your life easier by preventing it from saving failed demonstrations.
   - `--task stack1` will generate a slightly more complex and more interesting task than `--task blocks`.
   - You can use the `--fast_reset` flag to quickly visualize and debug tasks, but PyBullet seems unstable over long data collection runs with this flag on.
+  - The pybullet sim was implemented in v1.2.2, and will not be stable with a different version. Unfortunately the simulation of the gripper just is not that great.
 
 ## Current Best Practice
 
@@ -127,10 +130,23 @@ rosrun costar_bullet start --robot ur5 --task stack1 --agent task -i 5000 \
   --data_file stack.npz
 ```
 
+Creating the suturing data set involves the use of the "convert_jigsaws" tool:
+```
+./costar_plan/costar_models/scripts/convert_jigsaws.py Suturing \
+    --out_dir costar_plan/suturing_data_jpg --drop_chance 0
+```
+where "Suturing" is the name of the directory copied from the downloaded JIGSAWS files.
+
 # Learning
 
 ## Models
 
+Current models of note:
+  - **Conditional Image**: predict the result of the next two high level actions
+  - **Pretrain Image Encoder**: pretraining step; learns the hidden space
+  - **Secondary**: trains value functions and other ancillary models like Q function, structure predictor, etc.
+
+Older models include:
   - **Predictor**: predict next goal, including image, arm pose, gripper state, and label.
   - **Hierarchical**: predict an encoding that can be used for the next or the goal features.
 
@@ -163,8 +179,6 @@ rosrun costar_models ctp_model_tool --data_file rpy.npz \
   --optimizer adam \
   --lr 0.001 \
   --upsampling conv_transpose \
-  --use_noise true \
-  --noise_dim 32  \
   --steps_per_epoch 500 \
   --dropout_rate 0.2 --skip_connections 1
 ```
@@ -175,7 +189,7 @@ Notes:
 
 #### Add Dropout
 
-It's also possible to add dropout to the "decoder" network, but this results in blurrier predictions and probably is not strictly necessary, especially for training the autoencoder.
+It's also possible to add dropout to the "decoder" network.
 
 To do so:
 ```
@@ -186,8 +200,6 @@ rosrun costar_models ctp_model_tool --data_file rpy.npz \
   --optimizer adam \
   --lr 0.001 \
   --upsampling conv_transpose \
-  --use_noise true \
-  --noise_dim 32  \
   --steps_per_epoch 300 \
   --dropout_rate 0.1 \
   --skip_connections 1 \
