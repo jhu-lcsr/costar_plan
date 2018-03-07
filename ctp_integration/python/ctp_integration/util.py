@@ -36,6 +36,6 @@ def GetSmartPlaceService(srv="/costar/SmartPlace"):
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, SmartMove)
 
-def GetSmartGraspService(srv="/costar/ServoToJointState"):
+def GetServoToJointStateService(srv="/costar/ServoToJointState"):
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, ServoToJointState)

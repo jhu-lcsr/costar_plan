@@ -80,6 +80,7 @@ def _makeSmartPlaceRequest(poses, name):
     req.pose = pm.toMsg(poses[name])
     req.name = name
     req.obj_class = "place"
+    req.backoff = 0.05
     return req
 
 def GetStackManager(collector):
@@ -100,6 +101,8 @@ def _makeSmartGraspRequest(color):
     if not color in ["red", "blue", "green", "yellow"]:
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
+    req.name = "grasp_%s" % req.obj_class
+    req.backoff = 0.05
 
     return req
 
