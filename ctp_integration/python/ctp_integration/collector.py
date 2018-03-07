@@ -124,7 +124,7 @@ class DataCollector(object):
         self.writer.write(self.data, seed, result)
         self._resetData()
 
-    def tick(self, action=None):
+    def update(self, action=None):
         '''
         Compute endpoint positions and update data. Should happen at some
         fixed frequency like 10 hz.

@@ -57,6 +57,10 @@ def getArgs():
                         type=int,
                         default=0,
                         help="verbosity level")
+    parser.add_argument("--rate", "-r",
+                        default=10,
+                        type=int,
+                        help="rate at which data will be collected")
 
     return parser.parse_args()
 
@@ -121,7 +125,7 @@ def main():
     elif args.mode == "collect":
         collector = DataCollector(
                 data_root="~/.costar/data",
-                rate=10,
+                rate=args.rate,
                 data_type="h5f",
                 robot_config=UR5_C_MODEL_CONFIG,
                 camera_frame="camera_link",
@@ -133,11 +137,13 @@ def main():
         names, options = task.sampleSequence()
         plan = OptionsExecutionManager(options)
 
+        rate = rospy.Rate(args.tick)
         # Update the plan and the collector in synchrony.
         while not rospy.is_shutdown():
             # Note: this will be "dummied out" for most of 
             control = plan.apply(world)
             ok = collector.tick()
+            rate.sleep()
 
         if collector is not None:
             collector.save(i, 1.)
