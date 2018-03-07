@@ -7,6 +7,7 @@ import tf_conversions.posemath as pm
 
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
+from costar_models.datasets.image import *
 
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
