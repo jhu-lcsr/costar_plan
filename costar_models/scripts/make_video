@@ -81,10 +81,12 @@ def main(args):
         ht = 96
         w = 128
         imgpos = [(70,3), (4,130), (102,130)]
+        imgw, imgh = 260, 260
     for fnum, filename in enumerate(dataset.test):
         print(fnum, filename)
         data = dataset.loadFile(filename)
         features, targets = model._getData(**data)
+        model.convert(features, targets)
         [I0, I, o1, o2, oin] = features
         length = I0.shape[0]
         [I_target, I_target2] = targets[:2]
