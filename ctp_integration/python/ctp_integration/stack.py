@@ -4,11 +4,12 @@ import PyKDL as kdl
 import rospy
 import tf_conversions.posemath as pm
 
-from costar_robot_msgs.srv import SmartMove
 from geometry_msgs.msg import Pose
-
+from costar_robot_msgs.srv import SmartMoveRequest
+from costar_robot_msgs.srv import ServoToJointStateRequest
 from costar_task_plan.abstract.task import *
 
+from .stack_manager import *
 
 def GetPoses():
     '''
@@ -56,6 +57,20 @@ def GetPoses():
              "pose4_right": pose4_right,}
     return poses
 
+def GetGraspPose():
+    # Grasp from the top, centered (roughly)
+    pose = kdl.Frame(
+            kdl.Rotation.Quaternion(1.,0.,0.,0.),
+            kdl.Vector(-0.22001116007522364, -0.02, -0.01))
+    return pose
+
+def GetTowerPoses():
+    pose1 = kdl.Frame(
+            kdl.Rotation.Quaternion(0.580, 0.415, -0.532, 0.456),
+            kdl.Vector(0.533, -0.202, 0.234))
+    
+    poses = {"tower1": pose1,}
+    return poses
 
 def _makeSmartPlaceRequest(poses, name):
     '''
@@ -65,32 +80,46 @@ def _makeSmartPlaceRequest(poses, name):
     req.pose = pm.toMsg(poses[name])
     req.name = name
     req.obj_class = "place"
+    req.backoff = 0.05
     return req
+
+def GetStackManager(collector):
+    sm = StackManager(collector)
+    grasp = GetSmartGraspService()
+    for color in ["red", "blue", "yellow", "green"]:
+        name = "grab_%s"%color
+        req = _makeSmartGraspRequest(color)
+        sm.addRequest(None, name, grasp, req)
+    return sm
 
 def _makeSmartGraspRequest(color):
     '''
     Helper function to create a grasp request via smartmove.
     '''
-    req = SmartMove()
-    req.pose = None
+    req = SmartMoveRequest()
+    req.pose = pm.toMsg(GetGraspPose())
     if not color in ["red", "blue", "green", "yellow"]:
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
+    req.name = "grasp_%s" % req.obj_class
+    req.backoff = 0.05
+
+    return req
 
 def MakeStackTask():
     '''
     Create a version of the robot task for stacking two blocks.
     '''
 
-    task = Task()
-
     # Make services
+    rospy.loginfo("Waiting for SmartMove services...")
     rospy.wait_for_service("/costar/SmartPlace")
     rospy.wait_for_service("/costar/SmartGrasp")
     place = rospy.ServiceProxy("/costar/SmartPlace", SmartMove)
     grasp = rospy.ServiceProxy("/costar/SmartGrasp", SmartMove)
 
     # Create sub-tasks for left and right
+    rospy.loginfo("Creating subtasks...")
     pickup_left = _makePickupLeft()
     pickup_right = _makePickupRight()
     place_left = _makePlaceLeft()
@@ -98,6 +127,7 @@ def MakeStackTask():
 
     # Create the task: pick up any one block and put it down in a legal
     # position somewhere on the other side of the bin.
+    rospy.loginfo("Creating task...")
     task = Task()
     task.add("pickup_left", None, pickup_left)
     task.add("pickup_right", None, pickup_right)

@@ -2,7 +2,7 @@ import numpy as np
 import io
 from PIL import Image
 
-def GetJpeg(img, tmp_filename=".tmp.jpg"):
+def GetJpeg(img):
     '''
     Save a numpy array as a Jpeg, then get it out as a binary blob
     '''
