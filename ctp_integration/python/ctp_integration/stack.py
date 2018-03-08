@@ -7,6 +7,7 @@ import tf_conversions.posemath as pm
 from geometry_msgs.msg import Pose
 from costar_robot_msgs.srv import SmartMoveRequest
 from costar_robot_msgs.srv import ServoToJointStateRequest
+from costar_robot_msgs.srv import ServoToPose
 from costar_task_plan.abstract.task import *
 
 from .stack_manager import *
@@ -76,16 +77,26 @@ def _makeSmartPlaceRequest(poses, name):
     '''
     Helper function for making the place call
     '''
-    req = SmartMove()
+    req = SmartMoveRequest()
     req.pose = pm.toMsg(poses[name])
     req.name = name
     req.obj_class = "place"
     req.backoff = 0.05
     return req
 
+def GetHome():
+    pose_home = kdl.Frame(
+            kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
+            kdl.Vector(0.174, -0.157, 0.682))
+    req = ServoToPoseRequest()
+    req.pose = pm.toMsg(pose_home)
+    move = GetPlanToPoseService()
+    return lambda: move(req)
+
 def GetStackManager(collector):
     sm = StackManager(collector)
     grasp = GetSmartGraspService()
+
     for color in ["red", "blue", "yellow", "green"]:
         name = "grab_%s"%color
         req = _makeSmartGraspRequest(color)

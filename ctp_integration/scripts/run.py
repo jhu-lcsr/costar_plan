@@ -140,7 +140,9 @@ def main():
 
     stack_task = GetStackManager(collector)
     rate = rospy.Rate(args.rate)
+    home = GetHome()
     for i in range(args.execute):
+        home()
         print("Executing trial %d..."%(i))
         _, world = observe()
         # NOTE: not using CTP task execution framework right now
