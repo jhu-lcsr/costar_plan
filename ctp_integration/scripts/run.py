@@ -18,6 +18,7 @@ from ctp_integration import MakeStackTask
 from ctp_integration.observer import IdentityObserver, Observer
 from ctp_integration.collector import DataCollector
 from ctp_integration.util import GetDetectObjectsService
+from ctp_integration.stack import *
 
 def getArgs():
     '''
@@ -57,6 +58,10 @@ def getArgs():
                         type=int,
                         default=0,
                         help="verbosity level")
+    parser.add_argument("--rate", "-r",
+                        default=10,
+                        type=int,
+                        help="rate at which data will be collected")
 
     return parser.parse_args()
 
@@ -79,7 +84,7 @@ def fakeTaskArgs():
 def main():
 
     # Create node and read options from command line
-    rospy.init_node("ctp_integration_runner")
+    rospy.init_node("ctp_data_collection_runner")
     args = getArgs()
 
     # Default joints for the motion planner when it needs to go to the home
@@ -91,10 +96,15 @@ def main():
         q0 = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
 
     # Create the task model, world, and other tools
+    rospy.loginfo("Making stack task...")
     task = MakeStackTask()
+    rospy.loginfo("Making world...")
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
+    rospy.loginfo("Aggregating TF data...")
     tf_buffer = tf2.Buffer()
     tf_listener = tf2.TransformListener(tf_buffer)
+    
+    rospy.loginfo("Node started, waiting for transform data...")
     rospy.sleep(0.5) # wait to cache incoming transforms
 
     if args.fake:
@@ -118,26 +128,39 @@ def main():
     if args.mode == "show":
         from costar_task_plan.tools import showTask
         showTask(task)
+        return
     elif args.mode == "collect":
         collector = DataCollector(
                 data_root="~/.costar/data",
-                rate=10,
+                rate=args.rate,
                 data_type="h5f",
                 robot_config=UR5_C_MODEL_CONFIG,
                 camera_frame="camera_link",
                 tf_listener=tf_buffer)
 
+    stack_task = GetStackManager(collector)
+    rate = rospy.Rate(args.rate)
     for i in range(args.execute):
         print("Executing trial %d..."%(i))
-        task, world = observe()
-        names, options = task.sampleSequence()
-        plan = OptionsExecutionManager(options)
+        _, world = observe()
+        # NOTE: not using CTP task execution framework right now
+        # It's just overkill
+        #names, options = task.sampleSequence()
+        #plan = OptionsExecutionManager(options)
+
+        # Reset the task manager
+        stack_task.reset()
 
         # Update the plan and the collector in synchrony.
         while not rospy.is_shutdown():
             # Note: this will be "dummied out" for most of 
-            control = plan.apply(world)
-            ok = collector.tick()
+            done = stack_task.tick()
+            if not collector.update():
+                raise RuntimeError('could not handle data collection')
+            rate.sleep()
+
+            if done:
+                break
 
         if collector is not None:
             collector.save(i, 1.)
