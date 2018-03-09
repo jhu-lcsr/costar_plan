@@ -7,7 +7,9 @@ import tf_conversions.posemath as pm
 from geometry_msgs.msg import Pose
 from costar_robot_msgs.srv import SmartMoveRequest
 from costar_robot_msgs.srv import ServoToJointStateRequest
-from costar_robot_msgs.srv import ServoToPose
+from costar_robot_msgs.srv import ServoToPoseRequest
+from std_srvs.srv import EmptyRequest
+from std_srvs.srv import Empty as EmptySrv
 from costar_task_plan.abstract.task import *
 
 from .stack_manager import *
@@ -89,9 +91,13 @@ def GetHome():
             kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
             kdl.Vector(0.174, -0.157, 0.682))
     req = ServoToPoseRequest()
-    req.pose = pm.toMsg(pose_home)
+    req.target = pm.toMsg(pose_home)
+    open_gripper = GetOpenGripperService()
     move = GetPlanToPoseService()
-    return lambda: move(req)
+    def home():
+        open_gripper()
+        move(req)
+    return home
 
 def GetStackManager(collector):
     sm = StackManager(collector)

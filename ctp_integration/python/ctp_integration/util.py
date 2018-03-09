@@ -41,6 +41,13 @@ def GetServoToJointStateService(srv="/costar/ServoToJointState"):
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, ServoToJointState)
 
-def GetPlanToPoseService(srv="/costar/PlanToPose"):
+def GetPlanToPoseService():
+    srv = "/costar/PlanToPose"
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, ServoToPose)
+
+def GetOpenGripperService():
+    srv = "/costar/gripper/open"
+    rospy.wait_for_service(srv)
+    return rospy.ServiceProxy(srv, EmptySrv)
+
