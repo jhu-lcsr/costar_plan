@@ -74,7 +74,7 @@ def GetStackPose():
     # Grasp from the top, centered (roughly)
     pose = kdl.Frame(
             kdl.Rotation.Quaternion(1.,0.,0.,0.),
-            kdl.Vector(-0.22001116007522364, -0.02, -0.05))
+            kdl.Vector(-0.22001116007522364, -0.02, -0.01))
     return pose
 
 def GetTowerPoses():
@@ -129,8 +129,8 @@ def GetStackManager(collector):
                 continue
             else:
                 name2 = "place_%s_on_%s"%(color,color2)
-                req = _makeSmartReleaseRequest(color2)
-                sm.addRequest(name, name2, release, req)
+                req2 = _makeSmartReleaseRequest(color2)
+                sm.addRequest(name, name2, release, req2)
 
     return sm
 

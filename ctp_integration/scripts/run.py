@@ -151,6 +151,7 @@ def main():
         #plan = OptionsExecutionManager(options)
 
         # Reset the task manager
+        reward = 0.
         stack_task.reset()
 
         # Update the plan and the collector in synchrony.
@@ -162,10 +163,15 @@ def main():
             rate.sleep()
 
             if done:
+                if stack_task.ok:
+                    # We should actually check results here
+                    reward = 1.
+                else:
+                    reward = 0.
                 break
 
         if collector is not None:
-            collector.save(i, 1.)
+            collector.save(i, reward)
 
 if __name__ == '__main__':
     try:
