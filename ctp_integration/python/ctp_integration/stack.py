@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import PyKDL as kdl
 import rospy
+import sys
 import tf_conversions.posemath as pm
 
 from geometry_msgs.msg import Pose
@@ -94,9 +95,14 @@ def GetHome():
     req.target = pm.toMsg(pose_home)
     open_gripper = GetOpenGripperService()
     move = GetPlanToPoseService()
+    servo_mode = GetServoModeService()
     def home():
+        servo_mode("servo")
         open_gripper()
-        move(req)
+        res = move(req)
+        if "failure" in res.ack.lower():
+            rospy.logerr(res.ack)
+            sys.exit(-1)
     return home
 
 def GetStackManager(collector):
