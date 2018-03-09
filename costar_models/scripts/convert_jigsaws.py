@@ -57,6 +57,8 @@ def main():
     trans_dir = os.path.join(args.base_dir, "transcriptions")
     filenames = os.listdir(trans_dir)
 
+    dataset_name = dataset
+
     for file_num, filename in enumerate(filenames):
 
         print(filename)
@@ -190,15 +192,15 @@ def main():
         for k, v in data.items():
             data[k] = np.array(v)
 
-        write(args.out_dir, data, file_num, 1)
+        write(args.out_dir, data, dataset_name, file_num, 1)
 
-def write(directory, data, i, r):
+def write(directory, data, dataset, i, r):
     '''
     Write to disk.
     '''
     status = "success" if r > 0. else "failure"
     length = data['label'].shape[0]
-    filename = "example%06d.%s.h5f"%(i, status)
+    filename = "example%06d.%s.%s.h5f"%(i, dataset, status)
     filename = os.path.join(directory, filename)
     f = h5py.File(filename, 'w')
     for key, value in data.items():

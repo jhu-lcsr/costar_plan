@@ -116,11 +116,11 @@ class JigsawsDiscriminator(RobotMultiPredictionSampler):
 
         self.model = disc
 
-    def _getData(self, image, goal_image, label, *args, **kwargs):
+    def _getData(self, image, goal_idx, label, *args, **kwargs):
         #I = np.array(image)
         #I_target = np.array(goal_image)
         I = image
-        I_target = goal_image
+        I_target = I[goal_idx]
         o1 = np.array(label)
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
         I0 = I[0]
