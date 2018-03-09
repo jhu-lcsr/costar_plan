@@ -48,6 +48,6 @@ class StackManager(object):
             next_action = children[idx]
             srv, req = self.reqs[next_action]
             if not self.service(srv, req):
-                raise RuntimeError('could not start service')
+                raise RuntimeError('could not start service: ' + next_action)
             self.current = next_action
 

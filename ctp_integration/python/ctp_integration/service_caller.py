@@ -21,6 +21,7 @@ class ServiceCaller(object):
 
     def __call__(self, proxy, req):
         if self.thread is not None and self.thread.is_alive():
+            rospy.logwarn("already running: " + str(self.proxy) + ", " + str(type(req)))
             return False
         else:
             self.proxy = proxy
