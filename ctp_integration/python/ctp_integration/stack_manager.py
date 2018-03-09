@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import numpy as np
 
@@ -34,13 +35,17 @@ class StackManager(object):
             self.children[parent].append(name)
 
     def tick(self):
-        if self.service.running:
+        if self.service.update():
             self.done = False
+            rospy.loginfo("still running: " + str(self.current))
+            return
         elif self.current in self.children:
             # This one has a child to execute
             self.done = False
         else:
             self.done = True
+
+        print(self.service.result)
 
         if not self.done:
             children = self.children[self.current]

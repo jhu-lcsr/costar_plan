@@ -39,6 +39,7 @@ class ServiceCaller(object):
         elif self.thread.is_alive():
             self.running = True
         else:
+            self.thread = None
             self.running = False
         return self.running
 
