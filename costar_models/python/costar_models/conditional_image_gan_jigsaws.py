@@ -110,11 +110,11 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         self.predictor = generator
 
-    def _getData(self, image, label, goal_image, goal_label,
+    def _getData(self, image, label, goal_idx, goal_label,
             prev_label, *args, **kwargs):
 
-        image = np.array(image) / 255.
-        goal_image = np.array(goal_image) / 255.
+        image = image
+        goal_image = image[goal_idx]
 
         goal_image2, _ = GetNextGoal(goal_image, label)
 

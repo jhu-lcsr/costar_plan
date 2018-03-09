@@ -81,10 +81,15 @@ def main(args):
         ht = 96
         w = 128
         imgpos = [(70,3), (4,130), (102,130)]
+        imgw, imgh = 260, 260
     for fnum, filename in enumerate(dataset.test):
         print(fnum, filename)
         data = dataset.loadFile(filename)
         features, targets = model._getData(**data)
+        model.convert(features, targets)
+        if not args["cpu"]:
+            res = model.model.evaluate(features, targets)
+            print("res =", res)
         [I0, I, o1, o2, oin] = features
         length = I0.shape[0]
         [I_target, I_target2] = targets[:2]
@@ -102,7 +107,7 @@ def main(args):
             h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
             xg = model.decode(h_goal)
             xg2 = model.decode(h_goal2)
-            if False:
+            if False and ((i % 100) == 0):
                 plt.subplot(1,4,1); plt.imshow(x0[0])
                 plt.subplot(1,4,2); plt.imshow(xi[0])
                 plt.subplot(1,4,3); plt.imshow(xg[0])
@@ -122,7 +127,8 @@ def main(args):
             total += 1.
             mean1 = err1_sum / total
             mean2 = err2_sum / total
-            print( o1[i], o2[i],
+            print( "actions =", o1[i], o2[i],
+                   "errs =", err1, err2,
                     "means =", mean1, mean2,
                     "avg =", v_sum/total )
             fig = plt.figure(frameon=False)
