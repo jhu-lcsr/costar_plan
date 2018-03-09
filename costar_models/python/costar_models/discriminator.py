@@ -104,6 +104,7 @@ class JigsawsDiscriminator(RobotMultiPredictionSampler):
         self.num_options = SuturingNumOptions()
         self.num_generator_files = 1
         self.goal = goal
+        self.load_jpeg = True
 
     def _makeModel(self, image, *args, **kwargs):
         '''
@@ -115,12 +116,14 @@ class JigsawsDiscriminator(RobotMultiPredictionSampler):
 
         self.model = disc
 
-    def _getData(self, image, goal_image, label, *args, **kwargs):
-        I = np.array(image) / 255.
-        I_target = np.array(goal_image) / 255.
+    def _getData(self, image, goal_idx, label, *args, **kwargs):
+        #I = np.array(image)
+        #I_target = np.array(goal_image)
+        I = image
+        I_target = I[goal_idx]
         o1 = np.array(label)
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
-        I0 = I[0,:,:,:]
+        I0 = I[0]
         length = I.shape[0]
         I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
         if self.goal:
