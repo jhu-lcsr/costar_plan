@@ -66,7 +66,7 @@ class AbstractAgentBasedModel(object):
             features=None,
             steps_per_epoch=500,
             validation_steps=100,
-            dropout_rate=0.5,
+            dropout_rate=0.1,
             decoder_dropout_rate=None,
             tform_dropout_rate=0.,
             activation_fn="relu",

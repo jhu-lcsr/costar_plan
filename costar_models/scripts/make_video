@@ -87,8 +87,9 @@ def main(args):
         data = dataset.loadFile(filename)
         features, targets = model._getData(**data)
         model.convert(features, targets)
-        #res = model.model.evaluate(features, targets)
-        #print("res =", res)
+        if not args["cpu"]:
+            res = model.model.evaluate(features, targets)
+            print("res =", res)
         [I0, I, o1, o2, oin] = features
         length = I0.shape[0]
         [I_target, I_target2] = targets[:2]
