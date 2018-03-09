@@ -15,6 +15,8 @@ from costar_task_plan.abstract.task import *
 
 from .stack_manager import *
 
+colors = ["red", "blue", "yellow", "green"]
+
 def GetPoses():
     '''
     All poses have been recorded relative to /base_link. If the robot moves
@@ -68,6 +70,13 @@ def GetGraspPose():
             kdl.Vector(-0.22001116007522364, -0.02, -0.01))
     return pose
 
+def GetStackPose():
+    # Grasp from the top, centered (roughly)
+    pose = kdl.Frame(
+            kdl.Rotation.Quaternion(1.,0.,0.,0.),
+            kdl.Vector(-0.22001116007522364, -0.02, -0.04))
+    return pose
+
 def GetTowerPoses():
     pose1 = kdl.Frame(
             kdl.Rotation.Quaternion(0.580, 0.415, -0.532, 0.456),
@@ -108,11 +117,21 @@ def GetHome():
 def GetStackManager(collector):
     sm = StackManager(collector)
     grasp = GetSmartGraspService()
+    release = GetSmartReleaseService()
 
-    for color in ["red", "blue", "yellow", "green"]:
+    for color in colors:
         name = "grab_%s"%color
         req = _makeSmartGraspRequest(color)
         sm.addRequest(None, name, grasp, req)
+
+        for color2 in colors:
+            if color2 == color:
+                continue
+            else:
+                name2 = "place_%s_on_%s"%(color,color2)
+                req = _makeSmartReleaseRequest(color2)
+                sm.addRequest(name, name2, release, req)
+
     return sm
 
 def _makeSmartGraspRequest(color):
@@ -121,12 +140,24 @@ def _makeSmartGraspRequest(color):
     '''
     req = SmartMoveRequest()
     req.pose = pm.toMsg(GetGraspPose())
-    if not color in ["red", "blue", "green", "yellow"]:
+    if not color in colors:
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
     req.name = "grasp_%s" % req.obj_class
     req.backoff = 0.05
+    return req
 
+def _makeSmartReleaseRequest(color):
+    '''
+    Helper function for making the place call
+    '''
+    req = SmartMoveRequest()
+    req.pose = pm.toMsg(GetStackPose())
+    if not color in colors:
+        raise RuntimeError("color %s not recognized" % color)
+    req.obj_class = "%s_cube" % color
+    req.name = "place_on_%s" % color
+    req.backoff = 0.05
     return req
 
 def MakeStackTask():

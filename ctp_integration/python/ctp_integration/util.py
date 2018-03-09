@@ -37,6 +37,11 @@ def GetSmartPlaceService(srv="/costar/SmartPlace"):
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, SmartMove)
 
+def GetSmartReleaseService():
+    srv = "/costar/SmartRelease"
+    rospy.wait_for_service(srv)
+    return rospy.ServiceProxy(srv, SmartMove)
+
 def GetServoToJointStateService(srv="/costar/ServoToJointState"):
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, ServoToJointState)
