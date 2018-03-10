@@ -158,6 +158,7 @@ def _makeSmartReleaseRequest(color):
     req.obj_class = "%s_cube" % color
     req.name = "place_on_%s" % color
     req.backoff = 0.05
+    req.above = True # Only place above objects to stack
     return req
 
 def MakeStackTask():
