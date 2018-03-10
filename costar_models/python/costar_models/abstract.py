@@ -66,7 +66,7 @@ class AbstractAgentBasedModel(object):
             features=None,
             steps_per_epoch=500,
             validation_steps=100,
-            dropout_rate=0.5,
+            dropout_rate=0.1,
             decoder_dropout_rate=None,
             tform_dropout_rate=0.,
             activation_fn="relu",
@@ -354,17 +354,20 @@ class AbstractAgentBasedModel(object):
             features, targets = ([f[idx] for f in features],
                                  [t[idx] for t in targets])
 
-            if self.load_jpeg:
-                for i, f in enumerate(features):
-                    if str(f.dtype)[:2] == "|S":
-                        f = ConvertJpegListToNumpy(np.squeeze(f))
-                        #print("converted", type(f), f.shape, f.dtype)
-                        features[i] = self.scale(f)
-                for i, f in enumerate(targets):
-                    if str(f.dtype)[:2] == "|S":
-                        targets[i] = self.scale(ConvertJpegListToNumpy(np.squeeze(f)))
-                
+            self.convert(features, targets)              
             yield features, targets
+
+    def convert(self, features, targets):
+        if self.load_jpeg:
+	    for i, f in enumerate(features):
+	        if str(f.dtype)[:2] == "|S":
+		    f = ConvertJpegListToNumpy(np.squeeze(f))
+		    #print("converted", type(f), f.shape, f.dtype)
+		    features[i] = self.scale(f)
+	    for i, f in enumerate(targets):
+	        if str(f.dtype)[:2] == "|S":
+		    targets[i] = self.scale(ConvertJpegListToNumpy(np.squeeze(f)))
+ 
 
     def save(self):
         '''

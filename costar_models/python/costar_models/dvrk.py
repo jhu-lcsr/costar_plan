@@ -33,24 +33,23 @@ def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     img = Input(img_shape,name="img_classifier_in")
     bn = model.use_batchnorm
     disc = True
-    dr = 0.1 #model.dropout_rate
+    dr = 0. #model.dropout_rate
     x = img
     x0 = img0
 
-    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
+    x0 = AddConv2D(x0, 32, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
+
+    x = Concatenate()([x0, x])
+    x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=disc, bn=bn)
 
     x = Flatten()(x)
     x = Dropout(0.5)(x)
-    x = AddDense(x, 1024, "lrelu", 0.5, output=True, bn=False, kr=0.)
+    x = AddDense(x, 256, "lrelu", 0.5, output=True, bn=False, kr=0.)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
     if not trainable:
@@ -115,7 +114,6 @@ def MakeJigsawsTransform(model, h_dim=(12,16), perm_drop=False):
     activation_fn = model.activation_fn
     if model.use_noise:
         z = Input((model.noise_dim,), name="z_in")
-    perm_drop = True
 
     kwargs = {
             "activation": activation_fn,
@@ -158,7 +156,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), perm_drop=False):
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
         x = Concatenate(axis=-1)([x, y])
         x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16),
-              activation_fn, model.dropout_rate, constraint=None, bn=False, output=False)
+              activation_fn, model.dropout_rate, constraint=None, bn=False, output=False, perm_drop=False)
         x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
     else:
         x = AddConv2D(x, 64, [5,5], 2, **kwargs_dr0)

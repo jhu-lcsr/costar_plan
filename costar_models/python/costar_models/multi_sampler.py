@@ -313,8 +313,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         option = Input((self.num_options,),name="t_opt_in")
         # Never use the BN here?
         bn = self.use_batchnorm
-        # Always use dropout here
-        perm_dropout = True
 
         # Common arguments
         kwargs = {
@@ -362,7 +360,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
                          self.activation_fn,
                          self.dropout_rate,
-                         constraint=None, bn=False)
+                         constraint=None, bn=False,
+                         perm_drop=True,)
             x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
             # U-net scale down

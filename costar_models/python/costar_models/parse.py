@@ -136,7 +136,7 @@ def GetModelParser():
     parser.add_argument("--dropout_rate", "--dr",
                         help="Dropout rate to use",
                         type=float,
-                        default=0.5)
+                        default=0.1)
     parser.add_argument("--enc_loss",
                         help="Add encoder loss",
                         action="store_true")
