@@ -9,6 +9,7 @@ from geometry_msgs.msg import Pose
 from costar_robot_msgs.srv import SmartMoveRequest
 from costar_robot_msgs.srv import ServoToJointStateRequest
 from costar_robot_msgs.srv import ServoToPoseRequest
+from costar_robot_msgs.msg import Constraint
 from std_srvs.srv import EmptyRequest
 from std_srvs.srv import Empty as EmptySrv
 from costar_task_plan.abstract.task import *
@@ -67,14 +68,12 @@ def GetGraspPose():
     # Grasp from the top, centered (roughly)
     pose = kdl.Frame(
             kdl.Rotation.Quaternion(1.,0.,0.,0.),
-            kdl.Vector(-0.22001116007522364, -0.02, -0.01))
+            kdl.Vector(-0.22, -0.02, -0.01))
     return pose
 
 def GetStackPose():
     # Grasp from the top, centered (roughly)
-    pose = kdl.Frame(
-            kdl.Rotation.Quaternion(1.,0.,0.,0.),
-            kdl.Vector(-0.22001116007522364, -0.02, -0.01+0.04))
+    pose = GetGraspPose() * kdl.Frame(kdl.Vector(-0.05,0.,0.))
     return pose
 
 def GetTowerPoses():
@@ -151,14 +150,18 @@ def _makeSmartReleaseRequest(color):
     '''
     Helper function for making the place call
     '''
+    constraint = Constraint(
+            pose_variable=Constraint.POSE_Z,
+            threshold=0.015,
+            greater=True)
     req = SmartMoveRequest()
     req.pose = pm.toMsg(GetStackPose())
     if not color in colors:
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
     req.name = "place_on_%s" % color
-    req.backoff = 0.05
-    req.above = True # Only place above objects to stack
+    req.backoff = 0.1
+    req.constraints = [constraint]
     return req
 
 def MakeStackTask():
