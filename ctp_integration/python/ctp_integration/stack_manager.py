@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 import numpy as np
 
@@ -23,6 +24,7 @@ class StackManager(object):
     def reset(self):
         self.done = False
         self.current = None
+        self.ok = True
 
     def addRequest(self, parents, name, srv, req):
         self.reqs[name] = (srv, req)
@@ -34,12 +36,27 @@ class StackManager(object):
             self.children[parent].append(name)
 
     def tick(self):
-        if self.service.running:
+        # Check to make sure everything is ok
+        if not self.ok:
+            self.done = True
+
+        # Return status or continue
+        if self.done:
+            return self.ok
+        elif self.service.update():
             self.done = False
+            rospy.loginfo("still running: " + str(self.current))
+            return
         elif self.current in self.children:
             # This one has a child to execute
             self.done = False
         else:
+            self.done = True
+
+        if self.service.ok:
+            self.ok = True
+        else:
+            self.ok = False
             self.done = True
 
         if not self.done:
@@ -48,6 +65,6 @@ class StackManager(object):
             next_action = children[idx]
             srv, req = self.reqs[next_action]
             if not self.service(srv, req):
-                raise RuntimeError('could not start service')
+                raise RuntimeError('could not start service: ' + next_action)
             self.current = next_action
-
+        return self.done
