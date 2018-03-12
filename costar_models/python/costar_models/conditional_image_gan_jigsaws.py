@@ -119,7 +119,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         goal_image2, _ = GetNextGoal(goal_image, label)
 
         # Extend image_0 to full length of sequence
-        image0 = image[0,:,:,:]
+        image0 = image[0]
         length = image.shape[0]
         image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
         return [image0, image, label, goal_label], [goal_image, goal_image2]

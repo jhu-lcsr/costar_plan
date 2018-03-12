@@ -220,6 +220,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                         # Descriminator pass
                         img, target = next(train_generator)
+                        self.convert(img, target)
                         data = self.addNoiseIfNeeded(img)
                         fake = self.generator.predict(data)
                         self.discriminator.trainable = True
