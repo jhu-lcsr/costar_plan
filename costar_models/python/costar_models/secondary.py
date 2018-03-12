@@ -58,7 +58,7 @@ class Secondary(PredictionSampler2):
 
         encoder = self._makeImageEncoder(img_shape)
         decoder = self._makeImageDecoder(self.hidden_shape)
-        LoadEncoderWeights(self, encoder, decoder)
+        LoadEncoderWeights(self, encoder, decoder, retrained=True)
 
         # =====================================================================
         # Load the arm and gripper representation
