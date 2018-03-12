@@ -28,6 +28,9 @@ from .temporary import *
 def SuturingNumOptions():
     return 16
 
+def SuturingNullOption():
+    return 15
+
 def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")

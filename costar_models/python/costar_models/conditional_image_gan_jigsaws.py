@@ -28,8 +28,6 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
     def __init__(self, *args, **kwargs):
 
         super(ConditionalImageGanJigsaws, self).__init__(*args, **kwargs)
-
-        self.num_options = 16
         self.save_encoder_decoder = self.retrain
         planner.PERMANENT_DROPOUT = True
 
