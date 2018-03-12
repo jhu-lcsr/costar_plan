@@ -165,7 +165,9 @@ def draw_grasp_prediction_matplotlib(axs, prediction, image, grasp_success, z, s
     return z
 
 
-def visualize_redundant_example(features_dicts, predictions=None, predictions_grasp_success=True, showTextBox=None, figcols=2):
+def visualize_redundant_example(
+        features_dicts, predictions=None, predictions_grasp_success=True, showTextBox=None, figcols=2,
+        show=True, blocking=False, save_filename=None, close=True, verbose=0):
     """ Visualize numpy dictionary containing a grasp example.
     """
     # if showTextBox is None:
@@ -185,14 +187,16 @@ def visualize_redundant_example(features_dicts, predictions=None, predictions_gr
 
     preprocessed_examples = []
     for example in features_dicts:
-        print('original example bbox/theta: ' + str(example['bbox/theta']))
+        if verbose > 1:
+            print('original example bbox/theta: ' + str(example['bbox/theta']))
         if ('bbox/preprocessed/cy_cx_normalized_2' in example):
-            print_feature(example, 'bbox/preprocessed/cy_cx_normalized_2')
-            print_feature(example, 'bbox/preprocessed/cy')
-            print_feature(example, 'bbox/preprocessed/cx')
-            print_feature(example, 'bbox/preprocessed/width')
-            print_feature(example, 'bbox/preprocessed/height')
-            print_feature(example, 'grasp_success_norm_sin2_cos2_hw_yx_7')
+            if verbose > 0:
+                print_feature(example, 'bbox/preprocessed/cy_cx_normalized_2')
+                print_feature(example, 'bbox/preprocessed/cy')
+                print_feature(example, 'bbox/preprocessed/cx')
+                print_feature(example, 'bbox/preprocessed/width')
+                print_feature(example, 'bbox/preprocessed/height')
+                print_feature(example, 'grasp_success_norm_sin2_cos2_hw_yx_7')
             # Reverse the preprocessing so we can visually compare correctness
             decoded_example = copy.deepcopy(example)
             sin_cos_2 = np.squeeze(example['bbox/preprocessed/sin_cos_2'])
@@ -219,7 +223,7 @@ def visualize_redundant_example(features_dicts, predictions=None, predictions_gr
             decoded_example['bbox/height'] = example['bbox/preprocessed/height']
             decoded_example['bbox/cy'] = example['bbox/preprocessed/cy']
             decoded_example['bbox/cx'] = example['bbox/preprocessed/cx']
-            if 'random_projection_transform' in example:
+            if verbose > 0 and 'random_projection_transform' in example:
                 print('random_projection_transform:' + str(example['random_projection_transform']))
                 if 'random_rotation' in example:
                     print('random_rotation: ' + str(example['random_rotation']))
@@ -232,7 +236,8 @@ def visualize_redundant_example(features_dicts, predictions=None, predictions_gr
     grasp_success = [example['bbox/grasp_success'] for example in features_dicts]
     gt_plot_height = int(np.ceil(float(len(center_x_list)) / 2))
     fig, axs = plt.subplots(gt_plot_height + 1, figcols, figsize=(15, 15))
-    print('max: ' + str(np.max(img)) + ' min: ' + str(np.min(img)))
+    if verbose > 1:
+        print('max: ' + str(np.max(img)) + ' min: ' + str(np.min(img)))
     axs[0, 0].imshow(np.squeeze(img), zorder=0)
     axs[0, 0].set_title('Original Image with Grasp')
     # for i in range(4):
@@ -260,7 +265,8 @@ def visualize_redundant_example(features_dicts, predictions=None, predictions_gr
         # Assuming 'tf' preprocessing mode! Changing channel range from [-1, 1] to [0, 1]
         img2 /= 2
         img2 += 0.5
-        print('preprocessed max: ' + str(np.max(img2)) + ' min: ' + str(np.min(img2)) + ' shape: ' + str(np.shape(img2)))
+        if verbose > 1:
+            print('preprocessed max: ' + str(np.max(img2)) + ' min: ' + str(np.min(img2)) + ' shape: ' + str(np.shape(img2)))
         axs[h, w].imshow(img2, alpha=1, zorder=z)
         grasp_success = example['bbox/grasp_success']
 
@@ -275,7 +281,8 @@ def visualize_redundant_example(features_dicts, predictions=None, predictions_gr
 
         # Draw the ground truth encoded grasp
         gt_prediction = np.squeeze(example['grasp_success_norm_sin2_cos2_hw_yx_7'])
-        print('gt_prediction grasp_success_norm_sin2_cos2_hw_yx_7: ' + str(gt_prediction))
+        if verbose > 0:
+            print('gt_encoded grasp_success_norm_sin2_cos2_hw_yx_7: ' + str(gt_prediction))
         z = draw_grasp_prediction_matplotlib(
             axs[h, w],
             prediction=gt_prediction,
@@ -285,16 +292,23 @@ def visualize_redundant_example(features_dicts, predictions=None, predictions_gr
             showTextBox=showTextBox,
             title='Ground Truth')
         if prediction is not None:
+            if verbose > 0:
+                print('encoded nn prediction norm_sin2_cos2_hw_yx_6: ' + str(prediction))
             # draw the actual prediction, note that predictions
             z = draw_grasp_prediction_matplotlib(axs[h_pred, w_pred], prediction, img2, prediction_grasp_success, z, showTextBox,
                                                  title='Prediction')
 
         plt.tight_layout()
-        plt.show()
-
+        if save_filename:
+            plt.savefig(save_filename)
+        if show:
+            plt.draw()
+            plt.pause(0.001)
+            if blocking:
+                plt.show()
+    if close:
+        plt.close()
     # axs[1, 1].hist2d(data[0], data[1])
-    # plt.draw()
-    # plt.pause(0.25)
 
 
 def plot_coordinate(i, gt_plot_height):

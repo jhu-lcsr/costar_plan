@@ -185,7 +185,8 @@ def optimize(
     batch_size = FLAGS.batch_size
     if problem_type == 'classification':
         FLAGS.problem_type = problem_type
-        feature_combo_name = 'image_preprocessed_width_1'
+        feature_combo_name = 'image_preprocessed_norm_sin2_cos2_height_width_4'
+        # feature_combo_name = 'image_preprocessed_width_1'
         top = 'classification'
         FLAGS.crop_to = 'center_on_gripper_grasp_box_and_rotate_upright'
         if param_to_optimize == 'val_acc':
@@ -213,7 +214,7 @@ def optimize(
     # during the random search phase. We plan to run a separate search on enabling trainable models on one of the best models
     # found when trainable is false. This is due to limitations in processing time availability at the time of writing and
     # multi stage training not yet being configurable during hyperopt.
-    hyperoptions.add_param('trainable', [True, False], enable=False)
+    hyperoptions.add_param('trainable', [True, False], enable=True)
     # TODO(ahundt) add trainable fraction param which enables training for a number of layers proportional to the total, starting at the top
 
     # Learning rates are exponential so we take a uniform random
@@ -225,36 +226,39 @@ def optimize(
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
     # TODO(ahundt) run a separate search for the best dropout rate after finding a good model
     hyperoptions.add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75],
-                           enable=False, required=True, default=0.25)
+                           enable=False, required=True, default=0.2)
 
     if problem_type == 'grasp_regression':
         # Right now only grasp_regression can configure the loss function
         # Make sure you don't optimize loss when it is being used for your objective function!
         if optimize_loss:
-            hyperoptions.add_param('loss', ['mse', 'mae', 'logcosh'])
+            hyperoptions.add_param('loss', ['mse', 'mae', 'logcosh'], default='mae', enable=False)
     else:
         # There is no vector branch for grasp regression so we only add it in the other cases
         # Handle motion command inputs and search for the best configuration
         hyperoptions.add_param('vector_dense_filters', [2**x for x in range(6, 13)])
         hyperoptions.add_param('vector_branch_num_layers', [x for x in range(0, 5)])
         hyperoptions.add_param('vector_model_name', ['dense', 'dense_block'])
-    # leaving out nasnet_large for now because it needs different input dimensions.
-    hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet'])
-    # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
-    hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 11)])
-    hyperoptions.add_param('trunk_layers', [x for x in range(0, 8)])
-    # TODO(ahundt) Enable 'nasnet_normal_a_cell' the option is disabled for now due to a tensor dimension conflict
-    hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'resnet_conv_identity_block'])
-    hyperoptions.add_param('top_block_filters', [2**x for x in range(min_top_block_filter_multiplier, 12)])
-    # number of dense layers before the final dense layer that performs classification in the top block
-    hyperoptions.add_param('top_block_dense_layers', [0, 1, 2, 3])
-    hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
-                           enable=False, required=True, default=batch_size)
+
     # enable this if you're search for grasp classifications
     hyperoptions.add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
                            enable=False, required=True, default=feature_combo_name)
+    # leaving out nasnet_large for now because it needs different input dimensions.
+    # other supported options: 'densenet', 'nasnet_mobile', 'resnet'
+    hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet'])
+    # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
+    hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
+    hyperoptions.add_param('trunk_layers', [x for x in range(0, 12)])
+    # TODO(ahundt) Enable 'nasnet_normal_a_cell' the option is disabled for now due to a tensor dimension conflict
+    hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'resnet_conv_identity_block'],
+                           default='dense_block', enable=True, required=True)
+    hyperoptions.add_param('top_block_filters', [2**x for x in range(min_top_block_filter_multiplier, 12)])
+    # number of dense layers before the final dense layer that performs classification in the top block
+    hyperoptions.add_param('top_block_dense_layers', [0, 1, 2, 3, 4])
+    hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
+                           enable=False, required=True, default=batch_size)
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
-                           enable=False, required=True, default='tf')
+                           enable=True, required=True, default='tf')
 
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
@@ -380,8 +384,8 @@ def main(_):
     FLAGS.problem_type = 'grasp_regression'
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
-    FLAGS.epochs = 1
-    FLAGS.fine_tuning_epochs = 1
+    FLAGS.epochs = 5
+    FLAGS.fine_tuning_epochs = 0
     print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
           ' num_validation: ' + str(FLAGS.num_validation) +
           ' num_test: ' + str(FLAGS.num_test) +

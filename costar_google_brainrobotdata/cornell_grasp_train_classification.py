@@ -41,7 +41,12 @@ def main(_):
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'center_on_gripper_grasp_box_and_rotate_upright'
     if FLAGS.load_hyperparams is None:
-        FLAGS.load_hyperparams = '/home/ahundt/datasets/logs/hyperopt_logs_cornell/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json'
+        # FLAGS.load_hyperparams = ('/home/ahundt/datasets/logs/hyperopt_logs_cornell/'
+        #                           '2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success/'
+        #                           '2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+        FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_classification/'
+                                  '2018-03-03-07-14-59_-vgg_dense_model-dataset_cornell_grasping-grasp_success/'
+                                  '2018-03-03-07-14-59_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
     FLAGS.epochs = 40
     FLAGS.fine_tuning_epochs = 10
     print('Classification Training on grasp_success is about to begin. '

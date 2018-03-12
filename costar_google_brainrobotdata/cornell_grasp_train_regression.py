@@ -42,17 +42,22 @@ def main(_):
         #                           '2018-03-03-16-33-06_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
         #                           '2018-03-03-16-33-06_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
 
-        # Current best performance with mae on val + test 2018-03-07, haven't tried on kfold yet 2018-03-06
-        FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
-                                  '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
-                                  '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
-
-        # Best first epoch on hyperopt run 2018-03-06:
+        # Old best first epoch on hyperopt run 2018-03-06:
         # FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
         #                           '2018-03-06-00-20-24_-vgg19_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
         #                           '2018-03-06-00-20-24_-vgg19_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
-    FLAGS.epochs = 80
-    FLAGS.fine_tuning_epochs = 40
+
+        # Current best performance with mae on val + test 2018-03-07, haven't tried on kfold yet 2018-03-06
+        # FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
+        #                           '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
+        #                           '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+
+        # Best first and last epoch on hyperopt run 2018-03-08
+        FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
+                                  '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
+                                  '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+    FLAGS.epochs = 60
+    FLAGS.fine_tuning_epochs = 0
     print('Regression Training on Jaccard Distance is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '

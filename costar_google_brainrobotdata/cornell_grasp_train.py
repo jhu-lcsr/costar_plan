@@ -89,7 +89,7 @@ flags.DEFINE_integer(
 )
 flags.DEFINE_integer(
     'batch_size',
-    8,
+    16,
     'Batch size.'
 )
 flags.DEFINE_string(
@@ -536,6 +536,7 @@ def get_compiled_model(learning_rate=None,
                        train_filenames=None,
                        test_filenames=None,
                        val_filenames=None,
+                       loss=None,
                        **kwargs):
     """
     Get a compiled model instance and input data.
@@ -635,7 +636,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
         callbacks = callbacks + [
             # Reduce the learning rate if training plateaus.
-            keras.callbacks.ReduceLROnPlateau(patience=12, verbose=1, factor=0.5, monitor=monitor_loss_name)
+            keras.callbacks.ReduceLROnPlateau(patience=20, verbose=1, factor=0.5, monitor=monitor_loss_name)
         ]
     elif optimizer_name == 'adam':
         optimizer = keras.optimizers.Adam()
@@ -1014,13 +1015,23 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
 
     num_fold = kfold_param_dicts['num_fold']
 
+    # print('WEIGHTS: \n', model.get_weights())
+
+    # TODO(ahundt) low priority: automatically choose feature and metric strings
+    # choose_features_and_metrics(feature_combo_name, problem_name)
+    prediction_name = 'norm_sin2_cos2_hw_yx_6'
+    metric_name = 'grasp_jaccard'
+    unique_score_category = 'image/filename'
+    data_features = ['image/preprocessed']
+    metric_fn = grasp_metrics.grasp_jaccard_batch
+
     metric_fold_averages = np.zeros((num_fold))
     loss_fold_averages = np.zeros((num_fold))
     with tqdm(range(num_fold), desc='kfold prediction') as progbar_folds:
         for i in progbar_folds:
             # This is a special string,
             # make sure to maintain backwards compatibility
-            # if you modify it.
+            # if you modify it. See train_k_fold().
             fold_name = 'fold-' + str(i)
 
             # load all the settings from a past run
@@ -1057,26 +1068,20 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
             # load the model
             model = get_compiled_model(load_weights=fold_checkpoint_file, **training_run_params)
 
-            # print('WEIGHTS: \n', model.get_weights())
-
-            # TODO(ahundt) low priority: automatically choose feature and metric strings
-            # choose_features_and_metrics(feature_combo_name, problem_name)
-            prediction_name = 'norm_sin2_cos2_hw_yx_6'
-            metric_name = 'grasp_jaccard'
-            unique_score_category = 'image/filename'
-            data_features = ['image/preprocessed']
-            metric_fn = grasp_metrics.grasp_jaccard_batch
-
             # TODO(ahundt) low-medium priority: save iou scores
             # metric_name = 'intersection_over_union'
-            preprocessing_mode = training_run_params['preprocessing_mode']
+            if 'preprocessing_mode' in training_run_params:
+                preprocessing_mode = training_run_params['preprocessing_mode']
+            else:
+                preprocessing_mode = 'tf'
 
             # go over every data entry
             result = evaluate(
                 model, val_filenames=val_filenames, data_features=data_features,
                 prediction_name=prediction_name, metric_fn=metric_fn,
                 progbar_folds=progbar_folds, unique_score_category=unique_score_category,
-                metric_name=metric_name, should_initialize=True, load_weights=fold_checkpoint_file)
+                metric_name=metric_name, should_initialize=True, load_weights=fold_checkpoint_file,
+                fold_num=i, fold_name=fold_name)
             progbar_folds.update()
 
             # [(metric_name, fold_average), (loss_name, loss_average)]
@@ -1107,9 +1112,9 @@ def evaluate(
         model, example_generator=None, val_filenames=None, data_features=None, prediction_name='norm_sin2_cos2_hw_yx_6',
         metric_fn=grasp_metrics.grasp_jaccard_batch,
         progbar_folds=sys.stdout, unique_score_category='image/filename', metric_name='grasp_jaccard',
-        steps=None, visualize=False,
+        steps=None, visualize=True,
         preprocessing_mode='tf', apply_filter=True, loss_fn=None, loss_name='loss',
-        should_initialize=False, load_weights=None, verbose=0):
+        should_initialize=False, load_weights=None, fold_num=None, fold_name='', verbose=0):
     """ This is specialized for running grasp regression right now,
         so check the defaults if you want to use it for something else.
     """
@@ -1122,7 +1127,7 @@ def evaluate(
         # Load the validation data and traverse it exactly once
         input_data = cornell_grasp_dataset_reader.yield_record(
             val_filenames, batch_size=1, is_training=False,
-            shuffle=False, steps=1,
+            shuffle=False, steps=1, apply_filter=apply_filter,
             preprocessing_mode=preprocessing_mode)
     else:
         raise ValueError('Must provide example generator or val_filenames.')
@@ -1179,7 +1184,11 @@ def evaluate(
                     predictions = None
                 else:
                     predictions = np.squeeze(result)
-                grasp_visualization.visualize_redundant_example(example_dict, predictions=predictions)
+                viz_filename = None
+                if load_weights is not None:
+                    # remove .h5 add the image number, and save the file
+                    viz_filename = load_weights[:-3] + '_' + str(i) + '.jpg'
+                grasp_visualization.visualize_redundant_example(example_dict, predictions=predictions, save_filename=viz_filename, show=False)
 
             score = np.squeeze(score)
             # save this score and prediction if there is no score yet
@@ -1217,7 +1226,8 @@ def evaluate(
 
     result = [(metric_name, fold_average)]
     progbar_folds.write('---------------------------------------------')
-    progbar_folds.write('Completed fold ' + str(i) + ' average jaccard metric score: ' + str(fold_average))
+    progbar_folds.write('Completed fold ' + str(fold_num) + ' name ' + str(fold_name) +
+                        ' with average jaccard metric score: ' + str(fold_average))
     if loss_fn is not None:
         progbar_folds.write(' average loss: ' + str(loss_average))
         result += [(loss_name, loss_average)]
