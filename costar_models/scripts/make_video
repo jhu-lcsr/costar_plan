@@ -90,7 +90,11 @@ def main(args):
         if not args["cpu"]:
             res = model.model.evaluate(features, targets)
             print("res =", res)
-        [I0, I, o1, o2, oin] = features
+        #[I0, I, o1, o2, oin] = features
+        I0 = features[0]
+        I = features[1]
+        o1 = features[2]
+        o2 = features[3]
         length = I0.shape[0]
         [I_target, I_target2] = targets[:2]
         img = np.zeros((imgw,imgh,3))
@@ -98,7 +102,6 @@ def main(args):
             ii += 1
             xi = np.expand_dims(I[i],axis=0)
             x0 = np.expand_dims(I0[i],axis=0)
-            prev_option = np.array([oin[i]])
             h = model.encode(xi)
             h0 = model.encode(x0)
             #p_a, done1 = model.pnext(h0, h, prev_option)
