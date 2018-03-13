@@ -13,7 +13,7 @@ echo "Running $@ on $SLURMD_NODENAME ..."
 
 export DATASET="ctp_dec"
 export train_discriminator2=true
-export train_image_encoder=true
+export train_joint_encoder=true
 export train_conditional_image=true
 export train_policies=false
 
@@ -83,13 +83,13 @@ if $train_discriminator2 && $use_disc ; then
     --batch_size 64
 fi
 
-if $train_image_encoder
+if $train_joint_encoder
 then
-  echo "Training encoder 1"
+  echo "Training encoder 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
     -e 100 \
-    --model pretrain_image_encoder \
+    --model pretrain_sampler \
     --data_file $HOME/work/$DATASET.h5f \
     --lr $learning_rate_enc \
     --dropout_rate $dropout \
@@ -99,7 +99,7 @@ then
     --noise_dim $noise_dim \
     --use_batchnorm $USE_BN \
     --loss $loss \
-    --batch_size 64 --no_disc
+    --batch_size 64 --no_disc --retrain
 fi
 
 if $train_conditional_image
