@@ -29,7 +29,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         super(ConditionalImageGanJigsaws, self).__init__(*args, **kwargs)
         self.save_encoder_decoder = self.retrain
-        planner.PERMANENT_DROPOUT = True
+        planner.PERMANENT_DROPOUT = False
 
     def _makeModel(self, image, *args, **kwargs):
 
