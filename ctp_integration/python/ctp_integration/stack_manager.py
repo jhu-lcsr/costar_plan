@@ -20,6 +20,7 @@ class StackManager(object):
         self.reset()
         self.reqs = {}
         self.children = {}
+        self.labels = set()
 
     def reset(self):
         self.done = False
@@ -34,6 +35,7 @@ class StackManager(object):
             if parent not in self.children:
                 self.children[parent] = []
             self.children[parent].append(name)
+            self.labels.add(name)
 
     def tick(self):
         # Check to make sure everything is ok

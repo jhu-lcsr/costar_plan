@@ -139,6 +139,7 @@ def main():
                 tf_listener=tf_buffer)
 
     stack_task = GetStackManager(collector)
+    collector.setLabels(stack_task.labels)
     rate = rospy.Rate(args.rate)
     home = GetHome()
     for i in range(args.execute):
@@ -158,7 +159,7 @@ def main():
         while not rospy.is_shutdown():
             # Note: this will be "dummied out" for most of 
             done = stack_task.tick()
-            if not collector.update():
+            if not collector.update(stack_task.current, ):
                 raise RuntimeError('could not handle data collection')
             rate.sleep()
 

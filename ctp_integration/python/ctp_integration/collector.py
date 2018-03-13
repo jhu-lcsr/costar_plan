@@ -12,6 +12,7 @@ from costar_models.datasets.image import *
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import JointState
+from std_msgs.msg import String
 
 class DataCollector(object):
     '''
@@ -29,6 +30,8 @@ class DataCollector(object):
     base_link = "base_link"
     description = "/robot_description"
     data_types = ["h5f", "npz"]
+    info_topic = "/costar/info"
+    object_topic = "/costar/SmartMove/object"
 
     def __init__(self, robot_config,
             data_type="h5f",
@@ -83,11 +86,20 @@ class DataCollector(object):
         #self._camera_rgb_info_sub = rospy.Subscriber(camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
         self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
         self._depth_sub = rospy.Subscriber(self.depth_topic, Image, self._depthCb)
-        self._joints_sub = rospy.Subscriber(self.js_topic, JointState, self._jointsCb)
+        self._joints_sub = rospy.Subscriber(self.js_topic,
+                JointState,
+                self._jointsCb)
+        self._info_sub = rospy.Subscriber(self.info_topic,
+                String, 
+                self._infoCb)
+        self._smartmove_object_sub = rospy.Subscriber(self.object_topic,
+                String,
+                self._objectCb)
 
         self._bridge = CvBridge()
  
-        self._resetData()
+        self.labels = set()
+        self.reset()
 
         self.verbosity = 1
 
@@ -99,6 +111,11 @@ class DataCollector(object):
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
+    def _infoCb(self, msg):
+        self.info = msg.data
+
+    def _objectCb(self, msg):
+        self.object = msg.data
 
     def _depthCb(self, msg):
         try:
@@ -108,15 +125,27 @@ class DataCollector(object):
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
+    def setLabels(self, labels):
+        print("Setting labels to:", labels)
+        self.labels = labels
 
-    def _resetData(self):
+    def reset(self):
         self.data = {}
         self.data["q"] = []
         self.data["dq"] = []
         self.data["pose"] = []
         self.data["camera"] = []
         self.data["image"] = []
+        self.data["label"] = []
+        self.data["info"] = []
+        self.data["object"] = []
+        self.data["object_pose"] = []
+        self.data["labels_to_name"] = list(self.labels)
         #self.data["depth"] = []
+
+        self.info = None
+        self.object = None
+        self.current = None
 
     def _jointsCb(self, msg):
         self.q = msg.position
@@ -133,7 +162,7 @@ class DataCollector(object):
         self.writer.write(self.data, seed, result)
         self._resetData()
 
-    def update(self, action=None):
+    def update(self, action_label, ):
         '''
         Compute endpoint positions and update data. Should happen at some
         fixed frequency like 10 hz.
@@ -142,13 +171,25 @@ class DataCollector(object):
         -----------
         action: name of high level action being executed
         '''
+
+        if not self.current == action_label:
+            rospy.loginfo("new action: " + str(action_label))
+            self.current = action_label
+            self.object = None
+        if self.object is None:
+            rospy.logwarn("passing -- has not yet started executing motion")
+            return True
+
         try:
             t = rospy.Time(0)
             c_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
             ee_pose = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
+            obj_pose = self.tf_listener.lookup_transform(self.base_link, self.object, t)
         except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
             rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
             return False
+
+        print(self.info, self.object)
 
         c_xyz = [c_pose.transform.translation.x,
                  c_pose.transform.translation.y,
@@ -165,11 +206,23 @@ class DataCollector(object):
                   ee_pose.transform.rotation.z,
                   ee_pose.transform.rotation.w,]
 
-        self.data["q"].append(np.copy(self.q))
-        self.data["dq"].append(np.copy(self.dq))
-        self.data["pose"].append(ee_xyz + ee_quat)
-        self.data["camera"].append(c_xyz + c_quat)
-        self.data["image"].append(GetJpeg(self.rgb_img))
+        self.data["q"].append(np.copy(self.q)) # joint position
+        self.data["dq"].append(np.copy(self.dq)) # joint velocuity
+        self.data["pose"].append(ee_xyz + ee_quat) # end effector pose (6 DOF)
+        self.data["camera"].append(c_xyz + c_quat) # camera pose (6 DOF)
+        self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
+
+        # TODO(cpaxton): 
+        if not action_label in self.labels:
+            raise RuntimeError("action not recognized: " + str(action_label))
+
+        action = self.labels.index(action_label)
+        self.data["label"].append(action) # integer code for high-level action
+        self.data["info"].append(self.info) # string description of current step
+        self.data["object"].append(self.object)
+
+        # TODO(cpaxton): add pose of manipulated object
+        self.data["object_pose"].append(goal_object_pose)
         #self.data["depth"].append(GetJpeg(self.depth_img))
 
         return True
