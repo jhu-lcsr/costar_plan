@@ -127,7 +127,7 @@ class DataCollector(object):
 
     def setLabels(self, labels):
         print("Setting labels to:", labels)
-        self.labels = labels
+        self.labels = list(labels)
 
     def reset(self):
         self.data = {}
@@ -205,6 +205,13 @@ class DataCollector(object):
                   ee_pose.transform.rotation.y,
                   ee_pose.transform.rotation.z,
                   ee_pose.transform.rotation.w,]
+        obj_xyz = [obj_pose.transform.translation.x,
+                 obj_pose.transform.translation.y,
+                 obj_pose.transform.translation.z,]
+        obj_quat = [obj_pose.transform.rotation.x,
+                  obj_pose.transform.rotation.y,
+                  obj_pose.transform.rotation.z,
+                  obj_pose.transform.rotation.w,]
 
         self.data["q"].append(np.copy(self.q)) # joint position
         self.data["dq"].append(np.copy(self.dq)) # joint velocuity
@@ -222,7 +229,7 @@ class DataCollector(object):
         self.data["object"].append(self.object)
 
         # TODO(cpaxton): add pose of manipulated object
-        self.data["object_pose"].append(goal_object_pose)
+        self.data["object_pose"].append(obj_xyz + obj_quat)
         #self.data["depth"].append(GetJpeg(self.depth_img))
 
         return True
