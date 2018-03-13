@@ -160,7 +160,7 @@ class DataCollector(object):
 
         # for now all examples are considered a success
         self.writer.write(self.data, seed, result)
-        self._resetData()
+        self.reset()
 
     def update(self, action_label, ):
         '''
