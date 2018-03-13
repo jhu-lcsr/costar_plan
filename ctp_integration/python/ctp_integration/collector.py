@@ -1,4 +1,5 @@
 
+import matplotlib.pyplot as plt
 import numpy as np
 import PyKDL as kdl
 import rospy 
@@ -105,7 +106,7 @@ class DataCollector(object):
 
     def _rgbCb(self, msg):
         try:
-            cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+            cv_image = self._bridge.imgmsg_to_cv2(msg, "rgb8")
             self.rgb_img = np.asarray(cv_image)
             #print(self.rgb_img)
         except CvBridgeError as e:
@@ -157,6 +158,9 @@ class DataCollector(object):
         '''
         Save function that wraps data set access.
         '''
+        for k, v in self.data.items():
+            print(k, np.array(v).shape)
+        print(self.data["label"])
 
         # for now all examples are considered a success
         self.writer.write(self.data, seed, result)
@@ -217,6 +221,9 @@ class DataCollector(object):
         self.data["dq"].append(np.copy(self.dq)) # joint velocuity
         self.data["pose"].append(ee_xyz + ee_quat) # end effector pose (6 DOF)
         self.data["camera"].append(c_xyz + c_quat) # camera pose (6 DOF)
+        #plt.figure()
+        #plt.imshow(self.rgb_img)
+        #plt.show()
         self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
 
         # TODO(cpaxton): 
