@@ -23,6 +23,7 @@ from .discriminator import Discriminator
 from .secondary import Secondary
 
 # Jigsaws stuff
+from .dvrk import *
 from .pretrain_image_jigsaws import PretrainImageJigsaws
 from .pretrain_image_jigsaws_gan import PretrainImageJigsawsGan
 from .conditional_image_jigsaws import ConditionalImageJigsaws
@@ -30,6 +31,7 @@ from .conditional_image_gan_jigsaws import ConditionalImageGanJigsaws
 from .discriminator import JigsawsDiscriminator
 
 # Husky stuff
+from .husky import *
 from .husky_sampler import HuskyRobotMultiPredictionSampler
 from .pretrain_image_husky import PretrainImageAutoencoderHusky
 from .pretrain_image_husky_gan import PretrainImageHuskyGan
@@ -166,6 +168,12 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = JigsawsDiscriminator(True, taskdef,
                     features=features,
                     model=model, **kwargs)
+        # Global setup for all JIGSAWS data:
+        # - images are set up as jpegs
+        # - number of options, etc.
+        model_instance.load_jpeg = True
+        model_instance.num_options = SuturingNumOptions()
+
     elif features == "husky":
         '''
         Husky simulator. This is a robot moving around on a 2D plane, so our
@@ -213,6 +221,10 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = HuskySecondary(taskdef,
                     features=features,
                     model=model, **kwargs)
+
+        model_instance.load_jpeg = False
+        model_instance.num_options = HuskyNumOptions()
+        model_instance.null_option = HuskyNullOption()
     
     # If we did not create a model then die.
     if model_instance is None:

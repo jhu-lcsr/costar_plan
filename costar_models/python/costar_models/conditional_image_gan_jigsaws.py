@@ -28,8 +28,6 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
     def __init__(self, *args, **kwargs):
 
         super(ConditionalImageGanJigsaws, self).__init__(*args, **kwargs)
-
-        self.num_options = 16
         self.save_encoder_decoder = self.retrain
         planner.PERMANENT_DROPOUT = True
 
@@ -119,7 +117,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         goal_image2, _ = GetNextGoal(goal_image, label)
 
         # Extend image_0 to full length of sequence
-        image0 = image[0,:,:,:]
+        image0 = image[0]
         length = image.shape[0]
         image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
         return [image0, image, label, goal_label], [goal_image, goal_image2]
