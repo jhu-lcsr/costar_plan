@@ -132,8 +132,6 @@ def GetUpdate(collector):
         if "failure" in res.ack.lower():
             rospy.logerr(res.ack)
             return False
-        else:
-            return True
         res2 = servo_to_js(MakeServoToJointStateRequest(q0))
         if "failure" in res2.ack.lower():
             rospy.logerr(res2.ack)
@@ -148,7 +146,7 @@ def GetStackManager(collector):
     release = GetSmartReleaseService()
 
     for color in colors:
-        name = "1grab_%s"%color
+        name = "1:grab_%s"%color
         req = _makeSmartGraspRequest(color)
         sm.addRequest(None, name, grasp, req)
 
@@ -156,7 +154,7 @@ def GetStackManager(collector):
             if color2 == color:
                 continue
             else:
-                name2 = "2place_%s_on_%s"%(color,color2)
+                name2 = "2:place_%s_on_%s"%(color,color2)
                 req2 = _makeSmartReleaseRequest(color2, 1)
                 sm.addRequest(name, name2, release, req2)
 
@@ -164,10 +162,10 @@ def GetStackManager(collector):
                     if color3 in [color, color2]:
                         continue
                     else:
-                        name3 = "3grab_%s"%color3
+                        name3 = "3:grab_%s"%color3
                         req3 = _makeSmartGraspRequest(color3)
                         sm.addRequest(name2, name3, grasp, req3)
-                        name4 = "4place_%s_on_%s"%(color3,color2)
+                        name4 = "4:place_%s_on_%s%s"%(color3,color2,color)
                         req4 = _makeSmartReleaseRequest(color2, 2)
                         sm.addRequest(name3, name4, release, req4)
 
