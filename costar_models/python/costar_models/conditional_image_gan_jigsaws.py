@@ -47,8 +47,9 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         # =====================================================================
         # Load weights and stuff. We'll load the GAN version of the weights.
-        encoder = MakeJigsawsImageEncoder(self, img_shape, perm_drop=True)
-        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape, perm_drop=True)
+        encoder = MakeJigsawsImageEncoder(self, img_shape, perm_drop=False)
+        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape,
+                perm_drop=False)
         LoadEncoderWeights(self, encoder, decoder, gan=True)
 
         # =====================================================================
