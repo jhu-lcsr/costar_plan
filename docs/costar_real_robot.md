@@ -12,6 +12,65 @@ roslaunch ctp_integration bringup.launch
 
 This is configured specifically to work with the JHU UR5, and may not work (or may require some adaptation) if you want to use it with a different robot.
 
+Optionally, you can start the instructor UI to make it easier to set up tasks. This command is:
+```
+roslaunch instructor_core instructor.launch
+```
+
+The CoSTAR UI is designed to make data collection and specifying simple tasks easier. 
+
+
+## Run Data Collection
+
+The command for data collection is:
+```
+rosrun ctp_integration run.py
+```
+
+For example, to start collection for 100 samples:
+```
+# Use the --execute flag to loop for a certain number of trials
+rosrun ctp_integration run.py --execute 100
+```
+
+To restart partway through:
+```
+# Start at example number 38
+rosrun ctp_integration run.py --execute 100 --start 38
+```
+
+### About the Data Collection Tool
+
+Data collection will call the `update()` function after every action, which saves the current joint states, servos the arm out of the way, and updates scene information before returning the arm to its original position.
+
+The data collection tool by default saves `.h5f` files to the `$HOME/.costar/data` directory, though you may want to change this. It will save a number of different fields:
+
+```
+# Field and shape of output for a trial lasting 141 frames = 14.1 seconds
+('info', (141,))
+('object', (141,))
+('image', (141,))
+('pose', (141, 7))
+('label', (141,))
+('q', (141, 6))
+('camera', (141, 7))
+('labels_to_name', (40,))
+('object_pose', (141, 7))
+('dq', (141, 6))
+```
+
+These are:
+  - `info`: string description of which stage of SmartMove (high-level action) the robot is in
+  - `object`: unique object ID, assigned via perception system
+  - `image`: compressed image (JPEG encoding)
+  - `pose`: x,y,z + quaternion, end effector pose relative to robot base
+  - `label`: integer index into action labels list
+  - `q`: current joint positions
+  - `camera`: x,y,z, + quaternion, camera pose relative to robot base
+  - `labels_to_name`: list of strings for action name
+  - `object_pose`: x,y,z + quaternion, pose of object being manipulated if possible
+  - `dq`: current joint velocities
+
 ## Debugging
 
 ### Debugging CoSTAR Arm

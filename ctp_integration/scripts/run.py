@@ -174,6 +174,7 @@ def main():
                     reward = 0.
                 break
 
+        collector.save(idx, reward)
         print("------------------------------------------------------------")
         print("Finished one round of data collection. Please reset the test")
         print("environment before continuing.")
@@ -185,7 +186,6 @@ def main():
             input("Press Enter to continue...")
         except SyntaxError as e:
             pass
-        collector.save(idx, reward)
 
 if __name__ == '__main__':
     try:
