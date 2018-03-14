@@ -99,6 +99,7 @@ def _makeSmartPlaceRequest(poses, name):
     return req
 
 def GetHome():
+    js_home = GetPlanToHomeService()
     pose_home = kdl.Frame(
             kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
             kdl.Vector(0.174, -0.157, 0.682))
@@ -110,9 +111,13 @@ def GetHome():
     def home():
         servo_mode("servo")
         open_gripper()
-        res = move(req)
-        if "failure" in res.ack.lower():
-            rospy.logerr(res.ack)
+        res1 = js_home(ServoToPoseRequest())
+        if "failure" in res1.ack.lower():
+            rospy.logerr(res1.ack)
+            sys.exit(-1)
+        res2 = move(req)
+        if "failure" in res2.ack.lower():
+            rospy.logerr("move failed:" + str(res2.ack))
             sys.exit(-1)
     return home
 

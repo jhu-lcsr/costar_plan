@@ -227,7 +227,7 @@ class DataCollector(object):
         self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
 
         # TODO(cpaxton): 
-        if not action_label in self.labels:
+        if not self.task.validLabel(action_label):
             raise RuntimeError("action not recognized: " + str(action_label))
 
         action = self.task.index(action_label)

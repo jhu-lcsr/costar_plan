@@ -42,9 +42,13 @@ class StackManager(object):
                 self.children[parent] = []
             self.children[parent].append(name)
             self.labels.add(name.split(':')[-1])
+            self.labels_list = list(self.labels)
 
     def index(self, label):
-        return self.labels.index(label.split(':')[-1])
+        return self.labels_list.index(label.split(':')[-1])
+
+    def validLabel(self, label):
+        return label.split(':')[-1] in self.labels
 
     def tick(self):
         # Check to make sure everything is ok
