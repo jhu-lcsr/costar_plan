@@ -12,7 +12,7 @@ import os
 import keras.backend as K
 import keras.optimizers as optimizers
 
-from datasets.image import *
+from .datasets.image import *
 from .plotting import *
 
 class AbstractAgentBasedModel(object):
