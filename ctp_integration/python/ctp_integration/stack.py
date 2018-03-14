@@ -128,7 +128,7 @@ def GetUpdate(observe, collector):
     observe: callable functor that will call object detection
     collector: wrapper class aggregating robot info including joint state
     '''
-    servo_to_js = GetServoToJointStateService()
+    go_to_js = GetPlanToJointStateService()
     pose_home = kdl.Frame(
             kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
             kdl.Vector(0.174, -0.157, 0.682))
@@ -145,7 +145,7 @@ def GetUpdate(observe, collector):
             sys.exit(-1)
             return False
         observe()
-        res2 = servo_to_js(MakeServoToJointStateRequest(q0))
+        res2 = go_to_js(MakeServoToJointStateRequest(q0))
         if "failure" in res2.ack.lower():
             rospy.logerr(res2.ack)
             return False

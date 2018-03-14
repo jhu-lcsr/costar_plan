@@ -47,6 +47,11 @@ def GetServoToJointStateService(srv="/costar/ServoToJointState"):
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, ServoToJointState)
 
+def GetServoToJointStateService():
+    srv = "/costar/PlanToJointState":
+    rospy.wait_for_service(srv)
+    return rospy.ServiceProxy(srv, ServoToJointState)
+
 def GetPlanToPoseService():
     srv = "/costar/PlanToPose"
     rospy.wait_for_service(srv)
@@ -70,4 +75,6 @@ def GetServoModeService():
 def MakeServoToJointStateRequest(position):
     req = ServoToJointStateRequest()
     req.target.position = position
+    req.vel = 0.5
+    req.acc = 0.5
     return req
