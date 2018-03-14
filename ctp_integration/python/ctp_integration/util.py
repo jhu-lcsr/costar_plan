@@ -52,6 +52,11 @@ def GetPlanToPoseService():
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, ServoToPose)
 
+def GetPlanToHomeService():
+    srv = "/costar/PlanToHome"
+    rospy.wait_for_service(srv)
+    return rospy.ServiceProxy(srv, ServoToPose)
+
 def GetOpenGripperService():
     srv = "/costar/gripper/open"
     rospy.wait_for_service(srv)

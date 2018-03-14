@@ -124,25 +124,18 @@ def main():
         print(task.nodeSummary())
         print(task.children['ROOT()'])
 
-    collector = None
-    if args.mode == "show":
-        from costar_task_plan.tools import showTask
-        showTask(task)
-        return
-    elif args.mode == "collect":
-        collector = DataCollector(
-                data_root="~/.costar/data",
-                rate=args.rate,
-                data_type="h5f",
-                robot_config=UR5_C_MODEL_CONFIG,
-                camera_frame="camera_link",
-                tf_listener=tf_buffer)
-
-    stack_task = GetStackManager(collector)
-    collector.setLabels(stack_task.labels)
+    stack_task = GetStackManager()
+    collector = DataCollector(
+            task=stack_task,
+            data_root="~/.costar/data",
+            rate=args.rate,
+            data_type="h5f",
+            robot_config=UR5_C_MODEL_CONFIG,
+            camera_frame="camera_link",
+            tf_listener=tf_buffer)
     rate = rospy.Rate(args.rate)
     home = GetHome()
-    update = GetUpdate(collector) # uses collector because it listens for js
+    update = GetUpdate(observe, collector) # uses collector because it listens for js
     stack_task.setUpdate(update) # set fn to call after actions
 
     for i in range(args.execute):

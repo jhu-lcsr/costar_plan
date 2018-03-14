@@ -12,8 +12,7 @@ class StackManager(object):
     '''
     objs = ["red_cube", "green_cube", "blue_cube", "yellow_cube"]
 
-    def __init__(self, collector=None, *args, **kwargs):
-        self.collector = collector
+    def __init__(self, *args, **kwargs):
         self.service = ServiceCaller(*args, **kwargs)
         self.detect = GetDetectObjectsService()
         self.place = GetSmartPlaceService()
@@ -42,7 +41,10 @@ class StackManager(object):
             if parent not in self.children:
                 self.children[parent] = []
             self.children[parent].append(name)
-            self.labels.add(name)
+            self.labels.add(name.split(':')[-1])
+
+    def index(self, label):
+        return self.labels.index(label.split(':')[-1])
 
     def tick(self):
         # Check to make sure everything is ok

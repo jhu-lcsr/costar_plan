@@ -35,6 +35,7 @@ class DataCollector(object):
     object_topic = "/costar/SmartMove/object"
 
     def __init__(self, robot_config,
+            task,
             data_type="h5f",
             rate=10,
             data_root=".",
@@ -99,7 +100,7 @@ class DataCollector(object):
 
         self._bridge = CvBridge()
  
-        self.labels = set()
+        self.task = task
         self.reset()
 
         self.verbosity = 1
@@ -126,9 +127,8 @@ class DataCollector(object):
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
-    def setLabels(self, labels):
-        print("Setting labels to:", labels)
-        self.labels = list(labels)
+    def setTask(self, task):
+        self.task = task
 
     def reset(self):
         self.data = {}
@@ -141,7 +141,7 @@ class DataCollector(object):
         self.data["info"] = []
         self.data["object"] = []
         self.data["object_pose"] = []
-        self.data["labels_to_name"] = list(self.labels)
+        self.data["labels_to_name"] = list(self.task.labels)
         #self.data["depth"] = []
 
         self.info = None
@@ -230,7 +230,7 @@ class DataCollector(object):
         if not action_label in self.labels:
             raise RuntimeError("action not recognized: " + str(action_label))
 
-        action = self.labels.index(action_label)
+        action = self.task.index(action_label)
         self.data["label"].append(action) # integer code for high-level action
         self.data["info"].append(self.info) # string description of current step
         self.data["object"].append(self.object)

@@ -116,7 +116,13 @@ def GetHome():
             sys.exit(-1)
     return home
 
-def GetUpdate(collector):
+def GetUpdate(observe, collector):
+    '''
+    Parameters:
+    -----------
+    observe: callable functor that will call object detection
+    collector: wrapper class aggregating robot info including joint state
+    '''
     servo_to_js = GetServoToJointStateService()
     pose_home = kdl.Frame(
             kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
@@ -131,17 +137,20 @@ def GetUpdate(collector):
         res = move(req)
         if "failure" in res.ack.lower():
             rospy.logerr(res.ack)
+            sys.exit(-1)
             return False
+        observe()
         res2 = servo_to_js(MakeServoToJointStateRequest(q0))
         if "failure" in res2.ack.lower():
             rospy.logerr(res2.ack)
             return False
+            sys.exit(-1)
         else:
             return True
     return update
 
-def GetStackManager(collector):
-    sm = StackManager(collector)
+def GetStackManager():
+    sm = StackManager()
     grasp = GetSmartGraspService()
     release = GetSmartReleaseService()
 
@@ -154,7 +163,7 @@ def GetStackManager(collector):
             if color2 == color:
                 continue
             else:
-                name2 = "2:place_%s_on_%s"%(color,color2)
+                name2 = "2%s:place_%s_on_%s"%(color2,color,color2)
                 req2 = _makeSmartReleaseRequest(color2, 1)
                 sm.addRequest(name, name2, release, req2)
 
@@ -162,10 +171,10 @@ def GetStackManager(collector):
                     if color3 in [color, color2]:
                         continue
                     else:
-                        name3 = "3:grab_%s"%color3
+                        name3 = "3%s%s:grab_%s"%(color,color2,color3)
                         req3 = _makeSmartGraspRequest(color3)
                         sm.addRequest(name2, name3, grasp, req3)
-                        name4 = "4:place_%s_on_%s%s"%(color3,color2,color)
+                        name4 = "4%s%s:place_%s_on_%s%s"%(color,color2,color3,color2,color)
                         req4 = _makeSmartReleaseRequest(color2, 2)
                         sm.addRequest(name3, name4, release, req4)
 
