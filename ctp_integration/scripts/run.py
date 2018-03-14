@@ -142,6 +142,9 @@ def main():
     collector.setLabels(stack_task.labels)
     rate = rospy.Rate(args.rate)
     home = GetHome()
+    update = GetUpdate(collector) # uses collector because it listens for js
+    stack_task.setUpdate(update) # set fn to call after actions
+
     for i in range(args.execute):
         home()
         print("Executing trial %d..."%(i))

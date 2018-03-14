@@ -21,6 +21,13 @@ class StackManager(object):
         self.reqs = {}
         self.children = {}
         self.labels = set()
+        self.update = self._update()
+
+    def _update(self):
+        pass
+
+    def setUpdate(self, update_fn):
+        self.update = update_fn
 
     def reset(self):
         self.done = False
@@ -66,6 +73,7 @@ class StackManager(object):
             idx = np.random.randint(len(children))
             next_action = children[idx]
             srv, req = self.reqs[next_action]
+            self.update()
             if not self.service(srv, req):
                 raise RuntimeError('could not start service: ' + next_action)
             self.current = next_action

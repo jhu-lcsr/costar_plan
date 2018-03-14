@@ -71,12 +71,12 @@ def GetGraspPose():
             kdl.Vector(-0.22, -0.02, -0.01))
     return pose
 
-def GetStackPose():
+def GetStackPose(steps=1):
     # Grasp from the top, centered (roughly)
     pose = kdl.Frame(
             kdl.Rotation.Quaternion(1.,0.,0.,0.),
             kdl.Vector(-0.22, -0.02, -0.01))
-    pose = pose * kdl.Frame(kdl.Vector(-0.05,0.,0.))
+    pose = pose * kdl.Frame(kdl.Vector(-0.0508*steps,0.,0.))
     return pose
 
 def GetTowerPoses():
@@ -116,13 +116,39 @@ def GetHome():
             sys.exit(-1)
     return home
 
+def GetUpdate(collector):
+    servo_to_js = GetServoToJointStateService()
+    pose_home = kdl.Frame(
+            kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
+            kdl.Vector(0.174, -0.157, 0.682))
+    req = ServoToPoseRequest()
+    req.target = pm.toMsg(pose_home)
+    move = GetPlanToPoseService()
+    servo_mode = GetServoModeService()
+    def update():
+        q0 = collector.q
+        servo_mode("servo")
+        res = move(req)
+        if "failure" in res.ack.lower():
+            rospy.logerr(res.ack)
+            return False
+        else:
+            return True
+        res2 = servo_to_js(MakeServoToJointStateRequest(q0))
+        if "failure" in res2.ack.lower():
+            rospy.logerr(res2.ack)
+            return False
+        else:
+            return True
+    return update
+
 def GetStackManager(collector):
     sm = StackManager(collector)
     grasp = GetSmartGraspService()
     release = GetSmartReleaseService()
 
     for color in colors:
-        name = "grab_%s"%color
+        name = "1grab_%s"%color
         req = _makeSmartGraspRequest(color)
         sm.addRequest(None, name, grasp, req)
 
@@ -130,9 +156,20 @@ def GetStackManager(collector):
             if color2 == color:
                 continue
             else:
-                name2 = "place_%s_on_%s"%(color,color2)
-                req2 = _makeSmartReleaseRequest(color2)
+                name2 = "2place_%s_on_%s"%(color,color2)
+                req2 = _makeSmartReleaseRequest(color2, 1)
                 sm.addRequest(name, name2, release, req2)
+
+                for color3 in colors:
+                    if color3 in [color, color2]:
+                        continue
+                    else:
+                        name3 = "3grab_%s"%color3
+                        req3 = _makeSmartGraspRequest(color3)
+                        sm.addRequest(name2, name3, grasp, req3)
+                        name4 = "4place_%s_on_%s"%(color3,color2)
+                        req4 = _makeSmartReleaseRequest(color2, 2)
+                        sm.addRequest(name3, name4, release, req4)
 
     return sm
 
@@ -149,7 +186,7 @@ def _makeSmartGraspRequest(color):
     req.backoff = 0.05
     return req
 
-def _makeSmartReleaseRequest(color):
+def _makeSmartReleaseRequest(color,steps=1):
     '''
     Helper function for making the place call
     '''
@@ -158,7 +195,7 @@ def _makeSmartReleaseRequest(color):
             threshold=0.015,
             greater=True)
     req = SmartMoveRequest()
-    req.pose = pm.toMsg(GetStackPose())
+    req.pose = pm.toMsg(GetStackPose(steps))
     if not color in colors:
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color

@@ -6,6 +6,7 @@ This function contains some helpful functions for different purposes.
 from std_srvs.srv import Empty as EmptySrv
 from costar_robot_msgs.srv import SmartMove
 from costar_robot_msgs.srv import ServoToJointState
+from costar_robot_msgs.srv import ServoToJointStateRequest
 from costar_robot_msgs.srv import ServoToPose, SetServoMode
 
 import rospy
@@ -61,3 +62,7 @@ def GetServoModeService():
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, SetServoMode)
 
+def MakeServoToJointStateRequest(position):
+    req = ServoToJointStateRequest()
+    req.target.position = position
+    return req
