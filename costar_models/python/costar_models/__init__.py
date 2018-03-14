@@ -16,14 +16,22 @@ __all__ = [
 
 from .gmm import *
 
-# models and utils
+# model utils
 from .robot_multi_models import *
 from .planner import *
+from .dvrk import *
+from .multi import *
+from .husky import *
+from .costar import *
 
 # =============================================================================
 # More models
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
+from .conditional_image_husky import ConditionalImageHusky
+from .conditional_image_husky_gan import ConditionalImageHuskyGan
+from .conditional_image_jigsaws import ConditionalImageJigsaws
+from .conditional_image_jigsaws_gan import ConditionalImageJigsawsGan
 
 # =============================================================================
 # Models for visualizing and generating results

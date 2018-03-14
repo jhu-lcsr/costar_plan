@@ -173,6 +173,16 @@ def MakeModel(features, model, taskdef, **kwargs):
         # - number of options, etc.
         model_instance.load_jpeg = True
         model_instance.num_options = SuturingNumOptions()
+    elif features == "costar":
+        '''
+        These are CoSTAR models -- meant to be used with data collected from the
+        real robot.
+        '''
+        if model == "pretrain_image_encoder":
+            model_instance = PretrainImageCostar(taskdef,
+                    model=model,
+                    features=features,
+                    **kwargs)
 
     elif features == "husky":
         '''
