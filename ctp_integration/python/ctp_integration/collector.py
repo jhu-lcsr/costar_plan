@@ -160,6 +160,7 @@ class DataCollector(object):
         '''
         for k, v in self.data.items():
             print(k, np.array(v).shape)
+        print(self.data["labels_to_name"])
         print(self.data["label"])
 
         # for now all examples are considered a success
