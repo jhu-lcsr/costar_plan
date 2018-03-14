@@ -55,7 +55,7 @@ def main(args):
     model_arg = args['model']
 
     model = MakeModel(taskdef=None, **args)
-    model.validate = True
+    #model.validate = True
     model.load(world=None,**data)
     train_generator = model.trainGenerator(dataset)
     test_generator = model.testGenerator(dataset)
@@ -81,7 +81,7 @@ def main(args):
         ht = 96
         w = 128
         imgpos = [(70,3), (4,130), (102,130)]
-        imgw, imgh = 260, 260
+        imgw, imgh = 260, 200
     for fnum, filename in enumerate(dataset.test):
         print(fnum, filename)
         data = dataset.loadFile(filename)
