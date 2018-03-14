@@ -73,6 +73,7 @@ class StackManager(object):
         else:
             self.ok = False
             self.done = True
+            rospy.logerr(self.service.result.ack)
 
         if not self.done:
             children = self.children[self.current]

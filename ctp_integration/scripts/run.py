@@ -160,6 +160,7 @@ def main():
             rate.sleep()
 
             if done:
+                rospy.logwarn("DONE WITH: " + str(stack_task.ok))
                 if stack_task.ok:
                     # We should actually check results here
                     reward = 1.
