@@ -50,7 +50,7 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         # =====================================================================
         # Create encoded state
-        h = encoder(img_in)
+        h = encoder([img0_in, img_in])
 
         option_in = Input((1,), name="option_in")
         option_in2 = Input((1,), name="option_in2")

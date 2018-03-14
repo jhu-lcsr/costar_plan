@@ -49,8 +49,7 @@ class ConditionalImageHusky(ConditionalImage):
 
         # =====================================================================
         # Load the arm and gripper representation
-        h = encoder([img_in])
-        h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
@@ -62,8 +61,8 @@ class ConditionalImageHusky(ConditionalImage):
         y2 = Flatten()(y2)
         x = h
         tform = self._makeTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
+        x = tform([h,y])
+        x2 = tform([x,y2])
         image_out = decoder([x])
         image_out2 = decoder([x2])
 

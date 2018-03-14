@@ -82,8 +82,7 @@ class ConditionalImageGan(PretrainImageGan):
             z2 = Input((self.noise_dim,), name="z2_in")
             ins += [z1, z2]
 
-        h = encoder([img_in])
-        h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         # =====================================================================
         # Actually get the right outputs
@@ -91,9 +90,9 @@ class ConditionalImageGan(PretrainImageGan):
         y2 = Flatten()(OneHot(self.num_options)(next_option2_in))
         x = h
         tform = self._makeTransform(perm_drop=True)
-        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        l = [h, y, z1] if self.use_noise else [h, y]
         x = tform(l)
-        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y2]
+        l = [x, y2, z2] if self.use_noise else [x, y2]
         x2 = tform(l)
         image_out, image_out2 = decoder([x]), decoder([x2])
 
