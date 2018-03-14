@@ -31,7 +31,7 @@ from .conditional_image_gan import ConditionalImageGan
 from .conditional_image_husky import ConditionalImageHusky
 from .conditional_image_husky_gan import ConditionalImageHuskyGan
 from .conditional_image_jigsaws import ConditionalImageJigsaws
-from .conditional_image_jigsaws_gan import ConditionalImageJigsawsGan
+from .conditional_image_gan_jigsaws import ConditionalImageGanJigsaws
 
 # =============================================================================
 # Models for visualizing and generating results

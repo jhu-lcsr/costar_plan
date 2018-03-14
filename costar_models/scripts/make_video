@@ -55,7 +55,7 @@ def main(args):
     model_arg = args['model']
 
     model = MakeModel(taskdef=None, **args)
-    model.validate = True
+    #model.validate = True
     model.load(world=None,**data)
     train_generator = model.trainGenerator(dataset)
     test_generator = model.testGenerator(dataset)
