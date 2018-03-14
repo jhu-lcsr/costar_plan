@@ -46,6 +46,10 @@ def getArgs():
                         type=int,
                         help="execute this many loops",
                         default=1)
+    parser.add_argument("--start",
+                        type=int,
+                        help="start from this index",
+                        default=1)
     parser.add_argument("--iter","-i",
                         default=0,
                         type=int,
@@ -138,9 +142,11 @@ def main():
     update = GetUpdate(observe, collector) # uses collector because it listens for js
     stack_task.setUpdate(update) # set fn to call after actions
 
-    for i in range(args.execute):
+    start = max(0, args.start-1)
+    for i in range(start, args.execute):
         home()
-        print("Executing trial %d..."%(i))
+        idx = i + 1
+        print("Executing trial %d..."%(idx))
         _, world = observe()
         # NOTE: not using CTP task execution framework right now
         # It's just overkill
@@ -168,13 +174,18 @@ def main():
                     reward = 0.
                 break
 
+        print("------------------------------------------------------------")
         print("Finished one round of data collection. Please reset the test")
         print("environment before continuing.")
+        print("")
+        print("Example number:", idx, "/", args.execute)
+        print("Success:", reward)
+        print("")
         try:
             input("Press Enter to continue...")
         except SyntaxError as e:
             pass
-        collector.save(i+1, reward)
+        collector.save(idx, reward)
 
 if __name__ == '__main__':
     try:

@@ -84,6 +84,10 @@ class DataCollector(object):
         self.depth_img = None
         self.rgb_img = None
 
+        self._bridge = CvBridge()
+        self.task = task
+        self.reset()
+
         #self._camera_depth_info_sub = rospy.Subscriber(camera_depth_info_topic, CameraInfo, self._depthInfoCb)
         #self._camera_rgb_info_sub = rospy.Subscriber(camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
         self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
@@ -97,12 +101,7 @@ class DataCollector(object):
         self._smartmove_object_sub = rospy.Subscriber(self.object_topic,
                 String,
                 self._objectCb)
-
-        self._bridge = CvBridge()
  
-        self.task = task
-        self.reset()
-
         self.verbosity = 1
 
     def _rgbCb(self, msg):
