@@ -42,7 +42,7 @@ class DataCollector(object):
         Set up the writer (to save trials to disk) and subscribers (to process
         input from ROS and store the current state).
         '''
-
+        self.verbosity = 0
 
         if tf_listener is not None:
             self.tf_listener = tf_listener
