@@ -43,12 +43,13 @@ def GetSmartReleaseService():
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, SmartMove)
 
-def GetServoToJointStateService(srv="/costar/ServoToJointState"):
+def GetServoToJointStateService():
+    srv = "/costar/ServoToJointState"
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, ServoToJointState)
 
-def GetServoToJointStateService():
-    srv = "/costar/PlanToJointState":
+def GetPlanToJointStateService():
+    srv = "/costar/PlanToJointState"
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, ServoToJointState)
 
@@ -76,5 +77,5 @@ def MakeServoToJointStateRequest(position):
     req = ServoToJointStateRequest()
     req.target.position = position
     req.vel = 0.5
-    req.acc = 0.5
+    req.accel = 0.5
     return req
