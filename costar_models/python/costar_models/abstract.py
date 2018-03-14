@@ -361,12 +361,12 @@ class AbstractAgentBasedModel(object):
         if self.load_jpeg:
             for i, f in enumerate(features):
                 if str(f.dtype)[:2] == "|S":
-                f = ConvertJpegListToNumpy(np.squeeze(f))
-                #print("converted", type(f), f.shape, f.dtype)
-                features[i] = self.scale(f)
+                    f = ConvertJpegListToNumpy(np.squeeze(f))
+                    #print("converted", type(f), f.shape, f.dtype)
+                    features[i] = self.scale(f)
             for i, f in enumerate(targets):
                 if str(f.dtype)[:2] == "|S":
-                targets[i] = self.scale(ConvertJpegListToNumpy(np.squeeze(f)))
+                    targets[i] = self.scale(ConvertJpegListToNumpy(np.squeeze(f)))
 
     def save(self):
         '''
