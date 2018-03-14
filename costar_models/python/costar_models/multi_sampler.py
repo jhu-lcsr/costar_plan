@@ -309,7 +309,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         transform model
         '''
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
-        h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
         # Never use the BN here?
         bn = self.use_batchnorm
@@ -326,10 +325,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # 2 x "decoder" convolutions
         x = AddConv2D(h, 64, [1,1], 1, 0., **kwargs)
-        x0 = AddConv2D(h0, 64, [1,1], 1, 0., **kwargs)
+        #x0 = AddConv2D(h0, 64, [1,1], 1, 0., **kwargs)
 
         # Combine the hidden state observations
-        x = Concatenate()([x, x0])
+        #x = Concatenate()([x, x0])
         # 1 convolution to merge h, h0
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, **kwargs) # Removed this dropout
 
@@ -392,7 +391,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 activation="sigmoid", # outputs in [0, 1]
                 dropout_rate=0.)
 
-        l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        #l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        l = [h, option, z] if self.use_noise else [h, option]
         self.transform_model = Model(l, x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
         return self.transform_model

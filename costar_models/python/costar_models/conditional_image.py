@@ -79,8 +79,7 @@ class ConditionalImage(PredictionSampler2):
 
         # =====================================================================
         # Load the arm and gripper representation
-        h = encoder([img_in])
-        h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         if self.validate:
             self.loadValidationModels(arm_size, gripper_size, h0, h)
@@ -95,8 +94,8 @@ class ConditionalImage(PredictionSampler2):
         y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
 
         tform = self._makeTransform() if not self.dense_transform else self._makeDenseTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
+        x = tform([h,y])
+        x2 = tform([x,y2])
 
         image_out, image_out2 = decoder([x]), decoder([x2])
 

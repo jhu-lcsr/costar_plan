@@ -355,6 +355,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         disc: is this being created as part of a discriminator network? If so,
               we handle things slightly differently.
         '''
+        img0 = Input(img_shape,name="img0_encoder_in")
         img = Input(img_shape,name="img_encoder_in")
         bn = not disc and self.use_batchnorm
         dr = self.dropout_rate
@@ -367,7 +368,12 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 "activation" : self.activation_fn,
                 "perm_drop" : perm_drop,
                 }
+
         x = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
+        x0 = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
+
+        x = Concatenate()([x, x0])
+
         x = AddConv2D(x,  32, [5,5], 2, dr, **kwargs)
         x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
         x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
@@ -397,7 +403,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             self.hidden_shape = (self.hidden_dim, self.hidden_dim, self.encoder_channels)
 
         if not disc:
-            image_encoder = Model([img], x, name="Ienc")
+            image_encoder = Model([img0, img], x, name="Ienc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_encoder = image_encoder
         else:
@@ -405,7 +411,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             x = Flatten()(x)
             x = AddDense(x, 512, "lrelu", dr, output=True, bn=bnv, perm_drop=perm_drop)
             x = AddDense(x, self.num_options, "softmax", 0., output=True, bn=bnv, perm_drop=perm_drop)
-            image_encoder = Model([img], x, name="Idisc")
+            image_encoder = Model([img0, img], x, name="Idisc")
             image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
             self.image_discriminator = image_encoder
         return image_encoder
