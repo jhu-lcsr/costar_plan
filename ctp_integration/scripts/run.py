@@ -168,8 +168,13 @@ def main():
                     reward = 0.
                 break
 
-        if collector is not None:
-            collector.save(i, reward)
+        print("Finished one round of data collection. Please reset the test")
+        print("environment before continuing.")
+        try:
+            input("Press Enter to continue...")
+        except SyntaxError as e:
+            pass
+        collector.save(i+1, reward)
 
 if __name__ == '__main__':
     try:
