@@ -8,13 +8,13 @@ project(ctp_integration)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  costar_bringup
-  costar_objrec_msgs
+#  costar_bringup
+#  costar_objrec_msgs
   costar_plan_msgs
   costar_planning_interface
-  costar_robot_msgs
+#  costar_robot_msgs
   costar_task_plan
-  predicator_msgs
+#  predicator_msgs
 )
 
 ## System dependencies are found with CMake's conventions

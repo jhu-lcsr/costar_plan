@@ -27,7 +27,6 @@ class ConditionalImageJigsaws(ConditionalImage):
 
     def __init__(self, *args, **kwargs):
         super(ConditionalImageJigsaws, self).__init__(*args, **kwargs)
-        self.num_options = SuturingNumOptions()
         self.PredictorCb = ImageWithFirstCb
 
     def _makeModel(self, image, *args, **kwargs):
@@ -63,8 +62,10 @@ class ConditionalImageJigsaws(ConditionalImage):
         h_dim = (12, 16)
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
-        x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
+        if not self.dense_transform:
+            tform = MakeJigsawsTransform(self, h_dim=(12,16))
+        else:
+            tform = self._makeDenseTransform(h_dim=(12, 16))
         l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
         x = tform(l)
         l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]
@@ -101,28 +102,27 @@ class ConditionalImageJigsaws(ConditionalImage):
         self.model = model
         self.model.summary()
 
-    def _getData(self, image, label, goal_image, goal_label,
+    def _getData(self, image, label, goal_idx, goal_label,
             prev_label, *args, **kwargs):
 
-        image = np.array(image) / 255.
-        goal_image = np.array(goal_image) / 255.
+        imgs, lbls, goal_idxs, goal_lbls, prev_lbls = image, label, goal_idx, goal_label, prev_label
+        goal_imgs = imgs[goal_idxs]
+        goal_imgs2, lbls2 = GetNextGoal(goal_imgs, lbls)
 
-        goal_image2, label2 = GetNextGoal(goal_image, label)
+        # Extend imgs_0 to full length of sequence
+        imgs0 = imgs[0]
+        length = imgs.shape[0]
+        imgs0 = np.tile(np.expand_dims(imgs0,axis=0),[length,1,1,1])
 
-        # Extend image_0 to full length of sequence
-        image0 = image[0,:,:,:]
-        length = image.shape[0]
-        image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
-
-        label_1h = np.squeeze(ToOneHot2D(label, self.num_options))
-        label2_1h = np.squeeze(ToOneHot2D(label2, self.num_options))
+        lbls_1h = np.squeeze(ToOneHot2D(lbls, self.num_options))
+        lbls2_1h = np.squeeze(ToOneHot2D(lbls2, self.num_options))
         if self.no_disc:
-            return ([image0, image, label, goal_label, prev_label],
-                    [goal_image,
-                     goal_image2,])
+            return ([imgs0, imgs, lbls, goal_lbls, prev_lbls],
+                    [goal_imgs,
+                     goal_imgs2,])
         else:
-            return ([image0, image, label, goal_label, prev_label],
-                    [goal_image,
-                     goal_image2,
-                     label2_1h,])
+            return ([imgs0, imgs, lbls, goal_lbls, prev_lbls],
+                    [goal_imgs,
+                     goal_imgs2,
+                     lbls2_1h,])
 

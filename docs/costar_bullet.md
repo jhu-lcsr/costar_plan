@@ -89,7 +89,7 @@ The goal of our hierarchical task learning is to be able to use symbolic high-le
 
 Our training data is sequences of task execution created with the `costar_bullet` simulation tool, as per the figure below.
 
-![Training Data](../photos/blocks_data.png)
+![Training Data](blocks_data.png)
 
 The tool lets us generate large amounts of task performances, with randomized high level (and eventually low level) actions.
 
@@ -99,7 +99,7 @@ The task is defined as a set of high- and low-level actions at various levels, g
 
 Here, the robot can grab one of several blocks. Grabbing a block is divided between aligning, approaching, and closing the gripper. We wish to define a task architecture like this one:
 
-![First stage of blocks task](../photos/blocks_task_1.png)
+![First stage of blocks task](blocks_task_1.png)
 
 The code below defines this simplest version of the task, creating both the action generators themselves (called "options"), and associated conditions. There are three differnt things we need to create:
   - options: these are the high-level actions; each one is a "generator" from which we can sample different policies and termination conditions.
@@ -212,7 +212,7 @@ Replace the options as necessary. Interesting things to change:
 
 It takes several thousand iterations to get this right. An example at about 500 iterations:
 
-![Example intermediate results](../photos/predictor_intermediate_results.png)
+![Example intermediate results](predictor_intermediate_results.png)
 
 You should be able to see the model learning something useful fairly early on, at least with a small data set. It just won't be perfect.
 
