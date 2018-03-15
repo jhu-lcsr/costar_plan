@@ -252,6 +252,21 @@ def segmentation_single_pixel_binary_accuracy(y_true, y_pred, name=None):
                                                  name='segmentation_single_pixel_binary_accuracy')
 
 
+def segmentation_single_pixel_mean_squared_error(y_true, y_pred, name=None):
+    return segmentation_single_pixel_measurement(y_true, y_pred, measurement=keras.losses.mean_squared_error,
+                                                 name='segmentation_single_pixel_mean_squared_error')
+
+
+def segmentation_single_pixel_mean_absolute_error(y_true, y_pred, name=None):
+    return segmentation_single_pixel_measurement(y_true, y_pred, measurement=keras.losses.mean_absolute_error,
+                                                 name='segmentation_single_pixel_mean_absolute_error')
+
+
+def segmentation_single_pixel_mean_squared_logarithmic_error(y_true, y_pred, name=None):
+    return segmentation_single_pixel_measurement(y_true, y_pred, measurement=keras.losses.mean_squared_logarithmic_error,
+                                                 name='segmentation_single_pixel_mean_squared_logarithmic_error')
+
+
 def mean_pred(y_true, y_pred):
     """ mean predicted value metric
 

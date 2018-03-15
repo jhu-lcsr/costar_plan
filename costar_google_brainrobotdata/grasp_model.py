@@ -1,6 +1,9 @@
 import tensorflow as tf
 
 import keras
+# https://github.com/aurora95/Keras-FCN
+# TODO(ahundt) move keras_fcn directly into this repository, into keras-contrib, or make a proper installer
+from keras.applications.nasnet import NASNetLarge
 from keras.applications.resnet50 import ResNet50
 from keras.applications.nasnet import NASNetMobile
 from keras import backend as K
@@ -31,6 +34,9 @@ from keras_contrib.applications.densenet import DenseNetFCN
 from keras_contrib.applications.densenet import DenseNet
 from keras_contrib.applications.densenet import DenseNetImageNet121
 from keras_contrib.applications.resnet import ResNet
+import keras_contrib.applications.fully_convolutional_networks as fcn
+import keras_contrib.applications.densenet as densenet
+import keras_tqdm
 
 from keras.engine import Layer
 
@@ -90,7 +96,7 @@ def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vect
 
     # Params
        images: a list of images to combine, must have equal dimensions
-       vector: the 1D vector to tile onto every pixel
+       vector: the 1D vector to tile onto every pixel.
        image_shape: Tuple with 3 entries defining the shape (batch, height, width)
            images should be expected to have, do not specify the number
            of batches.
@@ -216,7 +222,7 @@ def create_tree_roots(inputs=None, input_shapes=None, make_layer_fn=None, traina
 
 def classifier_block(input_tensor, include_top=True, top='classification',
                      classes=1, activation='sigmoid',
-                     input_shape=None, final_pooling=None, verbose=0):
+                     input_shape=None, final_pooling=None, name='', verbose=1):
     """ Performs the final Activation for the classification of a given problem.
 
     # Arguments
@@ -228,13 +234,13 @@ def classifier_block(input_tensor, include_top=True, top='classification',
     x = input_tensor
     if include_top and top == 'classification':
         if verbose:
-            print("    classification")
+            print("    classification of x: " + str(x))
         x = Dense(units=classes, activation=activation,
-                  kernel_initializer="he_normal", name='fc' + str(classes))(x)
+                  kernel_initializer="he_normal", name=name + 'fc' + str(classes))(x)
 
     elif include_top and top == 'segmentation':
         if verbose > 0:
-            print("    segmentation")
+            print("    segmentation of x: " + str(x))
         x = Conv2D(classes, (1, 1), activation='linear', padding='same')(x)
 
         if K.image_data_format() == 'channels_first':
@@ -259,7 +265,8 @@ def classifier_block(input_tensor, include_top=True, top='classification',
 
 
 def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0, include_top=True,
-              classes=1, activation='sigmoid', final_pooling=None, verbose=0):
+              classes=1, activation='sigmoid', final_pooling=None,
+              filters=64, dense_layers=0, name='', verbose=0):
     """ Perform final convolutions for decision making, then apply the classification block.
 
         The top block adds the final "decision making" layers
@@ -278,40 +285,35 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
         include_top: Whether to include the fully-connected
             layer at the top of the network. Also maps to require_flatten
             option in `keras.applications.imagenet_utils._obtain_input_shape()`.
+        dense_layers: Number of additional dense layers before the final dense layer.
+            The final dense layer defines number of output classes is created.
     """
+    print('top block top: ' + str(top))
     # Extra Global Average Pooling allows more flexible input dimensions
     # but only use if necessary.
     if top == 'classification':
         feature_shape = K.int_shape(x)
-        if (feature_shape[1] > 1 or feature_shape[2] > 1):
+        if len(feature_shape) == 4:
             x = GlobalMaxPooling2D()(x)
             # x = Flatten()(x)
 
-        # combined full connected layers
-        if dropout_rate is not None:
-            x = Dropout(dropout_rate)(x)
+        for i in range(dense_layers):
+            # combined full connected layers
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
 
-        x = Dense(64, activation='relu')(x)
-
-        if dropout_rate is not None:
-            x = Dropout(dropout_rate)(x)
-
-        x = Dense(64, activation='relu')(x)
+            x = Dense(filters, activation='relu')(x)
 
         if dropout_rate is not None:
             x = Dropout(dropout_rate)(x)
 
     elif top == 'segmentation':
 
-        if dropout_rate is not None:
-            x = Dropout(dropout_rate)(x)
+        for i in range(dense_layers):
+            if dropout_rate is not None:
+                x = Dropout(dropout_rate)(x)
 
-        x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
-
-        if dropout_rate is not None:
-            x = Dropout(dropout_rate)(x)
-
-        x = Conv2D(64, (1, 1), activation='relu', padding='same')(x)
+            x = Conv2D(filters, (1, 1), activation='relu', padding='same')(x)
 
         if dropout_rate is not None:
             x = Dropout(dropout_rate)(x)
@@ -330,25 +332,28 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             x = UpSampling2D(size=(iidim[0]/ccdim[0], iidim[1]/ccdim[1]))(x)
 
     # calculate the final classification output
-    x = classifier_block(x, include_top, top, classes, activation,
-                         output_image_shape, final_pooling, verbose)
+    x = classifier_block(x, include_top=include_top, top=top, classes=classes,
+                         activation=activation, input_shape=output_image_shape,
+                         final_pooling=final_pooling, name=name, verbose=verbose)
+    print('top_block x: ' + str(x))
     return x
 
 
-def dilated_late_concat_model(
+def hypertree_model(
         images=None, vectors=None,
         image_shapes=None, vector_shapes=None,
         dropout_rate=None,
-        vector_dense_filters=256,
-        dilation_rate=2,
         activation='sigmoid',
         final_pooling=None,
         include_top=True,
         top='segmentation',
+        top_block_filters=64,
         classes=1,
         output_shape=None,
         create_image_tree_roots_fn=None,
         create_vector_tree_roots_fn=None,
+        create_tree_trunk_fn=None,
+        top_block_dense_layers=0,
         verbose=0):
 
     if images is None and image_shapes is None:
@@ -368,31 +373,415 @@ def dilated_late_concat_model(
     vector_inputs, vector_logits = create_tree_roots(
         vectors, vector_shapes, make_layer_fn=create_vector_tree_roots_fn)
 
-    if vector_logits is None:
-        x = Concatenate(axis=-1)(image_logits)
+    if vector_logits is None and isinstance(image_logits, list):
+        # combine image inputs
+        if len(image_logits) > 1:
+            x = Concatenate(axis=-1)(image_logits)
+        else:
+            [x] = image_logits
     else:
+        # combine vector inputs
         v = vector_logits
         if len(vector_logits) > 1:
-            v = Concatenate(axis=0)(v)
-        else:
+            v = Concatenate(axis=-1)(v)
+        elif isinstance(v, list):
             [v] = v
-        v = Dense(vector_dense_filters)(v)
-        x = concat_images_with_tiled_vector_layer(image_logits, v)
+        else:
+            raise ValueError(
+                'Unknown configuration of '
+                'input vectors, you will need '
+                'to look at the code and see what '
+                'went wrong with v: ' + str(v))
 
-    # The top block adds the final "decision making" layers
-    # and the classifier block according to the problem type.
-    # Dense layers for single prediction problems, and
-    # Conv2D layers for pixel-wise prediction problems.
-    x = top_block(x, output_shape, top, dropout_rate,
-                  include_top, classes, activation,
-                  final_pooling, verbose)
+        if v is not None:
+            # combine image and vector inputs
+            x = concat_images_with_tiled_vector_layer(image_logits, v)
+
+    if create_tree_trunk_fn is not None:
+        x = create_tree_trunk_fn(x)
+
+    if not isinstance(x, list):
+        x = [x]
+
+    # handle multiple outputs for networks like NASNet
+    xs = []
+    name = ''
+    for i, xi in enumerate(x):
+        if len(x) > 1:
+            # multiple separate outputs need multiple names
+            name = str(i)
+        # The top block adds the final "decision making" layers
+        # and the classifier block according to the problem type.
+        # Dense layers for single prediction problems, and
+        # Conv2D layers for pixel-wise prediction problems.
+        xi = top_block(
+            xi, output_shape, top, dropout_rate,
+            include_top, classes, activation,
+            final_pooling, top_block_filters,
+            dense_layers=top_block_dense_layers,
+            name=name, verbose=verbose)
+        xs += [xi]
+
+    if len(xs) == 1:
+        [x] = xs
+    else:
+        x = xs
 
     # Make a list of all inputs into the model
     # Each of these should be a list or the empty list [].
     inputs = image_inputs + vector_inputs
 
+    print('hypertree_model x: ' + str(x))
     # create the model
     model = keras.models.Model(inputs=inputs, outputs=x)
+    return model
+
+
+def choose_hypertree_model(
+        images=None, vectors=None,
+        image_shapes=None, vector_shapes=None,
+        dropout_rate=0.25,
+        vector_dense_filters=256,
+        dilation_rate=2,
+        activation='sigmoid',
+        final_pooling=None,
+        include_top=True,
+        top='classification',
+        top_block_filters=64,
+        top_block_dense_layers=0,
+        classes=1,
+        output_shape=None,
+        trainable=False,
+        verbose=0,
+        image_model_name='vgg',
+        vector_model_name='dense',
+        trunk_layers=4,
+        trunk_filters=128,
+        trunk_model_name='dense',
+        vector_branch_num_layers=3,
+        image_model_weights='shared',
+        use_auxiliary_branch=True):
+    """ Construct a variety of possible models with a tree shape based on hyperparameters.
+
+    # Arguments
+
+        dropout_rate: a dropout rate of None will disable dropout.
+        top_block_filters: the number of filters for the two final fully connected layers,
+            before a prediction is made based on the number of classes.
+        image_model_weights: How should the image model weights be stored for each image?
+            Options are 'shared' and 'separate'.
+        trunk_filters: the initial number of filters for the concatenated network trunk.
+            Setting the parameters to None or 0 will use the number of cannels in the
+            input data provided.
+
+    # Notes
+
+    Best result for classification
+
+    2018-02-23-09-35-21
+
+        - 0.25 dropout
+        - hyperopt_logs_cornell/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success
+          {"vector_dense_filters": 256, "vector_branch_num_layers": 0, "trunk_filters": 128,
+          "image_model_name": "vgg", "vector_model_name": "dense", "preprocessing_mode": "tf",
+          "trainable": true, "top_block_filters": 64, "learning_rate": 0.02, "trunk_layers": 4}
+
+    Best 1 epoch run with image_preprocessed_sin_cos_height_3 and 0.25 dropout, 2018-02-19:
+        - val_binary_accuracy 0.9115646390282378
+        - val_loss 0.26308334284290974
+        {"vector_dense_filters": 64, "vector_branch_num_layers": 3, "trainable": false,
+         "image_model_name": "vgg", "vector_model_name": "dense", "learning_rate": 0.03413896253431821, "trunk_filters": 256,
+         "top_block_filters": 128, "trunk_layers": 4, "feature_combo_name": "image_preprocessed_sin_cos_height_3"}
+
+    Best 1 epoch run with only gripper openness parameter, 2018-02-17:
+        - val_binary_accuracy 0.9134199238
+        - val_loss 0.2269693456
+
+        {"vector_dense_filters": 64, "vector_branch_num_layers": 2, "trainable": true,
+         "image_model_name": "vgg", "vector_model_name": "dense_block", "learning_rate": 0.005838979061490798,
+         "trunk_filters": 128, "dropout_rate": 0.0, "top_block_filters": 64, "trunk_layers": 4, "feature_combo_name":
+         "image_preprocessed_height_1"}
+    Current best 1 epoch run as of 2018-02-16:
+        - note there is a bit of ambiguity so until I know I'll have case 0 and case 1.
+            - two models were in that run and didn't have hyperparam records yet.
+            - The real result is probably case 1, since the files are saved each run,
+              so the data will be for the latest run.
+        - 2018-02-15-22-00-12_-vgg_dense_model-dataset_cornell_grasping-grasp_success2018-02-15-22-00-12_-vgg_dense_model-dataset_cornell_grasping-grasp_success
+        - input
+            - height_width_sin_cos_4
+        - vgg16 model
+        - val_binary_accuracy
+            - 0.9202226425
+        - lr
+            - 0.06953994
+        - vector dense layers
+            - 4 in case 0 with 64 channels
+            - 1 in case 1 with 64 channels
+        - dense block trunk case 1
+            - 5 conv blocks
+            - growth rate 48
+            - 576 input channels
+            - 816 output channels
+        - dense layers before fc1, case 1
+            - 64 output channels
+
+    """
+    if trainable is None:
+        trainable = False
+
+    if top == 'segmentation':
+        name_prefix = 'dilated_'
+    else:
+        name_prefix = 'single_'
+        dilation_rate = 1
+    with K.name_scope(name_prefix + 'hypertree') as scope:
+
+        # input_image_tensor = None
+        # get the shape of images
+        # currently assumes all images have the same shape
+        if image_shapes is None and isinstance(images[0], tf.Tensor):
+            image_input_shape = K.int_shape(images[0])
+        elif isinstance(image_shapes[0], tf.Tensor):
+            image_input_shape = K.int_shape(image_shapes[0])
+        elif image_shapes is None:
+            raise ValueError(
+                'image_shapes is None and could not be determined'
+                'automatically. Try specifying it again or correcting it.'
+                'The images param was also: ' + str(images)
+            )
+        else:
+            image_input_shape = image_shapes[0]
+        print('hypertree image_input_shape: ' + str(image_input_shape))
+        print('hypertree images: ' + str(images))
+        print('hypertree classes: ' + str(classes))
+        if trunk_filters == 0:
+            trunk_filters = None
+
+        if image_input_shape is not None and len(image_input_shape) == 4:
+            # cut off batch size
+            image_input_shape = image_input_shape[1:]
+
+        if image_model_weights not in ['shared', 'separate']:
+            raise ValueError('Unsupported image_model_weights: ' +
+                             str(image_model_weights) +
+                             'Options are shared and separate.')
+
+        print('hypertree image_input_shape with batch stripped: ' + str(image_input_shape))
+        # VGG16 weights are shared and not trainable
+        if top == 'segmentation':
+            if image_model_name == 'vgg':
+                if image_model_weights == 'shared':
+                    image_model = fcn.AtrousFCN_Vgg16_16s(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes, upsample=False)
+                elif image_model_weights == 'separate':
+                    image_model = fcn.AtrousFCN_Vgg16_16s
+            elif image_model_name == 'resnet':
+                if image_model_weights == 'shared':
+                    image_model = fcn.AtrousFCN_Resnet50_16s(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes, upsample=False)
+                elif image_model_weights == 'separate':
+                    image_model = fcn.AtrousFCN_Resnet50_16s
+            else:
+                raise ValueError('Unsupported segmentation model name: ' +
+                                 str(image_model_name) + 'options are vgg and resnet.')
+        else:
+
+            if image_model_name == 'vgg':
+                if image_model_weights == 'shared':
+                    image_model = keras.applications.vgg16.VGG16(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.vgg16.VGG16
+            elif image_model_name == 'vgg19':
+                if image_model_weights == 'shared':
+                    image_model = keras.applications.vgg19.VGG19(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.vgg19.VGG19
+            elif image_model_name == 'nasnet_large':
+                # please note that with nasnet_large, no pooling,
+                # and an aux network the two outputs will be different
+                # dimensions! Therefore, we need to add our own pooling
+                # for the aux network.
+                # TODO(ahundt) just max pooling in NasNetLarge for now, but need to figure out pooling for the segmentation case.
+                image_model = keras_contrib.applications.nasnet.NASNetLarge(
+                    input_shape=image_input_shape, include_top=False, pooling=None,
+                    classes=classes, use_auxiliary_branch=use_auxiliary_branch
+                )
+            elif image_model_name == 'nasnet_mobile':
+                image_model = keras.applications.nasnet.NASNetMobile(
+                    input_shape=image_input_shape, include_top=False,
+                    classes=classes, pooling=False
+                )
+            elif image_model_name == 'resnet':
+                # resnet model is special because we need to
+                # skip the average pooling part.
+                if image_model_weights == 'shared':
+                    resnet_model = keras.applications.resnet50.ResNet50(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.resnet50.ResNet50
+                if not trainable:
+                    for layer in resnet_model.layers:
+                        layer.trainable = False
+                # get the layer before the global average pooling
+                image_model = resnet_model.layers[-2]
+            elif image_model_name == 'densenet':
+                image_model = keras.applications.densenet.DenseNet169(
+                    input_shape=image_input_shape, include_top=False,
+                    classes=classes)
+            else:
+                raise ValueError('Unsupported image_model_name')
+
+        if not trainable and getattr(image_model, 'layers', None) is not None:
+            for layer in image_model.layers:
+                layer.trainable = False
+
+        class ImageModelCarrier():
+            # Create a temporary scope for the list
+            # compatible with python 2.7 and 3.5
+            # note this may not work as expected if multiple
+            # instances of choose_hypertree_model
+            # are created at once.
+            image_models = []
+            image_model_num = 0
+
+        def create_image_model(tensor):
+            """ Image classifier weights are shared or separate.
+
+            This function helps set up the weights.
+            """
+            if image_model_weights == 'shared':
+                ImageModelCarrier.image_models += [image_model]
+                return image_model(tensor)
+            elif image_model_weights == 'separate':
+                imodel = image_model(
+                    input_tensor=tensor,
+                    include_top=False,
+                    classes=classes)
+                # TODO(ahundt) Can't have duplicate layer names in a network, figure out a solution
+                # It is needed for when two of a model are used in a network
+                # see https://stackoverflow.com/questions/43452441/keras-all-layer-names-should-be-unique
+                # and https://github.com/keras-team/keras/issues/7412
+                if ImageModelCarrier.image_model_num > 0:
+                    for layer in imodel.layers:
+                        layer.name += str(ImageModelCarrier.image_model_num)
+                if not trainable:
+                    for layer in imodel.layers:
+                        layer.trainable = False
+                ImageModelCarrier.image_models += [imodel]
+                ImageModelCarrier.image_model_num += 1
+                print('Hypertree create_image_model called for tensor: ' + str(tensor))
+                return imodel.outputs[0]
+
+        def vector_branch_dense(
+                tensor, vector_dense_filters=vector_dense_filters,
+                num_layers=vector_branch_num_layers,
+                model_name=vector_model_name):
+            """ Vector branches that simply contain a single dense layer.
+            """
+            x = tensor
+            # create the chosen layers starting with the vector input
+            # accepting num_layers == 0 is done so hyperparam search is simpler
+            if num_layers is None or num_layers == 0:
+                return x
+            elif model_name == 'dense':
+                x = Dense(vector_dense_filters)(x)
+                # Important! some old models saved to disk
+                # are invalidated by the BatchNorm and Dropout
+                # lines below, comment them if you really neeed to go back
+                x = BatchNormalization()(x)
+                x = Dropout(dropout_rate)(x)
+                if num_layers > 1:
+                    for i in range(num_layers - 1):
+                        x = Dense(vector_dense_filters)(x)
+            elif model_name == 'dense_block':
+                densenet.__dense_block(
+                    x, nb_layers=num_layers,
+                    nb_filter=vector_dense_filters,
+                    growth_rate=48, dropout_rate=dropout_rate,
+                    dims=0)
+            else:
+                raise ValueError('vector_branch_dense called with '
+                                 'unsupported model name %s, options '
+                                 'are dense and dense_block.' % model_name)
+            print('Hypertree create_image_model completed for tensor: ' + str(tensor))
+            return x
+
+        def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers):
+            """
+                filters: the initial number of filters for the concatenated network trunk.
+                    Setting the parameters to None or 0 will use the number of cannels in the
+                    input data provided.
+            """
+            x = tensor
+            if filters is None or filters == 0:
+                channels = K.int_shape(tensor)[-1]
+            else:
+                channels = filters
+
+            # create the chosen layers starting with the combined image and vector input
+            # accepting num_layers == 0 is done so hyperparam search is simpler
+            if num_layers is None or num_layers == 0:
+                return x
+            elif num_layers is not None:
+                if trunk_model_name == 'dense_block' or trunk_model_name == 'dense':
+                    # unfortunately, dense above really means dense_block
+                    # but some past hyperopt logs have dense so we need to keep it
+                    #
+                    # growth rate is 48 due to the "wider convolutional network" papers
+                    # and comments by the densenet authors in favor of this param choice.
+                    # see https://github.com/liuzhuang13/DenseNet
+                    x, num_filters = densenet.__dense_block(
+                        x, nb_layers=trunk_layers, nb_filter=channels,
+                        growth_rate=48, dropout_rate=dropout_rate)
+                elif trunk_model_name == 'resnet_conv_identity_block':
+                    stage = 'trunk'
+                    x = fcn.conv_block(3, [filters, filters, filters * 4], stage, '_' + str(0))(x)
+                    if num_layers > 1:
+                        for l in range(num_layers - 1):
+                            x = fcn.identity_block(3, [filters, filters, filters * 4], stage, '_' + str(l + 1))(x)
+                elif trunk_model_name == 'vgg_conv_block':
+                    # Vgg "Block 6"
+                    name = 'trunk'
+                    weight_decay = 0.
+                    for l in range(num_layers):
+                        x = Conv2D(filters, (3, 3), activation='relu', padding='same',
+                                   name=name + 'block6_conv%d' % l, kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
+                elif trunk_model_name == 'nasnet_normal_a_cell':
+                    filter_multiplier = 2
+                    p = None
+                    for l in range(num_layers):
+                        x, p = keras.applications.nasnet._normal_a_cell(x, p, filters, block_id='trunk_%d' % l)
+                        filters *= filter_multiplier
+                else:
+                    raise ValueError('Unsupported trunk_model_name ' + str(trunk_model_name) +
+                                     ' options are dense, resnet, vgg, nasnet')
+
+            return x
+
+        model = hypertree_model(
+            images=images, vectors=vectors,
+            image_shapes=image_shapes, vector_shapes=vector_shapes,
+            dropout_rate=dropout_rate,
+            create_image_tree_roots_fn=create_image_model,
+            create_vector_tree_roots_fn=vector_branch_dense,
+            create_tree_trunk_fn=create_tree_trunk,
+            activation=activation,
+            final_pooling=final_pooling,
+            include_top=include_top,
+            top=top,
+            top_block_filters=top_block_filters,
+            classes=classes,
+            output_shape=output_shape,
+            verbose=verbose
+        )
+    print('hypertree model complete')
     return model
 
 
@@ -685,7 +1074,7 @@ def grasp_model_levine_2016(
                                      strides=strides_initial_conv,
                                      dilation_rate=dilation_rate_initial_conv,
                                      padding='same',
-                                     name='conv'+str(conv_counter))(clear_view_image_input)
+                                     name='conv' + str(conv_counter))(clear_view_image_input)
         conv_counter += 1
 
         # img2 Conv 1
@@ -694,7 +1083,7 @@ def grasp_model_levine_2016(
                                        strides=strides_initial_conv,
                                        dilation_rate=dilation_rate_initial_conv,
                                        padding='same',
-                                       name='conv'+str(conv_counter))(current_time_image_input)
+                                       name='conv' + str(conv_counter))(current_time_image_input)
         conv_counter += 1
         if verbose > 0:
             print('conv2 shape:' + str(K.int_shape(current_time_img_conv)))
@@ -716,13 +1105,13 @@ def grasp_model_levine_2016(
         # img Conv 2
         x = Conv2D(64, (5, 5), padding='same', activation='relu',
                    dilation_rate=dilation_rate,
-                   name='conv'+str(conv_counter))(x)
+                   name='conv' + str(conv_counter))(x)
         conv_counter += 1
 
         # img Conv 3 - 8
         for i in range(6):
             x = Conv2D(64, (5, 5), padding='same', activation='relu',
-                       name='conv'+str(conv_counter))(x)
+                       name='conv' + str(conv_counter))(x)
             conv_counter += 1
 
         if verbose > 0:
@@ -744,34 +1133,33 @@ def grasp_model_levine_2016(
 
             # motor full conn
             motorConv = Dense(64, activation='relu',
-                              name='dense'+str(dense_counter))(motorData)
+                              name='dense' + str(dense_counter))(motorData)
             dense_counter += 1
 
             # tile and concat the data
             x = add_images_with_tiled_vector_layer(x, motorConv)
 
             if dropout_rate is not None:
-                x = Dropout(dropout_rate, name='dropout'+str(dropout_counter))(x)
+                x = Dropout(dropout_rate, name='dropout' + str(dropout_counter))(x)
                 dropout_counter += 1
 
         # combined conv 8
         x = Conv2D(64, (3, 3), activation='relu', padding='same',
                    dilation_rate=dilation_rate,
-                   name='conv'+str(conv_counter))(x)
+                   name='conv' + str(conv_counter))(x)
         conv_counter += 1
 
         #TODO(dingyu95) check if this is the right number of convs, update later and make a model
         # combined conv 10 - 12
         for i in range(2):
             x = Conv2D(64, (3, 3), activation='relu', padding='same',
-                       name='conv'+str(conv_counter))(x)
+                       name='conv' + str(conv_counter))(x)
             conv_counter += 1
 
         # combined conv 13
         x = Conv2D(64, (5, 5), padding='same', activation='relu',
-                   name='conv'+str(conv_counter))(x)
+                   name='conv' + str(conv_counter))(x)
         conv_counter += 1
-
 
         if verbose > 0:
             print('pre max pool shape:' + str(K.int_shape(x)))
@@ -787,11 +1175,11 @@ def grasp_model_levine_2016(
             print('post max pool shape:' + str(K.int_shape(x)))
         x = Conv2D(64, (3, 3), activation='relu', padding='same',
                    dilation_rate=dilation_rate,
-                   name='conv'+str(conv_counter))(x)
+                   name='conv' + str(conv_counter))(x)
         conv_counter += 1
         # combined conv 14 - 16
         for i in range(2):
-            x = Conv2D(64, (3, 3), activation='relu', padding='same', name='conv'+str(conv_counter))(x)
+            x = Conv2D(64, (3, 3), activation='relu', padding='same', name='conv' + str(conv_counter))(x)
             conv_counter += 1
 
         # The top block adds the final "decision making" layers
@@ -800,7 +1188,7 @@ def grasp_model_levine_2016(
         # Conv2D layers for pixel-wise prediction problems.
         x = top_block(x, input_image_shape, top, dropout_rate,
                       include_top, classes, activation,
-                      final_pooling, verbose)
+                      final_pooling, verbose=verbose)
 
         # make a list of all inputs into the model
         inputs = [clear_view_image_input, current_time_image_input]
