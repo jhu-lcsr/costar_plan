@@ -2,13 +2,15 @@
 
 [![Build Status](https://travis-ci.com/cpaxton/costar_plan.svg?token=13PmLzWGjzrfxQvEyWp1&branch=master)](https://travis-ci.com/cpaxton/costar_plan)
 
-The CoSTAR Planner is part of the larger [CoSTAR project](https://github.com/cpaxton/costar_stack/). It integrates some learning from demonstration and task planning capabilities into the larger CoSTAR framework in different ways..
+The CoSTAR Planner is part of the larger [CoSTAR project](https://github.com/cpaxton/costar_stack/). It integrates some learning from demonstration and task planning capabilities into the larger CoSTAR framework in different ways.
 
 Specifically it is a project for creating task and motion planning algorithms that use machine learning to solve challenging problems in a variety of domains. This code provides a testbed for complex task and motion planning search algorithms. The goal is to describe example problems where actor must move around in the world and plan complex interactions with other actors or the environment that correspond to high-level symbolic states. Among these is our Visual Task Planning project, in which robots learn representations of their world and use these to imagine possible futures, then use these for planning.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/kMbntW-3GRo" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 
 To run deep learning examples, you will need TensorFlow and Keras, plus a number of Python packages. To run robot experiments, you'll need a simulator (Gazebo or PyBullet), and ROS Indigo or Kinetic. Other versions of ROS may work but have not been tested. If you want to stick to the toy examples, you do not need to use this as a ROS package.
+
+*About this repository:* CTP is a _single-repository_ project. As such, all the custom code you need should be in one place: here. There are exceptions, such as the [CoSTAR Stack](https://github.com/cpaxton/costar_stack/) for real robot execution, but these are generally not necessary. The minimal installation of CTP is just to install the `costar_models` package as a normal [python package](https://github.com/cpaxton/costar_plan/tree/master/costar_models/python) ignoring everything else.
 
 Contents:
   - [0. Introduction](docs/introduction.md)
