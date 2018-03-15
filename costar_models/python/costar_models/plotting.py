@@ -1,4 +1,7 @@
 import matplotlib.pyplot as plt
+import numpy as np
+import io
+from PIL import Image
 
 def Show(img):
     #ax = plt.axes([0,0,1,1])
@@ -9,3 +12,4 @@ def Show(img):
 
 def Title(msg):
     plt.title(msg, fontsize=16)
+

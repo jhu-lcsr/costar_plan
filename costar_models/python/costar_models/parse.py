@@ -136,7 +136,7 @@ def GetModelParser():
     parser.add_argument("--dropout_rate", "--dr",
                         help="Dropout rate to use",
                         type=float,
-                        default=0.5)
+                        default=0.1)
     parser.add_argument("--enc_loss",
                         help="Add encoder loss",
                         action="store_true")
@@ -208,8 +208,12 @@ def GetModelParser():
                         help="Disable discriminator usage with images",
                         action="store_true")
     parser.add_argument("--unique_id",
-                        help="Unique id for status file",
+                        help="Unique id to differentiate status file",
                         default="")
+    parser.add_argument("--dense_transform",
+                        help="Use dense layer for trasform",
+                        default=False,
+                        action='store_true')
     return parser
 
 def GetSubmodelOptions():

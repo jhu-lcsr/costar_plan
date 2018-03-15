@@ -15,7 +15,7 @@ echo "use disc = $use_disc"
 
 export DATASET="suturing_data2"
 export train_discriminator2=false
-export train_image_encoder=true
+export train_image_encoder=false
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -27,15 +27,10 @@ export use_skips=$8
 export use_ssm=$9
 #export MODELDIR="$HOME/.costar/suturing_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
-export SUBDIR="suturing_$learning_rate$optimizer$dropout$noise_dim$loss$use_skips"
+export SUBDIR="suturing_$learning_rate$optimizer$dropout$noise_dim${loss}_skip${use_skips}_ssm${use_ssm}"
 export USE_BN=1
 
 retrain_cmd=""
-if $retrain
-then
-  retrain_cmd="--retrain"
-  SUBDIR=${SUBDIR}_retrain
-fi
 
 use_disc_cmd=""
 if ! $use_disc ; then
@@ -74,31 +69,9 @@ then
     --batch_size 64
 fi
 
-
-
-if $train_image_encoder
-then
-  echo "Training encoder 1"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    -e 100 \
-    --model pretrain_image_encoder \
-    --data_file $HOME/work/$DATASET.h5f \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --features jigsaws \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --preload \
-    --steps_per_epoch 300 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --use_batchnorm $USE_BN \
-    --batch_size 64 --no_disc
-fi
-
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
-  -e 100 \
+  -e 200 \
   --model conditional_image \
   --data_file $HOME/work/$DATASET.h5f \
   --lr $learning_rate \
@@ -112,5 +85,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --use_batchnorm $USE_BN \
   --skip_connections $use_skips \
   --use_ssm $use_ssm \
-  --batch_size 64 $retrain_cmd $use_disc_cmd
+  --batch_size 64 --retrain $use_disc_cmd
 

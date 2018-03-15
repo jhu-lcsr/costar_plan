@@ -20,15 +20,14 @@ from .pretrain_image import *
 from .plotting import *
 from .dvrk import *
 
-class PretrainImageJigsaws(PretrainImageAutoencoder):
+class PretrainImageCostar(PretrainImageAutoencoder):
 
     def __init__(self, taskdef, *args, **kwargs):
         '''
         As in the other models, we call super() to parse arguments from the
         command line and set things like our optimizer and learning rate.
         '''
-        super(PretrainImageJigsaws, self).__init__(taskdef, *args, **kwargs)
-        self.num_options = SuturingNumOptions()
+        super(PretrainImageCostar, self).__init__(taskdef, *args, **kwargs)
         self.save_encoder_decoder = True
         self.load_jpeg = True
         self.num_generator_files = 1
@@ -45,8 +44,8 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
         ins = [img0_in, img_in]
 
         # Create encoder and decoder
-        encoder = MakeJigsawsImageEncoder(self, img_shape)
-        decoder = MakeJigsawsImageDecoder(
+        encoder = MakeCostarImageEncoder(self, img_shape)
+        decoder = MakeCostarImageDecoder(
                     self,
                     self.hidden_shape,
                     self.skip_shape,)
@@ -63,7 +62,7 @@ class PretrainImageJigsaws(PretrainImageAutoencoder):
                     optimizer=self.getOptimizer())
         else:
             image_discriminator = LoadClassifierWeights(self,
-                MakeJigsawsImageClassifier,
+                MakeCostarImageClassifier,
                 img_shape)
             o2 = image_discriminator([img0_in, out])
             ae = Model(ins, [out, o2])

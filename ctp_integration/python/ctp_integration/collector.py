@@ -7,6 +7,7 @@ import tf_conversions.posemath as pm
 
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
+from costar_models.datasets.image import *
 
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
@@ -41,7 +42,7 @@ class DataCollector(object):
         Set up the writer (to save trials to disk) and subscribers (to process
         input from ROS and store the current state).
         '''
-
+        self.verbosity = 0
 
         if tf_listener is not None:
             self.tf_listener = tf_listener
@@ -93,13 +94,20 @@ class DataCollector(object):
     def _rgbCb(self, msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "bgr8")
+            self.rgb_img = np.asarray(cv_image)
+            #print(self.rgb_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
-        self.rgb_img = np.asarray(cv_image)
 
     def _depthCb(self, msg):
-        self.depth_img = msg
+        try:
+            cv_image = self._bridge.imgmsg_to_cv2(msg)
+            self.depth_img = np.asarray(cv_image)
+            #print (self.depth_img)
+        except CvBridgeError as e:
+            rospy.logwarn(str(e))
+
 
     def _resetData(self):
         self.data = {}
@@ -108,6 +116,7 @@ class DataCollector(object):
         self.data["pose"] = []
         self.data["camera"] = []
         self.data["image"] = []
+        #self.data["depth"] = []
 
     def _jointsCb(self, msg):
         self.q = msg.position
@@ -124,7 +133,7 @@ class DataCollector(object):
         self.writer.write(self.data, seed, result)
         self._resetData()
 
-    def tick(self, action=None):
+    def update(self, action=None):
         '''
         Compute endpoint positions and update data. Should happen at some
         fixed frequency like 10 hz.
@@ -160,7 +169,8 @@ class DataCollector(object):
         self.data["dq"].append(np.copy(self.dq))
         self.data["pose"].append(ee_xyz + ee_quat)
         self.data["camera"].append(c_xyz + c_quat)
-        self.data["image"].append(np.copy(self.rgb_img))
+        self.data["image"].append(GetJpeg(self.rgb_img))
+        #self.data["depth"].append(GetJpeg(self.depth_img))
 
         return True
 

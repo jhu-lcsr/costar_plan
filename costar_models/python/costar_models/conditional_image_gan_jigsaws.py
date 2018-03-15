@@ -28,10 +28,8 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
     def __init__(self, *args, **kwargs):
 
         super(ConditionalImageGanJigsaws, self).__init__(*args, **kwargs)
-
-        self.num_options = 16
         self.save_encoder_decoder = self.retrain
-        planner.PERMANENT_DROPOUT = True
+        planner.PERMANENT_DROPOUT = False
 
     def _makeModel(self, image, *args, **kwargs):
 
@@ -49,8 +47,9 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         # =====================================================================
         # Load weights and stuff. We'll load the GAN version of the weights.
-        encoder = MakeJigsawsImageEncoder(self, img_shape, perm_drop=True)
-        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape, perm_drop=True)
+        encoder = MakeJigsawsImageEncoder(self, img_shape, perm_drop=False)
+        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape,
+                perm_drop=False)
         LoadEncoderWeights(self, encoder, decoder, gan=True)
 
         # =====================================================================
@@ -66,7 +65,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
+        tform = MakeJigsawsTransform(self, h_dim=(12,16))
         l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
         x = tform(l)
         l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]
@@ -110,16 +109,16 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         self.predictor = generator
 
-    def _getData(self, image, label, goal_image, goal_label,
+    def _getData(self, image, label, goal_idx, goal_label,
             prev_label, *args, **kwargs):
 
-        image = np.array(image) / 255.
-        goal_image = np.array(goal_image) / 255.
+        image = image
+        goal_image = image[goal_idx]
 
         goal_image2, _ = GetNextGoal(goal_image, label)
 
         # Extend image_0 to full length of sequence
-        image0 = image[0,:,:,:]
+        image0 = image[0]
         length = image.shape[0]
         image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
         return [image0, image, label, goal_label], [goal_image, goal_image2]
@@ -185,11 +184,11 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
             x = Flatten()(x)
             x = AddDense(x, 1, "linear", 0., output=True, bn=False)
         else:
-            x = Flatten()(x)
-            x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False)
-            #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="linear",
-            #    bn=False)
-            #x = GlobalAveragePooling2D()(x)
+            #x = Flatten()(x)
+            #x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False)
+            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="linear",
+                bn=False)
+            x = GlobalAveragePooling2D()(x)
 
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.

@@ -12,6 +12,7 @@ import os
 import sys
 import h5py
 
+from costar_models.datasets.image import GetJpeg, JpegToNumpy
 
 def getArgs():
     '''
@@ -36,7 +37,7 @@ def getArgs():
                         help="directory to make")
     parser.add_argument("--drop_chance", "-d",
                         type=int,
-                        default=20)
+                        default=0)
     return parser.parse_args()
 
 
@@ -52,9 +53,11 @@ def main():
 
     if not os.path.exists(args.out_dir):
         os.makedirs(args.out_dir)
-    
+
     trans_dir = os.path.join(args.base_dir, "transcriptions")
     filenames = os.listdir(trans_dir)
+
+    dataset_name = dataset
 
     for file_num, filename in enumerate(filenames):
 
@@ -99,7 +102,7 @@ def main():
         data = {}
         data["image"] = []
         data["label"] = []
-        data["goal_image"] = []
+        data["goal_idx"] = []
         data["goal_label"] = []
         data["prev_label"] = []
         frame_nums = []
@@ -124,6 +127,7 @@ def main():
 
             return False, False, None, None, None
 
+        included_frame_idx = 0
         for i, frame in enumerate(frames):
             frame_num = i + 1
 
@@ -143,7 +147,18 @@ def main():
                     continue
 
             frame_nums.append(frame_num)
-            data["image"].append(image)
+            jpeg = GetJpeg(image)
+            img = JpegToNumpy(jpeg)
+            if False:
+                plt.figure()
+                plt.subplot(1,3,1)
+                plt.imshow(image)
+                plt.subplot(1,3,2)
+                plt.imshow(img)
+                plt.subplot(1,3,3)
+                plt.imshow(img/255.)
+                plt.show()
+            data["image"].append(jpeg)
             data["label"].append(gesture)
             data["goal_label"].append(next_gesture)
             data["prev_label"].append(last_gesture)
@@ -152,42 +167,46 @@ def main():
 
             # save goal_image
             if goal_frame:
-                goal_images.append((frame_num, image))
+                goal_images.append((frame_num, included_frame_idx))
 
                 #if gesture == 8:
                 #    print("Gesture =", gesture, "Frame num =", frame_num)
                 #    plt.imshow(image)
                 #    plt.show()
 
+            included_frame_idx += 1
+
         # Helper function: look for goals that might work
         # This one will take num and search for entries in the array of goals
         # where those entries occur after this one
-        def lookup(num, arr):
-            for frame_num, frame in arr:
+        def lookup(num):
+            for (frame_num, frame_idx) in goal_images:
                 if frame_num > num:
-                    return frame
-            return frame
-            
+                    break
+            return frame_idx
+
         # Add goal images
         for i in frame_nums:
-            frame = lookup(i, goal_images)
-            data["goal_image"].append(frame)
+            data["goal_idx"].append(lookup(i))
 
         for k, v in data.items():
             data[k] = np.array(v)
 
-        write(args.out_dir, data, file_num, 1)
+        write(args.out_dir, data, dataset_name, file_num, 1)
 
-def write(directory, data, i, r):
+def write(directory, data, dataset, i, r):
     '''
     Write to disk.
     '''
     status = "success" if r > 0. else "failure"
-    filename = "example%06d.%s.h5f"%(i, status)
+    length = data['label'].shape[0]
+    filename = "example%06d.%s.%s.h5f"%(i, dataset, status)
     filename = os.path.join(directory, filename)
     f = h5py.File(filename, 'w')
     for key, value in data.items():
         f.create_dataset(key, data=value)
+    dt = h5py.special_dtype(vlen=bytes)
+    f.create_dataset("image_type", data=["jpeg"])
     f.close()
 
 if __name__ == "__main__":

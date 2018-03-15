@@ -14,9 +14,8 @@ echo $1 $2 $3 $4 $5 $6 $7 $8 $9
 echo "use disc = $use_disc"
 
 export DATASET="husky_data"
-export train_discriminator2=false
+export train_discriminator2=true
 export train_image_encoder=true
-export train_gans=true
 export train_encoder_gan=false
 export learning_rate=$1
 export dropout=$2
@@ -29,15 +28,8 @@ export use_skips=$8
 export use_ssm=$9
 #export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
-export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss$use_skips"
+export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim${loss}_skip${use_skips}_ssm${use_ssm}"
 export USE_BN=1
-
-retrain_cmd=""
-if $retrain
-then
-  retrain_cmd="--retrain"
-  SUBDIR=${SUBDIR}_retrain
-fi
 
 use_disc_cmd=""
 if ! $use_disc ; then
@@ -75,26 +67,6 @@ if $train_discriminator2 && $use_disc ; then
     --batch_size 64 --no_disc
 fi
 
-if $train_image_encoder
-then
-  echo "Training encoder 1 $use_disc_cmd"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
-    -e 100 \
-    --model pretrain_image_encoder \
-    --data_file $HOME/work/$DATASET.npz \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --features husky \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 500 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --use_batchnorm $USE_BN \
-    --batch_size 64 --no_disc
-fi
-
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --features multi \
   -e 100 \
@@ -110,5 +82,5 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --use_batchnorm $USE_BN \
   --skip_connections $use_skips \
   --use_ssm $use_ssm \
-  --batch_size 64 $retrain_cmd $use_disc_cmd
+  --batch_size 64 --retrain $use_disc_cmd
 
