@@ -72,9 +72,9 @@ class ConditionalSampler(ConditionalImage):
         V = GetValueModel(h, self.num_options, 128,
                           self.decoder_dropout_rate)
         Q = GetNextModel(h, self.num_options, 128,
-                    self.decoder_dropout_rate, name="Q")
+                    self.decoder_dropout_rate, name="Q", add_done=True)
         next = GetNextModel(h, self.num_options, 128,
-                    self.decoder_dropout_rate, name="next")
+                    self.decoder_dropout_rate, name="next", add_done=False)
         self.value_model = V
         self.q_model = Q
         self.next_model = next
@@ -103,7 +103,7 @@ class ConditionalSampler(ConditionalImage):
         # Compute ancillary outputs
         v_out = V(h)
         q_out, q_done_out = Q([h, label_in])
-        next_out, _ = next([h, label_in])
+        next_out = next([h, label_in])
 
         # Set weights for different model terms
         img_loss_wt = 1.
@@ -119,20 +119,20 @@ class ConditionalSampler(ConditionalImage):
             disc_wt = 1e-3
         ins += [label_in]
         outs = [image_out, image_out2, # image
-                #next_out,
+                next_out,
                 v_out,
                 q_out,
                 q_done_out,
                ]
 
         losses = [self.loss, self.loss,
-                        #"binary_crossentropy", # next loss
+                        "binary_crossentropy", # next loss
                         "binary_crossentropy", # value loss
                         "binary_crossentropy", # q loss
                         "binary_crossentropy", # done loss
                         ]
         loss_wts = [img_loss_wt, img_loss_wt,
-                #next_wt,
+                next_wt,
                 v_wt,
                 q_wt,
                 done_wt,
@@ -173,10 +173,10 @@ class ConditionalSampler(ConditionalImage):
         vs = np.repeat(vs, self.num_options, axis=1)
         qval = o1_1h * vs
         if self.no_disc:
-            targets = [I_target, I_target2, o1_1h, v, qval, done, qa, ga,]
+            targets = [I_target, I_target2, o1_1h, v, qval, done,]# qa, ga,]
         else:
             #targets = [I_target, I_target2, o1_1h, v, qval, done, qa, ga, o2_1h]
-            targets = [I_target, I_target2, v, qval, done, o2_1h]
+            targets = [I_target, I_target2, o1_1h, v, qval, done, o2_1h]
             # Uncomment if you want to try the whole "two discriminator" thing
             # again -- this might need a more fully supported option
             #targets = [I_target, I_target2, o1_1h, o2_1h]

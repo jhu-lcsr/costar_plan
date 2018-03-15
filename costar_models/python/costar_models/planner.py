@@ -942,7 +942,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
 def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True,
-        name="next"):
+        name="next", add_done=True):
     '''
     Next actions
     '''
@@ -1000,8 +1000,12 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True,
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
-    done_out = Dense(1, activation="sigmoid", name="done",)(x1)
-    next_model = Model([xin, option_in], [next_option_out, done_out], name=name)
+
+    outs = [next_option_out]
+    if add_done:
+        done_out = Dense(1, activation="sigmoid", name="done",)(x1)
+        outs += [done_out]
+    next_model = Model([xin, option_in], outs, name=name)
     return next_model
 
 def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
