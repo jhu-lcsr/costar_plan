@@ -6,6 +6,8 @@ The CoSTAR Planner is part of the larger [CoSTAR project](https://github.com/cpa
 
 Specifically it is a project for creating task and motion planning algorithms that use machine learning to solve challenging problems in a variety of domains. This code provides a testbed for complex task and motion planning search algorithms. The goal is to describe example problems where actor must move around in the world and plan complex interactions with other actors or the environment that correspond to high-level symbolic states.
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/kMbntW-3GRo" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
 To run deep learning examples, you will need TensorFlow and Keras, plus a number of Python packages. To run robot experiments, you'll need a simulator (Gazebo or PyBullet), and ROS Indigo or Kinetic. Other versions of ROS may work but have not been tested. If you want to stick to the toy examples, you do not need to use this as a ROS package.
 
 Contents:
