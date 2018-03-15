@@ -257,8 +257,10 @@ def optimize(
     hyperoptions.add_param('top_block_dense_layers', [0, 1, 2, 3, 4])
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
+    # The appropriate preprocessing mode must be chosen for each model.
+    # This should now be done correectly in cornell_grasp_train.py.
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
-                           enable=True, required=True, default='tf')
+                           enable=False, required=False, default='tf')
 
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
