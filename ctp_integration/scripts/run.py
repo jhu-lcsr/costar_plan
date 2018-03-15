@@ -142,8 +142,28 @@ def main():
     update = GetUpdate(observe, collector) # uses collector because it listens for js
     stack_task.setUpdate(update) # set fn to call after actions
 
+    # How we verify the objet
+    def verify(object_name):
+        '''
+        Simple verify functor. This is designed to work if we have one object
+        of each color, and is not guaranteed to work otherwise.
+
+        Parameters:
+        -----------
+        object_name: name of the object being manipulated
+        '''
+        try:
+            t = rospy.Time(0)
+            xyz, rot = collector.tf_listener.lookup_transform(collector.base_link, object_name, t)
+        except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+            rospy.logwarn("Failed lookup: %s to %s"%(collector.base_link, object_frame))
+            return False
+        print(">>>", object_name, xyz, rot)
+        return xyz[2] > 0.10
+
     start = max(0, args.start-1)
-    for i in range(start, args.execute):
+    i = start
+    while i < args.execute:
         home()
         idx = i + 1
         print("Executing trial %d..."%(idx))
@@ -168,10 +188,18 @@ def main():
             if done:
                 rospy.logwarn("DONE WITH: " + str(stack_task.ok))
                 if stack_task.ok:
+                    # Increase count
+                    i += 1
+
                     # We should actually check results here
-                    reward = 1.
+                    if verify(collector.object):
+                        reward = 1.
+                    else:
+                        reward = 0.
+                    rospy.loginfo("reward = " + str(reward))
                 else:
-                    reward = 0.
+                    # Ignore this, something went wrong on the collection side
+                    continue
                 break
 
         collector.save(idx, reward)

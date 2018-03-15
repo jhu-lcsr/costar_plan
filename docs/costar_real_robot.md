@@ -1,7 +1,7 @@
 
 # Real Robot Experiments with CoSTAR
 
-These all require the [CoSTAR stack](git@github.com:cpaxton/costar_stack.git).
+This code requires the latest version of the open source [CoSTAR stack](git@github.com:cpaxton/costar_stack.git).
 
 ## Starting Real Robot
 
@@ -70,6 +70,25 @@ These are:
   - `labels_to_name`: list of strings for action name
   - `object_pose`: x,y,z + quaternion, pose of object being manipulated if possible
   - `dq`: current joint velocities
+
+As of March 14, 2018, the list of actions in `labels_to_name` returns:
+```
+['place_green_on_yellow', 'place_yellow_on_greenblue',
+ 'place_blue_on_yellowred', 'place_yellow_on_red', 'place_blue_on_red',
+ 'grab_blue', 'place_red_on_blueyellow', 'place_green_on_redyellow',
+ 'place_red_on_yellow', 'place_green_on_blueyellow', 'place_red_on_greenblue',
+ 'place_blue_on_green', 'place_blue_on_redgreen', 'place_yellow_on_blue',
+ 'place_blue_on_greenyellow', 'place_blue_on_yellowgreen',
+ 'place_blue_on_greenred', 'place_yellow_on_redgreen', 'grab_yellow',
+ 'place_red_on_greenyellow', 'grab_green', 'place_red_on_green',
+ 'place_yellow_on_bluered', 'place_yellow_on_green', 'place_green_on_blue',
+ 'place_yellow_on_bluegreen', 'place_blue_on_redyellow', 'place_red_on_blue',
+ 'place_red_on_yellowgreen', 'place_yellow_on_greenred',
+ 'place_green_on_yellowblue', 'place_red_on_bluegreen', 'place_green_on_red',
+ 'place_red_on_yellowblue', 'place_green_on_yellowred',
+ 'place_green_on_redblue', 'grab_red', 'place_yellow_on_redblue',
+ 'place_green_on_bluered', 'place_blue_on_yellow']
+```
 
 ## Debugging
 

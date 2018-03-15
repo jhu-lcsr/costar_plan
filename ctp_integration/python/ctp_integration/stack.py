@@ -71,12 +71,12 @@ def GetGraspPose():
             kdl.Vector(-0.22, -0.02, -0.01))
     return pose
 
-def GetStackPose(steps=1):
+def GetStackPose():
     # Grasp from the top, centered (roughly)
     pose = kdl.Frame(
             kdl.Rotation.Quaternion(1.,0.,0.,0.),
             kdl.Vector(-0.22, -0.02, -0.01))
-    pose = pose * kdl.Frame(kdl.Vector(-0.0508*steps,0.,0.))
+    pose = pose * kdl.Frame(kdl.Vector(-0.052,0.,0.))
     return pose
 
 def GetTowerPoses():
@@ -169,7 +169,7 @@ def GetStackManager():
                 continue
             else:
                 name2 = "2%s:place_%s_on_%s"%(color2,color,color2)
-                req2 = _makeSmartReleaseRequest(color2, 1)
+                req2 = _makeSmartReleaseRequest(color2)
                 sm.addRequest(name, name2, release, req2)
 
                 for color3 in colors:
@@ -180,7 +180,7 @@ def GetStackManager():
                         req3 = _makeSmartGraspRequest(color3)
                         sm.addRequest(name2, name3, grasp, req3)
                         name4 = "4%s%s:place_%s_on_%s%s"%(color,color2,color3,color2,color)
-                        req4 = _makeSmartReleaseRequest(color2, 2)
+                        req4 = _makeSmartReleaseRequest(color)
                         sm.addRequest(name3, name4, release, req4)
 
     return sm
@@ -198,7 +198,7 @@ def _makeSmartGraspRequest(color):
     req.backoff = 0.05
     return req
 
-def _makeSmartReleaseRequest(color,steps=1):
+def _makeSmartReleaseRequest(color):
     '''
     Helper function for making the place call
     '''
@@ -207,7 +207,7 @@ def _makeSmartReleaseRequest(color,steps=1):
             threshold=0.015,
             greater=True)
     req = SmartMoveRequest()
-    req.pose = pm.toMsg(GetStackPose(steps))
+    req.pose = pm.toMsg(GetStackPose())
     if not color in colors:
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color

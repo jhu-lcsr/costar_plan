@@ -193,8 +193,6 @@ class DataCollector(object):
             rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
             return False
 
-        print(self.info, self.object)
-
         c_xyz = [c_pose.transform.translation.x,
                  c_pose.transform.translation.y,
                  c_pose.transform.translation.z,]
