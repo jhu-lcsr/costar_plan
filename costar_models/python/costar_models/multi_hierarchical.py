@@ -61,8 +61,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.arm_cmd_size = 6
         self.gripper_cmd_size = 1
 
-        self.use_spatial_softmax = False
-
     def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
         Set up all models necessary to create actions
@@ -344,130 +342,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 epochs=self.epochs,
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,)
-
-    def _makeImageEncoder(self, img_shape, disc=False, perm_drop=False):
-        '''
-        create image-only decoder to extract keypoints from the scene.
-        
-        Params:
-        -------
-        img_shape: shape of the image to encode
-        disc: is this being created as part of a discriminator network? If so,
-              we handle things slightly differently.
-        '''
-        img0 = Input(img_shape,name="img0_encoder_in")
-        img = Input(img_shape,name="img_encoder_in")
-        bn = not disc and self.use_batchnorm
-        dr = self.dropout_rate
-        use_lrelu = True
-        x = img
-        kwargs = {
-                "padding" : "same",
-                "lrelu" : use_lrelu,
-                "bn" : bn,
-                "activation" : self.activation_fn,
-                "perm_drop" : perm_drop,
-                }
-
-        x = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
-        x0 = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
-
-        x = Concatenate()([x, x0])
-
-        x = AddConv2D(x,  32, [5,5], 2, dr, **kwargs)
-        x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
-        x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
-        x = AddConv2D(x,  64, [5,5], 2, dr, **kwargs)
-        x = AddConv2D(x,  64, [5,5], 1, 0., **kwargs)
-        x = AddConv2D(x, 128, [5,5], 2, dr, **kwargs)
-
-        if self.use_spatial_softmax and not disc:
-            def _ssm(x):
-                return spatial_softmax(x)
-            self.encoder_channels = 32
-            x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", lrelu=disc, bn=bn, perm_drop=perm_drop)
-            x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            self.hidden_shape = (self.encoder_channels*2,)
-            self.hidden_size = 2*self.encoder_channels
-            self.hidden_shape = (self.hidden_size,)
-        else:
-            self.encoder_channels = 8
-            # Note: I removed the BN here
-            x = AddConv2D(x, self.encoder_channels, [1,1], 1, 0.*dr,
-                    "same", lrelu=disc,
-                    activation="sigmoid",
-                    bn=False, perm_drop=perm_drop)
-            self.steps_down = 3
-            self.hidden_dim = int(img_shape[0]/(2**self.steps_down))
-            self.hidden_shape = (self.hidden_dim, self.hidden_dim, self.encoder_channels)
-
-        if not disc:
-            image_encoder = Model([img0, img], x, name="Ienc")
-            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-            self.image_encoder = image_encoder
-        else:
-            bnv = self.use_batchnorm
-            x = Flatten()(x)
-            x = AddDense(x, 512, "lrelu", dr, output=True, bn=bnv, perm_drop=perm_drop)
-            x = AddDense(x, self.num_options, "softmax", 0., output=True, bn=bnv, perm_drop=perm_drop)
-            image_encoder = Model([img0, img], x, name="Idisc")
-            image_encoder.compile(loss="mae", optimizer=self.getOptimizer())
-            self.image_discriminator = image_encoder
-        return image_encoder
-
-    def _makeImageDecoder(self, hidden_shape, img_shape=None, copy=False, perm_drop=False):
-        '''
-        helper function to construct a decoder that will make images.
-
-        parameters:
-        -----------
-        img_shape: shape of the image, e.g. (64,64,3)
-        '''
-        if self.use_spatial_softmax:
-            rep = Input((self.hidden_size,),name="decoder_hidden_in")
-        else:
-            rep = Input(hidden_shape,name="decoder_hidden_in")
-
-        x = rep
-        dr = self.decoder_dropout_rate if self.hypothesis_dropout else 0
-        bn = self.use_batchnorm
-        
-        if self.use_spatial_softmax:
-            self.steps_up = 3
-            hidden_dim = int(img_shape[0]/(2**self.steps_up))
-            (h,w,c) = (hidden_dim,
-                       hidden_dim,
-                       self.encoder_channels)
-            x = AddDense(x, int(h*w*c), "relu", dr, bn=bn)
-            x = Reshape((h,w,c))(x)
-
-        kwargs = {
-                "bn" : bn,
-                "activation" : self.activation_fn,
-                "perm_drop" : perm_drop,
-                }
-
-        #x = AddConv2DTranspose(x, 64, [5,5], 1, dr, bn=bn)
-        x = AddConv2DTranspose(x, 128, [1,1], 1, 0., **kwargs)
-        x = AddConv2DTranspose(x,  64, [5,5], 2, dr, **kwargs)
-        x = AddConv2DTranspose(x,  64, [5,5], 1, 0., **kwargs)
-        x = AddConv2DTranspose(x,  32, [5,5], 2, dr, **kwargs)
-        x = AddConv2DTranspose(x,  32, [5,5], 1, 0., **kwargs)
-        x = AddConv2DTranspose(x,  32, [5,5], 2, dr, **kwargs)
-        x = AddConv2DTranspose(x,  32, [5,5], 1, 0., **kwargs)
-        ins = rep
-        x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
-        x = Activation("sigmoid")(x)
-        if not copy:
-            decoder = Model(ins, x, name="Idec")
-            decoder.compile(loss="mae",optimizer=self.getOptimizer())
-            self.image_decoder = decoder
-        else:
-            decoder = Model(ins, x,)
-            decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        return decoder
-
 
     def _sizes(self, images, arm, gripper):
         img_shape = images.shape[1:]

@@ -128,6 +128,7 @@ class AbstractAgentBasedModel(object):
         self.optimizer = optimizer
         self.validation_steps = validation_steps
         self.no_disc = no_disc
+        self.encode_spatial_softmax = False
         self.validate = validate
         self.task = task
         if features == "multi":

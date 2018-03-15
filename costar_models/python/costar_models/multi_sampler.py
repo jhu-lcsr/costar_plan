@@ -51,9 +51,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Layer and model configuration
         self.extra_layers = 1
-        self.use_spatial_softmax = False
         self.dense_representation = True
-        if self.use_spatial_softmax and self.dense_representation:
+        if self.encode_spatial_softmax and self.dense_representation:
             self.steps_down = 2
             self.steps_down_no_skip = 0
             self.steps_up = 4
@@ -901,9 +900,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
-                flatten=(not self.use_spatial_softmax),
+                flatten=(not self.encode_spatial_softmax),
                 option=enc_options,
-                use_spatial_softmax=self.use_spatial_softmax,
+                encode_spatial_softmax=self.encode_spatial_softmax,
                 output_filters=self.tform_filters,
                 )
         self.encoder = Model(ins, [enc]+skips, name="encoder")
@@ -1019,22 +1018,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder
         return state_decoder
-
-    def _makeMergeEncoder(self, img_shape, arm_shape, gripper_shape):
-        '''
-        Take input image and state information and encode them into a single
-        hidden representation
-        '''
-        img_in = Input(img_shape,name="predictor_img_in")
-        option_in = Input((1,), name="predictor_option_in")
-
-
-    def _makeMergeDecoder(self, rep_size):
-        '''
-        Take input state and image information projected into a latent space
-        and decode them back into their appropriate output representations
-        '''
-
 
     def _targetsFromTrainTargets(self, train_targets):
         '''

@@ -72,8 +72,8 @@ class ConditionalImage(PredictionSampler2):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        encoder = self._makeImageEncoder(img_shape)
-        decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = MakeImageEncoder(self, img_shape)
+        decoder = MakeImageDecoder(self, self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder)
 
