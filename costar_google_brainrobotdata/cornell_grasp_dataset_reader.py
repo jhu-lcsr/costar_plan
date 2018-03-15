@@ -81,9 +81,9 @@ flags.DEFINE_integer(
     3,
     'The width of the dataset images'
 )
-flags.DEFINE_integer('crop_height', 224,
+flags.DEFINE_integer('crop_height', 331,
                      """Height to crop images, resize_width and resize_height is applied next""")
-flags.DEFINE_integer('crop_width', 224,
+flags.DEFINE_integer('crop_width', 331,
                      """Width to crop images, resize_width and resize_height is applied next""")
 flags.DEFINE_string(
     'crop_to', 'center_on_gripper_grasp_box_and_rotate_upright',
