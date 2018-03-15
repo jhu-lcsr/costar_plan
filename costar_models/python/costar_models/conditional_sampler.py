@@ -36,6 +36,7 @@ class ConditionalSampler(ConditionalImage):
         taskdef: definition of the problem used to create a task model
         '''
         super(ConditionalSampler, self).__init__(*args, **kwargs)
+        self.retrain = True # this one does not try to reload models
 
     def _makePredictor(self, features):
         # =====================================================================
