@@ -106,12 +106,11 @@ def main(args):
             ii += 1
             xi = np.expand_dims(I[i],axis=0)
             x0 = np.expand_dims(I0[i],axis=0)
-            h = model.encode(xi)
-            h0 = model.encode(x0)
+            h = model.encode(x0, xi)
             #p_a, done1 = model.pnext(h0, h, prev_option)
             #v2 = model.value(h0, h)
-            h_goal = model.transform(h0, h, np.array([o1[i]]))
-            h_goal2 = model.transform(h0, h_goal, np.array([o2[i]]))
+            h_goal = model.transform(h, np.array([o1[i]]))
+            h_goal2 = model.transform(h_goal, np.array([o2[i]]))
             xg = model.decode(h_goal)
             xg2 = model.decode(h_goal2)
             if False and ((i % 100) == 0):

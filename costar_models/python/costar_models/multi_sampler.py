@@ -1139,7 +1139,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             out.append(x)
         return out
 
-    def encode(self, img):
+    def encode(self, img0, img):
         '''
         Encode available features into a new state
 
@@ -1147,7 +1147,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         -----------
         [unknown]: all are parsed via _getData() function.
         '''
-        return self.image_encoder.predict(img)
+        return self.image_encoder.predict([img0, img])
 
     def decode(self, hidden):
         '''
@@ -1157,7 +1157,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         return self.image_decoder.predict(hidden)
 
-    def transform(self, hidden0, hidden, option_in=-1):
+    def transform(self, hidden, option_in=-1):
         #if option_in < 0 or option_in > self.num_options:
         #    option_in = self.null_option
         #oin = MakeOption1h(option_in, self.num_options)
@@ -1167,7 +1167,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             oin = option_in
         #length = hidden.shape[0]
         #oin = np.repeat(oin, length, axis=0)
-        h = self.transform_model.predict([hidden0, hidden, oin])
+        h = self.transform_model.predict([hidden, oin])
         return h
 
 
