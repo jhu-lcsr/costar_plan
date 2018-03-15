@@ -1,0 +1,1 @@
+{"trunk_model_name": "resnet_conv_identity_block", "trunk_filters": 128, "top_block_filters": 2048, "image_model_name": "vgg", "trunk_layers": 1}
