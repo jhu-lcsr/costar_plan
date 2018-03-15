@@ -16,7 +16,7 @@ from .pretrain_sampler import PretrainSampler
 from .pretrain_image_gan import PretrainImageGan
 
 from .sampler2 import PredictionSampler2
-from .conditional_sampler2 import ConditionalSampler2
+from .conditional_sampler import ConditionalSampler
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
 from .discriminator import Discriminator

@@ -16,12 +16,12 @@ from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from .callbacks import *
-from .sampler2 import *
+from .multi_sampler import *
 from .data_utils import GetNextGoal, ToOneHot
 from .multi import *
 from .loss import *
 
-class ConditionalImage(PredictionSampler2):
+class ConditionalImage(RobotMultiPredictionSampler):
     '''
     Version of the sampler that only produces results conditioned on a
     particular action; this version does not bother trying to learn a separate
