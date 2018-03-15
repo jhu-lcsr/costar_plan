@@ -15,7 +15,7 @@ from .pretrain_image import PretrainImageAutoencoder
 from .pretrain_sampler import PretrainSampler
 from .pretrain_image_gan import PretrainImageGan
 
-from .sampler2 import PredictionSampler2
+# Multi stuff -- primary models
 from .conditional_sampler import ConditionalSampler
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
@@ -120,8 +120,8 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "pretrain_sampler":
             model_instance = PretrainSampler(taskdef, model=model, **kwargs)
-        elif model == "conditional_sampler2":
-            model_instance = ConditionalSampler2(taskdef, model=model, **kwargs)
+        elif model == "conditional_sampler":
+            model_instance = ConditionalSampler(taskdef, model=model, **kwargs)
         elif model == "conditional_image":
             model_instance = ConditionalImage(taskdef, model=model, **kwargs)
         elif model == "conditional_image_gan":
@@ -260,7 +260,7 @@ def GetModels():
             "pretrain_image_encoder", # tool for pretraining images
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
-            "conditional_sampler2", # just give the condition
+            "conditional_sampler", # just give the condition
             "conditional_image", # just give label and predict image
             "conditional_image_gan", # just give label and predict image
             "pretrain_image_gan",
