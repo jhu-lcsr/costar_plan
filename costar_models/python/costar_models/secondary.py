@@ -301,3 +301,14 @@ class HuskySecondary(Secondary):
         elif self.submodel == "pose":
             outs = [p_target]
         return ([I0, I, p, o1, o2, oin], outs)
+
+
+from .dvrk import *
+class JigsawsSecondary(Secondary):
+
+    def __init__(self, *args, **kwargs):
+        super(JigsawsSecondary, self).__init__(*args, **kwargs)
+        self.num_options = JigsawsNumOptions()
+        self.null_option = JigsawsNullOption()
+
+
