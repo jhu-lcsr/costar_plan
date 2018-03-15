@@ -60,7 +60,6 @@ class StackManager(object):
             return self.ok
         elif self.service.update():
             self.done = False
-            rospy.loginfo("still running: " + str(self.current))
             return
         elif self.current in self.children:
             # This one has a child to execute

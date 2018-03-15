@@ -145,6 +145,7 @@ class DataCollector(object):
 
         self.info = None
         self.object = None
+        self.prev_object = None
         self.current = None
 
     def _jointsCb(self, msg):
@@ -177,12 +178,17 @@ class DataCollector(object):
         '''
 
         if not self.current == action_label:
-            rospy.loginfo("new action: " + str(action_label))
+            rospy.loginfo("Starting new action: " + str(action_label))
             self.current = action_label
+            self.prev_object = self.object
             self.object = None
         if self.object is None:
             rospy.logwarn("passing -- has not yet started executing motion")
             return True
+
+        rospy.loginfo("Logging: " + str(self.current) +
+                ", obj = " + str(self.object) +
+                ", prev = " + str(self.prev_object))
 
         try:
             t = rospy.Time(0)

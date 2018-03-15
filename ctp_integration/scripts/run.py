@@ -154,12 +154,12 @@ def main():
         '''
         try:
             t = rospy.Time(0)
-            xyz, rot = collector.tf_listener.lookup_transform(collector.base_link, object_name, t)
+            pose = collector.tf_listener.lookup_transform(collector.base_link, object_name, t)
         except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-            rospy.logwarn("Failed lookup: %s to %s"%(collector.base_link, object_frame))
+            rospy.logwarn("Failed lookup: %s to %s"%(collector.base_link, object_name))
             return False
-        print(">>>", object_name, xyz, rot)
-        return xyz[2] > 0.10
+        print(">>>", object_name, pose)
+        return pose.transform.translation.z > 0.10
 
     start = max(0, args.start-1)
     i = start
@@ -192,7 +192,9 @@ def main():
                     i += 1
 
                     # We should actually check results here
-                    if verify(collector.object):
+                    home(); observe()
+                    rospy.sleep(0.5)
+                    if verify(collector.prev_object):
                         reward = 1.
                     else:
                         reward = 0.
