@@ -7,22 +7,22 @@ import matplotlib.pyplot as plt
 
 '''
 Usage
-python plot_graph --path <path to data folder> --start <int> --end <int> --ignore_failure <bool>
+python plot_graph --path <path to data folder> --name <name of action > --start <int> --end <int> --ignore_failure <bool>
 python plot_graph --path 'data/' 
-default choose all files and ignore failure case
+default choose all files and ignore failure case and action name is "labels_to_name"
 '''
 
 
 def _parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--path",
-                        type=str)
+    parser.add_argument("--path", type=str)
+    parser.add_argument("--name",type=str, default=unicode("labels_to_name"))
     parser.add_argument("--start", type=int, default=0)
     parser.add_argument("--end", type=int, default=100000)
     parser.add_argument("--ignore_failure", type = bool, default=True)
     return vars(parser.parse_args())
 
-def main(args,root=37):
+def main(args,root="root"):
 	# init graph
 	graph = nx.DiGraph()
 	node_list = set()
@@ -30,6 +30,8 @@ def main(args,root=37):
 
 	# Read data
 	for filename in os.listdir(args['path']): 
+		if filename.startswith('.'):
+			continue
 		idx = int(filename[7:13])
 		if idx < args['start'] or idx > args['end']:
 			continue
@@ -40,8 +42,8 @@ def main(args,root=37):
 				continue
 
 		data = h5py.File(args['path']+filename,'r')
-		labels = list(data[u'label'])
-		prev_label = list(data[u'prev_label'])[0]
+		labels = list(data[args['name']])
+		prev_label = root
 
 		for label in labels:
 			if not label == prev_label:
