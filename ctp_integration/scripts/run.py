@@ -235,10 +235,10 @@ def main():
             print("------------------------------------------------------------")
             print("Bad data collection round. Manually reset.")
             collector.reset()
-            try:
-                input("Press Enter to continue...")
-            except SyntaxError as e:
-                pass
+            #try:
+            #    input("Press Enter to continue...")
+            #except SyntaxError as e:
+            #    pass
 
         # Undo the stacking
         for drop_pose in reversed(poses):
