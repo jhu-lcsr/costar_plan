@@ -60,12 +60,16 @@ def main(_):
 
     FLAGS.epochs = 40
     FLAGS.fine_tuning_epochs = 0
+    # This only means that the first part of the run is not fine tuning
+    # The later fine_tuning_epochs will work correctly.
+    FLAGS.fine_tuning = False
     print('Classification Training on grasp_success is about to begin. '
           'This mode overrides some command line parameters so to change them '
           'you will need to modify cornell_grasp_train_classification.py directly.')
 
     hyperparams = grasp_utilities.load_hyperparams_json(
-        FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
+        FLAGS.load_hyperparams, fine_tuning=FLAGS.fine_tuning,
+        learning_rate=FLAGS.learning_rate,
         feature_combo_name=feature_combo)
 
     if 'k_fold' in FLAGS.pipeline_stage:
