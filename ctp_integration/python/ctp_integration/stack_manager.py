@@ -32,6 +32,7 @@ class StackManager(object):
         self.done = False
         self.current = None
         self.ok = True
+        self.finished_action = False
 
     def addRequest(self, parents, name, srv, req):
         self.reqs[name] = (srv, req)
@@ -51,6 +52,8 @@ class StackManager(object):
         return label.split(':')[-1] in self.labels
 
     def tick(self):
+        self.finished_action = False
+
         # Check to make sure everything is ok
         if not self.ok:
             self.done = True
@@ -75,6 +78,7 @@ class StackManager(object):
             rospy.logerr(self.service.result.ack)
 
         if not self.done:
+            self.finished_action = True
             children = self.children[self.current]
             idx = np.random.randint(len(children))
             next_action = children[idx]

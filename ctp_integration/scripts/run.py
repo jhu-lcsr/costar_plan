@@ -157,14 +157,18 @@ def main():
         -----------
         object_name: name of the object being manipulated
         '''
-        try:
-            t = rospy.Time(0)
-            pose = collector.tf_listener.lookup_transform(collector.base_link, object_name, t)
-        except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+        pose = None
+        for i in range(50):
+            try:
+                t = rospy.Time(0)
+                pose = collector.tf_listener.lookup_transform(collector.base_link, object_name, t)
+            except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+                rospy.sleep(0.1)
+        if pose is None:
             rospy.logwarn("Failed lookup: %s to %s"%(collector.base_link, object_name))
             return False
         print(">>>", object_name, pose)
-        return pose.transform.translation.z > 0.10
+        return pose.transform.translation.z > 0.095
 
     start = max(0, args.start-1)
     i = start
@@ -184,19 +188,22 @@ def main():
         stack_task.reset()
 
         poses = []
+        cur_pose = None
         # Update the plan and the collector in synchrony.
         while not rospy.is_shutdown():
-
+            cur_pose = collector.current_ee_pose
+            
             # Note: this will be "dummied out" for most of 
             done = stack_task.tick()
             if not collector.update(stack_task.current, ):
                 raise RuntimeError('could not handle data collection')
             rate.sleep()
 
-            if (collector.prev_action is not None and
-                not collector.prev_action == collector.action and
-                "place" in collector.prev_action):
-                poses.append(collector.current_ee_pose)
+            if (done or (stack_task.finished_action and
+                collector.prev_action is not None and
+                "place" in collector.prev_action)):
+                rospy.loginfo("Remembering " + str(collector.prev_action))
+                poses.append(cur_pose)
                 reward = 0.
 
             if done:
@@ -228,10 +235,9 @@ def main():
             print("------------------------------------------------------------")
             print("Bad data collection round. Manually reset.")
             collector.reset()
-
-        try:
-            input("Press Enter to continue...")
-        except SyntaxError as e:
+            try:
+                input("Press Enter to continue...")
+            except SyntaxError as e:
                 pass
 
         # Undo the stacking
