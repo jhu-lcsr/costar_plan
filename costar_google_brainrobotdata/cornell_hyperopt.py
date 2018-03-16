@@ -334,7 +334,11 @@ def optimize(
             # hyperopt seems to be done on val_loss
             # may try 1-val_acc sometime (since the hyperopt minimizes)
             if param_to_optimize in history.history:
-                loss = history.history[param_to_optimize][-1]
+                # Take the best performance regardless of the epoch
+                if maximize:
+                    loss = np.max(history.history[param_to_optimize])
+                else:
+                    loss = np.min(history.history[param_to_optimize])
             else:
                 raise ValueError('A hyperopt step completed, but the parameter '
                                  'being optimized over is %s and it '
@@ -344,7 +348,7 @@ def optimize(
                                  (param_to_optimize, str(history.history)))
             if verbose > 0:
                 if 'val_binary_accuracy' in history.history:
-                    acc = history.history['val_binary_accuracy'][-1]
+                    acc = np.max(history.history['val_binary_accuracy'])
                     ProgUpdate.progbar.write('val_binary_accuracy: ' + str(acc))
         else:
             # we probably hit an exception so consider this infinite loss
