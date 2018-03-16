@@ -171,8 +171,8 @@ flags.DEFINE_string(
     """
 )
 flags.DEFINE_boolean(
-    'fine_tuning', True,
-    """ If true the model will be fine tuned.
+    'fine_tuning', False,
+    """ If true the model will be fine tuned the entire training run.
 
         This means that any imagenet weights will be made trainable,
         and the learning rate will be set to fine_tuning_learning_rate.
