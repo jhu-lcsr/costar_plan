@@ -1,0 +1,1 @@
+{"loss": "mae", "trunk_model_name": "dense_block", "trunk_layers": 7, "image_model_name": "vgg", "trunk_filters": 128, "top_block_dense_layers": 1, "top_block_filters": 256}

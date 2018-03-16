@@ -49,6 +49,7 @@ import grasp_geometry_tf
 import depth_image_encoding
 import random_crop as rcp
 import inception_preprocessing
+import grasp_utilities
 from grasp_median_filter import grasp_dataset_median_filter
 
 # DATASET LOADING CONFIGURATION COMMAND LINE PARAMETERS, see GraspDataset()
@@ -88,9 +89,9 @@ flags.DEFINE_integer('median_filter_width', 5,
 flags.DEFINE_integer('median_filter_height', 5,
                      """Height of median filter kernel.
                      """)
-flags.DEFINE_integer('crop_width', 560,
+flags.DEFINE_integer('crop_width', 448,  # formerly 560
                      """Width to crop images""")
-flags.DEFINE_integer('crop_height', 448,
+flags.DEFINE_integer('crop_height', 448,  # formerly 448
                      """Height to crop images""")
 flags.DEFINE_boolean('random_crop', True,
                      """random_crop will apply the tf random crop function with
@@ -104,9 +105,9 @@ flags.DEFINE_boolean('random_crop', True,
                         that you crop images to the same size during both training
                         and test time.
                      """)
-flags.DEFINE_integer('resize_width', 160,
+flags.DEFINE_integer('resize_width', 224,  # formerly 160
                      """Width to resize images before prediction, if enabled.""")
-flags.DEFINE_integer('resize_height', 128,
+flags.DEFINE_integer('resize_height', 224,  # formerly 128
                      """Height to resize images before prediction, if enabled.""")
 flags.DEFINE_boolean('resize', True,
                      """resize will resize the input images to the desired dimensions specified by the
@@ -251,32 +252,6 @@ flags.DEFINE_string('grasp_datasets_batch_algorithm', 'proportional',
 FLAGS = flags.FLAGS
 
 
-def mkdir_p(path):
-    """Create the specified path on the filesystem like the `mkdir -p` command
-
-    Creates one or more filesystem directory levels as needed,
-    and does not return an error if the directory already exists.
-    """
-    # http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
-
-
-def is_sequence(arg):
-    """Returns true if arg is a list or another Python Sequence, and false otherwise.
-
-        source: https://stackoverflow.com/a/17148334/99379
-    """
-    return (not hasattr(arg, "strip") and
-            hasattr(arg, "__getitem__") or
-            hasattr(arg, "__iter__"))
-
-
 class GraspDataset(object):
     """Google Grasping Dataset - about 1TB total size
         https://sites.google.com/site/brainrobotdata/home/grasping-dataset
@@ -363,7 +338,7 @@ class GraspDataset(object):
                 data_dir = FLAGS.data_dir
             else:
                 data_dir = self.data_dir
-        mkdir_p(data_dir)
+        grasp_utilities.mkdir_p(data_dir)
         print('Downloading datasets to: ', data_dir)
 
         url_prefix = 'https://storage.googleapis.com/brain-robotics-data/'
@@ -792,9 +767,9 @@ class GraspDataset(object):
             features_complete_list=None,
             time_ordered_feature_name_dict=None,
             num_samples=None,
-            batch_size=FLAGS.batch_size,
-            gripper_z_offset=FLAGS.gripper_z_offset_meters,
-            median_filter=FLAGS.median_filter,
+            batch_size=None,
+            gripper_z_offset=None,
+            median_filter=None,
             verbose=0):
         """Get runtime generated 3D transform feature tensors as a dictionary, including depth surface relative transforms.
 
@@ -914,6 +889,12 @@ class GraspDataset(object):
 
             num_samples: the number of grasp attempts in the dataset.
         """
+        if batch_size is None:
+            batch_size = FLAGS.batch_size
+        if gripper_z_offset is None:
+            gripper_z_offset = FLAGS.gripper_z_offset_meters
+        if median_filter is None:
+            median_filter = FLAGS.median_filter
         if feature_op_dicts is None:
             feature_op_dicts, features_complete_list, num_samples = self._get_simple_parallel_dataset_ops(batch_size=batch_size)
         elif features_complete_list is None or num_samples is None:
@@ -1220,8 +1201,8 @@ class GraspDataset(object):
 
     @staticmethod
     def _image_decode(feature_op_dict, sensor_image_dimensions=None, image_features=None, decode_depth_as='depth',
-                      point_cloud_fn='tensorflow', median_filter=FLAGS.median_filter,
-                      median_filter_height=FLAGS.median_filter_height, median_filter_width=FLAGS.median_filter_width):
+                      point_cloud_fn='tensorflow', median_filter=None,
+                      median_filter_height=None, median_filter_width=None):
         """ Add features to dict that supply decoded png and jpeg images for any encoded images present.
 
         Any feature path that is 'image/encoded' will also now have 'image/decoded', and 'image/xyz' when
@@ -1257,6 +1238,12 @@ class GraspDataset(object):
 
             updated feature_op_dict, new_feature_list
         """
+        if median_filter is None:
+            median_filter = FLAGS.median_filter
+        if median_filter_width is None:
+            median_filter_width = FLAGS.median_filter_width
+        if median_filter_height is None:
+            median_filter_height = FLAGS.median_filter_height
         with tf.name_scope('image_decode'):
             new_feature_list = []
             if sensor_image_dimensions is None:
@@ -1521,17 +1508,41 @@ class GraspDataset(object):
 
     def _rgb_preprocessing(
             self, rgb_image_op,
-            image_augmentation=FLAGS.image_augmentation,
-            imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-            resize=FLAGS.resize,
-            resize_height=FLAGS.resize_height,
-            resize_width=FLAGS.resize_width):
+            image_augmentation=None,
+            imagenet_preprocessing=None,
+            resize=None,
+            resize_height=None,
+            resize_width=None,
+            mode='tf'):
         """Preprocess an rgb image into a float image, applying image augmentation and imagenet mean subtraction if desired.
 
         Please note that cropped images are generated in `_image_decode()` and given separate feature names.
         Also please be very careful about resizing the rgb image
+
+        # Arguments
+
+            mode: One of "caffe", "tf" or "torch".
+                - caffe: will convert the images from RGB to BGR,
+                    then will zero-center each color channel with
+                    respect to the ImageNet dataset,
+                    without scaling.
+                - tf: will scale pixels between -1 and 1,
+                    sample-wise.
+                - torch: will scale pixels between 0 and 1 and then
+                    will normalize each channel with respect to the
+                    ImageNet dataset.
         """
         with tf.name_scope('rgb_preprocessing'):
+            if image_augmentation is None:
+                image_augmentation = FLAGS.image_augmentation
+            if imagenet_preprocessing is None:
+                imagenet_preprocessing = FLAGS.imagenet_preprocessing
+            if resize is None:
+                resize = FLAGS.resize
+            if resize_height is None:
+                resize_height = FLAGS.resize_height
+            if resize_width is None:
+                resize_width = FLAGS.resize_width
             # make sure the shape is correct
             rgb_image_op = tf.squeeze(rgb_image_op)
             # apply image augmentation and imagenet preprocessing steps adapted from keras
@@ -1540,23 +1551,18 @@ class GraspDataset(object):
                                                       tf.constant([resize_height, resize_width],
                                                                   name='resize_height_width'))
             if imagenet_preprocessing:
-                rgb_image_op = tf.image.per_image_standardization(rgb_image_op)
+                data_format = K.image_data_format()
+                # TODO(ahundt) add scaling to augmentation and use that to augment delta depth parameters
+                # TODO(ahundt) possibly subtract imagenet mean if using pretrained weights, also simply divide channels by 255, and  see https://github.com/tensorflow/tensorflow/issues/15722
                 rgb_image_op = inception_preprocessing.preprocess_image(
                     rgb_image_op,
                     is_training=image_augmentation,
-                    fast_mode=False)
+                    fast_mode=False,
+                    mode=mode, data_format=data_format)
             else:
                 rgb_image_op = tf.cast(rgb_image_op, tf.float32)
 
             return rgb_image_op
-
-    @staticmethod
-    def _resize_coordinate(coordinate, input_shape, output_shape):
-        """ Update a coordinate based on the current input shape and a new updated output shape.
-        """
-        proportional_dimension_change = output_shape / input_shape[:2]
-        resized_coordinate = coordinate * proportional_dimension_change
-        return resized_coordinate
 
     @staticmethod
     def to_tensors(feature_op_dicts, features):
@@ -1651,17 +1657,17 @@ class GraspDataset(object):
             features_complete_list=None,
             time_ordered_feature_name_dict=None,
             num_samples=None,
-            batch_size=FLAGS.batch_size,
-            image_augmentation=FLAGS.image_augmentation,
-            imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-            median_filter=FLAGS.median_filter,
-            random_crop=FLAGS.random_crop,
+            batch_size=None,
+            image_augmentation=None,
+            imagenet_preprocessing=None,
+            median_filter=None,
+            random_crop=None,
             sensor_image_dimensions=None,
             random_crop_dimensions=None,
             random_crop_offset=None,
-            resize=FLAGS.resize,
-            resize_height=FLAGS.resize_height,
-            resize_width=FLAGS.resize_width,
+            resize=None,
+            resize_height=None,
+            resize_width=None,
             shift_ratio=0.01,
             seed=None,
             verbose=0):
@@ -1674,6 +1680,28 @@ class GraspDataset(object):
 
                [new_feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples]
         """
+        if batch_size is None:
+            batch_size = FLAGS.batch_size
+        if image_augmentation is None:
+            image_augmentation = FLAGS.image_augmentation
+        if imagenet_preprocessing is None:
+            imagenet_preprocessing = FLAGS.imagenet_preprocessing
+        if median_filter is None:
+            median_filter = FLAGS.median_filter
+        if random_crop is None:
+            random_crop = FLAGS.random_crop
+        if sensor_image_dimensions is None:
+            sensor_image_dimensions = None
+        if random_crop_dimensions is None:
+            random_crop_dimensions = None
+        if random_crop_offset is None:
+            random_crop_offset = None
+        if resize is None:
+            resize = FLAGS.resize
+        if resize_height is None:
+            resize_height = FLAGS.resize_height
+        if resize_width is None:
+            resize_width = FLAGS.resize_width
         if sensor_image_dimensions is None:
             sensor_image_dimensions = [FLAGS.sensor_image_height, FLAGS.sensor_image_width, FLAGS.sensor_color_channels]
         if feature_op_dicts is None:
@@ -1865,13 +1893,15 @@ class GraspDataset(object):
                     # resize needs to be done based on the correct input and output image size,
                     # not just the pregrasp_image_rgb_op's size.
                     if 'cropped' in feature_key:
-                        coordinate = self._resize_coordinate(feature, img_shape, output_shape)
+                        # After cropping the images are resized, so apply the resize step to the coordinate.
+                        coordinate = rcp.resize_coordinate(feature, img_shape, output_shape, dtype=tf.int32)
                         coordinate_name = feature_key.replace(preprocessed_suffix, 'cropped_resized')
                         resized_coordinate_dict[coordinate_name] = coordinate
                         if batch_i == 0:
                             features_complete_list = np.append(features_complete_list, coordinate_name)
                     elif 'image_coordinate/yx_2' in feature_key:
-                        coordinate = self._resize_coordinate(feature, raw_img_shape, output_shape)
+                        # Original images are resized, so apply the resize step to the coordinate.
+                        coordinate = rcp.resize_coordinate(feature, raw_img_shape, output_shape)
                         coordinate_name = feature_key.replace('image_coordinate/yx_2', 'image_coordinate/original_resized/yx_2')
                         resized_coordinate_dict[coordinate_name] = coordinate
                         if batch_i == 0:
@@ -1998,22 +2028,22 @@ class GraspDataset(object):
         return new_feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples
 
     def get_training_tensors_and_dictionaries(
-            self, batch_size=FLAGS.batch_size,
-            imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-            image_augmentation=FLAGS.image_augmentation,
-            random_crop=FLAGS.random_crop,
+            self, batch_size=None,
+            imagenet_preprocessing=None,
+            image_augmentation=None,
+            random_crop=None,
             sensor_image_dimensions=None,
             random_crop_dimensions=None,
             random_crop_offset=None,
-            resize=FLAGS.resize,
-            resize_height=FLAGS.resize_height,
-            resize_width=FLAGS.resize_width,
-            motion_command_feature=FLAGS.grasp_sequence_motion_command_feature,
-            grasp_sequence_image_feature=FLAGS.grasp_sequence_image_feature,
-            clear_view_image_feature=FLAGS.grasp_sequence_image_feature,
-            grasp_success_label=FLAGS.grasp_success_label,
-            grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-            grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+            resize=None,
+            resize_height=None,
+            resize_width=None,
+            motion_command_feature=None,
+            grasp_sequence_image_feature=None,
+            clear_view_image_feature=None,
+            grasp_success_label=None,
+            grasp_sequence_max_time_step=None,
+            grasp_sequence_min_time_step=None,
             shift_ratio=0.01,
             seed=None):
         """Get tensors configured for training on grasps from a single dataset.
@@ -2112,12 +2142,40 @@ class GraspDataset(object):
              features_complete_list, time_ordered_feature_name_dict, num_samples)
         """
         with K.name_scope('get_training_tensors') as scope:
+            if batch_size is None:
+                batch_size = FLAGS.batch_size
+            if imagenet_preprocessing is None:
+                imagenet_preprocessing = FLAGS.imagenet_preprocessing
+            if image_augmentation is None:
+                image_augmentation = FLAGS.image_augmentation
+            if random_crop is None:
+                random_crop = FLAGS.random_crop
+            if resize is None:
+                resize = FLAGS.resize
+            if resize_height is None:
+                resize_height = FLAGS.resize_height
+            if resize_width is None:
+                resize_width = FLAGS.resize_width
+            if motion_command_feature is None:
+                motion_command_feature = FLAGS.grasp_sequence_motion_command_feature
+            if grasp_sequence_image_feature is None:
+                grasp_sequence_image_feature = FLAGS.grasp_sequence_image_feature
+            if clear_view_image_feature is None:
+                clear_view_image_feature = FLAGS.grasp_sequence_image_feature
+            if grasp_success_label is None:
+                grasp_success_label = FLAGS.grasp_success_label
+            if grasp_sequence_max_time_step is None:
+                grasp_sequence_max_time_step = FLAGS.grasp_sequence_max_time_step
+            if grasp_sequence_min_time_step is None:
+                grasp_sequence_min_time_step = FLAGS.grasp_sequence_min_time_step
             # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
             feature_op_dicts, features_complete_list, time_ordered_feature_name_dict, num_samples = self.get_training_dictionaries(
                 batch_size=batch_size, random_crop=random_crop, sensor_image_dimensions=sensor_image_dimensions,
                 imagenet_preprocessing=imagenet_preprocessing, image_augmentation=image_augmentation,
                 random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset,
                 shift_ratio=shift_ratio, seed=seed)
+
+            # print('<<<<<<<<<time_ordered_feature_name_dict:' + str(time_ordered_feature_name_dict))
 
             # convert the dictionary with only feature strings to a dictionary with actual tensors
             time_ordered_feature_tensor_dicts = GraspDataset.to_tensors(feature_op_dicts, time_ordered_feature_name_dict)
@@ -2132,6 +2190,7 @@ class GraspDataset(object):
             # grasp success labels from the motion
             grasp_success_op_batch = self.to_training_tensor(time_ordered_feature_tensor_dicts, grasp_success_label)
 
+            print('motion_command_feature: ' + str(motion_command_feature))
             # motion commands, such as pose or transform features
             simplified_grasp_command_op_batch = self.to_training_tensor(time_ordered_feature_tensor_dicts, motion_command_feature)
 
@@ -2139,26 +2198,27 @@ class GraspDataset(object):
                     features_complete_list, time_ordered_feature_name_dict, num_samples)
 
     def get_training_tensors(
-            self, batch_size=FLAGS.batch_size,
-            imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-            image_augmentation=FLAGS.image_augmentation,
-            random_crop=FLAGS.random_crop,
+            self, batch_size=None,
+            imagenet_preprocessing=None,
+            image_augmentation=None,
+            random_crop=None,
             sensor_image_dimensions=None,
             random_crop_dimensions=None,
             random_crop_offset=None,
-            resize=FLAGS.resize,
-            resize_height=FLAGS.resize_height,
-            resize_width=FLAGS.resize_width,
-            motion_command_feature=FLAGS.grasp_sequence_motion_command_feature,
-            grasp_sequence_image_feature=FLAGS.grasp_sequence_image_feature,
-            clear_view_image_feature=FLAGS.grasp_sequence_image_feature,
-            grasp_success_label=FLAGS.grasp_success_label,
-            grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-            grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
+            resize=None,
+            resize_height=None,
+            resize_width=None,
+            motion_command_feature=None,
+            grasp_sequence_image_feature=None,
+            clear_view_image_feature=None,
+            grasp_success_label=None,
+            grasp_sequence_max_time_step=None,
+            grasp_sequence_min_time_step=None,
             shift_ratio=0.01,
             seed=None):
         """Get tensors configured for training on grasps from a single dataset.
 
+        # TODO(ahundt) add scaling to augmentation and use that to augment delta depth parameters
          TODO(ahundt) 2017-12-05 update get_training_tensors docstring, now expects 'move_to_grasp/time_ordered/' feature strings.
 
          # Features
@@ -2252,9 +2312,36 @@ class GraspDataset(object):
             (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, num_samples)
         """
         with K.name_scope('get_training_tensors') as scope:
+            if batch_size is None:
+                batch_size = FLAGS.batch_size
+            if imagenet_preprocessing is None:
+                imagenet_preprocessing = FLAGS.imagenet_preprocessing
+            if image_augmentation is None:
+                image_augmentation = FLAGS.image_augmentation
+            if random_crop is None:
+                random_crop = FLAGS.random_crop
+            if resize is None:
+                resize = FLAGS.resize
+            if resize_height is None:
+                resize_height = FLAGS.resize_height
+            if resize_width is None:
+                resize_width = FLAGS.resize_width
+            if motion_command_feature is None:
+                motion_command_feature = FLAGS.grasp_sequence_motion_command_feature
+            if grasp_sequence_image_feature is None:
+                grasp_sequence_image_feature = FLAGS.grasp_sequence_image_feature
+            if clear_view_image_feature is None:
+                clear_view_image_feature = FLAGS.grasp_sequence_image_feature
+            if grasp_success_label is None:
+                grasp_success_label = FLAGS.grasp_success_label
+            if grasp_sequence_max_time_step is None:
+                grasp_sequence_max_time_step = FLAGS.grasp_sequence_max_time_step
+            if grasp_sequence_min_time_step is None:
+                grasp_sequence_min_time_step = FLAGS.grasp_sequence_min_time_step
+
             # Get tensors that load the dataset from disk plus features calculated from the raw data, including transforms and point clouds
             (pregrasp_op_batch, grasp_step_op_batch, simplified_grasp_command_op_batch, grasp_success_op_batch, feature_op_dicts,
-                    features_complete_list, time_ordered_feature_name_dict, num_samples) = self.get_training_tensors_and_dictionaries(
+             features_complete_list, time_ordered_feature_name_dict, num_samples) = self.get_training_tensors_and_dictionaries(
                 batch_size=batch_size, random_crop=random_crop, sensor_image_dimensions=sensor_image_dimensions,
                 imagenet_preprocessing=imagenet_preprocessing, image_augmentation=image_augmentation,
                 random_crop_dimensions=random_crop_dimensions, random_crop_offset=random_crop_offset,
@@ -2270,7 +2357,7 @@ class GraspDataset(object):
         clip.write_gif(filename)
 
     def create_gif(self, tf_session=None,
-                   visualization_dir=FLAGS.visualization_dir,
+                   visualization_dir=None,
                    rgb_feature_type='move_to_grasp/time_ordered/rgb_image/preprocessed',
                    depth_feature_type='depth_image/rgb_encoded',
                    draw='circle_on_gripper',
@@ -2301,9 +2388,11 @@ class GraspDataset(object):
         Raises:
         RuntimeError: if no files found.
         """
+        if visualization_dir is None:
+            visualization_dir = FLAGS.visualization_dir
         if tf_session is None:
             tf_session = tf.Session()
-        mkdir_p(FLAGS.visualization_dir)
+        grasp_utilities.mkdir_p(FLAGS.visualization_dir)
 
         batch_size = 1
         (feature_op_dicts, features_complete_list,
@@ -2401,7 +2490,7 @@ class GraspDataset(object):
                 gif_path = os.path.join(visualization_dir, gif_filename)
                 self.npy_to_gif(video, gif_path)
 
-    def count_success_failure_number(self, tf_session=tf.Session(), save_file=True, save_dir=FLAGS.data_dir, filename=None, verbose=1):
+    def count_success_failure_number(self, tf_session=tf.Session(), save_file=True, save_dir=None, filename=None, verbose=1):
         """ Count the total number of grasp attempts, grasp successes, and grasp failures in the loaded dataset.
 
         Counts, prints, and saves a file containing:
@@ -2422,6 +2511,8 @@ class GraspDataset(object):
             success_num: number of success attempts
             failure_num: number of failed attempts
         """
+        if save_dir is None:
+            save_dir = FLAGS.data_dir
         batch_size = 1
         (feature_op_dicts, _, _, num_samples) = self.get_training_dictionaries(batch_size=batch_size)
 
@@ -2457,7 +2548,7 @@ class GraspDataset(object):
 
         if save_file is True:
             save_dir = FLAGS.data_dir
-            mkdir_p(save_dir)
+            grasp_utilities.mkdir_p(save_dir)
             if filename is None:
                 filename = 'grasp_dataset_' + self.dataset + '_statistics.txt'
             complete_path = os.path.join(save_dir, filename)
@@ -2471,16 +2562,16 @@ class GraspDataset(object):
 
 
 def get_multi_dataset_training_tensors(
-        datasets=FLAGS.grasp_datasets_train,
-        batch_size=FLAGS.batch_size,
-        imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-        grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
-        grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-        random_crop=FLAGS.random_crop,
-        resize=FLAGS.resize,
-        resize_height=FLAGS.resize_height,
-        resize_width=FLAGS.resize_width,
-        grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
+        datasets=None,
+        batch_size=None,
+        imagenet_preprocessing=None,
+        grasp_sequence_min_time_step=None,
+        grasp_sequence_max_time_step=None,
+        random_crop=None,
+        resize=None,
+        resize_height=None,
+        resize_width=None,
+        grasp_datasets_batch_algorithm=None,
         shift_ratio=0.01,
         seed=None):
     """Aggregate multiple datasets into combined training tensors.
@@ -2564,6 +2655,27 @@ def get_multi_dataset_training_tensors(
         This means that not all datasets will be covered at a perfectly equal pace.
 
     """
+    if datasets is None:
+        datasets = FLAGS.grasp_datasets_train
+    if batch_size is None:
+        batch_size = FLAGS.batch_size
+    if imagenet_preprocessing is None:
+        imagenet_preprocessing = FLAGS.imagenet_preprocessing
+    if random_crop is None:
+        random_crop = FLAGS.random_crop
+    if resize is None:
+        resize = FLAGS.resize
+    if resize_height is None:
+        resize_height = FLAGS.resize_height
+    if resize_width is None:
+        resize_width = FLAGS.resize_width
+    if grasp_sequence_max_time_step is None:
+        grasp_sequence_max_time_step = FLAGS.grasp_sequence_max_time_step
+    if grasp_sequence_min_time_step is None:
+        grasp_sequence_min_time_step = FLAGS.grasp_sequence_min_time_step
+    if grasp_datasets_batch_algorithm is None:
+        grasp_datasets_batch_algorithm = FLAGS.grasp_datasets_batch_algorithm
+
     if grasp_datasets_batch_algorithm != 'constant' and grasp_datasets_batch_algorithm != 'proportional':
         raise ValueError('grasp_datasets_batch_algorithm string value must be either constant or proportional.')
 

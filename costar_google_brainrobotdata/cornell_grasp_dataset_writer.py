@@ -72,13 +72,24 @@ gripper location and orientation rectangle data:
   - Four rows define a single rectangle
   - Some coordinates contain NaN, and those whole rectangles must be skipped
   - The origin (0, 0) is the coordinate at the top left of the image.
-  - points p0, p1 aka [(x0, y0), (x1, y1)] defines side 0 of the gap between the gripper plates
-  - points p1, p2 aka [(x1, y1), (x2, y2)] defines gripper plate 0
-  - points p0, p1 aka [(x2, y2), (x3, y3)] defines side 1 of the gap between the gripper plates
-  - points p1, p2 aka [(x3, y3), (x0, y0)] defines gripper plate 1
+  - points p0, p1 aka [(x0, y0), (x1, y1)] defines side 0 of the gap between the gripper plates aka "width"
+  - points p1, p2 aka [(x1, y1), (x2, y2)] defines gripper plate 0 aka "height"
+  - points p0, p1 aka [(x2, y2), (x3, y3)] defines side 1 of the gap between the gripper plates aka "width"
+  - points p1, p2 aka [(x3, y3), (x0, y0)] defines gripper plate 1 aka "height"
 
-  This means what we describe as bbox/width is the gripper plate,
- and bbox/height is the distance between gripper plates
+
+The "gripper plate" is what we save as "bbox/height", this line actually defines
+a range of possible gripper plate positions for successful grasps. For example,
+you might imagine that a ruler could be picked up at any point along the length
+of the ruler.
+
+The "bbox/width" parameter is how open the gripper is, in other words the distance
+between the gripper plates' interior surface.
+
+
+max width between gripper plates: 149.0
+max height range of gripper positions: 229.49894515618436
+
 [End comments by code authors]
 
 5. The backgroundMapping file contains one line for each image in the
@@ -90,6 +101,26 @@ robot to take a background picture beforehand, so this is not a practical way
 to handle identifying objects.  However, for the sake of concentrating only on
 grasping, it is a very convenient method to subtract the backgrounds when possible.
 
+
+From the second Cornell dataset README
+--------------------------------------
+Each of the files x,y, and z contained here are formatted for the convenience of the user.
+
+Each of the four files contain 7037 lines.  Each line is a data sample using Marcus Lim's feature extraction along with Kerekes and Meusling's data and labels.  The line numbers map to a particular labelled rectangle.  So line 1 in each file refers to the first labelled rectangle, and line 200 in each file refers to the 200th labelled rectangle for example.
+
+features
+This file is formatted with rewards and features combined (x and y) and is already in the proper format to plug into SVM-Light.
+
+x.txt
+Each line has 1901 space-delimitted floating point values.  Line 1 is the first labelled rectangle's 1901 extracted features.  Line 7037 is the final labelled rectangle's 1901 extracted features.  Each line corresponds to the same line in y.txt and z.txt.
+
+
+y.txt
+Each line has the associated reward for each sample.  Line 1 has the reward for the first labelled rectangle.  Line 7037 has the reward for the final labelled rectangle.  For our purposes, each reward is either +1 or -1, meaning "good grasping rectangle" or "bad grasping rectangle."
+
+z.txt
+Each line has four space-delimitted pieces of data.  First is the image id that the rectangle is taken from (0000 through 1034).  Second is the object id (0 through 281), since most objects have multiple images.  Each object id represents a different object.  Three different bowls will have three different object ids.  Third is a short description of what the item is.  Fourth is the identifier for which background image to use if you wish to perform background subtraction.  The background image may or may not be useful for you depending on how you plan to identify the object to grasp in the image.
+
 '''
 
 import os
@@ -98,9 +129,9 @@ import errno
 import traceback
 import itertools
 import six
-import os
 import glob
 import numpy as np
+from random import shuffle
 
 import tensorflow as tf
 import re
@@ -108,7 +139,6 @@ from scipy.ndimage.filters import median_filter
 from sklearn.preprocessing import normalize
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 import matplotlib.image as mpimg
 import matplotlib.lines as lines
 # progress bars https://github.com/tqdm/tqdm
@@ -130,6 +160,9 @@ from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
 import keras
 from keras import backend as K
 
+import grasp_utilities
+import grasp_visualization
+
 
 flags.DEFINE_string('data_dir',
                     os.path.join(os.path.expanduser("~"),
@@ -137,10 +170,25 @@ flags.DEFINE_string('data_dir',
                     """Path to dataset in TFRecord format
                     (aka Example protobufs) and feature csv files.""")
 flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
+flags.DEFINE_boolean('is_fold_splits', True, 'If enabled the dataset will be split into num_fold separate files.')
+flags.DEFINE_string(
+    'split_type', 'objectwise',
+    """
+    Options are 'imagewise' and 'objectwise'.
+    If 'objectwise' each file in the kfold split will
+    contain separate objects. If 'imagewise',
+    different images may contain the same object while
+    still being placed in separate splits.
+    Default to false, creating k tfrecord files with an
+    objectwise split.
+    This parameter only has effect when is_fold_splits is true.
+    """)
+flags.DEFINE_integer('num_fold', 10, 'number of fold for K-Fold splits, default to 5')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_boolean('plot', False, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
-flags.DEFINE_boolean('showTextBox', False,
+flags.DEFINE_boolean('plot', True, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
+flags.DEFINE_boolean(
+    'showTextBox', False,
     """If plotting is enabled, plot extra text boxes near each grasp box
        so you can check that gripper orientation is correct.
     """)
@@ -153,7 +201,13 @@ flags.DEFINE_boolean(
        Please note that this substantially affects the output file size,
        but the dataset parsing code becomes much easier to write.
     """)
-flags.DEFINE_float('evaluate_fraction', 0.2, 'proportion of dataset to be used separately for evaluation')
+flags.DEFINE_float(
+    'evaluate_fraction', 0.2,
+    """proportion of dataset to be used separately for evaluation,
+       use 0 if you want all files to be in one dataset file,
+       which makes sense if you're going to do your splits with the tensorflow Dataset API.
+       Only applies when is_fold_splits is False.""")
+flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
 flags.DEFINE_string('train_filename', 'cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
 flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
 flags.DEFINE_string('stats_filename', 'cornell-grasping-dataset-stats.md', 'filename used for the dataset statistics file')
@@ -161,32 +215,6 @@ flags.DEFINE_string('stats_filename', 'cornell-grasping-dataset-stats.md', 'file
 
 FLAGS = flags.FLAGS
 FLAGS(sys.argv)
-
-
-def mkdir_p(path):
-    """Create the specified path on the filesystem like the `mkdir -p` command
-
-    Creates one or more filesystem directory levels as needed,
-    and does not return an error if the directory already exists.
-    """
-    # http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
-
-
-def is_sequence(arg):
-    """Returns true if arg is a list or another Python Sequence, and false otherwise.
-
-        source: https://stackoverflow.com/a/17148334/99379
-    """
-    return (not hasattr(arg, "strip") and
-            hasattr(arg, "__getitem__") or
-            hasattr(arg, "__iter__"))
 
 
 class GraspDataset(object):
@@ -251,7 +279,7 @@ class GraspDataset(object):
                 data_dir = FLAGS.data_dir
             else:
                 data_dir = self.data_dir
-        mkdir_p(data_dir)
+        grasp_utilities.mkdir_p(data_dir)
         print('Downloading datasets to: ', data_dir)
 
         url_prefix = ''
@@ -304,7 +332,7 @@ def read_label_file(path):
     """
      based on https://github.com/falcondai/robot-grasp
     """
-    with open(path) as f:
+    with open(path, mode='r') as f:
         xys = []
         has_nan = False
         for l in f:
@@ -312,12 +340,172 @@ def read_label_file(path):
             # some bounding boxes have invalid NaN coordinates, skip them
             if np.isnan(x) or np.isnan(y):
                 has_nan = True
+                print('this file has NaN in it')
                 print(path)
             xys.append((x, y))
             if len(xys) % 4 == 0 and len(xys) / 4 >= 1:
                 if not has_nan:
                     yield xys[-4], xys[-3], xys[-2], xys[-1]
                 has_nan = False
+
+
+def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAGS.num_fold,
+                 tfrecord_filename_base=FLAGS.tfrecord_filename_base, do_shuffle=FLAGS.shuffle,
+                 write=FLAGS.write):
+    """ K-Fold on dataset.
+        path: path to z.txt, a file match images and objects. And *pos/neg.txt, should
+        remain in same folder with z.txt.
+        split_type: if True, do splits on different objects. Otherwise do splits on image.
+        num_fold: the number of splits.
+
+        Return: List of image_id list for each fold
+    """
+    if path[-1] != '/':
+        path += '/'
+
+    which_splits = [i for i in range(num_fold)]
+    num_splits = [num_fold] * num_fold
+    unique_image_num_list = [0 for i in range(num_fold)]
+    unique_object_num_list = [0 for i in range(num_fold)]
+    positive_num_list = [0 for i in range(num_fold)]
+    negative_num_list = [0 for i in range(num_fold)]
+    total_grasp_list = [0 for i in range(num_fold)]
+
+    fold_last_image = ['' for i in range(num_fold)]
+    fold_last_object = ['' for i in range(num_fold)]
+
+    fold_image_id_list = [[] for i in range(num_fold)]
+
+    if split_type == 'imagewise':
+        spilt_type_list = ['imagewise'] * num_fold
+        result_path = os.path.join(path, tfrecord_filename_base + '-imagewise-k-fold-stat.csv')
+    elif split_type == 'objectwise':
+        spilt_type_list = ['objectwise'] * num_fold
+        result_path = os.path.join(path, tfrecord_filename_base + '-objectwise-k-fold-stat.csv')
+    else:
+        raise ValueError('Unsupported split type: ' + str(split_type) +
+                         ' options are objectwise and imagewise.')
+
+    image_counter = 0
+    object_counter = 0
+    last_image_id = 'first_image'  # anything not '0000'
+    last_object_id = 'first_object'  # anything not '0'
+    z_path = os.path.join(path, 'z.txt')
+
+    z_txt_array = np.lib.arraysetops.unique(np.genfromtxt(z_path, dtype='str'), axis=0)
+    if do_shuffle:
+        if split_type == 'imagewise':
+            np.random.shuffle(z_txt_array)
+        elif split_type == 'objectwise':
+            z_txt_list = []
+            new_z_txt_array = []
+            for line in z_txt_array:
+                if line[1] != last_object_id:
+                    last_object_id = line[1]
+                    z_txt_list.append(list(line))
+                else:
+                    z_txt_list[-1].extend(line)
+            shuffle(z_txt_list)
+            for line in z_txt_list:
+                [new_z_txt_array.append(line[i:i + 4]) for i in range(0, len(line), 4)]
+            z_txt_array = new_z_txt_array
+    for line in tqdm(z_txt_array, desc='Loading files and grasps'):
+        image_id, object_id, _, _ = line
+        if image_id == last_image_id:
+            continue
+        else:
+            last_image_id = image_id
+            image_counter += 1
+        path_pos = path + image_id[:2] + '/pcd' + image_id + 'cpos.txt'
+        path_neg = path + image_id[:2] + '/pcd' + image_id + 'cneg.txt'
+        if os.path.isfile(path_neg) and os.path.isfile(path_pos):
+            if last_object_id != object_id:
+                last_object_id = object_id
+                object_counter += 1
+
+            if split_type == 'objectwise':
+                dst_fold = (object_counter - 1) % num_fold  # make first idx 0
+            elif split_type == 'imagewise':
+                dst_fold = (image_counter - 1) % num_fold  # make first idx 0
+
+            if fold_last_object[dst_fold] != object_id:
+                fold_last_object[dst_fold] = object_id
+                unique_object_num_list[dst_fold] += 1
+            if fold_last_image[dst_fold] != image_id:
+                fold_last_image[dst_fold] = image_id
+                unique_image_num_list[dst_fold] += 1
+
+            _, neg_pos_num = load_bounding_boxes_from_pos_neg_files(path_pos, path_neg)
+            negative_num_list[dst_fold] += neg_pos_num[0]
+            positive_num_list[dst_fold] += neg_pos_num[1]
+            total_grasp_list[dst_fold] += (neg_pos_num[0] + neg_pos_num[1])
+
+            # Store image_ids for each fold
+            fold_image_id_list[dst_fold].append(image_id)
+
+    info_lists = [which_splits, num_splits, unique_image_num_list,
+                  unique_object_num_list, positive_num_list, negative_num_list,
+                  total_grasp_list, spilt_type_list]
+    head_line = ('which_splits, num_splits, unique_image, unique_object,'
+                 'num_pos, num_neg, num_total_grasp, spilt_type\n')
+
+    csv_string = head_line
+    for i in range(num_fold):
+        cur_line = ''
+        for single_list in info_lists:
+            cur_line += str(single_list[i]) + ','
+        csv_string += cur_line[:-1] + '\n'
+
+    if write:
+        with open(result_path, 'w+') as file_object:
+            file_object.write(csv_string)
+
+    print('\nCSV with stats for this run:\n' + result_path + '\n\n' + csv_string + '\n\n')
+
+    return fold_image_id_list
+
+
+def k_fold_tfrecord_writer(
+        path=FLAGS.data_dir, kFold_list=None,
+        split_type=FLAGS.split_type, tfrecord_filename_base=FLAGS.tfrecord_filename_base,
+        write=FLAGS.write):
+    """ Write Tfrecord based on image_id stored in kFold_list.
+
+        path: directory of where origin data is stored, not a file path.
+        kFold_list: List of image_id list for each fold, returned from kFold_split.
+        path_to_store: directory to where tfrecords are stored, not a file path,
+        default same as path.
+    """
+    if path[-1] != '/':
+        path += '/'
+
+    if split_type != 'imagewise' and split_type != 'objectwise':
+        raise ValueError('Unsupported split type: ' + str(split_type) +
+                         ' options are objectwise and imagewise.')
+
+    status = 'Traversing dataset '
+    if write:
+        status = 'Writing dataset '
+
+    coder = ImageCoder()
+    for i, fold in enumerate(tqdm(kFold_list, desc=status + split_type)):
+        recordPath = path + tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord'
+        cur_writer = tf.python_io.TFRecordWriter(recordPath)
+        for image_id in fold:
+            bbox_pos_path = path + image_id[:2] + '/pcd' + image_id + 'cpos.txt'
+            bbox_neg_path = path + image_id[:2] + '/pcd' + image_id + 'cneg.txt'
+            image_path = path + image_id[:2] + '/pcd' + image_id + 'r.png'
+            image_buffer, height, width = _process_image(image_path, coder)
+            examples, _, _ = traverse_examples_in_single_image(
+                image_path, bbox_pos_path, bbox_neg_path, image_buffer, height, width)
+            for example in examples:
+                cur_writer.write(example.SerializeToString())
+        cur_writer.close()
+
+    return
+
+MAX_WIDTH = 0
+MAX_HEIGHT = 0
 
 
 def bbox_info(box):
@@ -364,6 +552,15 @@ def bbox_info(box):
     # Ensure the data actually contains rectangles
     assert np.isclose(width, width2, rtol=1e-3, atol=1e-3)
     assert np.isclose(height, height2, rtol=1e-3, atol=1e-3)
+
+    # TODO(ahundt): clean this stat up
+    global MAX_WIDTH
+    global MAX_HEIGHT
+    MAX_WIDTH = max(MAX_WIDTH, width)
+    MAX_HEIGHT = max(MAX_HEIGHT, height)
+    print_max_width_height = FLAGS.verbose
+    if print_max_width_height > 0:
+        print("current width: " + str(width) + "current height: " + str(height) + " MAX_WIDTH: " + str(MAX_WIDTH) + " MAX_HEIGHT: " + str(MAX_HEIGHT))
 
     return box_coordinates, center_yx, tan, angle, width, height
 
@@ -540,9 +737,10 @@ def ground_truth_images(
     return gt_images
 
 
-def visualize_example(img, bbox_example_features, gt_images, showTextBox=FLAGS.showTextBox):
-    width = 3
+def visualize_example(img, bbox_example_features, gt_images=None, showTextBox=FLAGS.showTextBox):
 
+    if gt_images is None:
+        gt_images = [None] * len(bbox_example_features)
     center_x_list = [example['bbox/cx'] for example in bbox_example_features]
     center_y_list = [example['bbox/cy'] for example in bbox_example_features]
     grasp_success = [example['bbox/grasp_success'] for example in bbox_example_features]
@@ -560,52 +758,28 @@ def visualize_example(img, bbox_example_features, gt_images, showTextBox=FLAGS.s
     # axs[1, 0].scatter(data[0], data[1])
     # axs[2, 0].imshow(gt_image)
     for i, (gt_image, example) in enumerate(zip(gt_images, bbox_example_features)):
+        grasp_success = example['bbox/grasp_success']
+        cx = example['bbox/cx']
+        cy = example['bbox/cy']
+        x_current, y_current = grasp_visualization.get_grasp_polygon_lines_from_example(example)
         h = i % gt_plot_height + 1
         w = int(i / gt_plot_height)
         z = 0
         axs[h, w].imshow(img, zorder=z)
         z += 1
-        axs[h, w].imshow(gt_image, alpha=0.25, zorder=z)
+        if gt_image is not None:
+            axs[h, w].imshow(gt_image, alpha=0.25, zorder=z)
         z += 1
         # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
-        widths = [1, 2, 1, 2]
-        alphas = [0.25, 0.5, 0.25, 0.5]
-        if example['bbox/grasp_success']:
-            # that's gap, plate, gap plate
-            colors = ['gray', 'green', 'gray', 'green']
-            success_str = 'pos'
-        else:
-            colors = ['gray', 'purple', 'gray', 'purple']
-            success_str = 'neg'
-
-        if showTextBox:
-            axs[h, w].text(
-                    example['bbox/cx'], example['bbox/cy'],
-                    success_str, size=10, rotation=-np.rad2deg(example['bbox/theta']),
-                    ha="right", va="top",
-                    bbox=dict(boxstyle="square",
-                              ec=(1., 0.5, 0.5),
-                              fc=(1., 0.8, 0.8),
-                              ),
-                    zorder=z,
-                    )
-            z += 1
-        for i, (color, width, alpha) in enumerate(zip(colors, widths, alphas)):
-            x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1)%4)]]
-            y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1)%4)]]
-            # axs[h, w].text(example['bbox/x'+str(i)], example['bbox/y'+str(i)], "Point:"+str(i))
-
-            axs[h, w].add_line(lines.Line2D(x_current, y_current, linewidth=width,
-                               color=color, zorder=z, alpha=alpha))
-            axs[0, 0].add_line(lines.Line2D(x_current, y_current, linewidth=width,
-                               color=color, zorder=z, alpha=alpha))
+        theta = example['bbox/theta']
+        z = grasp_visualization.draw_grasp(axs[h, w], grasp_success, (cx, cy), theta, x_current, y_current, z=z, showTextBox=showTextBox)
+        z = grasp_visualization.draw_grasp(axs[0, 0], grasp_success, (cx, cy), theta, x_current, y_current, z=z, showTextBox=showTextBox)
 
     # axs[1, 1].hist2d(data[0], data[1])
     plt.draw()
     plt.pause(0.25)
 
     plt.show()
-    return width
 
 
 def _process_bboxes(name):
@@ -658,7 +832,8 @@ def _validate_text(text):
         return str(text)
 
 
-def _create_examples(filename, image_buffer, height, width, dict_bbox_lists):
+def _create_examples(
+        filename, image_id, image_buffer, height, width, dict_bbox_lists):
     """
 
     Create a TFRecord example which stores multiple bounding boxe copies with a single image.
@@ -677,7 +852,8 @@ def _create_examples(filename, image_buffer, height, width, dict_bbox_lists):
     feature = {'image/filename': _bytes_feature(filename),
                'image/encoded': _bytes_feature(image_buffer),
                'image/height': _int64_feature(height),
-               'image/width': _int64_feature(width)}
+               'image/width': _int64_feature(width),
+               'image/id': _int64_feature(image_id)}
     for i in range(4):
         feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
         feature['bbox/x' + str(i)] = _floats_feature(dict_bbox_lists['bbox/x' + str(i)])
@@ -695,7 +871,7 @@ def _create_examples(filename, image_buffer, height, width, dict_bbox_lists):
 
 
 def _create_examples_redundant(
-        filename, image_buffer, height, width, bbox_example_features):
+        filename, image_id, image_buffer, height, width, bbox_example_features):
     """
 
     Write the same image example repeatedly, once for each single bounding box example
@@ -716,7 +892,8 @@ def _create_examples_redundant(
         feature = {'image/filename': _bytes_feature(filename),
                    'image/encoded': _bytes_feature(image_buffer),
                    'image/height': _int64_feature(height),
-                   'image/width': _int64_feature(width)}
+                   'image/width': _int64_feature(width),
+                   'image/id': _int64_feature(image_id)}
         for j in range(4):
             feature['bbox/y' + str(j)] = _floats_feature(bbox_dict['bbox/y' + str(j)])
             feature['bbox/x' + str(j)] = _floats_feature(bbox_dict['bbox/x' + str(j)])
@@ -732,6 +909,12 @@ def _create_examples_redundant(
         examples += [tf.train.Example(features=tf.train.Features(feature=feature))]
 
     return examples
+
+
+def get_image_id_from_filename(filename):
+    """ Get the object id from the filename, assumes all digits are part of the object id.
+    """
+    return int(list(filter(str.isdigit, filename))[0])
 
 
 def list_of_dicts_to_dict_of_lists(ld):
@@ -757,6 +940,7 @@ def traverse_examples_in_single_image(filename, path_pos, path_neg, image_buffer
         print(dict_bbox_lists)
         print('-----------------------')
 
+    # visualize this example
     if FLAGS.plot:
         gt_images = ground_truth_images([height, width],
                                         dict_bbox_lists['bbox/cy'],
@@ -769,10 +953,14 @@ def traverse_examples_in_single_image(filename, path_pos, path_neg, image_buffer
         img = mpimg.imread(filename)
         visualize_example(img, bbox_example_features, gt_images)
 
+    # get the object id from the filename
+    image_id = get_image_id_from_filename(filename)
+
+    # create the tfrecord example protobufs
     if FLAGS.redundant:
-        examples = _create_examples_redundant(filename, image_buffer, height, width, bbox_example_features)
+        examples = _create_examples_redundant(filename, image_id, image_buffer, height, width, bbox_example_features)
     else:
-        examples = _create_examples(filename, image_buffer, height, width, dict_bbox_lists)
+        examples = _create_examples(filename, image_id, image_buffer, height, width, dict_bbox_lists)
 
     return examples, attempt_count, count_fail_success
 
@@ -857,11 +1045,15 @@ def get_stat(name, amount, total, percent_description=''):
 
 
 def main():
-
-    # plt.ion()
     gd = GraspDataset()
     if FLAGS.grasp_download:
         gd.download(dataset=FLAGS.grasp_dataset)
+
+    if FLAGS.is_fold_splits:
+        # k_fold_list is a list of lists of filenames
+        k_fold_list = k_fold_split()
+        k_fold_tfrecord_writer(kFold_list=k_fold_list)
+        return
 
     # Creating a list with all the image paths
     png_filenames, _, _ = get_cornell_grasping_dataset_filenames()

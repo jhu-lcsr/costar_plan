@@ -23,6 +23,7 @@ import traceback
 import numpy as np
 import tensorflow as tf
 import keras
+import json
 from keras import backend as K
 from keras.applications.imagenet_utils import preprocess_input
 
@@ -32,17 +33,20 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
 from keras.models import Model
+from keras.losses import binary_crossentropy
 
 from tensorflow.python.platform import flags
 
 import grasp_dataset
 import grasp_model
 import grasp_loss
+import grasp_utilities
 import keras_workaround
 from callbacks import EvaluateInputTensor
+from callbacks import PrintLogsCallback
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
-# from keras_tqdm import TQDMCallback  # Keras tqdm progress bars https://github.com/bstriner/keras-tqdm
+from keras_tqdm import TQDMCallback  # Keras tqdm progress bars https://github.com/bstriner/keras-tqdm
 
 try:
     import horovod.keras as hvd
@@ -61,11 +65,11 @@ flags.DEFINE_string('grasp_model', 'grasp_model_levine_2016_segmentation',
                        grasp_model_levine_2016, grasp_model, grasp_model_resnet, grasp_model_segmentation""")
 flags.DEFINE_string('save_weights', 'grasp_model_weights',
                     """Save a file with the trained model weights.""")
-#flags.DEFINE_string('load_weights', None,
 # flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
-flags.DEFINE_string('load_weights', 'converted2018-01-20-06-41-24_grasp_model_weights-delta_depth_sin_cos_3-grasp_model_levine_2016-dataset_062_b_063_072_a_082_b_102-epoch-014-val_loss-0.641-val_acc-0.655.h5',
+# flags.DEFINE_string('load_weights', 'converted2018-01-20-06-41-24_grasp_model_weights-delta_depth_sin_cos_3-grasp_model_levine_2016-dataset_062_b_063_072_a_082_b_102-epoch-014-val_loss-0.641-val_acc-0.655.h5',
+flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
-flags.DEFINE_integer('epochs', 300,
+flags.DEFINE_integer('epochs', 5,
                      """Epochs of training""")
 flags.DEFINE_string('grasp_dataset_eval', '102',
                     """Filter the subset of 1TB Grasp datasets to evaluate.
@@ -79,7 +83,7 @@ flags.DEFINE_boolean('eval_per_epoch', True,
                         Weight flies for every epoch and single txt file of dataset
                         will be saved.
                      """)
-flags.DEFINE_string('pipeline_stage', 'eval',
+flags.DEFINE_string('pipeline_stage', 'train_eval',
                     """Choose to "train", "eval", or "train_eval" with the grasp_dataset
                        data for training and grasp_dataset_eval for evaluation.""")
 flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
@@ -88,8 +92,18 @@ flags.DEFINE_float('learning_rate_scheduler_power_decay_rate', 1.5,
                       Training from scratch within an initial learning rate of 0.1 might find a
                          power decay value of 2 to be useful.
                       Fine tuning with an initial learning rate of 0.001 may consder 1.5 power decay.""")
-flags.DEFINE_float('grasp_learning_rate', 0.001,
+flags.DEFINE_float('grasp_learning_rate', 0.02,
                    """Determines the initial learning rate""")
+flags.DEFINE_float(
+    'fine_tuning_learning_rate',
+    0.0005,
+    'Initial learning rate, this is the learning rate used if load_weights is passed.'
+)
+flags.DEFINE_integer(
+    'fine_tuning_epochs',
+    2,
+    'Number of epochs to run trainer with all weights marked as trainable.'
+)
 flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
                      """DenseNet and DenseNetFCN parameter growth rate""")
@@ -102,7 +116,7 @@ flags.DEFINE_float('densenet_reduction', 0.5,
 flags.DEFINE_float('densenet_reduction_after_pretrained', 0.5,
                    """DenseNet and DenseNetFCN reduction aka compression parameter,
                       applied to the second DenseNet component after pretrained imagenet models.""")
-flags.DEFINE_float('dropout_rate', 0.5,
+flags.DEFINE_float('dropout_rate', 0.25,
                    """Dropout rate for the model during training.""")
 flags.DEFINE_string('eval_results_file', 'grasp_model_eval.txt',
                     """Save a file with results of model evaluation.""")
@@ -131,19 +145,21 @@ flags.DEFINE_integer('early_stopping', None,
                      """Stop training if the monitored loss does not improve after the specified number of epochs.
                         Values of 0 or None will disable early stopping.
                      """)
+flags.DEFINE_string(
+    'log_dir',
+    './logs_google_brain/',
+    'Directory for tensorboard, model layout, model weight, csv, and hyperparam files'
+)
+flags.DEFINE_string('load_hyperparams', None,
+                    """Load hyperparams from a json file. Only applies to grasp_model_hypertree""")
 
-flags.FLAGS._parse_flags()
+# flags.FLAGS._parse_flags() not needed for tf 1.5
 FLAGS = flags.FLAGS
-
-
-# http://stackoverflow.com/a/5215012/99379
-def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
-    return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
 class GraspTrain(object):
 
-    def __init__(self, tf_session=None, distributed=FLAGS.distributed):
+    def __init__(self, tf_session=None, distributed=None):
         """ Create GraspTrain object
 
             This function configures Keras and the tf session if the tf_session parameter is None.
@@ -153,6 +169,8 @@ class GraspTrain(object):
             tf_session: The tf session you wish to use, this is reccommended to remain None.
             distributed: The distributed training utility you wish to use, options are 'horovod' and None.
         """
+        if distributed is None:
+            distributed = FLAGS.distributed
         self.distributed = distributed
         if hvd is not None and self.distributed is 'horovod':
             # Initialize Horovod.
@@ -169,29 +187,35 @@ class GraspTrain(object):
             tf_session = tf.Session(config=config)
             K.set_session(tf_session)
 
-    def train(self, dataset=FLAGS.grasp_datasets_train,
-              grasp_datasets_batch_algorithm=FLAGS.grasp_datasets_batch_algorithm,
-              batch_size=FLAGS.batch_size,
-              epochs=FLAGS.epochs,
-              eval_per_epoch=FLAGS.eval_per_epoch,
-              load_weights=FLAGS.load_weights,
-              save_weights=FLAGS.save_weights,
+    def train(self, dataset=None,
+              grasp_datasets_batch_algorithm=None,
+              batch_size=None,
+              epochs=None,
+              eval_per_epoch=None,
+              load_weights=None,
+              save_weights=None,
               make_model_fn=grasp_model.grasp_model_densenet,
-              imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-              grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
-              grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-              random_crop=FLAGS.random_crop,
-              resize=FLAGS.resize,
-              resize_height=FLAGS.resize_height,
-              resize_width=FLAGS.resize_width,
-              learning_rate_decay_algorithm=FLAGS.learning_rate_decay_algorithm,
-              learning_rate=FLAGS.grasp_learning_rate,
-              learning_power_decay_rate=FLAGS.learning_rate_scheduler_power_decay_rate,
-              dropout_rate=FLAGS.dropout_rate,
-              model_name=FLAGS.grasp_model,
-              loss=FLAGS.loss,
-              metric=FLAGS.metric,
-              early_stopping=FLAGS.early_stopping):
+              imagenet_preprocessing=None,
+              grasp_sequence_min_time_step=None,
+              grasp_sequence_max_time_step=None,
+              random_crop=None,
+              resize=None,
+              resize_height=None,
+              resize_width=None,
+              learning_rate_decay_algorithm=None,
+              learning_rate=None,
+              learning_power_decay_rate=None,
+              dropout_rate=None,
+              model_name=None,
+              loss=None,
+              metric=None,
+              early_stopping=None,
+              log_dir=None,
+              hyperparams=None,
+              run_name=None,
+              fine_tuning_learning_rate=None,
+              fine_tuning=None,
+              fine_tuning_epochs=None):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -210,6 +234,53 @@ class GraspTrain(object):
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
         """
+        if dataset is None:
+            dataset = FLAGS.grasp_datasets_train
+        if grasp_datasets_batch_algorithm is None:
+            grasp_datasets_batch_algorithm = FLAGS.grasp_datasets_batch_algorithm,
+        if batch_size is None:
+            batch_size = FLAGS.batch_size
+        if epochs is None:
+            epochs = FLAGS.epochs
+        if eval_per_epoch is None:
+            eval_per_epoch = FLAGS.eval_per_epoch
+        if load_weights is None:
+            load_weights = FLAGS.load_weights
+        if save_weights is None:
+            save_weights = FLAGS.save_weights
+        if make_model_fn is None:
+            make_model_fn = grasp_model.grasp_model_densenet
+        if imagenet_preprocessing is None:
+            imagenet_preprocessing = FLAGS.imagenet_preprocessing
+        if grasp_sequence_min_time_step is None:
+            grasp_sequence_min_time_step = FLAGS.grasp_sequence_min_time_step
+        if grasp_sequence_max_time_step is None:
+            grasp_sequence_max_time_step = FLAGS.grasp_sequence_max_time_step
+        if random_crop is None:
+            random_crop = FLAGS.random_crop
+        if resize is None:
+            resize = FLAGS.resize
+        if resize_height is None:
+            resize_height = FLAGS.resize_height
+        if resize_width is None:
+            resize_width = FLAGS.resize_width
+        if learning_rate_decay_algorithm is None:
+            learning_rate_decay_algorithm = FLAGS.learning_rate_decay_algorithm
+        if learning_rate is None:
+            learning_rate = FLAGS.grasp_learning_rate
+        if learning_power_decay_rate is None:
+            learning_power_decay_rate = FLAGS.learning_rate_scheduler_power_decay_rate
+        if dropout_rate is None:
+            dropout_rate = FLAGS.dropout_rate
+        if model_name is None:
+            model_name = FLAGS.grasp_model
+        if loss is None:
+            loss = FLAGS.loss
+        if metric is None:
+            metric = FLAGS.metric
+        if early_stopping is None:
+            early_stopping = FLAGS.early_stopping
+
         with K.name_scope('train') as scope:
             datasets = dataset.split(',')
             dataset_names_str = dataset.replace(',', '_')
@@ -231,11 +302,13 @@ class GraspTrain(object):
                 input_image_shape = [resize_height, resize_width, 3]
             else:
                 input_image_shape = [512, 640, 3]
+            if log_dir is None:
+                log_dir = FLAGS.log_dir
 
             ########################################################
             # End tensor configuration, begin model configuration and training
 
-            weights_name = timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str)
+            run_name = grasp_utilities.timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str)
 
             # ###############learning rate scheduler####################
             # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
@@ -305,7 +378,7 @@ class GraspTrain(object):
                     # Using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
                     # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
                     # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
-                    hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, verbose=1)
+                    hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=2, verbose=1)
                 ]
 
             scheduler = keras.callbacks.LearningRateScheduler(lr_scheduler)
@@ -323,6 +396,7 @@ class GraspTrain(object):
 
             # add evalation callback, calls evalation of self.eval_model
             if eval_per_epoch:
+                print('make_model_fn: ' + str(make_model_fn) + ' model_name: ' + model_name + ' eval_per_epoch: ' + str(eval_per_epoch))
                 eval_model, step_num = self.eval(make_model_fn=make_model_fn,
                                                  model_name=model_name,
                                                  eval_per_epoch=eval_per_epoch)
@@ -332,10 +406,13 @@ class GraspTrain(object):
                 early_stopper = EarlyStopping(monitor=monitor_loss_name, min_delta=0.001, patience=32)
                 callbacks = callbacks + [early_stopper]
 
+            log_dir = os.path.join(log_dir, run_name)
+            log_dir_run_name = os.path.join(log_dir, run_name)
+            print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
+            grasp_utilities.mkdir_p(log_dir)
+
             if FLAGS.progress_tracker == 'tensorboard':
-                print('Enabling tensorboard...')
-                log_dir = './tensorboard_' + weights_name
-                grasp_dataset.mkdir_p(log_dir)
+                print('Enabling tensorboard in ' + str(log_dir))
                 progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
                                                write_grads=True, write_images=True)
                 callbacks = callbacks + [progress_tracker]
@@ -357,15 +434,19 @@ class GraspTrain(object):
                     keras.callbacks.ReduceLROnPlateau(patience=4, verbose=1, factor=0.5, monitor=monitor_loss_name)
                 ]
 
-            csv_logger = CSVLogger(weights_name + '.csv')
+            csv_logger = CSVLogger(log_dir_run_name + '.csv')
             callbacks = callbacks + [csv_logger]
+            callbacks += [PrintLogsCallback()]
 
-            checkpoint = keras.callbacks.ModelCheckpoint(weights_name + '-epoch-{epoch:03d}-' +
-                                                         monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
-                                                         monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
-                                                         save_best_only=False, verbose=1, monitor=monitor_metric_name)
+            checkpoint = keras.callbacks.ModelCheckpoint(
+                log_dir_run_name + '-epoch-{epoch:03d}-' +
+                monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
+                monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
+                save_best_only=False, verbose=1, monitor=monitor_metric_name)
             callbacks = callbacks + [checkpoint]
 
+            # progress bar
+            # callbacks += [TQDMCallback()]
             # 2017-08-27 Tried NADAM for a while with the settings below, only improved for first 2 epochs.
             # optimizer = keras.optimizers.Nadam(lr=0.004, beta_1=0.825, beta_2=0.99685)
 
@@ -402,34 +483,43 @@ class GraspTrain(object):
 
             model.summary()
 
+            # Save the hyperparams to a json string so it is human readable
+            if hyperparams is not None:
+                with open(log_dir_run_name + '_hyperparams.json', 'w') as fp:
+                    json.dump(hyperparams, fp)
+
+            # Save the current model to a json string so it is human readable
+            with open(log_dir_run_name + '_model.json', 'w') as fp:
+                fp.write(model.to_json())
+
             try:
-                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
-                final_weights_name = weights_name + '-final.h5'
+                model.fit(epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks, verbose=1)
+                final_weights_name = log_dir_run_name + '-final.h5'
                 model.save_weights(final_weights_name)
             except (Exception, KeyboardInterrupt) as e:
                 # always try to save weights
                 traceback.print_exc()
-                final_weights_name = weights_name + '-autosaved-on-exception.h5'
+                final_weights_name = log_dir_run_name + '-autosaved-on-exception.h5'
                 model.save_weights(final_weights_name)
                 raise e
             return final_weights_name
 
-    def eval(self, dataset=FLAGS.grasp_dataset_eval,
-             batch_size=FLAGS.eval_batch_size,
-             load_weights=FLAGS.load_weights,
-             save_weights=FLAGS.save_weights,
+    def eval(self, dataset=None,
+             batch_size=None,
+             load_weights=None,
+             save_weights=None,
              make_model_fn=grasp_model.grasp_model_densenet,
-             imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-             grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
-             grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-             resize=FLAGS.resize,
-             resize_height=FLAGS.resize_height,
-             resize_width=FLAGS.resize_width,
-             eval_results_file=FLAGS.eval_results_file,
-             model_name=FLAGS.grasp_model,
-             loss=FLAGS.loss,
-             metric=FLAGS.metric,
-             eval_per_epoch=FLAGS.eval_per_epoch):
+             imagenet_preprocessing=None,
+             grasp_sequence_min_time_step=None,
+             grasp_sequence_max_time_step=None,
+             resize=None,
+             resize_height=None,
+             resize_width=None,
+             eval_results_file=None,
+             model_name=None,
+             loss=None,
+             metric=None,
+             eval_per_epoch=None):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -453,7 +543,40 @@ class GraspTrain(object):
            weights_name_str or None if a new weights file was not saved.
         """
         with K.name_scope('eval') as scope:
-            data = grasp_dataset.GraspDataset(dataset=dataset)
+            if dataset is None:
+                dataset = FLAGS.grasp_dataset_eval
+            if batch_size is None:
+                batch_size = FLAGS.eval_batch_size
+            if load_weights is None:
+                load_weights = FLAGS.load_weights
+            if save_weights is None:
+                save_weights = FLAGS.save_weights
+            if make_model_fn is None:
+                make_model_fn = grasp_model.grasp_model_densenet
+            if imagenet_preprocessing is None:
+                imagenet_preprocessing = FLAGS.imagenet_preprocessing,
+            if grasp_sequence_max_time_step is None:
+                grasp_sequence_min_time_step = FLAGS.grasp_sequence_min_time_step,
+            if grasp_sequence_min_time_step is None:
+                grasp_sequence_max_time_step = FLAGS.grasp_sequence_max_time_step,
+            if resize is None:
+                resize = FLAGS.resize,
+            if resize_height is None:
+                resize_height = FLAGS.resize_height,
+            if resize_width is None:
+                resize_width = FLAGS.resize_width,
+            if eval_results_file is None:
+                eval_results_file = FLAGS.eval_results_file,
+            if model_name is None:
+                model_name = FLAGS.grasp_model,
+            if loss is None:
+                loss = FLAGS.loss,
+            if metric is None:
+                metric = FLAGS.metric,
+            if eval_per_epoch is None:
+                eval_per_epoch = FLAGS.eval_per_epoch
+            if isinstance(dataset, str):
+                data = grasp_dataset.GraspDataset(dataset=dataset)
             # TODO(ahundt) ensure eval call to get_training_tensors() always runs in the same order and does not rotate the dataset.
             # list of dictionaries the length of batch_size
             (pregrasp_op_batch, grasp_step_op_batch,
@@ -478,11 +601,12 @@ class GraspTrain(object):
             if not eval_per_epoch:
                 csv_logger = CSVLogger(load_weights + '_eval.csv')
 
+            print('simplified_grasp_command_op_batch: ' + str(simplified_grasp_command_op_batch))
             # create the model
             model = make_model_fn(
-                pregrasp_op_batch,
-                grasp_step_op_batch,
-                simplified_grasp_command_op_batch,
+                clear_view_image_op=pregrasp_op_batch,
+                current_time_image_op=grasp_step_op_batch,
+                input_vector_op=simplified_grasp_command_op_batch,
                 # input_image_shape=input_image_shape,
                 dropout_rate=0.0)
 
@@ -490,10 +614,12 @@ class GraspTrain(object):
 
             metrics, monitor_metric_name = self.gather_metrics(metric)
 
+            print('about to compile')
             model.compile(optimizer='sgd',
                           loss=loss,
                           metrics=metrics,
                           target_tensors=[grasp_success_op_batch])
+            print('compile complete')
 
             if not eval_per_epoch:
                 if(load_weights):
@@ -504,9 +630,11 @@ class GraspTrain(object):
                         raise ValueError('Could not load weights {}, '
                                          'the file does not exist.'.format(load_weights))
 
-            model.save_weights('converted'+load_weights)
-            return
+            # TODO(ahundt) look back in the history and figure out when/how converted and the return should be used
+            # model.save_weights('converted' + load_weights)
+            # return
 
+            print('num_samples: ' + str(num_samples) + ' batch size: ' + str(batch_size))
             steps = float(num_samples) / float(batch_size)
 
             if not steps.is_integer():
@@ -516,11 +644,14 @@ class GraspTrain(object):
                                  'the last sample, so in a worst case choose a batch size of 1. Not ideal,'
                                  'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
 
+            print('<<<<<<<<<<<<')
             if eval_per_epoch:
+                print('<<<<<<<<<<<<2')
                 return model, int(steps)
             model.summary()
 
             try:
+                print('evaluating')
                 results = model.evaluate(None, None, steps=int(steps))
                 # results_str = '\nevaluation results loss: ' + str(loss) + ' accuracy: ' + str(acc) + ' dataset: ' + dataset
                 metrics_str = 'metrics:\n' + str(model.metrics_names) + 'results:' + str(results)
@@ -542,38 +673,63 @@ class GraspTrain(object):
 
             return weights_name_str
 
-    def get_compiled_model(self, dataset=FLAGS.grasp_dataset_eval,
+    def get_compiled_model(self, dataset=None,
                            batch_size=1,
-                           load_weights=FLAGS.load_weights,
+                           load_weights=None,
                            make_model_fn=grasp_model.grasp_model_densenet,
-                           imagenet_preprocessing=FLAGS.imagenet_preprocessing,
-                           grasp_sequence_min_time_step=FLAGS.grasp_sequence_min_time_step,
-                           grasp_sequence_max_time_step=FLAGS.grasp_sequence_max_time_step,
-                           resize=FLAGS.resize,
-                           resize_height=FLAGS.resize_height,
-                           resize_width=FLAGS.resize_width,
-                           model_name=FLAGS.grasp_model,
-                           loss=FLAGS.loss,
-                           metric=FLAGS.metric):
+                           imagenet_preprocessing=None,
+                           grasp_sequence_min_time_step=None,
+                           grasp_sequence_max_time_step=None,
+                           resize=None,
+                           resize_height=None,
+                           resize_width=None,
+                           model_name=None,
+                           loss=None,
+                           metric=None):
         with K.name_scope('predict') as scope:
+            if dataset is None:
+                dataset = FLAGS.grasp_dataset_eval
+            if load_weights is None:
+                load_weights = FLAGS.load_weights
+            if make_model_fn is None:
+                make_model_fn = grasp_model.grasp_model_densenet
+            if imagenet_preprocessing is None:
+                imagenet_preprocessing = FLAGS.imagenet_preprocessing,
+            if grasp_sequence_max_time_step is None:
+                grasp_sequence_min_time_step = FLAGS.grasp_sequence_min_time_step,
+            if grasp_sequence_min_time_step is None:
+                grasp_sequence_max_time_step = FLAGS.grasp_sequence_max_time_step,
+            if resize is None:
+                resize = FLAGS.resize,
+            if resize_height is None:
+                resize_height = FLAGS.resize_height,
+            if resize_width is None:
+                resize_width = FLAGS.resize_width,
+            if model_name is None:
+                model_name = FLAGS.grasp_model,
+            if loss is None:
+                loss = FLAGS.loss,
+            if metric is None:
+                metric = FLAGS.metric,
             if isinstance(dataset, str):
                 data = grasp_dataset.GraspDataset(dataset=dataset)
             else:
                 data = dataset
-    
-            (pregrasp_op_batch, grasp_step_op_batch, 
-             simplified_grasp_command_op_batch, 
-             grasp_success_op_batch, feature_op_dicts, 
-             features_complete_list, 
-             time_ordered_feature_name_dict, 
-             num_samples) = data.get_training_tensors_and_dictionaries(batch_size=batch_size,
-                                                      imagenet_preprocessing=imagenet_preprocessing,
-                                                      random_crop=False,
-                                                      image_augmentation=False,
-                                                      resize=resize,
-                                                      grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-                                                      grasp_sequence_max_time_step=grasp_sequence_max_time_step,
-                                                      shift_ratio=0.0)
+
+            (pregrasp_op_batch, grasp_step_op_batch,
+             simplified_grasp_command_op_batch,
+             grasp_success_op_batch, feature_op_dicts,
+             features_complete_list,
+             time_ordered_feature_name_dict,
+             num_samples) = data.get_training_tensors_and_dictionaries(
+                batch_size=batch_size,
+                imagenet_preprocessing=imagenet_preprocessing,
+                random_crop=False,
+                image_augmentation=False,
+                resize=resize,
+                grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+                grasp_sequence_max_time_step=grasp_sequence_max_time_step,
+                shift_ratio=0.0)
 
             if resize:
                 input_image_shape = [resize_height, resize_width, 3]
@@ -585,9 +741,9 @@ class GraspTrain(object):
 
             # create the model
             model = make_model_fn(
-                pregrasp_op_batch,
-                grasp_step_op_batch,
-                simplified_grasp_command_op_batch,
+                clear_view_image_op=pregrasp_op_batch,
+                current_time_image_op=grasp_step_op_batch,
+                input_vector_op=simplified_grasp_command_op_batch,
                 # input_image_shape=input_image_shape,
                 dropout_rate=0.0)
 
@@ -612,11 +768,11 @@ class GraspTrain(object):
             # see https://github.com/keras-team/keras/pull/9121 for details
             # TODO(ahundt) remove this hack
             model._make_predict_function = keras_workaround._make_predict_function_get_fetches.__get__(model, Model)
-            return (model, pregrasp_op_batch, grasp_step_op_batch, 
-                    simplified_grasp_command_op_batch, 
-                    grasp_success_op_batch, feature_op_dicts, 
-                    features_complete_list, 
-                    time_ordered_feature_name_dict, 
+            return (model, pregrasp_op_batch, grasp_step_op_batch,
+                    simplified_grasp_command_op_batch,
+                    grasp_success_op_batch, feature_op_dicts,
+                    features_complete_list,
+                    time_ordered_feature_name_dict,
                     num_samples)
 
     def gather_metrics(self, metric):
@@ -643,10 +799,14 @@ class GraspTrain(object):
         if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_gaussian_binary_crossentropy
             loss_name = 'segmentation_gaussian_binary_crossentropy'
+        if isinstance(loss, (list, tuple)) and len(loss) == 1:
+            # strip it to just one element
+            [loss] = loss
+
         return loss
 
 
-def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
+def choose_make_model_fn(grasp_model_name=None):
     """ Select the Neural Network Model to use.
 
         Gets a command line specified function that
@@ -679,6 +839,8 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
                 'grasp_model_levine_2016'
 
     """
+    if grasp_model_name is None:
+        grasp_model_name = FLAGS.grasp_model
     if grasp_model_name == 'grasp_model_resnet':
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model_resnet(
@@ -713,6 +875,31 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
         def make_model_fn(*a, **kw):
             return grasp_model.grasp_model_levine_2016(
                 *a, **kw)
+    elif grasp_model_name == 'grasp_model_hypertree':
+        def make_model_fn(
+                clear_view_image_op=None,
+                current_time_image_op=None,
+                input_vector_op=None,
+                input_image_shape=None,
+                **kw):
+            if FLAGS.load_hyperparams:
+                hyperparams = grasp_utilities.load_hyperparams_json(
+                    FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate)
+                kw.update(hyperparams)
+            print('kw: ', kw)
+            images = [clear_view_image_op, current_time_image_op]
+            vectors = [input_vector_op]
+            print('vectors: ' + str(vectors))
+            vector_shapes = [K.int_shape(input_vector_op)]
+            image_shapes = [input_image_shape] * 2
+            # TODO(ahundt) consider making image_model_weights shared vs separate configurable
+            return grasp_model.choose_hypertree_model(
+                images=images,
+                vectors=vectors,
+                image_shapes=image_shapes,
+                vector_shapes=vector_shapes,
+                image_model_weights='separate',
+                **kw)
     else:
         available_functions = globals()
         if grasp_model_name in available_functions:
@@ -722,7 +909,7 @@ def define_make_model_fn(grasp_model_name=FLAGS.grasp_model):
     return make_model_fn
 
 
-def main():
+def main(_):
     """Launch the training and/or evaluation script for the particular model specified on the command line.
     """
 
@@ -733,11 +920,11 @@ def main():
     with K.get_session() as sess:
         # Read command line arguments selecting the Keras model to train.
         # The specific Keras Model varies based on the command line arguments.
-        # Based on the selection define_make_model_fn()
+        # Based on the selection choose_make_model_fn()
         # will create a function that can be called later
         # to actually create a Keras Model object.
         # This is done so GraspTrain doesn't need specific code for every possible Keras Model.
-        make_model_fn = define_make_model_fn()
+        make_model_fn = choose_make_model_fn()
 
         # Weights file to load, if any
         load_weights = FLAGS.load_weights
@@ -759,7 +946,7 @@ def main():
         return None
 
 if __name__ == '__main__':
-    FLAGS._parse_flags()
-    main()
+    # FLAGS._parse_flags()
+    tf.app.run(main=main)
     print('grasp_train.py run complete, original command: ', sys.argv)
     sys.exit()
