@@ -622,7 +622,7 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
         elif 'nasnet' in image_model_name:
             preprocessing_mode = 'tf'
         elif 'vgg' in image_model_name:
-            preprocessing_mode = 'tf'
+            preprocessing_mode = 'caffe'
         elif 'inception_resnet' in image_model_name:
             preprocessing_mode = 'tf'
         elif 'resnet' in image_model_name:
@@ -817,7 +817,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # recommended for pixelwise regression, don't use for classification!
         # An exception is ok if you are classifying the results of regression.
         # TODO(ahundt) add losses configured for pixelwise regression
-        data_features = ['image/preprocessed', 'preprocessed_sin2_cos2_height_width_4']
+        data_features = ['image/preprocessed', 'preprocessed_norm_sin2_cos2_height_width_4']
         vector_shapes = [(4,)]
     elif feature_combo_name == 'image_preprocessed_norm_sin2_cos2_w_yx_5':
         # recommended for classification of single predictions
