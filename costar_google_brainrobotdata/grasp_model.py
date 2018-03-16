@@ -6,6 +6,7 @@ import keras
 from keras.applications.nasnet import NASNetLarge
 from keras.applications.resnet50 import ResNet50
 from keras.applications.nasnet import NASNetMobile
+from keras.applications.inception_resnet_v2 import InceptionResNetV2
 from keras import backend as K
 from keras.layers import Dense
 from keras.layers import Dropout
@@ -607,7 +608,7 @@ def choose_hypertree_model(
                 # and an aux network the two outputs will be different
                 # dimensions! Therefore, we need to add our own pooling
                 # for the aux network.
-                # TODO(ahundt) just max pooling in NasNetLarge for now, but need to figure out pooling for the segmentation case.
+                # TODO(ahundt) just max pooling in NASNetLarge for now, but need to figure out pooling for the segmentation case.
                 image_model = keras_contrib.applications.nasnet.NASNetLarge(
                     input_shape=image_input_shape, include_top=False, pooling=None,
                     classes=classes, use_auxiliary_branch=use_auxiliary_branch
@@ -617,6 +618,15 @@ def choose_hypertree_model(
                     input_shape=image_input_shape, include_top=False,
                     classes=classes, pooling=False
                 )
+            elif image_model_name == 'inception_resnet_v2':
+                if image_model_weights == 'shared':
+                    image_model = keras.applications.inception_resnet_v2.InceptionResNetV2(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.inception_resnet_v2.InceptionResNetV2
+                else:
+                    raise ValueError('Unsupported image_model_name')
             elif image_model_name == 'resnet':
                 # resnet model is special because we need to
                 # skip the average pooling part.

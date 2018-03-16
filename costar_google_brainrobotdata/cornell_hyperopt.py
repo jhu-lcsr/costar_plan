@@ -245,7 +245,7 @@ def optimize(
                            enable=False, required=True, default=feature_combo_name)
     # leaving out nasnet_large for now because it needs different input dimensions.
     # other supported options: 'densenet', 'nasnet_mobile', 'resnet'
-    hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet'])
+    hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'])
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
     hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 12)])

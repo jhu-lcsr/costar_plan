@@ -623,6 +623,8 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
             preprocessing_mode = 'tf'
         elif 'vgg' in image_model_name:
             preprocessing_mode = 'tf'
+        elif 'inception_resnet' in image_model_name:
+            preprocessing_mode = 'tf'
         elif 'resnet' in image_model_name:
             preprocessing_mode = 'caffe'
         else:
