@@ -85,6 +85,7 @@ class DataCollector(object):
         self.camera_rgb_info = None
         self.depth_img = None
         self.rgb_img = None
+        self.gripper_msg = None
 
         self._bridge = CvBridge()
         self.task = task
@@ -124,7 +125,7 @@ class DataCollector(object):
         self.object = msg.data
 
     def _gripperCb(self, msg):
-        pass
+        self.gripper_msg = msg
 
     def _depthCb(self, msg):
         try:
@@ -145,6 +146,7 @@ class DataCollector(object):
         self.data["camera"] = []
         self.data["image"] = []
         self.data["goal_idx"] = []
+        self.data["gripper"] = []
         self.data["label"] = []
         self.data["info"] = []
         self.data["object"] = []
@@ -176,6 +178,7 @@ class DataCollector(object):
         print(self.data["labels_to_name"])
         print(self.data["label"])
         print(self.data["goal_idx"])
+        print(self.data["gripper"])
 
         # for now all examples are considered a success
         self.writer.write(self.data, seed, result)
@@ -202,11 +205,20 @@ class DataCollector(object):
         if switched or is_done:
             self.prev_last_goal = self.last_goal
             self.last_goal = len(self.data["label"])
+            len_label = len(self.data["label"])
+            
+            # Count one more if this is the last frame -- since our goal could
+            # not be the beginning of a new action
+            if is_done:
+                len_label += 1
+                extra = 1
+            else:
+                extra = 0
+
             rospy.loginfo("Starting new action: " + str(action_label) + ", prev was from " + str(self.prev_last_goal) + " to " + str(self.last_goal))
-            self.data["goal_idx"] += (self.last_goal - self.prev_last_goal) * [self.last_goal]
+            self.data["goal_idx"] += (self.last_goal - self.prev_last_goal + extra) * [self.last_goal]
 
             len_idx = len(self.data["goal_idx"])
-            len_label = len(self.data["label"])
             if not len_idx  == len_label:
                 rospy.logerr("lens = " + str(len_idx) + ", " + str(len_label))
                 raise RuntimeError("incorrectly set goal idx")
@@ -259,6 +271,7 @@ class DataCollector(object):
         #plt.imshow(self.rgb_img)
         #plt.show()
         self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
+        self.data["gripper"].append(self.gripper_msg.gPO / 255.)
 
         # TODO(cpaxton): verify
         if not self.task.validLabel(action_label):
