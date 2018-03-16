@@ -12,9 +12,26 @@ import os
 import sys
 import h5py
 
+from costar_models import *
+from costar_models.planner import GetOrderedList, PrintTopQ
+from costar_models.sampler2 import PredictionSampler2
+from costar_models.datasets.npz import NpzDataset
+from costar_models.datasets.h5f import H5fDataset
+from costar_models.datasets.npy_generator import NpzGeneratorDataset
+from costar_models.datasets.h5f_generator import H5fGeneratorDataset
+
+from costar_models.planner import *
+from costar_models.multi import *
+from costar_models.dvrk import MakeJigsawsImageClassifier
+
 from costar_models.datasets.image import GetJpeg, JpegToNumpy
 
-
+def convertJpegToImages(features):
+    for i, f in enumerate(features):
+        if str(f.dtype)[:2] == "|S":
+            f = ConvertJpegListToNumpy(np.squeeze(f))
+            features[i] = f
+    return features
 
 def main(args):
     '''
@@ -50,10 +67,31 @@ def main(args):
     model_arg = args['model']
 
     for fnum, filename in enumerate(dataset.test + dataset.train):
-        pass
+        data = dataset.loadFile(filename)
+        for k, v in data.items():
+            if not k == "images":
+                continue
+            for i in range(0):
+                crop = frame
+                image = imresize(crop, (96, 96))
+                image = image.astype(np.uint8)
 
+info = """
+This script will preprocess images collected from the real robot (with the 
+CoSTAR setup), shrink them, crop slightly, and save as a new set of h5f files.
+When specifying the data set, the name "small_" will be appended to the
+beginning. Example usage:\n
+\tpreprocess_images --data_file robot.h5f --features costar\n
+This will write to:\n
+\t./small_robot\n
+which will contain a set of h5f files. Specifically, this code will enforce the
+following changes:\n
+\timage: resized, handled as jpeg
+\tdepth: TODO
+"""
 
 if __name__ == '__main__':
+    print(info)
     args = ParseModelArgs()
     if args['profile']:
         import cProfile
