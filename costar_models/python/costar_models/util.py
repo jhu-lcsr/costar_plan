@@ -22,6 +22,9 @@ from .conditional_image_gan import ConditionalImageGan
 from .discriminator import Discriminator
 from .secondary import Secondary
 
+# CoSTAR
+from .pretrain_image_costar import PretrainImageCostar
+
 # Jigsaws stuff
 from .dvrk import *
 from .pretrain_image_jigsaws import PretrainImageJigsaws
