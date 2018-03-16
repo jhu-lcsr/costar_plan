@@ -1,0 +1,1 @@
+{"trunk_model_name": "resnet_conv_identity_block", "trunk_filters": 128, "top_block_filters": 2048, "image_model_name": "nasnet_large", "trunk_layers": 0, "trainable": true, "learning_rate": 0.0001}

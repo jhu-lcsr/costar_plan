@@ -11,6 +11,7 @@ class ServiceCaller(object):
         self.proxy = None
         self.req = None
         self.running = False
+        self.ok = True
 
     def _service_call(self):
         if self.proxy is None:
@@ -18,13 +19,16 @@ class ServiceCaller(object):
         elif self.req is None:
             raise RuntimeError('no request specified')
         self.result = self.proxy(self.req)
+        self.ok = self.result is not None and "success" in self.result.ack.lower()
 
     def __call__(self, proxy, req):
         if self.thread is not None and self.thread.is_alive():
+            rospy.logwarn("already running: " + str(self.proxy) + ", " + str(type(req)))
             return False
         else:
             self.proxy = proxy
             self.req = req
+            self.ok = True
             self.thread = Thread(target=self._service_call)
             self.thread.start()
             return True
@@ -38,6 +42,7 @@ class ServiceCaller(object):
         elif self.thread.is_alive():
             self.running = True
         else:
+            self.thread = None
             self.running = False
         return self.running
 

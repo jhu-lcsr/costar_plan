@@ -1,0 +1,1 @@
+{"vector_dense_filters": 256, "vector_branch_num_layers": 0, "trunk_filters": 128, "image_model_name": "vgg", "vector_model_name": "dense", "preprocessing_mode": "tf", "trainable": true, "top_block_filters": 64, "learning_rate": 0.02, "trunk_layers": 4}

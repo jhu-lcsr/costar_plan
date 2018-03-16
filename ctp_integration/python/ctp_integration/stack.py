@@ -2,14 +2,21 @@ from __future__ import print_function
 
 import PyKDL as kdl
 import rospy
+import sys
 import tf_conversions.posemath as pm
 
 from geometry_msgs.msg import Pose
 from costar_robot_msgs.srv import SmartMoveRequest
 from costar_robot_msgs.srv import ServoToJointStateRequest
+from costar_robot_msgs.srv import ServoToPoseRequest
+from costar_robot_msgs.msg import Constraint
+from std_srvs.srv import EmptyRequest
+from std_srvs.srv import Empty as EmptySrv
 from costar_task_plan.abstract.task import *
 
 from .stack_manager import *
+
+colors = ["red", "blue", "yellow", "green"]
 
 def GetPoses():
     '''
@@ -61,7 +68,12 @@ def GetGraspPose():
     # Grasp from the top, centered (roughly)
     pose = kdl.Frame(
             kdl.Rotation.Quaternion(1.,0.,0.,0.),
-            kdl.Vector(-0.22001116007522364, -0.02, -0.01))
+            kdl.Vector(-0.22, -0.02, -0.01))
+    return pose
+
+def GetStackPose():
+    # Grasp from the top, centered (roughly)
+    pose = GetGraspPose() * kdl.Frame(kdl.Vector(-0.05,0.,0.))
     return pose
 
 def GetTowerPoses():
@@ -76,20 +88,49 @@ def _makeSmartPlaceRequest(poses, name):
     '''
     Helper function for making the place call
     '''
-    req = SmartMove()
+    req = SmartMoveRequest()
     req.pose = pm.toMsg(poses[name])
     req.name = name
     req.obj_class = "place"
     req.backoff = 0.05
     return req
 
+def GetHome():
+    pose_home = kdl.Frame(
+            kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
+            kdl.Vector(0.174, -0.157, 0.682))
+    req = ServoToPoseRequest()
+    req.target = pm.toMsg(pose_home)
+    open_gripper = GetOpenGripperService()
+    move = GetPlanToPoseService()
+    servo_mode = GetServoModeService()
+    def home():
+        servo_mode("servo")
+        open_gripper()
+        res = move(req)
+        if "failure" in res.ack.lower():
+            rospy.logerr(res.ack)
+            sys.exit(-1)
+    return home
+
 def GetStackManager(collector):
     sm = StackManager(collector)
     grasp = GetSmartGraspService()
-    for color in ["red", "blue", "yellow", "green"]:
+    release = GetSmartReleaseService()
+
+    for color in colors:
         name = "grab_%s"%color
         req = _makeSmartGraspRequest(color)
         sm.addRequest(None, name, grasp, req)
+
+        for color2 in colors:
+            if color2 == color:
+                continue
+            else:
+                name2 = "place_%s_on_%s"%(color,color2)
+                req2 = _makeSmartReleaseRequest(color2)
+                sm.addRequest(name, name2, release, req2)
+
     return sm
 
 def _makeSmartGraspRequest(color):
@@ -98,12 +139,29 @@ def _makeSmartGraspRequest(color):
     '''
     req = SmartMoveRequest()
     req.pose = pm.toMsg(GetGraspPose())
-    if not color in ["red", "blue", "green", "yellow"]:
+    if not color in colors:
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
     req.name = "grasp_%s" % req.obj_class
     req.backoff = 0.05
+    return req
 
+def _makeSmartReleaseRequest(color):
+    '''
+    Helper function for making the place call
+    '''
+    constraint = Constraint(
+            pose_variable=Constraint.POSE_Z,
+            threshold=0.015,
+            greater=True)
+    req = SmartMoveRequest()
+    req.pose = pm.toMsg(GetStackPose())
+    if not color in colors:
+        raise RuntimeError("color %s not recognized" % color)
+    req.obj_class = "%s_cube" % color
+    req.name = "place_on_%s" % color
+    req.backoff = 0.1
+    req.constraints = [constraint]
     return req
 
 def MakeStackTask():
