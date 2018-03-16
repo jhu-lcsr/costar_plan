@@ -187,7 +187,16 @@ def optimize(
     batch_size = FLAGS.batch_size
     if problem_type == 'classification':
         FLAGS.problem_type = problem_type
+        # note: this version will have some correlation with success,
+        # but it will be OK to use to classify the output of regression
         feature_combo_name = 'image_preprocessed_norm_sin2_cos2_height_width_4'
+
+        # recommended for
+        # - pixelwise classification
+        # - classification of images centered and rotated to grasp proposals
+        # feature_combo = 'image_preprocessed_norm_sin2_cos2_width_3'
+
+        # Another simpler option with less input data:
         # feature_combo_name = 'image_preprocessed_width_1'
         top = 'classification'
         FLAGS.crop_to = 'center_on_gripper_grasp_box_and_rotate_upright'
