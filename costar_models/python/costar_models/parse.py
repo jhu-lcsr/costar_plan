@@ -18,13 +18,12 @@ def GetAvailableFeatures():
     '''
     return ['empty',
             'null',
-            'husky',
-            'jigsaws',
+            'husky', # for the husky robot
+            'jigsaws', # for the jigsaws data
+            'costar', # for the real robot
             'depth', # depth channel only
             'rgb', # RGB channels only
-            'joint_state', # robot joints only
             'multi', # RGB+joints+gripper
-            'pose', #object poses + joints + gripper
             'grasp_segmentation',]
 
 def GetModelParser():

@@ -168,11 +168,13 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = JigsawsDiscriminator(True, taskdef,
                     features=features,
                     model=model, **kwargs)
+
         # Global setup for all JIGSAWS data:
         # - images are set up as jpegs
         # - number of options, etc.
         model_instance.load_jpeg = True
         model_instance.num_options = SuturingNumOptions()
+
     elif features == "costar":
         '''
         These are CoSTAR models -- meant to be used with data collected from the
@@ -183,6 +185,10 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+
+        # Global setup for CoSTAR
+        # this one uses jpegs
+        model_instance.load_jpeg = True
 
     elif features == "husky":
         '''
@@ -232,6 +238,9 @@ def MakeModel(features, model, taskdef, **kwargs):
                     features=features,
                     model=model, **kwargs)
 
+        # Set global options for the husky robot simulation
+        # It uses four options -- barrier, cone, hydrant, and dumpster
+        # Images are bitmaps stored as numpy arrays
         model_instance.load_jpeg = False
         model_instance.num_options = HuskyNumOptions()
         model_instance.null_option = HuskyNullOption()

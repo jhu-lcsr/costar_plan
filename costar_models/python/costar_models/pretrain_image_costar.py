@@ -51,7 +51,7 @@ class PretrainImageCostar(PretrainImageAutoencoder):
                     self.skip_shape,)
 
         # Encode and connect the discriminator
-        enc = encoder(img_in)
+        enc = encoder([img0_in, img_in])
         out = decoder(enc)
 
         if self.no_disc:
