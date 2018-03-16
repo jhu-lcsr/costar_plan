@@ -176,9 +176,9 @@ class DataCollector(object):
         for k, v in self.data.items():
             print(k, np.array(v).shape)
         print(self.data["labels_to_name"])
+        print("Labels and goals:")
         print(self.data["label"])
         print(self.data["goal_idx"])
-        print(self.data["gripper"])
 
         # for now all examples are considered a success
         self.writer.write(self.data, seed, result)
