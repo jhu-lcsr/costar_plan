@@ -12,7 +12,7 @@ import os
 import keras.backend as K
 import keras.optimizers as optimizers
 
-from datasets.image import *
+from .datasets.image import *
 from .plotting import *
 
 class AbstractAgentBasedModel(object):
@@ -359,15 +359,14 @@ class AbstractAgentBasedModel(object):
 
     def convert(self, features, targets):
         if self.load_jpeg:
-	    for i, f in enumerate(features):
-	        if str(f.dtype)[:2] == "|S":
-		    f = ConvertJpegListToNumpy(np.squeeze(f))
-		    #print("converted", type(f), f.shape, f.dtype)
-		    features[i] = self.scale(f)
-	    for i, f in enumerate(targets):
-	        if str(f.dtype)[:2] == "|S":
-		    targets[i] = self.scale(ConvertJpegListToNumpy(np.squeeze(f)))
- 
+            for i, f in enumerate(features):
+                if str(f.dtype)[:2] == "|S":
+                    f = ConvertJpegListToNumpy(np.squeeze(f))
+                    #print("converted", type(f), f.shape, f.dtype)
+                    features[i] = self.scale(f)
+            for i, f in enumerate(targets):
+                if str(f.dtype)[:2] == "|S":
+                    targets[i] = self.scale(ConvertJpegListToNumpy(np.squeeze(f)))
 
     def save(self):
         '''
