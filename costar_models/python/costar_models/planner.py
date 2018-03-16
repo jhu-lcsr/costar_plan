@@ -839,15 +839,11 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         dr = 0.
 
     x = xin
-    x0 = AddConv2D(x, filters*2, [1,1], 1, 0.)
-    x = x0
     for i in range(num_blocks):
         x = AddConv2D(x, filters*2,
                 kernel_size,
                 stride=1,
                 dropout_rate=0)
-    x =  Concatenate(axis=-1)([x,x0])
-
     x = AddConv2D(x, rep_size[-1], kernel_size, 1, dr)
 
     ins = [xin]
@@ -945,22 +941,20 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         # KL regularization termin the loss function
         return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
-def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
+def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True,
+        name="next", add_done=True):
     '''
     Next actions
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
     option_in = Input((1,), name="Nx_prev_o_in")
     x = xin
-    x0 = x0in
     use_lrelu = False
     bn = batchnorm and False
 
     # Combine these two to get information that may be obscured
 
-    #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
         # Project
         x = AddConv2D(x, 32, [4,4], 1, 0., "same",
@@ -968,12 +962,6 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 lrelu=use_lrelu,
                 name="Nx_project",
                 constraint=None)
-        x0 = AddConv2D(x0, 32, [4,4], 1, 0., "same",
-                bn=bn,
-                lrelu=use_lrelu,
-                name="Nx_project0",
-                constraint=None)
-        x = Concatenate()([x,x0])
 
         if num_options > 0:
             option_x = OneHot(num_options)(option_in)
@@ -1012,9 +1000,12 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
 
     next_option_out = Dense(num_options,
             activation="softmax", name="lnext",)(x1)
-    done_out = Dense(1, activation="sigmoid", name="done",)(x1)
-    next_model = Model([x0in, xin, option_in], [next_option_out, done_out], name="next")
-    #next_model = Model([xin, option_in], next_option_out, name="next")
+
+    outs = [next_option_out]
+    if add_done:
+        done_out = Dense(1, activation="sigmoid", name="done",)(x1)
+        outs += [done_out]
+    next_model = Model([xin, option_in], outs, name=name)
     return next_model
 
 def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
@@ -1026,7 +1017,6 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     use_lrelu = False
     bn = batchnorm and False
     x = xin
-    #x0 = x0in
     if len(x.shape) > 2:
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
@@ -1036,7 +1026,6 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
                 lrelu=use_lrelu,
                 name="A_project",
                 constraint=None)
-        #x = Concatenate()([x0,x])
 
         x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = AddConv2D(x, 128, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
