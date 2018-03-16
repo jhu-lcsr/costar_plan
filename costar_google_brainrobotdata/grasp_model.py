@@ -648,9 +648,7 @@ def choose_hypertree_model(
             else:
                 raise ValueError('Unsupported image_model_name')
 
-        if not trainable and getattr(image_model, 'layers', None) is not None:
-            for layer in image_model.layers:
-                layer.trainable = False
+        set_trainable_layers(trainable, image_model)
 
         class ImageModelCarrier():
             # Create a temporary scope for the list
@@ -793,6 +791,34 @@ def choose_hypertree_model(
         )
     print('hypertree model complete')
     return model
+
+
+def set_trainable_layers(trainable, image_model):
+    """ Set the trainable layers in a model.
+
+    trainable: Either a boolean to set all layers or a
+       floating point value from 0 to 1 indicating the proportion of
+       layer depths to make trainable. In other words with 0.5 all
+       layers past the halfway point in terms of depth will be trainable.
+    image_model: The model to configure
+    """
+    if ((not isinstance(trainable, bool) or not trainable)
+        and getattr(image_model, 'layers', None) is not None):
+        # enable portion of network depending on the depth
+        if not trainable:
+            for layer in image_model.layers:
+                layer.trainable = False
+        else:
+            # Set all layers past a certain depth to trainable
+            # using a fractional scale
+            num_depths = len(image_model.layers_by_depth)
+            num_untrainable_depths = np.round((1.0 - trainable) * num_depths)
+            should_train = False
+            for i, layers in enumerate(image_model.layers):
+                if i > num_untrainable_depths:
+                    should_train = True
+                for layer in layers:
+                    layer.trainable = should_train
 
 
 def grasp_model_resnet(clear_view_image_op,

@@ -156,7 +156,9 @@ def optimize(
         log_dir='./',
         run_name='',
         param_to_optimize='val_acc',
-        maximize=None):
+        maximize=None,
+        variable_trainability=False,
+        learning_rate_enabled=False):
     """ Run hyperparameter optimization
     """
     np.random.seed(seed)
@@ -203,19 +205,24 @@ def optimize(
             param_to_optimize = 'val_grasp_jaccard'
         min_top_block_filter_multiplier = 8
 
-    learning_rate_enabled = False
-
     hyperoptions = HyperparameterOptions()
     # Configuring hyperparameters
 
-    # The trainable flag referrs to the imagenet pretrained network being trainable or not trainable.
-    # We are defaulting to a reasonable learning rate found by prior searches and disabling trainability so that
-    # we can restrict the search to more model improvements due to the outsized effects of these changes on performance
-    # during the random search phase. We plan to run a separate search on enabling trainable models on one of the best models
-    # found when trainable is false. This is due to limitations in processing time availability at the time of writing and
-    # multi stage training not yet being configurable during hyperopt.
-    hyperoptions.add_param('trainable', [True, False], enable=True)
-    # TODO(ahundt) add trainable fraction param which enables training for a number of layers proportional to the total, starting at the top
+    if variable_trainability:
+        # Proportion of layer depths that are trainable.
+        # set variable_trainability to True to utilizing the proportional version
+        # enables training for a number of layers proportional to the total,
+        # starting at the top, which is the final layer before output
+        hyperoptions.add_param('trainable', (0.0, 1.0), 'continuous',
+                               enable=True, required=True, default=0.0)
+    else:
+        # The trainable flag referrs to the imagenet pretrained network being trainable or not trainable.
+        # We are defaulting to a reasonable learning rate found by prior searches and disabling trainability so that
+        # we can restrict the search to more model improvements due to the outsized effects of these changes on performance
+        # during the random search phase. We plan to run a separate search on enabling trainable models on one of the best models
+        # found when trainable is false. This is due to limitations in processing time availability at the time of writing and
+        # multi stage training not yet being configurable during hyperopt.
+        hyperoptions.add_param('trainable', [True, False], enable=True, required=True, default=False)
 
     # Learning rates are exponential so we take a uniform random
     # input and map it from 1 to 3e-5 on an exponential scale.
