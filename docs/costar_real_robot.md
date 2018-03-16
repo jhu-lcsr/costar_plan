@@ -17,8 +17,11 @@ Optionally, you can start the instructor UI to make it easier to set up tasks. T
 roslaunch instructor_core instructor.launch
 ```
 
-The CoSTAR UI is designed to make data collection and specifying simple tasks easier. 
+The CoSTAR UI is designed to make data collection and specifying simple tasks easier. If you want to put the robot in freedrive mode, press "TEACH" at the top of the UI.
 
+![CoSTAR Instructor UI](costar_ui.png "CoSTAR Instructor UI")
+
+You can use the UI to construct simple task plans and save them as Behavior Trees, and to control robot functionality.
 
 ## Run Data Collection
 
