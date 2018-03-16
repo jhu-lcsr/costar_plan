@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
+import copy
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import argparse
 import rospy
+import tf_conversions.posemath as pm
 import tf2_ros as tf2
 
 from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
@@ -139,6 +141,9 @@ def main():
             tf_listener=tf_buffer)
     rate = rospy.Rate(args.rate)
     home = GetHome()
+    move_to_pose = GetMoveToPose()
+    open_gripper = GetOpenGripperService()
+    close_gripper = GetCloseGripperService()
     update = GetUpdate(observe, collector) # uses collector because it listens for js
     stack_task.setUpdate(update) # set fn to call after actions
 
@@ -165,6 +170,7 @@ def main():
     i = start
     while i < args.execute:
         home()
+        rospy.sleep(0.1) # Make sure nothing weird happens with timing
         idx = i + 1
         print("Executing trial %d..."%(idx))
         _, world = observe()
@@ -177,13 +183,21 @@ def main():
         reward = 0.
         stack_task.reset()
 
+        poses = []
         # Update the plan and the collector in synchrony.
         while not rospy.is_shutdown():
+
             # Note: this will be "dummied out" for most of 
             done = stack_task.tick()
             if not collector.update(stack_task.current, ):
                 raise RuntimeError('could not handle data collection')
             rate.sleep()
+
+            if (collector.prev_action is not None and
+                not collector.prev_action == collector.action and
+                "place" in collector.prev_action):
+                poses.append(collector.current_ee_pose)
+                reward = 0.
 
             if done:
                 rospy.logwarn("DONE WITH: " + str(stack_task.ok))
@@ -199,23 +213,44 @@ def main():
                     else:
                         reward = 0.
                     rospy.loginfo("reward = " + str(reward))
-                else:
-                    # Ignore this, something went wrong on the collection side
-                    continue
                 break
 
-        collector.save(idx, reward)
-        print("------------------------------------------------------------")
-        print("Finished one round of data collection. Please reset the test")
-        print("environment before continuing.")
-        print("")
-        print("Example number:", idx, "/", args.execute)
-        print("Success:", reward)
-        print("")
+        if stack_task.ok:
+            collector.save(idx, reward)
+            print("------------------------------------------------------------")
+            print("Finished one round of data collection. Please reset the test")
+            print("environment before continuing.")
+            print("")
+            print("Example number:", idx, "/", args.execute)
+            print("Success:", reward)
+            print("")
+        else:
+            print("------------------------------------------------------------")
+            print("Bad data collection round. Manually reset.")
+            collector.reset()
+
         try:
             input("Press Enter to continue...")
         except SyntaxError as e:
-            pass
+                pass
+
+        # Undo the stacking
+        for drop_pose in reversed(poses):
+            grasp_pose = copy.deepcopy(drop_pose)
+            grasp_pose.p[2] -= 0.05 # should be smart release backoff distance
+            x = 0.43 + (0.3 * np.random.random())
+            y = -0.08 - (0.22 * np.random.random())
+            z = 0.3
+            pose_random = kdl.Frame(drop_pose.M,
+                    kdl.Vector(x,y,z))
+            rospy.logwarn(str(drop_pose))
+            move_to_pose(drop_pose)
+            rospy.logwarn(str(grasp_pose))
+            move_to_pose(grasp_pose)
+            close_gripper()
+            rospy.logwarn(str(pose_random))
+            move_to_pose(pose_random)
+            open_gripper()
 
 if __name__ == '__main__':
     try:

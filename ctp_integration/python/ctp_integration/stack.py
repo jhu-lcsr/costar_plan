@@ -98,6 +98,15 @@ def _makeSmartPlaceRequest(poses, name):
     req.backoff = 0.05
     return req
 
+def GetMoveToPose():
+    move_srv = GetPlanToPoseService()
+    servo_mode = GetServoModeService()
+    def move(pose):
+        req = ServoToPoseRequest()
+        req.target = pm.toMsg(pose)
+        move_srv(req)
+    return move
+
 def GetHome():
     js_home = GetPlanToHomeService()
     pose_home = kdl.Frame(
@@ -212,7 +221,7 @@ def _makeSmartReleaseRequest(color):
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
     req.name = "place_on_%s" % color
-    req.backoff = 0.1
+    req.backoff = 0.05
     req.constraints = [constraint]
     return req
 

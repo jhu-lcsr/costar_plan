@@ -22,11 +22,8 @@ def GetDetectObjectsService(srv='/costar_perception/segmenter'):
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, EmptySrv)
 
-def GetCloseGripperService(srv="/costar/gripper/close"):
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, EmptySrv)
-
-def GetCloseGripperService(srv="/costar/gripper/open"):
+def GetCloseGripperService():
+    srv = "/costar/gripper/close"
     rospy.wait_for_service(srv)
     return rospy.ServiceProxy(srv, EmptySrv)
 
