@@ -242,6 +242,8 @@ def main():
 
         # Undo the stacking
         for drop_pose in reversed(poses):
+            if drop_pose is None:
+                continue
             grasp_pose = copy.deepcopy(drop_pose)
             grasp_pose.p[2] -= 0.075 # should be smart release backoff distance
             grasp_pose2 = copy.deepcopy(drop_pose)
