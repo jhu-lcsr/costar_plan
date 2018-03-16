@@ -175,6 +175,7 @@ class DataCollector(object):
             print(k, np.array(v).shape)
         print(self.data["labels_to_name"])
         print(self.data["label"])
+        print(self.data["goal_idx"])
 
         # for now all examples are considered a success
         self.writer.write(self.data, seed, result)
