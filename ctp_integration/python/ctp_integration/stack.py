@@ -204,7 +204,7 @@ def _makeSmartGraspRequest(color):
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
     req.name = "grasp_%s" % req.obj_class
-    req.backoff = 0.05
+    req.backoff = 0.075
     return req
 
 def _makeSmartReleaseRequest(color):
@@ -221,7 +221,7 @@ def _makeSmartReleaseRequest(color):
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
     req.name = "place_on_%s" % color
-    req.backoff = 0.05
+    req.backoff = 0.075
     req.constraints = [constraint]
     return req
 

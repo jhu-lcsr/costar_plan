@@ -243,7 +243,9 @@ def main():
         # Undo the stacking
         for drop_pose in reversed(poses):
             grasp_pose = copy.deepcopy(drop_pose)
-            grasp_pose.p[2] -= 0.05 # should be smart release backoff distance
+            grasp_pose.p[2] -= 0.075 # should be smart release backoff distance
+            grasp_pose2 = copy.deepcopy(drop_pose)
+            grasp_pose2.p[2] += 0.025 # should be smart release backoff distance
             x = 0.43 + (0.3 * np.random.random())
             y = -0.08 - (0.22 * np.random.random())
             z = 0.3
@@ -254,6 +256,7 @@ def main():
             rospy.logwarn(str(grasp_pose))
             move_to_pose(grasp_pose)
             close_gripper()
+            move_to_pose(grasp_pose2)
             rospy.logwarn(str(pose_random))
             move_to_pose(pose_random)
             open_gripper()
