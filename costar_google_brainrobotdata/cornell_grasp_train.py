@@ -859,7 +859,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         monitor_loss_name = 'val_loss'
         metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.binary_crossentropy
-        model_name = '_dense_model'
+        model_name = '_classifier_model'
     elif problem_name == 'grasp_regression':
         # predicting a single grasp proposal
         success_only = True
