@@ -195,7 +195,7 @@ def main():
             
             # Note: this will be "dummied out" for most of 
             done = stack_task.tick()
-            if not collector.update(stack_task.current, ):
+            if not collector.update(stack_task.current, done):
                 raise RuntimeError('could not handle data collection')
             rate.sleep()
 

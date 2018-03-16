@@ -14,6 +14,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
+from robotiq_c_model_control.msg import CModel_robot_input as GripperMsg
 
 class DataCollector(object):
     '''
@@ -33,6 +34,7 @@ class DataCollector(object):
     data_types = ["h5f", "npz"]
     info_topic = "/costar/info"
     object_topic = "/costar/SmartMove/object"
+    gripper_topic = "/CModelRobotInput"
 
     def __init__(self, robot_config,
             task,
@@ -101,6 +103,9 @@ class DataCollector(object):
         self._smartmove_object_sub = rospy.Subscriber(self.object_topic,
                 String,
                 self._objectCb)
+        self._gripper_sub = rospy.Subscriber(self.gripper_topic,
+                GripperMsg,
+                self._gripperCb)
  
         self.verbosity = 1
 
@@ -117,6 +122,9 @@ class DataCollector(object):
 
     def _objectCb(self, msg):
         self.object = msg.data
+
+    def _gripperCb(self, msg):
+        pass
 
     def _depthCb(self, msg):
         try:
@@ -136,6 +144,7 @@ class DataCollector(object):
         self.data["pose"] = []
         self.data["camera"] = []
         self.data["image"] = []
+        self.data["goal_idx"] = []
         self.data["label"] = []
         self.data["info"] = []
         self.data["object"] = []
@@ -149,6 +158,8 @@ class DataCollector(object):
         self.action = None
         self.prev_action = None
         self.current_ee_pose = None
+        self.last_goal = 0
+        self.prev_last_goal = 0
 
     def _jointsCb(self, msg):
         self.q = msg.position
@@ -169,7 +180,7 @@ class DataCollector(object):
         self.writer.write(self.data, seed, result)
         self.reset()
 
-    def update(self, action_label, ):
+    def update(self, action_label, is_done):
         '''
         Compute endpoint positions and update data. Should happen at some
         fixed frequency like 10 hz.
@@ -179,12 +190,25 @@ class DataCollector(object):
         action: name of high level action being executed
         '''
 
+        switched = False
         if not self.action == action_label:
-            rospy.loginfo("Starting new action: " + str(action_label))
+            if not self.action is None:
+                switched = True
             self.prev_action = self.action
             self.action = action_label
             self.prev_object = self.object
             self.object = None
+        if switched or is_done:
+            self.prev_last_goal = self.last_goal
+            self.last_goal = len(self.data["label"])
+            rospy.loginfo("Starting new action: " + str(action_label) + ", prev was from " + str(self.prev_last_goal) + " to " + str(self.last_goal))
+            self.data["goal_idx"] += (self.last_goal - self.prev_last_goal) * [self.last_goal]
+
+            len_idx = len(self.data["goal_idx"])
+            len_label = len(self.data["label"])
+            if not len_idx  == len_label:
+                rospy.logerr("lens = " + str(len_idx) + ", " + str(len_label))
+                raise RuntimeError("incorrectly set goal idx")
         if self.object is None:
             rospy.logwarn("passing -- has not yet started executing motion")
             return True
@@ -235,7 +259,7 @@ class DataCollector(object):
         #plt.show()
         self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
 
-        # TODO(cpaxton): 
+        # TODO(cpaxton): verify
         if not self.task.validLabel(action_label):
             raise RuntimeError("action not recognized: " + str(action_label))
 
