@@ -55,8 +55,12 @@ def main(_):
         #                           '2018-03-03-07-14-59_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
         # Best result from classification hyperopt run ending 2018-03-16:
+        # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
+        #                           '2018-03-14-00-40-09_-vgg19_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+
+        # Best NON VGG result from classification hyperopt run ending 2018-03-16:
         FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
-                                  '2018-03-14-00-40-09_-vgg19_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+                                  '2018-03-16-06-15-01_-densenet_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
     FLAGS.epochs = 40
     FLAGS.fine_tuning_epochs = 0
