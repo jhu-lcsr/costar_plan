@@ -54,8 +54,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         # =====================================================================
         # Create outputs
-        h = encoder(img_in)
-        h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         if self.use_noise:
             z1 = Input((self.noise_dim,), name="z1_in")
@@ -66,9 +65,9 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
         tform = MakeJigsawsTransform(self, h_dim=(12,16))
-        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        l = [h, y, z1] if self.use_noise else [h, y]
         x = tform(l)
-        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]
+        l = [x, y2, z2] if self.use_noise else [x, y]
         x2 = tform(l)
         image_out, image_out2 = decoder([x]), decoder([x2])
 

@@ -15,12 +15,15 @@ from .pretrain_image import PretrainImageAutoencoder
 from .pretrain_sampler import PretrainSampler
 from .pretrain_image_gan import PretrainImageGan
 
-from .sampler2 import PredictionSampler2
-from .conditional_sampler2 import ConditionalSampler2
+# Multi stuff -- primary models
+from .conditional_sampler import ConditionalSampler
 from .conditional_image import ConditionalImage
 from .conditional_image_gan import ConditionalImageGan
 from .discriminator import Discriminator
 from .secondary import Secondary
+
+# CoSTAR
+from .pretrain_image_costar import PretrainImageCostar
 
 # Jigsaws stuff
 from .dvrk import *
@@ -120,8 +123,8 @@ def MakeModel(features, model, taskdef, **kwargs):
                     **kwargs)
         elif model == "pretrain_sampler":
             model_instance = PretrainSampler(taskdef, model=model, **kwargs)
-        elif model == "conditional_sampler2":
-            model_instance = ConditionalSampler2(taskdef, model=model, **kwargs)
+        elif model == "conditional_sampler":
+            model_instance = ConditionalSampler(taskdef, model=model, **kwargs)
         elif model == "conditional_image":
             model_instance = ConditionalImage(taskdef, model=model, **kwargs)
         elif model == "conditional_image_gan":
@@ -168,11 +171,13 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = JigsawsDiscriminator(True, taskdef,
                     features=features,
                     model=model, **kwargs)
+
         # Global setup for all JIGSAWS data:
         # - images are set up as jpegs
         # - number of options, etc.
         model_instance.load_jpeg = True
         model_instance.num_options = SuturingNumOptions()
+
     elif features == "costar":
         '''
         These are CoSTAR models -- meant to be used with data collected from the
@@ -183,6 +188,10 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+
+        # Global setup for CoSTAR
+        # this one uses jpegs
+        model_instance.load_jpeg = True
 
     elif features == "husky":
         '''
@@ -232,6 +241,9 @@ def MakeModel(features, model, taskdef, **kwargs):
                     features=features,
                     model=model, **kwargs)
 
+        # Set global options for the husky robot simulation
+        # It uses four options -- barrier, cone, hydrant, and dumpster
+        # Images are bitmaps stored as numpy arrays
         model_instance.load_jpeg = False
         model_instance.num_options = HuskyNumOptions()
         model_instance.null_option = HuskyNullOption()
@@ -260,7 +272,7 @@ def GetModels():
             "pretrain_image_encoder", # tool for pretraining images
             "pretrain_state_encoder", # tool for pretraining states
             "pretrain_sampler", # tool for pretraining the sampler
-            "conditional_sampler2", # just give the condition
+            "conditional_sampler", # just give the condition
             "conditional_image", # just give label and predict image
             "conditional_image_gan", # just give label and predict image
             "pretrain_image_gan",

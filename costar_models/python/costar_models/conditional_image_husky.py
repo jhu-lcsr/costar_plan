@@ -17,6 +17,7 @@ from matplotlib import pyplot as plt
 
 from .conditional_image import *
 from .husky import *
+from .multi import MakeImageDecoder, MakeImageDecoder
 from .planner import *
 
 class ConditionalImageHusky(ConditionalImage):
@@ -42,15 +43,14 @@ class ConditionalImageHusky(ConditionalImage):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        encoder = self._makeImageEncoder(img_shape)
-        decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = MakeImageEncoder(self, img_shape)
+        decoder = MakeImageDecoder(self, self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder, gan=False)
 
         # =====================================================================
         # Load the arm and gripper representation
-        h = encoder([img_in])
-        h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
@@ -62,8 +62,8 @@ class ConditionalImageHusky(ConditionalImage):
         y2 = Flatten()(y2)
         x = h
         tform = self._makeTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
+        x = tform([h,y])
+        x2 = tform([x,y2])
         image_out = decoder([x])
         image_out2 = decoder([x2])
 
