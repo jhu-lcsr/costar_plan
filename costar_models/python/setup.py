@@ -12,7 +12,4 @@ setup(name='costar_models',
       author_email='cpaxton@jhu.edu',
       url='https://github.com/cpaxton/costar_plan',
       packages=find_packages(),
-      #packages=["costar_models",
-      #    "costar_models/datasets",
-      #],
 )

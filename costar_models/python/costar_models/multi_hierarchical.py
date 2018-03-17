@@ -19,9 +19,9 @@ from keras.optimizers import Adam
 from keras.utils.np_utils import to_categorical
 
 from .abstract import HierarchicalAgentBasedModel
+from .multi import *
 from .preprocess import *
 from .robot_multi_models import *
-from .split import *
 
 class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
@@ -45,7 +45,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         '''
         super(RobotMultiHierarchical, self).__init__(taskdef, *args, **kwargs)
 
-        self.num_frames = 1
         self.img_col_dim = 512
         self.img_num_filters = 64
         self.robot_col_dense_size = 128
@@ -56,9 +55,41 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         self.null_option = 37
         self.supervisor = None
         self.actor = None
+        self.classifier = None
 
-    def _makeModel(self, *args, **kwargs):
-        self.model, self.supervisor, self.actor = self._makeSupervisor(*args, **kwargs)
+        # Feature presets
+        self.arm_cmd_size = 6
+        self.gripper_cmd_size = 1
+
+    def _makeModel(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+        '''
+        Set up all models necessary to create actions
+        '''
+        img_shape, image_size, arm_size, gripper_size = self._sizes(
+                features,
+                arm,
+                gripper)
+        encoder = self._makeImageEncoder(img_shape)
+        decoder = self._makeImageDecoder(self.hidden_shape)
+        try:
+            encoder.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                #"pretrain_image_gan_model",
+                "image_encoder.h5f"))
+            encoder.trainable = self.retrain
+            decoder.load_weights(self._makeName(
+                "pretrain_image_encoder_model",
+                #"pretrain_image_gan_model",
+                "image_decoder.h5f"))
+            decoder.trainable = self.retrain
+        except Exception as e:
+            if not self.retrain:
+                raise e
+
+        # Make end-to-end conditional actor
+        actor = self._makeConditionalActor(features, arm, gripper, arm_cmd,
+                gripper_cmd, *args, **kwargs)
+        self.model = actor
 
     def _makeSimpleActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
@@ -82,6 +113,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 discriminator=False,
                 kernel_size=[3,3],
                 tile=True,
+                batchnorm=self.use_batchnorm,
                 pre_tiling_layers=1,
                 post_tiling_layers=3,
                 stride1_post_tiling_layers=1)
@@ -99,7 +131,7 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
 
     def _makeConditionalActor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         '''
-        This creates a "dumb" actor model 
+        This creates a "dumb" actor model based on a set of features.
         '''
         img_shape = features.shape[1:]
         arm_size = arm.shape[1]
@@ -108,27 +140,56 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             gripper_size = gripper.shape[1]
         else:
             gripper_size = 1
+        
+        new = True
+        if not new:
+            ins, x, skips = GetEncoder(
+                    img_shape,
+                    [arm_size, gripper_size],
+                    self.img_col_dim,
+                    self.dropout_rate,
+                    self.img_num_filters,
+                    pose_col_dim=self.pose_col_dim,
+                    discriminator=False,
+                    kernel_size=[3,3],
+                    tile=True,
+                    batchnorm=self.use_batchnorm,
+                    pre_tiling_layers=1,
+                    post_tiling_layers=3,
+                    stride1_post_tiling_layers=1,
+                    option=self.num_options,
+                    )
+        else:
+            img_in = Input(img_shape, name="ca_img_in")
+            x = img_in
+            x = AddConv2D(x, 64, [5,5], 2, self.dropout_rate, "valid", bn=self.use_batchnorm)
+            x = AddConv2D(x, 128, [3,3], 2, self.dropout_rate, "valid", bn=self.use_batchnorm)
+            x = AddConv2D(x, 128, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
+            x = AddConv2D(x, 128, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
+            x = AddConv2D(x, 128, [3,3], 1, 0., "valid", bn=self.use_batchnorm)
 
+            arm_in = Input((arm_size,),name="ca_arm_in")
+            gripper_in = Input((gripper_size,),name="ca_gripper_in")
+            y = Concatenate()([arm_in, gripper_in])
+            y = AddDense(y, 128, "relu", 0., output=True, constraint=3)
+            x = TileOnto(x, y, 128, (8,8), add=True)
 
-        ins, x, skips = GetEncoder(
-                img_shape,
-                [arm_size, gripper_size],
-                self.img_col_dim,
-                self.dropout_rate,
-                self.img_num_filters,
-                pose_col_dim=self.pose_col_dim,
-                discriminator=False,
-                kernel_size=[3,3],
-                tile=True,
-                batchnorm=self.use_batchnorm,
-                option=self.num_options,
-                pre_tiling_layers=1,
-                post_tiling_layers=3,
-                stride1_post_tiling_layers=1)
-
-        x = BatchNormalization()(x)
-        x = Dropout(self.dropout_rate)(x)
-        x = AddDense(x, 512, "lrelu", 0., constraint=None, output=False)
+            cmd_in = Input((1,), name="option_cmd_in")
+            cmd = OneHot(self.num_options)(cmd_in)
+            cmd = AddDense(cmd, 128, "relu", 0., output=True, constraint=3)
+            x = TileOnto(x, cmd, 128, (8,8), add=True)
+            x = AddConv2D(x, 64, [3,3], 1, self.dropout_rate, "valid",
+                    bn=self.use_batchnorm)
+            #x = BatchNormalization()(x)
+            x = Flatten()(x)
+            x = AddDense(x, 512, "relu", self.dropout_rate,
+                    constraint=3,
+                    output=True)
+            x = Dropout(self.dropout_rate)(x)
+            x = AddDense(x, 512, "relu", self.dropout_rate,
+                    constraint=3,
+                    output=True)
+            ins = [img_in, arm_in, gripper_in, cmd_in]
 
         arm_out = Dense(arm_cmd_size, name="arm")(x)
         gripper_out = Dense(gripper_size, name="gripper")(x)
@@ -136,13 +197,13 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         if self.model is not None:
             raise RuntimeError('overwriting old model!')
 
-        #model = Model(ins + [option_in], [arm_out, gripper_out])
         model = Model(ins, [arm_out, gripper_out])
         optimizer = self.getOptimizer()
         model.compile(loss=self.loss, optimizer=optimizer)
         return model
 
-    def _makeSupervisor(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
+
+    def _makeAll(self, features, arm, gripper, arm_cmd, gripper_cmd, *args, **kwargs):
         images = features
         img_shape = images.shape[1:]
         arm_size = arm.shape[-1]
@@ -196,8 +257,6 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         print(ins, actor.inputs)
         #model_ins = Input(name="img_in")
 
-        return actor, supervisor, actor
-
     def plotInfo(self, features, targets, axes):
         # debugging: plot every 5th image from the dataset
         subset = [f[range(0,25,5)] for f in features]
@@ -230,62 +289,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
         plt.show(block=False)
         plt.pause(0.01)
 
-    def _getAllData(self, features, arm, gripper, arm_cmd, gripper_cmd, label,
-            prev_label, goal_features, goal_arm, goal_gripper, value, *args, **kwargs):
-        I = features / 255. # normalize the images
-        q = arm
-        g = gripper * -1
-        qa = arm_cmd
-        ga = gripper_cmd * -1
-        oin = prev_label
-        I_target = goal_features / 255.
-        q_target = goal_arm
-        g_target = goal_gripper * -1
-        o_target = label
-
-        # Preprocess values
-        value_target = np.array(value > 1.,dtype=float)
-        #if value_target[-1] == 0:
-        #    value_target = np.ones_like(value) - np.array(label == label[-1], dtype=float)
-        q[:,3:] = q[:,3:] / np.pi
-        q_target[:,3:] = q_target[:,3:] / np.pi
-        qa /= np.pi
-
-        o_target = np.squeeze(self.toOneHot2D(o_target, self.num_options))
-        train_target = self._makeTrainTarget(
-                I_target,
-                q_target,
-                g_target,
-                o_target)
-
-        return [I, q, g, oin, label, q_target, g_target,], [
-                np.expand_dims(train_target, axis=1),
-                o_target,
-                value_target,
-                np.expand_dims(qa, axis=1),
-                np.expand_dims(ga, axis=1),
-                I_target]
-
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
         [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
         return [I, q, g, label], [np.squeeze(qa), np.squeeze(ga)]
-
-    def _makeTrainTarget(self, I_target, q_target, g_target, o_target):
-        if I_target is not None:
-            length = I_target.shape[0]
-            image_shape = I_target.shape[1:]
-            image_size = 1
-            for dim in image_shape:
-                image_size *= dim
-            image_size = int(image_size)
-            Itrain = np.reshape(I_target,(length, image_size))
-            return np.concatenate([Itrain, q_target,g_target,o_target],axis=-1)
-        else:
-            length = q_target.shape[0]
-            return np.concatenate([q_target,g_target,o_target],axis=-1)
-
 
     def _loadWeights(self, *args, **kwargs):
         '''
@@ -319,14 +327,14 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 self.supervisor.save_weights(self.name + "_supervisor.h5f")
             if self.actor is not None:
                 self.actor.save_weights(self.name + "_actor.h5f")
+            if self.classifier is not None:
+                self.classifier.save_weights(self.name + "_classifier.h5f")
         else:
             raise RuntimeError('save() failed: model not found.')
 
     def trainFromGenerators(self, train_generator, test_generator, data=None, *args, **kwargs):
-        [features, arm, gripper, oi], [arm_cmd, gripper_cmd] = self._getData(**data)
         if self.model is None:
-            self._makeModel(features, arm, gripper, arm_cmd,
-                    gripper_cmd, *args, **kwargs)
+            self._makeModel(**data)
         self.model.summary()
         self.model.fit_generator(
                 train_generator,
@@ -334,3 +342,19 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
                 epochs=self.epochs,
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,)
+
+    def _sizes(self, images, arm, gripper):
+        img_shape = images.shape[1:]
+        arm_size = arm.shape[-1]
+        if len(gripper.shape) > 1:
+            gripper_size = gripper.shape[-1]
+        else:
+            gripper_size = 1
+        image_size = 1
+        for dim in img_shape:
+            image_size *= dim
+        image_size = int(image_size)
+
+        return img_shape, image_size, arm_size, gripper_size
+
+

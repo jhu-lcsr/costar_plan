@@ -1,0 +1,3 @@
+export CUDA_VISIBLE_DEVICES="1" && python vrep_grasp.py --grasp_model grasp_model_levine_2016_segmentation --data_dir=~/.keras/datasets/grasping/ --grasp_success_label 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/image_coordinate/preprocessed/grasp_success_yx_3' --grasp_sequence_motion_command_feature 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3' --loss 'segmentation_single_pixel_binary_crossentropy' --metric 'segmentation_single_pixel_binary_accuracy' --batch_size 15
+# --grasp_model grasp_model_levine_2016
+# --grasp_model grasp_model_resnet

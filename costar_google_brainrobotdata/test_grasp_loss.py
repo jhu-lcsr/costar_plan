@@ -2,9 +2,10 @@ import tensorflow as tf
 import numpy as np
 from keras.losses import binary_crossentropy
 import grasp_loss
+import grasp_geometry
 
 
-class grasp_loss_function_test(tf.test.TestCase):
+class TestGraspLoss(tf.test.TestCase):
     """ Unit test for functions in grasp_loss.py
     """
     def test_single_pixel_measurement_index(self):
@@ -37,6 +38,23 @@ class grasp_loss_function_test(tf.test.TestCase):
             test_different_input(sess, 40, 50)
             test_different_input(sess, 25, 30)
             test_different_input(sess, 35, 35)
+
+    def test_gaussian_kernel_2D(self):
+        def test_gaussian_input(size, center, sigma):
+            with self.test_session() as sess:
+                test_gaussian = grasp_geometry.gaussian_kernel_2D(size, center, sigma)
+                tensor = grasp_loss.gaussian_kernel_2D(size, center, sigma)
+                result = sess.run(tensor)
+                if center is not None:
+                    assert result[center[0], center[1]] == 1
+                assert np.allclose(test_gaussian, result)
+        test_gaussian_input(size=(3, 3), center=None, sigma=1)
+        test_gaussian_input(size=(3, 3), center=(1, 1), sigma=1)
+        test_gaussian_input(size=(3, 3), center=(0, 1), sigma=1)
+        test_gaussian_input(size=(4, 3), center=(3, 1), sigma=1)
+        test_gaussian_input(size=(3, 4), center=(0, 0), sigma=1)
+        test_gaussian_input(size=(5, 5), center=(3, 3), sigma=2)
+        test_gaussian_input(size=(5, 5), center=None, sigma=2)
 
 if __name__ == '__main__':
     tf.test.main()

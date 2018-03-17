@@ -5,6 +5,7 @@ import numpy as np
 import os
 
 from .npy_generator import NpzGeneratorDataset
+from .image import *
 
 class H5fGeneratorDataset(NpzGeneratorDataset):
     '''
@@ -15,20 +16,26 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
     takes the load function so all we need to do is implement things so they'll
     load a particular class.
     '''
-    def __init__(self, name, split=0.1, ):
-        '''
-        Set name of directory to load files from
-
-        '''
-        self.name = name 
-        self.split = split
-        self.train = []
-        self.test = []
+    def __init__(self, *args, **kwargs):
+        super(H5fGeneratorDataset, self).__init__(*args, **kwargs)
 
     def _load(self, filename):
         '''
         Helper to load the file
         '''
-        f = h5f.File(filename, 'r')
-        return f
+        data = {}
+        with h5f.File(filename, 'r') as f:
+            if "image" in f and "image_type" in f:
+                s = f['image_type'][0]
+                load_jpeg = s.lower() == "jpeg"
+            else:
+                load_jpeg = False
+            for k, v in f.items():
+                if k == "image_type":
+                    continue
+                data[k] = np.array(v)
+                if k == "image" and len(data[k].shape) < 3:
+                    load_jpeg = True
+            self.load_jpeg = load_jpeg
+        return data
 

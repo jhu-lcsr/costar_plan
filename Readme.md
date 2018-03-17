@@ -2,11 +2,13 @@
 
 [![Build Status](https://travis-ci.com/cpaxton/costar_plan.svg?token=13PmLzWGjzrfxQvEyWp1&branch=master)](https://travis-ci.com/cpaxton/costar_plan)
 
-The CoSTAR Planner is part of the larger [CoSTAR project](https://github.com/cpaxton/costar_stack/). It integrates some learning from demonstration and task planning capabilities into the larger CoSTAR framework in different ways..
+The CoSTAR Planner is part of the larger [CoSTAR project](https://github.com/cpaxton/costar_stack/). It integrates some learning from demonstration and task planning capabilities into the larger CoSTAR framework in different ways.
 
-Specifically it is a project for creating task and motion planning algorithms that use machine learning to solve challenging problems in a variety of domains. This code provides a testbed for complex task and motion planning search algorithms. The goal is to describe example problems where actor must move around in the world and plan complex interactions with other actors or the environment that correspond to high-level symbolic states.
+Specifically it is a project for creating task and motion planning algorithms that use machine learning to solve challenging problems in a variety of domains. This code provides a testbed for complex task and motion planning search algorithms. The goal is to describe example problems where actor must move around in the world and plan complex interactions with other actors or the environment that correspond to high-level symbolic states. Among these is our Visual Task Planning project, in which robots learn representations of their world and use these to imagine possible futures, then use these for planning.
 
 To run deep learning examples, you will need TensorFlow and Keras, plus a number of Python packages. To run robot experiments, you'll need a simulator (Gazebo or PyBullet), and ROS Indigo or Kinetic. Other versions of ROS may work but have not been tested. If you want to stick to the toy examples, you do not need to use this as a ROS package.
+
+*About this repository:* CTP is a _single-repository_ project. As such, all the custom code you need should be in one place: here. There are exceptions, such as the [CoSTAR Stack](https://github.com/cpaxton/costar_stack/) for real robot execution, but these are generally not necessary. The minimal installation of CTP is just to install the `costar_models` package as a normal [python package](https://github.com/cpaxton/costar_plan/tree/master/costar_models/python) ignoring everything else.
 
 Contents:
   - [0. Introduction](docs/introduction.md)
@@ -19,6 +21,7 @@ Contents:
     - [3.1 Data collection](docs/collect_data.md): data collection with a real or simulated robot
     - [3.2 MARCC instructions](docs/marcc.md): learning models using JHU's MARCC cluste
     - [3.3 Generative Adversarial Models](docs/learning_gan.md)
+    - [3.4 SLURM Utilities](docs/slurm_utils.md): tools for using slurm on MARCC
   - [4. Creating and training a custom task](docs/task_learning.md): overview of task representations
     - [4.1 Generating a task from data](docs/generate_task_model.md): generate task from demonstrations
     - [4.2 Task Learning](docs/task_learning_experiments.md): specific details
@@ -27,17 +30,19 @@ Contents:
     - [5.2 PyBullet Sim](docs/pybullet.md): an alternative to Gazebo that may be preferrable in some situations
     - [5.3 costar_bullet quick start](docs/costar_bullet.md): How to run tasks, generate datasets, train models, and extend costar_bullet with your own components.
     - [5.4 Adding a robot to the ROS code](docs/add_a_robot.md): NOT using Bullet sim
-  - [6. Husky robot](husky/Readme.md): Start the APL Husky sim
+  - [6. Husky robot](docs/husky.md): Start the APL Husky sim
   - [7. TOM robot](docs/tom.md): introducing the TOM robot from TUM
     - [7.1 TOM Data](docs/tom_data.md): data necessary for TOM
     - [7.2 The Real TOM](docs/tom_real_robot.md): details about parts of the system for running on the real TOM
+  - [8. CoSTAR Robot](docs/costar_real_robot.md): execution with a standard UR5
 
 Package/folder layout:
   - [CoSTAR Simulation](costar_simulation/Readme.md): Gazebo simulation and ROS execution
   - [CoSTAR Task Plan](costar_task_plan/Readme.md): the high-level python planning library
   - [CoSTAR Gazebo Plugins](costar_gazebo_plugins/Readme.md): assorted plugins for integration
   - [CoSTAR Models](costar_models/Readme.md): tools for learning deep neural networks
-  - [Costar Task Plan - Tom](ctp_tom/Readme.md): specific bringup and scenarios for the TOM robot from TU Munich
+  - [CTP Tom](ctp_tom/Readme.md): specific bringup and scenarios for the TOM robot from TU Munich
+  - [CTP Visual](ctp_visual/Readme.md): visual robot task planner
   - `setup`: contains setup scripts
   - `slurm`: contains SLURM scripts for running on MARCC
   - `command`: contains scripts with example CTP command-line calls

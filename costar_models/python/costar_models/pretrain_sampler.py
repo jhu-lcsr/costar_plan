@@ -15,14 +15,9 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .abstract import *
-from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
-from .loss import *
-from .multi_sampler import *
 from .sampler2 import *
+from .multi import *
+from .data_utils import *
 
 class PretrainSampler(PredictionSampler2):
 
@@ -31,10 +26,10 @@ class PretrainSampler(PredictionSampler2):
         self.PredictorCb = ImageCb
 
     def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
+        [I, q, g, oin, label, q_target, g_target,] = features
         [tt, o1, v, qa, ga, I_target] = targets
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
+        oin_1h = np.squeeze(ToOneHot2D(oin, self.num_options))
         return [I, q, g, oin], [I, q, g, oin_1h]
 
     def _makePredictor(self, features):
@@ -52,24 +47,7 @@ class PretrainSampler(PredictionSampler2):
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeImageEncoder(img_shape)
-
-
-        if self.skip_connections:
-            decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
-        else:
-            decoder = self._makeImageDecoder(self.hidden_shape)
-
-        try:
-            decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_decoder.h5f"))
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_encoder.h5f"))
-            decoder.trainable = self.retrain
-            encoder.trainable = self.retrain
-        except Exception as e:
-            pass
+        decoder = self._makeImageDecoder(self.hidden_shape)
 
         encoder.summary()
         decoder.summary()

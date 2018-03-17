@@ -157,9 +157,7 @@ class MhpLossWithShape(object):
         xsum = tf.zeros([1, 1])
         xmin = tf.ones([1, 1])*1e10
 
-
         for i in range(self.num_hypotheses):
-
             target_outputs = _getOutputs(target, self.outputs, 0)
             pred_outputs = _getOutputs(pred, self.outputs, i)
             
@@ -199,12 +197,15 @@ def _getOutputs(state, outputs, i):
     ouputs: dimensionality of each output to retrieve in order
     '''
     idx = 0
-    separated_outputs = []
-    for output_dim in outputs:
-        # Print statement for debugging: shows ranges for each output, which
-        # should match the order of provided data.
-        #print("from ", idx, "to", idx+output_dim)
-        out = state[:,i,idx:idx+output_dim]
-        separated_outputs.append(out)
-        idx += output_dim
+    if len(outputs) > 1:
+      separated_outputs = []
+      for output_dim in outputs:
+          # Print statement for debugging: shows ranges for each output, which
+          # should match the order of provided data.
+          #print("from ", idx, "to", idx+output_dim)
+          out = state[:,i,idx:idx+output_dim]
+          separated_outputs.append(out)
+          idx += output_dim
+    else:
+      separated_outputs = [state[:,i]]
     return separated_outputs

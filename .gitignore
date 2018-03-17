@@ -11,6 +11,8 @@
 # Neural nets and data
 *.npz
 *.h5f
+*.h5
+*.hdf5
 
 # Careful with these -- we want them to be generated at runtime from the
 # associated xacro file.
@@ -23,3 +25,33 @@
 
 # Images
 *.png
+*.h5
+*.so
+*.ttt
+*.json
+
+# Tags file
+tags
+
+# Slurm files
+slurm-*.out
+
+# orig files from vim
+*.orig
+
+
+# Various record folders
+*/logs/*
+*/logs_cornell/*
+*/logs_google_brain/*
+*.tfrecord*
+*.nbi
+*.nbc
+*.csv
+*.zip
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+

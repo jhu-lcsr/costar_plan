@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import keras
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -11,6 +12,7 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers import UpSampling2D, Conv2DTranspose
 from keras.layers import BatchNormalization, Dropout
+from keras.layers.noise import AlphaDropout
 from keras.layers import Dense, Conv2D, Activation, Flatten
 from keras.layers import Lambda
 from keras.layers.merge import Add, Multiply
@@ -19,6 +21,10 @@ from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from keras.constraints import max_norm
+
+from .batch_renorm import BatchRenormalization
+from .permanent_dropout import *
+from .instance_normalization import InstanceNormalization
 
 '''
 PLANNER MODEL TOOLS
@@ -32,9 +38,14 @@ Returns for all tools:
 out: an output tensor
 '''
 
+# Use high momentum from TF?
+# MOMENTUM=0.9 seems to help training
+MOMENTUM=0.9
+RENORM=False
+
 def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
-        lrelu=False, bn=True, momentum=0.9, name=None, constraint=None,
-        activation=None):
+        lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
+        kr=0., ar=0., activation=None, perm_drop=False):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -55,15 +66,42 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         kwargs['name'] = "%s_conv"%name
     if constraint is not None:
         kwargs['kernel_constraint'] = maxnorm(constraint)
+
+    if isinstance(kr, float) and kr > 0:
+        kr = keras.regularizers.l2(kr)
+    elif isinstance(kr, float):
+        kr = None
+    else:
+        kr = kr
+
+    if isinstance(ar, float) and ar > 0:
+        ar = keras.regularizers.l1(ar)
+    elif isinstance(ar, float):
+        ar = None
+    else:
+        ar = ar
+
+    if ar is not None:
+        kwargs['activity_regularizer'] = ar
+    if kr is not None:
+        kwargs['kernel_regularizer'] = kr
+
     x = Conv2D(filters,
             kernel_size=kernel,
             strides=(stride,stride),
             padding=padding, **kwargs)(x)
-    kwargs = {}
+
     if bn:
+        kwargs = {}
         if name is not None:
             kwargs['name'] = "%s_bn"%name
-        x = BatchNormalization(momentum=momentum, **kwargs)(x)
+        if RENORM:
+            x = BatchRenormalization(momentum=momentum, axis=-1, mode=0, **kwargs)(x)
+        else:
+            #x = BatchNormalization(momentum=momentum, **kwargs)(x)
+            x = InstanceNormalization(axis=-1, **kwargs)(x)
+
+    kwargs = {}
     if lrelu or activation == "lrelu":
         if name is not None:
             kwargs['name'] = "%s_lrelu"%name
@@ -76,14 +114,24 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
         if name is not None:
             kwargs['name'] = "%s_relu"%name
         x = Activation("relu", **kwargs)(x)
+
     if dropout_rate > 0:
         if name is not None:
             kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
-        x = Dropout(dropout_rate, **kwargs)(x)
+        if perm_drop:
+            x = PermanentDropout(dropout_rate, **kwargs)(x)
+        else:
+            x = Dropout(dropout_rate, **kwargs)(x)
     return x
 
 def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
-        padding="same", momentum=0.9):
+        padding="same", momentum=MOMENTUM, bn=True,
+        activation="relu",
+        discriminator=False,
+        name=None,
+        kr=0.,
+        ar=0.,
+        perm_drop=False):
     '''
     Helper for creating networks. This one will add a convolutional block.
 
@@ -99,22 +147,61 @@ def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
     --------
     x: output tensor
     '''
+
+    kwargs = {}
+    if isinstance(kr, float) and kr > 0:
+        kr = keras.regularizers.l2(kr)
+    elif isinstance(kr, float):
+        kr = None
+    else:
+        kr = kr
+
+    if isinstance(ar, float) and ar > 0:
+        ar = keras.regularizers.l1(ar)
+    elif isinstance(ar, float):
+        ar = None
+    else:
+        ar = ar
+
+    if ar is not None:
+        kwargs['activity_regularizer'] = ar
+    if kr is not None:
+        kwargs['kernel_regularizer'] = kr
+
+
+
     x = Conv2DTranspose(filters,
             kernel_size=kernel,
             strides=(stride,stride),
-            padding=padding)(x)
-    x = BatchNormalization(momentum=momentum)(x)
-    discriminator = False
-    if discriminator:
+            padding=padding,
+            **kwargs)(x)
+    if bn:
+        kwargs = {}
+        if name is not None:
+            kwargs['name'] = "%s_bn"%name
+        if RENORM:
+            x = BatchRenormalization(momentum=momentum, axis=-1, mode=0)(x)
+        else:
+            #x = BatchNormalization(momentum=momentum)(x)
+            x = InstanceNormalization(axis=-1, **kwargs)(x)
+
+    if discriminator or activation=="lrelu":
         x = LeakyReLU(alpha=0.2)(x)
     else:
-        x = Activation("relu")(x)
+        x = Activation(activation)(x)
     if dropout_rate > 0:
-        x = Dropout(dropout_rate)(x)
+        if perm_drop:
+            x = PermanentDropout(dropout_rate)(x)
+        else:
+            x = Dropout(dropout_rate)(x)
     return x
 
-def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9,
-    constraint=3):
+def AddDense(x, size, activation, dropout_rate, output=False, momentum=MOMENTUM,
+    constraint=3,
+    bn=True,
+    kr=0.,
+    ar=0.,
+    perm_drop=False):
     '''
     Add a single dense block with batchnorm and activation.
 
@@ -129,18 +216,43 @@ def AddDense(x, size, activation, dropout_rate, output=False, momentum=0.9,
     --------
     x: output tensor
     '''
-    if constraint is not None:
-        x = Dense(size, kernel_constraint=maxnorm(constraint))(x)
+
+    if isinstance(kr, float) and kr > 0:
+        kr = keras.regularizers.l2(kr)
+    elif isinstance(kr, float):
+        kr = None
     else:
-        x = Dense(size)(x)
-    if not output:
-        x = BatchNormalization(momentum=momentum)(x)
+        kr = kr
+
+    if isinstance(ar, float) and ar > 0:
+        ar = keras.regularizers.l1(ar)
+    elif isinstance(ar, float):
+        ar = None
+    else:
+        ar = ar
+
+    if constraint is not None:
+        x = Dense(size, kernel_constraint=maxnorm(constraint),
+                  kernel_regularizer=kr,
+                  activity_regularizer=ar,)(x)
+    else:
+        x = Dense(size,
+                  kernel_regularizer=kr,
+                  activity_regularizer=ar,)(x)
+
+    if not output and bn:
+        #x = BatchNormalization(momentum=momentum)(x)
+        x = InstanceNormalization()(x)
+
     if activation == "lrelu":
         x = LeakyReLU(alpha=0.2)(x)
     else:
         x = Activation(activation)(x)
     if dropout_rate > 0:
-        x = Dropout(dropout_rate)(x)
+        if perm_drop:
+            x = PermanentDropout(dropout_rate)(x)
+        else:
+            x = Dropout(dropout_rate)(x)
     return x
 
 def CombinePose(pose_in, dim=64):
@@ -165,7 +277,7 @@ def CombineArmAndGripperAndOption(arm_in, gripper_in, option_in, dim=64):
 def GetArmGripperEncoder(arm_size, gripper_size, dim=64):
     arm_in = Input((arm_size,))
     gripper_in = Input((gripper_size,))
-    
+
 
 def TileOnto(x,z,zlen,xsize,add=False):
     z = Reshape([1,1,zlen])(z)
@@ -195,7 +307,7 @@ def TileArmAndGripper(x, arm_in, gripper_in, tile_width, tile_height,
         #reshape_size = arm_size+gripper_size
         reshape_size = dim
     else:
-        robot = CombineArmAndGripperAndOption(arm_in, 
+        robot = CombineArmAndGripperAndOption(arm_in,
                                               gripper_in,
                                               option_in,
                                               dim=dim)
@@ -224,7 +336,7 @@ def TilePose(x, pose_in, tile_width, tile_height,
         option=None, option_in=None,
         time_distributed=None, dim=64, concatenate=False):
     pose_size = int(pose_in.shape[-1])
-    
+
 
     # handle error: options and grippers
     if option is None and option_in is not None \
@@ -299,7 +411,7 @@ def GetImageEncoder(img_shape, dim, dropout_rate,
     x = samples
 
     x = ApplyTD(Conv2D(filters,
-                kernel_size=kernel_size, 
+                kernel_size=kernel_size,
                 strides=(1, 1),
                 padding='same'))(x)
     x = ApplyTD(relu())(x)
@@ -309,7 +421,7 @@ def GetImageEncoder(img_shape, dim, dropout_rate,
     for i in range(layers):
 
         x = ApplyTD(Conv2D(filters,
-                   kernel_size=kernel_size, 
+                   kernel_size=kernel_size,
                    strides=(2, 2),
                    padding='same'))(x)
         x = ApplyTD(relu())(x)
@@ -423,7 +535,7 @@ def GetImageDecoder(dim, img_shape,
         # avoid those when learning our nice decoder.
         if upsampling == "bilinear":
             x = Conv2D(filters,
-                       kernel_size=kernel_size, 
+                       kernel_size=kernel_size,
                        strides=(1, 1),
                        padding='same')(x)
 
@@ -433,12 +545,12 @@ def GetImageDecoder(dim, img_shape,
         elif upsampling == "upsampling":
             x = UpSampling2D(size=(2,2))(x)
             x = Conv2D(filters,
-                       kernel_size=kernel_size, 
+                       kernel_size=kernel_size,
                        strides=(1, 1),
                        padding='same')(x)
         else:
             x = Conv2DTranspose(filters,
-                       kernel_size=kernel_size, 
+                       kernel_size=kernel_size,
                        strides=(2, 2),
                        padding='same')(x)
         if batchnorm:
@@ -449,7 +561,7 @@ def GetImageDecoder(dim, img_shape,
 
         height *= 2
         width *= 2
- 
+
     if skips:
         skip_in = Input((img_shape[0],img_shape[1],filters))
         x = Concatenate(axis=-1)([x,skip_in])
@@ -458,7 +570,7 @@ def GetImageDecoder(dim, img_shape,
 
     for i in range(stride1_layers):
         x = Conv2D(filters, # + num_labels
-                   kernel_size=kernel_size, 
+                   kernel_size=kernel_size,
                    strides=(1, 1),
                    padding="same")(x)
         if batchnorm:
@@ -690,7 +802,7 @@ def GetImageArmGripperDecoder(dim, img_shape,
     return decoder
 
 
-def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True, 
+def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=True,
         leaky=True,
         relu=True,
         dropout_rate=0.,
@@ -727,15 +839,11 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         dr = 0.
 
     x = xin
-    x0 = AddConv2D(x, filters*2, [1,1], 1, 0.)
-    x = x0
     for i in range(num_blocks):
         x = AddConv2D(x, filters*2,
                 kernel_size,
                 stride=1,
                 dropout_rate=0)
-    x =  Concatenate(axis=-1)([x,x0])
-
     x = AddConv2D(x, rep_size[-1], kernel_size, 1, dr)
 
     ins = [xin]
@@ -745,7 +853,7 @@ def GetTransform(rep_size, filters, kernel_size, idx, num_blocks=2, batchnorm=Tr
         ins += [oin]
     return Model(ins, x, name="transform%d"%idx)
 
-def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True, 
+def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True,
         idx=0,
         leaky=True,
         relu=True,
@@ -770,7 +878,7 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
     Parameters:
     -----------
     dim: size of the hidden representation
-    input_size: 
+    input_size:
     leaky: use LReLU instead of normal ReLU
     dropout_rate: amount of dropout to use (not recommended for MHP)
     dropout: use dropout (recommended FALSE for MHP)
@@ -833,78 +941,25 @@ def GetDenseTransform(dim, input_size, output_size, num_blocks=2, batchnorm=True
         # KL regularization termin the loss function
         return Model([xin] + extra, [x, mu, sigma], name="transform%d"%idx)
 
-
-def GetActorModel(x, num_options, arm_size, gripper_size,
-        dropout_rate=0.5, batchnorm=True):
-    '''
-    Make an "actor" network that takes in an encoded image and an "option"
-    label and produces the next command to execute.
-    '''
-    xin = Input([int(d) for d in x.shape[1:]], name="actor_h_in")
-    #x0in = Input([int(d) for d in x.shape[1:]], name="actor_h0_in")
-    option_in = Input((48,), name="actor_o_in")
-    #x = Concatenate(axis=-1)([xin,x0in])
-    x = xin
-    if len(x.shape) > 2:
-        # Project
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_project",
-                constraint=None)
-
-        x = TileOnto(x, option_in, num_options, x.shape[1:3])
-
-        # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64A",
-                constraint=None)
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C64B",
-                constraint=None)
-
-
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="A_C32A",
-                constraint=None)
-        # This is the hidden representation of the world, but it should be flat
-        # for our classifier to work.
-        x = Flatten()(x)
-
-    x = Concatenate()([x, option_in])
-
-    # Same setup as the state decoders
-    x1 = AddDense(x, 512, "lrelu", dropout_rate, constraint=None, output=False,)
-    x1 = AddDense(x1, 512, "lrelu", 0., constraint=None, output=False,)
-    arm = AddDense(x1, arm_size, "linear", 0., output=True)
-    gripper = AddDense(x1, gripper_size, "sigmoid", 0., output=True)
-    #value = Dense(1, activation="sigmoid", name="V",)(x1)
-    actor = Model([xin, option_in], [arm, gripper], name="actor")
-    return actor
-
-def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
+def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True,
+        name="next", add_done=True):
     '''
     Next actions
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h_in")
-    #x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
     option_in = Input((1,), name="Nx_prev_o_in")
     x = xin
-    #x = Concatenate()([x0in, xin])
-    if len(x.shape) > 2:
+    use_lrelu = False
+    bn = batchnorm and False
 
+    # Combine these two to get information that may be obscured
+
+    if len(x.shape) > 2:
         # Project
-        x = AddConv2D(x, 32, [1,1], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
+        x = AddConv2D(x, 32, [4,4], 1, 0., "same",
+                bn=bn,
+                lrelu=use_lrelu,
                 name="Nx_project",
                 constraint=None)
 
@@ -914,40 +969,43 @@ def GetNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
             x = TileOnto(x, option_x, num_options, x.shape[1:3])
 
         # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same",
+                bn=bn,
+                lrelu=use_lrelu,
                 name="Nx_C64A",
                 constraint=None)
         # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same",
+                bn=bn,
+                lrelu=use_lrelu,
                 name="Nx_C64B",
                 constraint=None)
 
 
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="Nx_C32A",
-                constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
         x = Flatten()(x)
 
-    x = Concatenate()([x, option_in])
+    x = Dropout(0.5)(x)
+    x = Concatenate()([x, option_x])
 
     # Next options
-    x1 = AddDense(x, dense_size, "relu", dropout_rate, constraint=None,
-            output=False,)
+    x1 = AddDense(x, dense_size, "relu", 0., constraint=None,
+            output=True, bn=False)
+    x1 = Dropout(0.5)(x1)
+
     x1 = AddDense(x1, dense_size, "relu", 0., constraint=None,
-            output=False,)
+            output=True, bn=False)
+    x1 = Dropout(0.5)(x1)
 
     next_option_out = Dense(num_options,
-            activation="sigmoid", name="lnext",)(x1)
-    #next_model = Model([x0in, xin, option_in], next_option_out, name="next")
-    next_model = Model([xin, option_in], next_option_out, name="next")
+            activation="softmax", name="lnext",)(x1)
+
+    outs = [next_option_out]
+    if add_done:
+        done_out = Dense(1, activation="sigmoid", name="done",)(x1)
+        outs += [done_out]
+    next_model = Model([xin, option_in], outs, name=name)
     return next_model
 
 def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
@@ -955,58 +1013,31 @@ def GetValueModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
     Value for the current world
     '''
 
-    xin = Input([int(d) for d in x.shape[1:]], name="V_prev_h_in")
-    #x0in = Input([int(d) for d in x.shape[1:]], name="V_prev_h0_in")
-    option_in = Input((1,), name="V_prev_o_in")
+    xin = Input([int(d) for d in x.shape[1:]], name="V_h_in")
+    use_lrelu = False
+    bn = batchnorm and False
     x = xin
-    #x = Concatenate()([x0in, xin])
     if len(x.shape) > 2:
-
-        # Project
-        x = AddConv2D(x, 32, [1,1], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="V_project",
-                constraint=None)
-
-        if num_options > 0:
-            option_x = OneHot(num_options)(option_in)
-            option_x = Flatten()(option_x)
-            x = TileOnto(x, option_x, num_options, x.shape[1:3])
-
-        # conv down
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="V_C64A",
-                constraint=None)
-        # conv across
-        x = AddConv2D(x, 64, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="V_C64B",
-                constraint=None)
-
-
-        x = AddConv2D(x, 32, [3,3], 1, dropout_rate, "same",
-                bn=batchnorm,
-                lrelu=True,
-                name="V_C32A",
-                constraint=None)
         # This is the hidden representation of the world, but it should be flat
         # for our classifier to work.
+
+        x = AddConv2D(x, 32, [4,4], 1, 0., "same",
+                bn=bn,
+                lrelu=use_lrelu,
+                name="A_project",
+                constraint=None)
+
+        x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
+        x = AddConv2D(x, 128, [4,4], 2, 0., "same", lrelu=use_lrelu, bn=bn)
         x = Flatten()(x)
 
     # Next options
-    x1 = AddDense(x, dense_size, "lrelu", dropout_rate)
-    x1 = AddDense(x1, dense_size, "lrelu", 0)
+    x = Dropout(0.5)(x)
+    x = AddDense(x, dense_size, "relu", 0, bn=False)
     value_out = Dense(1,
-            activation="sigmoid", name="value",)(x1)
-    #next_model = Model([x0in, xin, option_in], value_out, name="V")
-    next_model = Model([xin, option_in], value_out, name="V")
+            activation="sigmoid", name="value",)(x)
+    next_model = Model([xin], value_out, name="V")
     return next_model
-
-
 
 
 def GetNextOptionAndValue(x, num_options, dense_size, dropout_rate=0.5, option_in=None):
@@ -1088,7 +1119,7 @@ def GetHypothesisProbability(x, num_hypotheses, num_options, labels,
     '''
 
     #x = Conv2D(filters,
-    #        kernel_size=kernel_size, 
+    #        kernel_size=kernel_size,
     #        strides=(2, 2),
     #        padding='same',
     #        name="p_hypothesis")(x)
@@ -1139,3 +1170,144 @@ def GetActor(enc0, enc_h, supervisor, label_out, num_hypotheses, *args, **kwargs
 
     # Compute the probability of a high-level label under our distribution
     p_oh = K.sum(label_out, axis=1) / num_hypotheses
+
+def LoadEncoderWeights(model, encoder, decoder, gan=False, retrained=False):
+    if retrained:
+        gs = "conditional_image_gan"
+        es = "conditional_image"
+    else:
+        gs = "pretrain_image_gan"
+        es = "pretrain_image_encoder"
+    names = [gs, es] if gan else [es, gs]
+    loaded = False
+
+    saved_e = None
+    for name in names:
+        try:
+            e_nm = model.makeName(name, submodel="image_encoder", reqs_dir=True)
+            d_nm = model.makeName(name, submodel="image_decoder", reqs_dir=True)
+            print("Trying to load", e_nm)
+            encoder.load_weights(e_nm)
+            print("Trying to load", d_nm)
+            decoder.load_weights(d_nm)
+            encoder.trainable = model.retrain
+            decoder.trainable = model.retrain
+            loaded = True
+
+            if loaded:
+                print("... success!")
+                break
+
+        except IOError as e:
+            saved_e = e
+            continue
+
+    if not loaded and not model.retrain:
+        raise saved_e
+
+def LoadGoalClassifierWeights(model, make_classifier_fn, img_shape):
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
+    image_discriminator.load_weights(
+            model.makeName("goal_discriminator", "classifier"))
+    image_discriminator.trainable = False
+    print("Loaded goal classifier weights")
+    return image_discriminator
+
+def LoadTransformWeights(model, tform, gan = False):
+    '''
+    Simple function to load the right transform weights.
+    '''
+    if gan:
+        append = '_gan'
+    else:
+        append = ''
+    tform.load_weights(
+            model.makeName("conditional_image" + append, "transform"))
+    tform.trainable = False
+    return tform
+
+def LoadClassifierWeights(model, make_classifier_fn, img_shape):
+    image_discriminator = make_classifier_fn(model, img_shape, trainable=False)
+    image_discriminator.load_weights(
+            model.makeName("discriminator", "classifier"))
+    image_discriminator.trainable = False
+    print("Loaded classifier weights")
+    return image_discriminator
+
+def MultiDiscriminator(model, x, discriminator, img0, num_hypotheses, img_shape):
+    img0 = Input(img_shape)
+    y = Input((num_hypotheses,) + img_shape)
+    disc = []
+    x = y
+    for i in range(num_hypotheses):
+            def _slice(y):
+                return y[:,i]
+            xi = Lambda(_slice, name="slice_%d"%i)(x)
+            print(x,xi)
+            d = discriminator([img0, xi])
+            print(d)
+            def _expand_dims(y):
+                return K.expand_dims(y,axis=1)
+            d = Lambda(_expand_dims, name="expand_dims_%d"%i)(d)
+            disc.append(d)
+    res = Concatenate(axis=1)(disc)
+    md = Model([img0, y], res, name="multi_disc")
+    md.compile(loss="mae", optimizer=model.getOptimizer())
+    return md
+
+def vgg16():
+    # From https://gist.github.com/baraldilorenzo/07d7802847aaad0a35d3
+    model = Sequential()
+    model.add(ZeroPadding2D((1,1),input_shape=(3,224,224)))
+    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(64, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(128, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(256, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(ZeroPadding2D((1,1)))
+    model.add(Convolution2D(512, 3, 3, activation='relu'))
+    model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+    model.add(Flatten())
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(4096, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(1000, activation='softmax'))
+    return model
+
+def GetOrderedList(p):
+    pidx = sorted(range(len(p)), key = lambda k: p[k])
+    pidx.reverse()
+    return pidx
+
+def PrintTopQ(idx, p, q, i=0, n=4):
+    print("Best options =")
+    for j in range(n):
+        print(idx[j], p[i, idx[j]], q[i,idx[j]])

@@ -15,16 +15,13 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .abstract import *
 from .callbacks import *
-from .robot_multi_models import *
-from .split import *
-from .mhp_loss import *
+from .multi_sampler import *
+from .data_utils import GetNextGoal, ToOneHot
+from .multi import *
 from .loss import *
-from .sampler2 import *
 
-
-class ConditionalImage(PredictionSampler2):
+class ConditionalImage(RobotMultiPredictionSampler):
     '''
     Version of the sampler that only produces results conditioned on a
     particular action; this version does not bother trying to learn a separate
@@ -49,43 +46,16 @@ class ConditionalImage(PredictionSampler2):
         self.PredictorCb = ImageWithFirstCb
         self.rep_size = 256
         self.num_transforms = 3
-        self.do_all = True
         self.transform_model = None
-        self.skip_connections = False
+        self.save_encoder_decoder = self.retrain
 
-    def _makeTransform(self):
-        h = Input((8,8,self.encoder_channels),name="h_in")
-        #h0 = Input((8,8,self.encoder_channels),name="h0_in")
-        option = Input((48,),name="t_opt_in")
-        x, y = h, option
-        #x = Concatenate()([h, h0])
-        x0 = AddConv2D(x, self.tform_filters*2, [1,1], 1, 0.)
-        x = x0
-        for i in range(self.num_transforms):
-            x = TileOnto(x, y, self.num_options, (8,8))
-            x = AddConv2D(x, self.tform_filters*2,
-                    self.tform_kernel_size,
-                    stride=1,
-                    dropout_rate=self.tform_dropout_rate)
-        x =  Concatenate(axis=-1)([x,x0])
-        x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
-                dropout_rate=0.)
-
-        #self.transform_model = Model([h0,h,option], x, name="tform")
-        self.transform_model = Model([h,option], x, name="tform")
-        self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
-        self.transform_model.summary()
-        return self.transform_model
+        if self.use_noise:
+            raise NotImplementedError('noise vectors not supported for'
+                                      'conditional_image model')
 
     def _makePredictor(self, features):
         # =====================================================================
         # Create many different image decoders
-        image_outs = []
-        arm_outs = []
-        gripper_outs = []
-        train_outs = []
-        label_outs = []
-        
         (images, arm, gripper) = features
         img_shape, image_size, arm_size, gripper_size = self._sizes(
                 images,
@@ -96,202 +66,176 @@ class ConditionalImage(PredictionSampler2):
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
+        #arm_in = Input((arm_size,))
+        #gripper_in = Input((gripper_size,))
+        #arm_gripper = Concatenate()([arm_in, gripper_in])
+        label_in = Input((1,))
+        ins = [img0_in, img_in]
+
+        encoder = MakeImageEncoder(self, img_shape)
+        decoder = MakeImageDecoder(self, self.hidden_shape)
+
+        LoadEncoderWeights(self, encoder, decoder)
+
+        # =====================================================================
+        # Load the arm and gripper representation
+        h = encoder([img0_in, img_in])
+
+        if self.validate:
+            self.loadValidationModels(arm_size, gripper_size, h0, h)
+
+        next_option_in = Input((1,), name="next_option_in")
+        next_option_in2 = Input((1,), name="next_option_in2")
+        ins += [next_option_in, next_option_in2]
+
+        # =====================================================================
+        # Apply transforms
+        y = Flatten()(OneHot(self.num_options)(next_option_in))
+        y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
+
+        tform = self._makeTransform() if not self.dense_transform else self._makeDenseTransform()
+        x = tform([h,y])
+        x2 = tform([x,y2])
+
+        image_out, image_out2 = decoder([x]), decoder([x2])
+
+        # Compute classifier on the last transform
+        if not self.no_disc:
+            image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=img_shape)
+            #disc_out1 = image_discriminator([img0_in, image_out])
+            disc_out2 = image_discriminator([img0_in, image_out2])
+
+        # Create custom encoder loss
+        if self.enc_loss:
+            loss = EncoderLoss(self.image_encoder, self.loss)
+            enc_losses = [loss, loss]
+            enc_outs = [x, x2]
+            enc_wts = [1e-2, 1e-2]
+            img_loss_wt = 1.
+        else:
+            enc_losses = []
+            enc_outs = []
+            enc_wts = []
+            img_loss_wt = 1.
+
+        # Create models to train
+        if self.no_disc:
+            disc_wt = 0.
+        else:
+            disc_wt = 1e-3
+        if self.no_disc:
+            train_predictor = Model(ins + [label_in],
+                    [image_out, image_out2] + enc_outs)
+            train_predictor.compile(
+                    loss=[self.loss, self.loss,] + enc_losses,
+                    loss_weights=[img_loss_wt, img_loss_wt] + enc_wts,
+                    optimizer=self.getOptimizer())
+        else:
+            train_predictor = Model(ins + [label_in],
+                    #[image_out, image_out2, disc_out1, disc_out2] + enc_outs)
+                    [image_out, image_out2, disc_out2] + enc_outs)
+            train_predictor.compile(
+                    loss=[self.loss, self.loss, "categorical_crossentropy"] + enc_losses,
+                    #loss_weights=[img_loss_wt, img_loss_wt, 0.9*disc_wt, disc_wt] + enc_wts,
+                    loss_weights=[img_loss_wt, img_loss_wt, disc_wt] + enc_wts,
+                    optimizer=self.getOptimizer())
+        train_predictor.summary()
+        return None, train_predictor, None, ins, h
+
+    def _getData(self, *args, **kwargs):
+        features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
+        [I, q, g, oin, label, q_target, g_target,] = features
+        tt, o1, v, qa, ga, I_target = targets
+        I_target2, o2 = GetNextGoal(I_target, o1)
+        I0 = I[0,:,:,:]
+        length = I.shape[0]
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        oin_1h = ToOneHot(oin, self.num_options)
+        o1_1h = ToOneHot(o1, self.num_options)
+        o2_1h = ToOneHot(o2, self.num_options)
+        qa = np.squeeze(qa)
+        ga = np.squeeze(ga)
+        features = [I0, I, o1, o2, oin]
+        if self.validate:
+            # Return the specific set of features that are just for validation
+            return (features,
+                    [I_target, I_target2, o1_1h, v, qa, ga, o2_1h])
+        elif self.no_disc:
+            targets = [I_target, I_target2]
+        else:
+            # Uncomment if you want to try the whole "two discriminator" thing
+            # again -- this might need a more fully supported option
+            #targets = [I_target, I_target2, o1_1h, o2_1h]
+            targets = [I_target, I_target2, o2_1h]
+        if self.enc_loss:
+            targets += [I_target, I_target2]
+        return features, targets
+
+
+    def loadValidationModels(self, arm_size, gripper_size, h0, h):
+
         arm_in = Input((arm_size,))
         gripper_in = Input((gripper_size,))
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img0_in, img_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            encoder0 = self._makeImageEncoder(img_shape, copy=True)
-        try:
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_encoder.h5f"))
-            encoder.trainable = self.retrain
-            encoder0.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_encoder.h5f"))
-            encoder0.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
+        print(">>> GOAL_CLASSIFIER")
+        image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=(64, 64, 3))
+        image_discriminator.compile(loss="categorical_crossentropy",
+                                    metrics=["accuracy"],
+                                    optimizer=self.getOptimizer())
+        self.discriminator = image_discriminator
 
-        if self.skip_connections:
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            decoder = self._makeImageDecoder(self.hidden_shape)
-        try:
-            decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_decoder.h5f"))
-            decoder.trainable = self.retrain
-        except Exception as e:
-            if not self.retrain:
-                raise e
-
-        # =====================================================================
-        # Load the arm and gripper representation
-
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder([img_in, img0_in])
-            #h0 = encoder(img0_in)
-
-        next_model = GetNextModel(h, self.num_options, 128,
+        print(">>> VALUE MODEL")
+        self.value_model = GetValueModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
-        value_model = GetValueModel(h, self.num_options, 64,
+        self.value_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.value_model.load_weights(self.makeName("secondary", "value"))
+
+        print(">>> NEXT MODEL")
+        self.next_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
-        next_model.compile(loss="mae", optimizer=self.getOptimizer())
-        value_model.compile(loss="mae", optimizer=self.getOptimizer())
-        #value_out = value_model([h0,h,label_in])
-        #next_option_out = next_model([h0,h,label_in])
-        value_out = value_model([h,label_in])
-        next_option_out = next_model([h,label_in])
-        self.next_model = next_model
-        self.value_model = value_model
+        self.next_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.next_model.load_weights(self.makeName("secondary", "next"))
 
-        # create input for controlling noise output if that's what we decide
-        # that we want to do
-        if self.use_noise:
-            z = Input((self.num_hypotheses, self.noise_dim))
-            ins += [z]
-
-        next_option_in = Input((48,), name="next_option_in")
-        ins += [next_option_in]
-
-        #y = OneHot(self.num_options)(next_option_in)
-        #y = Flatten()(y)
-        y = next_option_in
-        x = h
-        tform = self._makeTransform()
-        #x = tform([h0,h,y])
-        x = tform([h,y])
-        image_out = decoder([x, s32, s16, s8])
-
-        # =====================================================================
-        actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
+        print(">>> ACTOR MODEL")
+        self.actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
-        actor.compile(loss="mae",optimizer=self.getOptimizer())
-        arm_cmd, gripper_cmd = actor([h, next_option_in])
-        lfn = self.loss
-        lfn2 = "logcosh"
-        val_loss = "binary_crossentropy"
+        self.actor.compile(loss="mae",optimizer=self.getOptimizer())
+        self.actor.load_weights(self.makeName("secondary", "actor"))
 
-        # =====================================================================
-        # Create models to train
-        predictor = Model(ins + [label_in],
-                [image_out, next_option_out, value_out])
-        predictor.compile(
-                loss=[lfn, "binary_crossentropy", val_loss],
-                loss_weights=[1., 0.1, 0.1,],
-                optimizer=self.getOptimizer())
-        if self.do_all:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, next_option_out, value_out, #o1, o2,
-                        arm_cmd,
-                        gripper_cmd])
-            train_predictor.compile(
-                    loss=[lfn, "binary_crossentropy", val_loss,
-                        lfn2, lfn2],
-                    loss_weights=[1., 0.1, 0.1, 1., 0.2],
-                    optimizer=self.getOptimizer())
-        else:
-            train_predictor = Model(ins + [label_in],
-                    [image_out, #o1, o2,
-                        ])
-            train_predictor.compile(
-                    loss=[lfn], 
-                    optimizer=self.getOptimizer())
-        actor.summary()
-        train_predictor.summary()
-        return predictor, train_predictor, actor, ins, h
+        print(">>> POSE MODEL")
+        self.pose_model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
+                self.decoder_dropout_rate)
+        self.pose_model.compile(loss="mae",optimizer=self.getOptimizer())
+        self.pose_model.load_weights(self.makeName("secondary", "pose"))
 
-    def _getData(self, *args, **kwargs):
-        features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
-        tt, o1, v, qa, ga, I_target = targets
-        I0 = I[0,:,:,:]
-        length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
-        oin_1h = np.squeeze(self.toOneHot2D(oin, self.num_options))
-        qa = np.squeeze(qa)
-        ga = np.squeeze(ga)
-        if self.do_all:
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, oin], [ I_target, o1, v, qa, ga]
-            else:
-                return [I0, I, o1, oin], [ I_target, o1, v, qa, ga]
-        else:
-            if self.use_noise:
-                noise_len = features[0].shape[0]
-                z = np.random.random(size=(noise_len,self.num_hypotheses,self.noise_dim))
-                return [I0, I, z, o1, oin], [ I_target]
-            else:
-                return [I0, I, o1, oin], [ I_target]
+        print(">>> Q MODEL")
+        self.q_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.q_model.load_weights(self.makeName("secondary", "q"))
 
-
-    def encode(self, obs):
-        '''
-        Encode available features into a new state
-
-        Parameters:
-        -----------
-        [unknown]: all are parsed via _getData() function.
-        '''
-        return self.image_encoder.predict(obs[1])
-
-    def decode(self, hidden):
-        '''
-        Decode features and produce a set of visualizable images or other
-        feature outputs.
-
-        '''
-        return self.image_decoder.predict(hidden)
-
-    def prevOption(self, features):
-        '''
-        Just gets the previous option from a set of features
-        '''
-        if self.use_noise:
-            return features[4]
-        else:
-            return features[3]
-
-    def encodeInitial(self, obs):
-        '''
-        Call the encoder but only on the initial image frame
-        '''
-        return self.image_encoder.predict(obs[0])
-
-    def pnext(self, hidden, prev_option, features):
+    def pnext(self, hidden0, hidden, prev_option):
         '''
         Visualize based on hidden
         '''
-        h0 = self.encodeInitial(features)
+        p, done = self.next_model.predict([hidden0, hidden, prev_option])
+        return p, done
 
-        p = self.next_model.predict([h0, hidden, prev_option])
-        #p = np.exp(p)
-        #p /= np.sum(p)
-        return p
+    def q(self, hidden0, hidden, prev_option):
+        #p, done, value = self.q_model.predict([hidden0, hidden, prev_option])
+        p, done = self.q_model.predict([hidden0, hidden, prev_option])
+        return p, done
 
-    def value(self, hidden, prev_option, features):
-        h0 = self.encodeInitial(features)
-        v = self.value_model.predict([h0, hidden, prev_option])
+    def value(self, hidden, *args, **kwargs):
+        v = self.value_model.predict([hidden])
         return v
-
-    def transform(self, hidden, option_in=-1):
-
-        raise NotImplementedError('transform() not implemented')
 
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')
 
-    def debugImage(self, features):
-        return features[1]

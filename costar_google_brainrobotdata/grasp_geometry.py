@@ -690,16 +690,6 @@ def grasp_dataset_to_transforms_and_features(
     # get the delta depth offset
     # TODO(ahundt) verify that z correctly reflects the depth offset
     delta_depth_final = np.array(depth_pixel_T_endeffector_final_ptrans.translation().z()).astype(dtype)
-    # print('in grasp_dataset_to_transforms_and_features 4, delta_depth_final: ', delta_depth_final)
-
-    # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
-    # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
-    eectf_translation = np.array(eectf_ptrans.translation()).reshape(3).astype(dtype)
-    eectf_theta = grasp_dataset_rotation_to_theta(eectf_ptrans.rotation())
-    # print('in grasp_dataset_to_transforms_and_features 5, eectf_theta', eectf_theta)
-    eectf_sin_theta = np.sin(eectf_theta)
-    eectf_cos_theta = np.cos(eectf_theta)
-    # print('in grasp_dataset_to_transforms_and_features 5 eectf_sin_theta:', eectf_sin_theta, ' eectf_cos_theta', eectf_cos_theta)
 
     # Convert each transform into vector + quaternion format
     # [x, y, z, qx, qy, qz, qw], which is identical to the 'vec_quat_7' feature type
@@ -716,16 +706,32 @@ def grasp_dataset_to_transforms_and_features(
     # [x, y] image coordinate of the final gripper position gripper in the camera image
     image_coordinate_current = image_coordinate_current.astype(dtype)
     image_coordinate_final = image_coordinate_final.astype(dtype)
-    # print('in grasp_dataset_to_transforms_and_features 7:')
 
-    # [cte_sin_theta, cte_cos_theta]
-    sin_cos_2 = np.array([eectf_sin_theta, eectf_cos_theta]).astype(dtype)
-    # print('in grasp_dataset_to_transforms_and_features 8 sin_cos_2:', sin_cos_2)
-    # [cte_dx, cte_dy, cte_dz, eectf_sin_theta, eectf_cos_theta] vec_sin_cos_5, the levine 2016 'params' feature format.
-    vec_sin_cos_5 = np.concatenate([eectf_translation, sin_cos_2]).astype(dtype)
-    # print('in grasp_dataset_to_transforms_and_features 9')
-    # [delta_depth_final, sin_theta, cos_theta]
-    delta_depth_sin_cos_3 = np.concatenate([[delta_depth_final], sin_cos_2]).astype(dtype)
+    # print('in grasp_dataset_to_transforms_and_features 10')
+    # [delta_depth_final, qx, qy, qz, qw]
+
+    ######################################################################
+    ### Extract end effector current to end effector final features (eectf)
+    # print('in grasp_dataset_to_transforms_and_features 4, delta_depth_final: ', delta_depth_final)
+
+    # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
+    # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
+    eectf_sin_cos_2, eectf_vec_sin_cos_5, eectf_delta_depth_sin_cos_3 = extract_delta_depth_features(
+        eectf_ptrans, delta_depth_final, dtype)
+
+    ######################################################################
+    ### Extract depth pixel to end effector final features (dpteef)
+    # depth pixel to end effector final vec quat 7_array
+    dpteef_delta_depth_quat_5 = np.concatenate([[delta_depth_final], depth_pixel_T_endeffector_final_vec_quat_7_array[-4:]]).astype(dtype)
+    # print('in grasp_dataset_to_transforms_and_features 11')
+
+    ######################################################################
+    ### Extract camera to end effector final features (cteef)
+
+    # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
+    # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
+    camtf_sin_cos_2, camtf_vec_sin_cos_5, camtf_delta_depth_sin_cos_3 = extract_delta_depth_features(
+        camera_T_endeffector_final_ptrans, delta_depth_final, dtype)
     # print('in grasp_dataset_to_transforms_and_features 10')
     # [delta_depth_final, qx, qy, qz, qw]
     delta_depth_quat_5 = np.concatenate([[delta_depth_final], depth_pixel_T_endeffector_final_vec_quat_7_array[-4:]]).astype(dtype)
@@ -741,10 +747,42 @@ def grasp_dataset_to_transforms_and_features(
             image_coordinate_current,
             depth_pixel_T_endeffector_final_vec_quat_7_array,
             image_coordinate_final,
-            sin_cos_2,
-            vec_sin_cos_5,
-            delta_depth_sin_cos_3,
-            delta_depth_quat_5]
+            eectf_sin_cos_2,
+            eectf_vec_sin_cos_5,
+            eectf_delta_depth_sin_cos_3,
+            dpteef_delta_depth_quat_5]
+
+
+def extract_delta_depth_features(x_T_endeffector_final_ptrans, delta_depth_final, dtype):
+    """ ptransform and delta depth to rotation and translation features
+
+    # Returns
+
+    [sin_cos_2, vec_sin_cos_5, delta_depth_sin_cos_3]
+
+    sin_cos_2: [sin(theta), cos(theta)]
+    vec_sin_cos_5: [x, y, z, sin(theta), cos(theta)]
+    delta_depth_sin_cos_3: [delta_depth, sin(theta), cos(theta)]
+
+    """
+    # Get the delta theta parameter, converting Plucker transform to [dx, dy, dz, sin(theta), cos(theta)]
+    # Also see grasp_dataset_ptransform_to_vector_sin_theta_cos_theta()
+    xteef_translation = np.array(x_T_endeffector_final_ptrans.translation()).reshape(3).astype(dtype)
+    xteef_theta = grasp_dataset_rotation_to_theta(x_T_endeffector_final_ptrans.rotation())
+    # print('in grasp_dataset_to_transforms_and_features 5, xteef_theta', xteef_theta)
+    xteef_sin_theta = np.sin(xteef_theta)
+    xteef_cos_theta = np.cos(xteef_theta)
+    # print('in grasp_dataset_to_transforms_and_features 5 xteef_sin_theta:', xteef_sin_theta, ' xteef_cos_theta', xteef_cos_theta)
+
+    # [cte_sin_theta, cte_cos_theta]
+    sin_cos_2 = np.array([xteef_sin_theta, xteef_cos_theta]).astype(dtype)
+    # print('in grasp_dataset_to_transforms_and_features 8 sin_cos_2:', sin_cos_2)
+    # [cte_dx, cte_dy, cte_dz, xteef_sin_theta, xteef_cos_theta] vec_sin_cos_5, the levine 2016 'params' feature format.
+    vec_sin_cos_5 = np.concatenate([xteef_translation, sin_cos_2]).astype(dtype)
+    # print('in grasp_dataset_to_transforms_and_features 9')
+    # [delta_depth_final, sin_theta, cos_theta]
+    delta_depth_sin_cos_3 = np.concatenate([[delta_depth_final], sin_cos_2]).astype(dtype)
+    return sin_cos_2, vec_sin_cos_5, delta_depth_sin_cos_3
 
 
 def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0):
@@ -785,27 +823,47 @@ def vector_quaternion_arrays_allclose(vq1, vq2, rtol=1e-6, atol=1e-6, verbose=0)
     return comp12 or comp13
 
 
-def gaussian_kernel_2D(size=(3, 3), center=(1, 1), sigma=1):
+def gaussian_kernel_2D(size=(3, 3), center=None, sigma=1):
     """Create a 2D gaussian kernel with specified size, center, and sigma.
 
-    Output with the default parameters:
+    All coordinates are in (y, x) order, which is (height, width),
+    with (0, 0) at the top left corner.
+
+    Output with the default parameters `size=(3, 3) center=None, sigma=1`:
 
         [[ 0.36787944  0.60653066  0.36787944]
          [ 0.60653066  1.          0.60653066]
          [ 0.36787944  0.60653066  0.36787944]]
 
-    references:
+    Output with parameters `size=(3, 3) center=(0, 1), sigma=1`:
+
+        [[0.60653067 1.         0.60653067]
+        [0.36787945 0.60653067 0.36787945]
+        [0.082085   0.13533528 0.082085  ]]
+
+    # Arguments
+
+        size: dimensions of the output gaussian (height_y, width_x)
+        center: coordinate of the center (maximum value) of the output gaussian, (height_y, width_x).
+            Default of None will automatically be the center coordinate of the output size.
+        sigma: standard deviation of the gaussian in pixels
+
+    # References:
 
             https://stackoverflow.com/a/43346070/99379
             https://stackoverflow.com/a/32279434/99379
 
-    To normalize:
+    # How to normalize
 
         g = gaussian_kernel_2d()
         g /= np.sum(g)
     """
-    xx, yy = np.meshgrid(np.arange(size[0]), np.arange(size[1]))
-    kernel = np.exp(-((xx - center[0]) ** 2 + (yy - center[1]) ** 2) / (2. * sigma ** 2))
+    if center is None:
+        center = np.array(size) / 2
+    yy, xx = np.meshgrid(np.arange(size[0]),
+                         np.arange(size[1]),
+                         indexing='ij')
+    kernel = np.exp(-((yy - center[0]) ** 2 + (xx - center[1]) ** 2) / (2. * sigma ** 2))
     return kernel
 
 

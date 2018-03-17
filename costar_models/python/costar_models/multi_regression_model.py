@@ -41,7 +41,7 @@ class RobotMultiFFRegression(RobotMultiHierarchical):
 
     def _getData(self, *args, **kwargs):
         features, targets = self._getAllData(*args, **kwargs)
-        [I, q, g, oin, q_target, g_target,] = features
+        [I, q, g, oin, label, q_target, g_target,] = features
         tt, o1, v, qa, ga, I_target = targets
         return [I, q, g], [np.squeeze(qa), np.squeeze(ga)]
 
@@ -55,6 +55,7 @@ class RobotMultiFFRegression(RobotMultiHierarchical):
                 train_generator,
                 self.steps_per_epoch,
                 epochs=self.epochs,
+                initial_epoch=self.initial_epoch,
                 validation_steps=self.validation_steps,
                 validation_data=test_generator,)
 

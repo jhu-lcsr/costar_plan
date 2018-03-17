@@ -3,7 +3,8 @@
 # load modules
 module load piplib/1.3.1
 module load git
-module load tensorflow/c62a66b
+#module load tensorflow/c62a66b
+module load tensorflow/cuda-8.0/r1.3
 
 # installing things
 git clone git@github.com:cpaxton/costar_plan.git

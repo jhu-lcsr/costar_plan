@@ -13,7 +13,7 @@ import traceback
 
 import numpy as np
 import six  # compatibility between python 2 + 3 = six
-# import matplotlib
+import matplotlib.pyplot as plt
 
 try:
     import vrep.vrep as vrep
@@ -51,9 +51,14 @@ except ImportError:
 from grasp_dataset import GraspDataset
 import grasp_geometry
 import grasp_geometry_tf
+from grasp_train import GraspTrain
+from grasp_train import define_make_model_fn
 from depth_image_encoding import ClipFloatValues
 from depth_image_encoding import FloatArrayToRgbImage
 from depth_image_encoding import FloatArrayToRawRGB
+from skimage.transform import resize
+from skimage import img_as_ubyte
+from skimage.color import grey2rgb
 
 try:
     import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
@@ -72,7 +77,7 @@ tf.flags.DEFINE_boolean('vrepDoNotReconnectOnceDisconnected', True, '')
 tf.flags.DEFINE_integer('vrepTimeOutInMs', 5000, 'Timeout in milliseconds upon which connection fails')
 tf.flags.DEFINE_integer('vrepCommThreadCycleInMs', 5, 'time between communication cycles')
 tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_min', 0, 'min grasp attempt to display from dataset, or -1 for no limit')
-tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 1, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
+tf.flags.DEFINE_integer('vrepVisualizeGraspAttempt_max', 100, 'max grasp attempt to display from dataset, exclusive, or -1 for no limit')
 tf.flags.DEFINE_string('vrepDebugMode', 'save_ply,print_transform',
                        """Options are: '', 'fixed_depth', 'save_ply', 'print_transform', 'print_drawLines'.
                        More than one option can be specified at a time with comma or space separation.""")
@@ -111,7 +116,7 @@ tf.flags.DEFINE_string('vrepVisualizeRGBFormat', 'vrep_rgb',
                             Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
                             see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
                        """)
-tf.flags.DEFINE_string('vrepVisualizationPipeline', 'python',
+tf.flags.DEFINE_string('vrepVisualizationPipeline', 'tensorflow',
                        """Options are: python, tensorflow.
                            'tensorflow' tensorflow loads the raw data from the dataset and
                                calculates all features before they are rendered with vrep via python,
@@ -119,6 +124,16 @@ tf.flags.DEFINE_string('vrepVisualizationPipeline', 'python',
                                then the visualize_python function calculates the features
                                before they are rendered with vrep.
                        """)
+tf.flags.DEFINE_boolean('vrepVisualizePredictions', True,
+                        """Visualize the predictions of weights defined in grasp_train.py,
+                           If loss is pixel-wise, prediction will be 2d image of probabilities.
+                           Otherwise it's boolean indicate success or failure.
+                        """
+                        )
+tf.flags.DEFINE_boolean('vrepVisualizeMatPlotLib', True,
+                        """Visualize the predictions with a matplotlib heat map.
+                        """
+                        )
 
 flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
@@ -235,7 +250,9 @@ def set_vision_sensor_image(client_id, display_name, image, convert=None, scale_
         if 'depth_encoded_rgb' in convert:
             image = np.array(FloatArrayToRgbImage(image, scale_factor=scale_factor, drop_blue=False), dtype=np.uint8)
         elif 'depth_rgb' in convert:
-            image = FloatArrayToRawRGB(image)
+
+            image = img_as_uint(image)
+
         elif not vrep_conversion:
             raise ValueError('set_vision_sensor_image() convert parameter must be one of `depth_encoded_rgb`, `depth_rgb`, or None'
                              'with the optional addition of the word `vrep` to rotate 180, flip left right, then invert colors.')
@@ -466,6 +483,19 @@ def drawLines(client_id, display_name, lines, parent_handle=-1, transform=None, 
     return ret_ints[0]
 
 
+def restore_cropped(cropped_image, crop_size, crop_offset, full_size):
+    """ Restore cropped_image to full size image with zero padding
+        First scale image back to crop_size, then padding
+    """
+
+    cropped_image = np.squeeze(cropped_image)
+    restored = np.zeros((full_size[0], full_size[1]), dtype=cropped_image.dtype)
+    scaled_crop = resize(cropped_image, (crop_size[0], crop_size[1]))
+    restored[crop_offset[0]:crop_offset[0]+crop_size[0],
+             crop_offset[1]:crop_offset[1]+crop_size[1]] = scaled_crop
+
+    return restored
+
 class VREPGraspVisualization(object):
     """ Visualize the google brain robot data grasp dataset in the V-REP robot simulator.
     """
@@ -505,19 +535,32 @@ class VREPGraspVisualization(object):
             raise ValueError('VREPGraspVisualization.visualize(): unsupported vrepVisualizationPipeline: ' + str(FLAGS.vrepVisualizationPipeline))
 
     def visualize_tensorflow(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName,
-                             visualization_dir=FLAGS.visualization_dir):
+                             visualization_dir=FLAGS.visualization_dir, verbose=0):
         """Visualize one dataset in V-REP from performing all preprocessing in tensorflow.
 
             tensorflow loads the raw data from the dataset and also calculates all
             features before they are rendered with vrep via python,
         """
-        grasp_dataset_object = GraspDataset(dataset=dataset)
         batch_size = 1
+        grasp_dataset_object = GraspDataset(dataset=dataset)
+        if FLAGS.vrepVisualizePredictions is True:
+            make_model_fn = define_make_model_fn()
+            gt = GraspTrain()
+            (pred_model, pregrasp_op_batch, grasp_step_op_batch,
+             simplified_grasp_command_op_batch,
+             grasp_success_op_batch, feature_op_dicts,
+             features_complete_list,
+             time_ordered_feature_name_dict,
+             num_samples) = gt.get_compiled_model(
+                dataset=grasp_dataset_object,
+                make_model_fn=make_model_fn)
+        else:
+            (feature_op_dicts, features_complete_list,
+             time_ordered_feature_name_dict,
+             num_samples) = grasp_dataset_object.get_training_dictionaries(batch_size=batch_size)
 
-        (feature_op_dicts, features_complete_list,
-         time_ordered_feature_name_dict, num_samples) = grasp_dataset_object.get_training_dictionaries(batch_size=batch_size)
-
-        print('visualize_tensorflow.time_ordered_feature_name_dict', time_ordered_feature_name_dict, 'feature_op_dicts:', feature_op_dicts)
+        if verbose > 0:
+            print('visualize_tensorflow.time_ordered_feature_name_dict', time_ordered_feature_name_dict, 'feature_op_dicts:', feature_op_dicts)
         tf_session.run(tf.global_variables_initializer())
 
         error_code, parent_handle = vrep.simxGetObjectHandle(self.client_id, parent_name, vrep.simx_opmode_blocking)
@@ -528,8 +571,16 @@ class VREPGraspVisualization(object):
         for attempt_num in tqdm(range(num_samples / batch_size), desc='dataset'):
             attempt_num_string = 'attempt_' + str(attempt_num).zfill(4) + '_'
             vrepPrint(self.client_id, 'dataset_' + dataset + '_' + attempt_num_string + 'starting')
-            # batch shize should actually always be 1 for this visualization
-            output_features_dicts = tf_session.run(feature_op_dicts)
+            # use fetches arguments to get tensors explicitly
+            if FLAGS.vrepVisualizePredictions is True:
+                # x should be passed through internal calls
+                predictions, _, output_features_dicts = pred_model.predict_on_batch(x=None)
+                output_features_dicts = [(output_features_dicts[0], output_features_dicts[1])]
+                print(predictions.shape)
+            else:
+                # batch shize should actually always be 1 for this visualization
+                predictions = None
+                output_features_dicts = tf_session.run(feature_op_dicts)
             # reorganize is grasp attempt so it is easy to walk through
             [time_ordered_feature_data_dict] = grasp_dataset_object.to_tensors(output_features_dicts, time_ordered_feature_name_dict)
             # features_dict_np contains fixed dimension features, sequence_dict_np contains variable length sequences of data
@@ -608,10 +659,16 @@ class VREPGraspVisualization(object):
             # Visualize point clouds
             if FLAGS.vrepVisualizeRGBD:
                 # display clear view point cloud
+                # show the median filtered or the raw xyz + depth images depending on user selection
+                if FLAGS.median_filter:
+                    clear_view_depth_image = time_ordered_feature_data_dict['move_to_grasp/time_ordered/clear_view/depth_image/median_filtered'][0]
+                else:
+                    clear_view_depth_image = time_ordered_feature_data_dict['move_to_grasp/time_ordered/clear_view/depth_image/decoded'][0]
+                clear_view_depth_image = np.copy(clear_view_depth_image)
                 create_point_cloud(
                     self.client_id, 'clear_view_cloud',
                     transform=base_to_camera_vec_quat_7,
-                    depth_image=time_ordered_feature_data_dict['move_to_grasp/time_ordered/clear_view/depth_image/decoded'][0],
+                    depth_image=clear_view_depth_image,
                     color_image=time_ordered_feature_data_dict['move_to_grasp/time_ordered/clear_view/rgb_image/decoded'][0],
                     parent_handle=parent_handle,
                     rgb_sensor_display_name='kcam_rgb_clear_view',
@@ -627,27 +684,79 @@ class VREPGraspVisualization(object):
 
                 # Walk through all the other images from initial time step to final time step
                 rgb_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/rgb_image/decoded']
-                depth_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/depth_image/decoded']
-                xyz_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/xyz_image/decoded']
+                # show the median filtered or the raw xyz + depth images depending on user selection
+                if FLAGS.median_filter:
+                    depth_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/depth_image/median_filtered']
+                    xyz_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/xyz_image/median_filtered']
+                else:
+                    depth_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/depth_image/decoded']
+                    xyz_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/xyz_image/decoded']
                 current_coordinates = time_ordered_feature_data_dict[current_coordinate_name]
                 final_coordinates = time_ordered_feature_data_dict[final_coordinate_name]
 
-                for img_num, (rgb, depth, xyz, current_coordinate, final_coordinate) in enumerate(zip(rgb_images,
-                                                                                                      depth_images,
-                                                                                                      xyz_images,
-                                                                                                      current_coordinates,
-                                                                                                      final_coordinates)):
+                # workaround for when predictions aren't enabled
+                if predictions is None:
+                    preds = [None] * len(rgb_images)
+                else:
+                    preds = predictions
+
+                # get crop offset and size from dict
+                crop_offset = features_dict_np['random_crop_offset'] # 3-dim
+                crop_size = features_dict_np['rgb_random_crop_dimensions'] # 3-dim
+                # create color map
+                color_map=plt.cm.RdBu
+                # Display each point cloud
+                for img_num, (rgb, depth, xyz, current_coordinate,
+                              final_coordinate, prediction) in enumerate(zip(rgb_images, depth_images,
+                                                                             xyz_images, current_coordinates,
+                                                                             final_coordinates, preds)):
                     # depth = grasp_geometry.draw_circle(grasp_geometry.draw_circle(depth, current_coordinate), final_coordinate)
-                    rgb = grasp_geometry.draw_circle(grasp_geometry.draw_circle(rgb, current_coordinate, color=(0, 255, 255)), final_coordinate, color=(255, 255, 0))
+                    rgb = grasp_geometry.draw_circle(grasp_geometry.draw_circle(rgb, current_coordinate,
+                                                     color=(0, 255, 255)), final_coordinate, color=(255, 255, 0))
+                    print('rgb_image_dtype:  ' + str(rgb.dtype))
+                    print('rgb_image_shape:  ' + str(rgb.shape))
                     create_point_cloud(
                         self.client_id, 'current_point_cloud',
                         transform=base_to_camera_vec_quat_7,
                         depth_image=depth,
-                        color_image=rgb,
+                        color_image=np.copy(rgb),
                         parent_handle=parent_handle,
-                        rgb_sensor_display_name='kcam_rgb',
-                        depth_sensor_display_name='kcam_depth',
+                        rgb_sensor_display_name='kcam_rgb_current',
+                        depth_sensor_display_name='kcam_depth_current',
                         point_cloud=xyz)
+
+                    if prediction is not None:
+                        print('original prediction_shape: ', prediction.shape, 'pred_max: ', np.max(prediction), ' pred_min:', np.min(prediction))
+                        prediction = prediction - 0.5
+                        prediction = prediction * 100
+                        prediction = prediction + 0.5
+                        print('scaled prediction_shape: ', prediction.shape, 'pred_max: ', np.max(prediction), ' pred_min:', np.min(prediction))
+                        prediction = np.squeeze(prediction)
+                        # if FLAGS.vrepVisualizeMatPlotLib:
+                        #     plt.imshow(prediction)
+                        #     plt.show()
+                        print('grey_prediction_shape: ', prediction.shape, 'pred_max: ', np.max(prediction), ' pred_min:', np.min(prediction))
+                        # To resize a one-channel image, need to squeeze singleton dim first
+                        fullsize_prediction = restore_cropped(prediction, crop_size, crop_offset, rgb.shape)
+                        # return RGBA, cut alpha channel
+                        rgb_prediction = ((color_map(fullsize_prediction)*255).astype('uint8'))[:,:,:-1]
+                        if FLAGS.vrepVisualizeMatPlotLib:
+                            plt.imshow(rgb_prediction)
+                            plt.show()
+                        rgb_prediction = grasp_geometry.draw_circle(grasp_geometry.draw_circle(rgb_prediction, current_coordinate,
+                                                                    color=(0, 255, 255)), final_coordinate, color=(255, 255, 0))
+                        # Adjust the depth by the delta depth offset for visualization
+                        gdtf_delta_depth_sin_cos_3 = time_ordered_feature_data_dict['move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3']
+                        depth_pred_offset = np.copy(clear_view_depth_image) + gdtf_delta_depth_sin_cos_3[img_num][0]
+                        create_point_cloud(
+                            self.client_id, 'prediction_point_cloud',
+                            transform=base_to_camera_vec_quat_7,
+                            depth_image=depth_pred_offset,
+                            color_image=rgb_prediction,
+                            parent_handle=parent_handle,
+                            rgb_sensor_display_name='kcam_rgb_prediction',
+                            depth_sensor_display_name='kcam_depth_prediction',
+                            point_cloud=xyz)
 
     def visualize_python(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName,
                          visualization_dir=FLAGS.visualization_dir):
@@ -1009,8 +1118,8 @@ class VREPGraspVisualization(object):
                 transform=base_to_camera_vec_quat_7,
                 color_image=rgb_image, save_ply_path=path,
                 parent_handle=parent_handle,
-                rgb_sensor_display_name='kcam_rgb',
-                depth_sensor_display_name='kcam_depth')
+                rgb_sensor_display_name='kcam_rgb_current',
+                depth_sensor_display_name='kcam_depth_current')
 
     def display_images(self, rgb, depth_image_float_format):
         """Display the rgb and depth image in V-REP (not yet working)
@@ -1018,14 +1127,14 @@ class VREPGraspVisualization(object):
         Reference code: https://github.com/nemilya/vrep-api-python-opencv/blob/master/handle_vision_sensor.py
         V-REP Docs: http://www.coppeliarobotics.com/helpFiles/en/remoteApiFunctionsPython.htm#simxSetVisionSensorImage
         """
-        res, kcam_rgb_handle = vrep.simxGetObjectHandle(self.client_id, 'kcam_rgb', vrep.simx_opmode_oneshot_wait)
-        print('kcam_rgb_handle: ', kcam_rgb_handle)
+        res, kcam_rgb_handle = vrep.simxGetObjectHandle(self.client_id, 'kcam_rgb_current', vrep.simx_opmode_oneshot_wait)
+        print('kcam_rgb_current_handle: ', kcam_rgb_handle)
         rgb_for_display = rgb.astype('uint8')
         rgb_for_display = rgb_for_display.ravel()
         is_color = 1
         res = vrep.simxSetVisionSensorImage(self.client_id, kcam_rgb_handle, rgb_for_display, is_color, vrep.simx_opmode_oneshot_wait)
         print('simxSetVisionSensorImage rgb result: ', res, ' rgb shape: ', rgb.shape)
-        res, kcam_depth_handle = vrep.simxGetObjectHandle(self.client_id, 'kcam_depth', vrep.simx_opmode_oneshot_wait)
+        res, kcam_depth_handle = vrep.simxGetObjectHandle(self.client_id, 'kcam_depth_current', vrep.simx_opmode_oneshot_wait)
         normalized_depth = depth_image_float_format * 255 / depth_image_float_format.max()
         normalized_depth = normalized_depth.astype('uint8')
         normalized_depth = normalized_depth.ravel()

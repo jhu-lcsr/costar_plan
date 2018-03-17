@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import os
 import matplotlib as mpl
 mpl.use("Agg")
 
@@ -17,7 +18,7 @@ external features.
 '''
 
 def main(args):
-    SetCPU(args)
+    ConfigureGPU(args)
 
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]
@@ -27,10 +28,10 @@ def main(args):
             root += '.'
         root += tok
     if data_type == "npz":
-        dataset = NpzGeneratorDataset(root)
+        dataset = NpzGeneratorDataset(root, preload=args['preload'])
         data = dataset.load(success_only = args['success_only'])
     elif data_type == "h5f":
-        dataset = H5fGeneratorDataset(root)
+        dataset = H5fGeneratorDataset(root, preload=args['preload'])
         data = dataset.load(success_only = args['success_only'])
     else:
         raise NotImplementedError('data type not implemented: %s'%data_type)
@@ -41,12 +42,11 @@ def main(args):
             model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
+        interrupt=False
         try:
-            # was:
-            #model.train(**data)
             model.trainFromGenerators(train_generator, test_generator, data)
         except KeyboardInterrupt:
-            pass
+            interrupt=True
         #except Exception as e:
         #    print(e)
         #    pass
@@ -59,6 +59,11 @@ def main(args):
                     time.sleep(0.1)
             except KeyboardInterrupt:
                 pass
+        if not interrupt:
+            path = model.model_directory
+            id = model.unique_id
+            with open(os.path.join(path, 'status' + id + '.txt'), 'a+') as f:
+                f.write(" finished\n")
     else:
         pass
 

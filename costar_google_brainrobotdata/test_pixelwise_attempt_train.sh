@@ -1,0 +1,1 @@
+export CUDA_VISIBLE_DEVICES="" && python grasp_train.py --grasp_model grasp_model_levine_2016_segmentation --data_dir=~/.keras/datasets/grasping/ --batch_size 1 --distributed None --grasp_dataset 052 --grasp_datasets_train 052 --grasp_dataset_eval 057
