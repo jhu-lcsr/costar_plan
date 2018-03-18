@@ -535,96 +535,14 @@ def parse_and_preprocess(
     # height is range of possible gripper positions along the line
     feature['sin_cos_width_3'] = sin_cos_width_3(features=feature)
     feature['sin2_cos2_width_3'] = sin2_cos2_width_3(features=feature)
+    random_translation_box = K.cast(feature['sin_cos_height_width_4'][-2:] // 2, 'int32')
 
     # perform image augmentation with projective transforms
     # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
-    central_crop = False
-    # random features is a map from strings to
-    # random feature variables such as
-    # the amount of rotation
-    random_features = None
-    if not is_training:
-        # disable random rotation and translation if we are not training
-        random_rotation = False
-        random_translation = False
-
-    # by default we won't be doing any rotations based on the grasp box theta
-    crop_to_gripper_theta = K.constant(0, 'float32', name='crop_to_gripper_theta')
-    translation_in_box = K.constant(0, 'float32', name='translation_in_box')
-
-    # configure the image transform based on the training mode
-    if crop_to == 'resize_height_and_resize_width':
-        # Note: this option only works well if the crop size is similar to the input size
-        if is_training and random_rotation or random_translation:
-            transform, random_features = rcp.random_projection_transform(
-                K.shape(image), crop_shape, scale=False, rotation=random_rotation, translation=random_translation)
-        else:
-            # simply do a central crop then a resize when not training
-            # to match the input without changes
-            central_crop = True
-            transform = None
-    elif 'center_on_gripper_grasp_box' in crop_to:
-        if 'rotate_upright' in crop_to:
-            crop_to_gripper_theta = grasp_center_rotation_theta
-            # limit random rotation to 15 degrees to stay within jaccard metrics
-            if is_training and random_rotation:
-                # set the range limit of the random rotations
-                random_rotation = math.pi / 12
-            # random_rotation is True, which allows arbitrary random rotation
-
-        if is_training and random_translation:
-            # translation in box is the range limit of the random translations
-            translation_in_box = K.cast(feature['sin_cos_height_width_4'][-2:] // 2, 'int32')
-            translation_in_box = tf.minimum(translation_in_box[0], translation_in_box[1])
-            # TODO(ahundt) possibly add scale
-        else:
-            translation_in_box = None
-    elif crop_to == 'image_contains_grasp_box_center':
-        if is_training and random_translation:
-            # translation in box is the range limit of the random translations,
-            # translate by up to 1/3 the shorter crop shape size to prevent
-            # a grasp box in the corner from being rotated out of the image
-            crop_shape_tensor = tf.convert_to_tensor(
-                crop_shape[:2], dtype=tf.int32, name='crop_shape_tensor')
-            translation_in_box = K.cast(crop_shape_tensor // 3, 'int32')
-            translation_in_box = tf.minimum(translation_in_box[0], translation_in_box[1])
-            # TODO(ahundt) possibly add scale
-        elif not is_training:
-            # simply do a central crop then a resize when not training
-            # to match the input without changes
-            central_crop = True
-            transform = None
-    else:
-        raise ValueError('Unsupported choice of crop_to: %s try resize_height_and_resize_width, '
-                         'image_contains_grasp_box_center, center_on_gripper_grasp_box, or '
-                         'center_on_gripper_grasp_box_and_rotate_upright' % (crop_to))
-
-    if ('center_on_gripper_grasp_box' in crop_to or
-            (crop_to == 'image_contains_grasp_box_center' and is_training)):
-        transform, random_features = crop_to_gripper_transform(
-            input_image_shape, grasp_center_coordinate,
-            crop_to_gripper_theta, crop_shape,
-            random_translation_max_pixels=translation_in_box,
-            random_rotation=random_rotation)
-
-    if verbose > 0:
-        grasp_center_coordinate = tf.Print(
-            grasp_center_coordinate,
-            [grasp_center_coordinate],
-            'grasp_center_coordinate before:')
-    image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
-        image, crop_shape=crop_shape, resize_shape=output_shape, central_crop=central_crop,
-        transform=transform, coordinate=grasp_center_coordinate)
-    if verbose > 0:
-        preprocessed_grasp_center_coordinate = tf.Print(
-            preprocessed_grasp_center_coordinate,
-            [preprocessed_grasp_center_coordinate],
-            'preprocessed_grasp_center_coordinate after:')
+    image, preprocessed_grasp_center_coordinate, grasp_center_rotation_theta, random_features = projective_image_augmentation(
+        image, is_training, crop_to, crop_shape, random_translation_box, grasp_center_coordinate, grasp_center_rotation_theta, output_shape, verbose)
 
     if random_features is not None:
-        if 'random_rotation' in random_features:
-            # TODO(ahundt) validate if we must subtract or add based on the transform
-            grasp_center_rotation_theta += random_features['random_rotation']
         feature.update(random_features)
 
     feature['image/transformed'] = image
@@ -721,6 +639,103 @@ def parse_and_preprocess(
         print(feature)
 
     return feature
+
+
+def projective_image_augmentation(
+        image, is_training, crop_to, crop_shape, random_translation_box,
+        grasp_center_coordinate, grasp_center_rotation_theta, output_shape, verbose=0):
+    """ perform image augmentation with projective transforms
+    """
+    # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
+    input_image_shape = tf.shape(image)
+    central_crop = False
+    # random features is a map from strings to
+    # random feature variables such as
+    # the amount of rotation
+    random_features = None
+    if not is_training:
+        # disable random rotation and translation if we are not training
+        random_rotation = False
+        random_translation = False
+
+    # by default we won't be doing any rotations based on the grasp box theta
+    crop_to_gripper_theta = K.constant(0, 'float32', name='crop_to_gripper_theta')
+    translation_in_box = K.constant(0, 'float32', name='translation_in_box')
+
+    # configure the image transform based on the training mode
+    if crop_to == 'resize_height_and_resize_width':
+        # Note: this option only works well if the crop size is similar to the input size
+        if is_training and random_rotation or random_translation:
+            transform, random_features = rcp.random_projection_transform(
+                K.shape(image), crop_shape, scale=False, rotation=random_rotation, translation=random_translation)
+        else:
+            # simply do a central crop then a resize when not training
+            # to match the input without changes
+            central_crop = True
+            transform = None
+    elif 'center_on_gripper_grasp_box' in crop_to:
+        if 'rotate_upright' in crop_to:
+            crop_to_gripper_theta = grasp_center_rotation_theta
+            # limit random rotation to 15 degrees to stay within jaccard metrics
+            if is_training and random_rotation:
+                # set the range limit of the random rotations
+                random_rotation = math.pi / 12
+            # random_rotation is True, which allows arbitrary random rotation
+
+        if is_training and random_translation:
+            # translation in box is the range limit of the random translations
+            translation_in_box = random_translation_box
+            translation_in_box = tf.minimum(translation_in_box[0], translation_in_box[1])
+            # TODO(ahundt) possibly add scale
+        else:
+            translation_in_box = None
+    elif crop_to == 'image_contains_grasp_box_center':
+        if is_training and random_translation:
+            # translation in box is the range limit of the random translations,
+            # translate by up to 1/3 the shorter crop shape size to prevent
+            # a grasp box in the corner from being rotated out of the image
+            crop_shape_tensor = tf.convert_to_tensor(
+                crop_shape[:2], dtype=tf.int32, name='crop_shape_tensor')
+            translation_in_box = K.cast(crop_shape_tensor // 3, 'int32')
+            translation_in_box = tf.minimum(translation_in_box[0], translation_in_box[1])
+            # TODO(ahundt) possibly add scale
+        elif not is_training:
+            # simply do a central crop then a resize when not training
+            # to match the input without changes
+            central_crop = True
+            transform = None
+    else:
+        raise ValueError('Unsupported choice of crop_to: %s try resize_height_and_resize_width, '
+                         'image_contains_grasp_box_center, center_on_gripper_grasp_box, or '
+                         'center_on_gripper_grasp_box_and_rotate_upright' % (crop_to))
+
+    if ('center_on_gripper_grasp_box' in crop_to or
+            (crop_to == 'image_contains_grasp_box_center' and is_training)):
+        transform, random_features = crop_to_gripper_transform(
+            input_image_shape, grasp_center_coordinate,
+            crop_to_gripper_theta, crop_shape,
+            random_translation_max_pixels=translation_in_box,
+            random_rotation=random_rotation)
+
+    if verbose > 0:
+        image = tf.Print(
+            image,
+            [grasp_center_coordinate],
+            'grasp_center_coordinate before:')
+    image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
+        image, crop_shape=crop_shape, resize_shape=output_shape, central_crop=central_crop,
+        transform=transform, coordinate=grasp_center_coordinate)
+    if verbose > 0:
+        image = tf.Print(
+            image,
+            [preprocessed_grasp_center_coordinate],
+            'preprocessed_grasp_center_coordinate after:')
+
+    if random_features is not None:
+        if 'random_rotation' in random_features:
+            # TODO(ahundt) validate if we must subtract or add based on the transform
+            grasp_center_rotation_theta += random_features['random_rotation']
+    return image, preprocessed_grasp_center_coordinate, grasp_center_rotation_theta, random_features
 
 
 def filter_features(feature_map, label_features_to_extract, data_features_to_extract, verbose=0):
