@@ -218,34 +218,6 @@ def parse_example_proto_redundant(examples_serialized, have_image_id=False):
     return features
 
 
-def eval_image(image, height, width):
-    # TODO(ahundt) THE DIMENSIONS/COORDINATES AREN'T RIGHT HERE, FIX IT!
-    image = tf.image.central_crop(image, central_fraction=0.875)
-    image = tf.expand_dims(image, 0)
-    image = tf.image.resize_bilinear(image, [height, width],
-                                     align_corners=False)
-    image = tf.squeeze(image, [0])
-
-    return image
-
-
-def distort_color(image, thread_id):
-    color_ordering = thread_id % 2
-    if color_ordering == 0:
-        image = tf.image.random_brightness(image, max_delta=32. / 255.)
-        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-        image = tf.image.random_hue(image, max_delta=0.2)
-        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
-    elif color_ordering == 1:
-        image = tf.image.random_brightness(image, max_delta=32. / 255.)
-        image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
-        image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-        image = tf.image.random_hue(image, max_delta=0.2)
-    image = tf.clip_by_value(image, 0.0, 1.0)
-
-    return image
-
-
 def sin_cos_height_width_4(height=None, width=None, sin_theta=None, cos_theta=None, features=None):
     """ This is the input to pixelwise grasp prediction on the cornell dataset.
     """
