@@ -246,28 +246,6 @@ def distort_color(image, thread_id):
     return image
 
 
-def distort_image(image, height, width, thread_id):
-    # Need to update coordinates if flipping
-    # distorted_image = tf.image.random_flip_left_right(image)
-    distorted_image = distort_color(image, thread_id)
-    return distorted_image
-
-
-def image_preprocessing(image_buffer, train, thread_id=0):
-    height = FLAGS.image_size
-    width = FLAGS.image_size
-    image = tf.image.decode_png(image_buffer, channels=3)
-    image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-    # image = tf.image.resize_images(image, [height, width])
-    if train:
-        image = distort_image(image, height, width, thread_id)
-    # else:
-    #    image = eval_image(image, height, width)
-    # image = tf.subtract(image, 0.5)
-    # image = tf.multiply(image, 2.0)
-    return image
-
-
 def sin_cos_height_width_4(height=None, width=None, sin_theta=None, cos_theta=None, features=None):
     """ This is the input to pixelwise grasp prediction on the cornell dataset.
     """
@@ -338,66 +316,6 @@ def approximate_gaussian_ground_truth_image(image_shape, center, grasp_theta, gr
     min_num = K.min(K.min(gaussian), K.placeholder(-1.0))
     gaussian = (gaussian - min_num) / (max_num - min_num)
     return gaussian
-
-
-def old_batch_inputs(data_files, train, num_epochs, batch_size,
-                     num_preprocess_threads, num_readers):
-    print(train)
-    if train:
-        filename_queue = tf.train.string_input_producer(data_files,
-                                                        num_epochs,
-                                                        shuffle=True,
-                                                        capacity=16)
-    else:
-        filename_queue = tf.train.string_input_producer(data_files,
-                                                        num_epochs,
-                                                        shuffle=False,
-                                                        capacity=1)
-
-    examples_per_shard = 1024
-    min_queue_examples = examples_per_shard * FLAGS.input_queue_memory_factor
-    if train:
-        print('pass')
-        examples_queue = tf.RandomShuffleQueue(
-            capacity=min_queue_examples+3*batch_size,
-            min_after_dequeue=min_queue_examples,
-            dtypes=[tf.string])
-    else:
-        examples_queue = tf.FIFOQueue(
-            capacity=examples_per_shard + 3 * batch_size,
-            dtypes=[tf.string])
-
-    if num_readers > 1:
-        enqueue_ops = []
-        for _ in range(num_readers):
-            reader = tf.TFRecordReader()
-            _, value = reader.read(filename_queue)
-            enqueue_ops.append(examples_queue.enqueue([value]))
-        tf.train.queue_runner.add_queue_runner(
-            tf.train.queue_runner.QueueRunner(examples_queue, enqueue_ops))
-        examples_serialized = examples_queue.dequeue()
-    else:
-        reader = tf.TFRecordReader()
-        _, examples_serialized = reader.read(filename_queue)
-
-    features = []
-    for thread_id in range(num_preprocess_threads):
-        feature = parse_and_preprocess(examples_serialized, train, thread_id)
-
-        features.append(feature)
-
-    features = tf.train.batch_join(
-        features,
-        batch_size=batch_size,
-        capacity=2*num_preprocess_threads*batch_size)
-
-    # height = FLAGS.image_size
-    # width = FLAGS.image_size
-    # depth = 3
-
-    # features['image/decoded'] = tf.reshape(features['image/decoded'], shape=[batch_size, height, width, depth])
-
-    return features
 
 
 def crop_to_gripper_transform(
@@ -892,28 +810,6 @@ def yield_record(
                 raise e
             else:
                 pass
-
-
-def old_distorted_inputs(data_files, num_epochs, train=True, batch_size=None):
-    with tf.device('/cpu:0'):
-        print(train)
-        features = old_batch_inputs(
-            data_files, train, num_epochs, batch_size,
-            num_preprocess_threads=FLAGS.num_preprocess_threads,
-            num_readers=FLAGS.num_readers)
-
-    return features
-
-
-def old_inputs(data_files, num_epochs=1, train=False, batch_size=1):
-    with tf.device('/cpu:0'):
-        print(train)
-        features = old_batch_inputs(
-            data_files, train, num_epochs, batch_size,
-            num_preprocess_threads=FLAGS.num_preprocess_threads,
-            num_readers=1)
-
-    return features
 
 
 def print_feature(feature_map, feature_name):
