@@ -499,8 +499,9 @@ def run_training(
                 verbose=0,
                 initial_epoch=epochs)
 
-    elif 'test' in pipeline:
-        history = model.evaluate_generator(generator=test_data, steps=test_steps)
+    if 'test' in pipeline:
+        # history = model.evaluate_generator(generator=test_data, steps=test_steps)
+        history = evaluate(model, example_generator=test_data)
     else:
         raise ValueError('unknown pipeline configuration ' + pipeline + ' chosen, try '
                          'train, test, train_test, or train_test_kfold')

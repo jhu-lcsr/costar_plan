@@ -401,6 +401,7 @@ def transform_crop_and_resize_image(
             if coordinate is not None and (transform is not None or offset is not None):
                 if coordinate_theta is None:
                     coordinate = transform_and_crop_coordinate(coordinate, transform, offset)
+                    theta = None
                 else:
                     coordinate, theta = transform_and_crop_coordinate(coordinate, transform, offset, theta=coordinate_theta)
         if resize_shape is not None:

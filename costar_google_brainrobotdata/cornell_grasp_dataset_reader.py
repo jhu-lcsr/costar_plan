@@ -550,7 +550,9 @@ def projective_image_augmentation(
         # disable random rotation and translation if we are not training
         random_rotation = False
         random_translation = False
-
+    else:
+        random_rotation = True
+        random_translation = True
     # by default we won't be doing any rotations based on the grasp box theta
     crop_to_gripper_theta = K.constant(0, 'float32', name='crop_to_gripper_theta')
     translation_in_box = K.constant(0, 'float32', name='translation_in_box')
