@@ -230,14 +230,22 @@ class DataCollector(object):
                 ", obj = " + str(self.object) +
                 ", prev = " + str(self.prev_object))
 
-        try:
-            t = rospy.Time(0)
-            c_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
-            ee_pose = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
-            obj_pose = self.tf_listener.lookup_transform(self.base_link, self.object, t)
-        except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-            rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
-            return False
+        have_data = False
+        attempts = 0
+        max_attempts = 10
+        while not have_data:
+            try:
+                t = rospy.Time(0)
+                c_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
+                ee_pose = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
+                obj_pose = self.tf_listener.lookup_transform(self.base_link, self.object, t)
+                have_data = True
+            except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+                rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
+                have_data = False
+                attempts += 1
+                if attempts > max_attempts:
+                    return False
 
         c_xyz = [c_pose.transform.translation.x,
                  c_pose.transform.translation.y,

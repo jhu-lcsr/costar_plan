@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
+import os
 import copy
+import time
+from threading import Thread
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import argparse
 import rospy
+import roslaunch
 import tf_conversions.posemath as pm
 import tf2_ros as tf2
 
@@ -21,6 +25,7 @@ from ctp_integration.observer import IdentityObserver, Observer
 from ctp_integration.collector import DataCollector
 from ctp_integration.util import GetDetectObjectsService
 from ctp_integration.stack import *
+from ctp_integration.launcher import launch_main
 
 def getArgs():
     '''
@@ -34,7 +39,7 @@ def getArgs():
     --------
     args: command-line arguments
     '''
-    parser = argparse.ArgumentParser(add_help=True, description="Parse rosbag into graph.")
+    parser = argparse.ArgumentParser(add_help=True, description="Run data collection for costar plan.")
     parser.add_argument("--fake",
                         action="store_true",
                         help="create some fake options for stuff")
@@ -44,6 +49,9 @@ def getArgs():
     parser.add_argument("--plan",
                         action="store_true",
                         help="set if you want the robot to generate a task plan")
+    parser.add_argument("--launch",
+                        action="store_true",
+                        help="Starts ROS automatically. Set to false if this script should assume ros is already launched.")
     parser.add_argument("--execute",
                         type=int,
                         help="execute this many loops",
@@ -87,11 +95,11 @@ def fakeTaskArgs():
   }
   return args
 
-def main():
-
+def collect_data(args):
+    if args.launch:
+        time.sleep(10)
     # Create node and read options from command line
     rospy.init_node("ctp_data_collection_runner")
-    args = getArgs()
 
     # Default joints for the motion planner when it needs to go to the home
     # position - this will take us out of the way of the camera.
@@ -196,7 +204,11 @@ def main():
             # Note: this will be "dummied out" for most of 
             done = stack_task.tick()
             if not collector.update(stack_task.current, done):
-                raise RuntimeError('could not handle data collection')
+                raise RuntimeError('could not handle data collection. '
+                                   'There may be an inconsistency in the system state '
+                                   'so try shutting all of ROS down and starting up again. '
+                                   'Alternately, run this program in a debugger '
+                                   'to try and diagnose the issue.')
             rate.sleep()
 
             if (done or (stack_task.finished_action and
@@ -262,6 +274,17 @@ def main():
             rospy.logwarn(str(pose_random))
             move_to_pose(pose_random)
             open_gripper()
+
+def main():
+    args = getArgs()
+
+    if args.launch:
+        launch_main(argv=['roslaunch', 'ctp_integration', 'bringup.launch'], 
+                    real_args=args, 
+                    fn_to_call=collect_data)
+    else:
+        # assume ros was already running and start collecting data
+        return collect_data(args)
 
 if __name__ == '__main__':
     try:
