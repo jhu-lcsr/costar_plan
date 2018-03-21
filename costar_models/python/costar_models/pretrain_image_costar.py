@@ -18,7 +18,8 @@ from .multi_sampler import *
 from .pretrain_image import *
 
 from .plotting import *
-from .dvrk import *
+from .multi import *
+from .costar import *
 
 class PretrainImageCostar(PretrainImageAutoencoder):
 
@@ -44,14 +45,14 @@ class PretrainImageCostar(PretrainImageAutoencoder):
         ins = [img0_in, img_in]
 
         # Create encoder and decoder
-        encoder = MakeCostarImageEncoder(self, img_shape)
-        decoder = MakeCostarImageDecoder(
+        encoder = MakeImageEncoder(self, img_shape)
+        decoder = MakeImageDecoder(
                     self,
                     self.hidden_shape,
                     self.skip_shape,)
 
         # Encode and connect the discriminator
-        enc = encoder(img_in)
+        enc = encoder([img0_in, img_in])
         out = decoder(enc)
 
         if self.no_disc:

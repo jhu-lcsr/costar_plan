@@ -51,9 +51,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Layer and model configuration
         self.extra_layers = 1
-        self.use_spatial_softmax = False
         self.dense_representation = True
-        if self.use_spatial_softmax and self.dense_representation:
+        if self.encode_spatial_softmax and self.dense_representation:
             self.steps_down = 2
             self.steps_down_no_skip = 0
             self.steps_up = 4
@@ -309,7 +308,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         transform model
         '''
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
-        h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
         # Never use the BN here?
         bn = self.use_batchnorm
@@ -326,10 +324,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # 2 x "decoder" convolutions
         x = AddConv2D(h, 64, [1,1], 1, 0., **kwargs)
-        x0 = AddConv2D(h0, 64, [1,1], 1, 0., **kwargs)
+        #x0 = AddConv2D(h0, 64, [1,1], 1, 0., **kwargs)
 
         # Combine the hidden state observations
-        x = Concatenate()([x, x0])
+        #x = Concatenate()([x, x0])
         # 1 convolution to merge h, h0
         x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, **kwargs) # Removed this dropout
 
@@ -392,7 +390,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 activation="sigmoid", # outputs in [0, 1]
                 dropout_rate=0.)
 
-        l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        #l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        l = [h, option, z] if self.use_noise else [h, option]
         self.transform_model = Model(l, x, name="tform")
         self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
         return self.transform_model
@@ -901,9 +900,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
-                flatten=(not self.use_spatial_softmax),
+                flatten=(not self.encode_spatial_softmax),
                 option=enc_options,
-                use_spatial_softmax=self.use_spatial_softmax,
+                encode_spatial_softmax=self.encode_spatial_softmax,
                 output_filters=self.tform_filters,
                 )
         self.encoder = Model(ins, [enc]+skips, name="encoder")
@@ -1020,22 +1019,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         self.state_decoder = state_decoder
         return state_decoder
 
-    def _makeMergeEncoder(self, img_shape, arm_shape, gripper_shape):
-        '''
-        Take input image and state information and encode them into a single
-        hidden representation
-        '''
-        img_in = Input(img_shape,name="predictor_img_in")
-        option_in = Input((1,), name="predictor_option_in")
-
-
-    def _makeMergeDecoder(self, rep_size):
-        '''
-        Take input state and image information projected into a latent space
-        and decode them back into their appropriate output representations
-        '''
-
-
     def _targetsFromTrainTargets(self, train_targets):
         '''
         This helper function splits the train targets into separate fields. It
@@ -1139,7 +1122,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             out.append(x)
         return out
 
-    def encode(self, img):
+    def encode(self, img0, img):
         '''
         Encode available features into a new state
 
@@ -1147,7 +1130,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         -----------
         [unknown]: all are parsed via _getData() function.
         '''
-        return self.image_encoder.predict(img)
+        return self.image_encoder.predict([img0, img])
 
     def decode(self, hidden):
         '''
@@ -1157,7 +1140,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         '''
         return self.image_decoder.predict(hidden)
 
-    def transform(self, hidden0, hidden, option_in=-1):
+    def transform(self, hidden, option_in=-1):
         #if option_in < 0 or option_in > self.num_options:
         #    option_in = self.null_option
         #oin = MakeOption1h(option_in, self.num_options)
@@ -1167,7 +1150,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             oin = option_in
         #length = hidden.shape[0]
         #oin = np.repeat(oin, length, axis=0)
-        h = self.transform_model.predict([hidden0, hidden, oin])
+        h = self.transform_model.predict([hidden, oin])
         return h
 
 

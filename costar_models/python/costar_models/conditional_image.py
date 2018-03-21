@@ -16,12 +16,12 @@ from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from .callbacks import *
-from .sampler2 import *
+from .multi_sampler import *
 from .data_utils import GetNextGoal, ToOneHot
 from .multi import *
 from .loss import *
 
-class ConditionalImage(PredictionSampler2):
+class ConditionalImage(RobotMultiPredictionSampler):
     '''
     Version of the sampler that only produces results conditioned on a
     particular action; this version does not bother trying to learn a separate
@@ -72,15 +72,14 @@ class ConditionalImage(PredictionSampler2):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        encoder = self._makeImageEncoder(img_shape)
-        decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = MakeImageEncoder(self, img_shape)
+        decoder = MakeImageDecoder(self, self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder)
 
         # =====================================================================
         # Load the arm and gripper representation
-        h = encoder([img_in])
-        h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         if self.validate:
             self.loadValidationModels(arm_size, gripper_size, h0, h)
@@ -95,8 +94,8 @@ class ConditionalImage(PredictionSampler2):
         y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
 
         tform = self._makeTransform() if not self.dense_transform else self._makeDenseTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
+        x = tform([h,y])
+        x2 = tform([x,y2])
 
         image_out, image_out2 = decoder([x]), decoder([x2])
 
@@ -143,7 +142,6 @@ class ConditionalImage(PredictionSampler2):
                     loss_weights=[img_loss_wt, img_loss_wt, disc_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         train_predictor.summary()
-        tform.summary()
         return None, train_predictor, None, ins, h
 
     def _getData(self, *args, **kwargs):
