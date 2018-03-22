@@ -248,10 +248,11 @@ def collect_data(args):
             consecutive_bad_rounds += 1
             if consecutive_bad_rounds > 5:
                 print("Hit limit of " + str(max_consecutive_bad_rounds) + "max consecutive bad rounds. ")
-                print("Attempting to reset state completely.")
-                home, rate, move_to_pose, close_gripper, open_gripper = initialize_collection_objects(
-                    args, observe, collector, stack_task) # set fn to call after actions
-                poses = []
+                raise RuntimeError("Killing the program... you may want to debug this or "
+                                   "hopefully somebody will restart it automatically! "
+                                   "You can try the following bash line for auto restarts: "
+                                   "while true; do ./scripts/run.py --execute 1000; done")
+                
             #try:
             #    input("Press Enter to continue...")
             #except SyntaxError as e:
