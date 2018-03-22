@@ -147,13 +147,7 @@ def collect_data(args):
             robot_config=UR5_C_MODEL_CONFIG,
             camera_frame="camera_link",
             tf_listener=tf_buffer)
-    rate = rospy.Rate(args.rate)
-    home = GetHome()
-    move_to_pose = GetMoveToPose()
-    open_gripper = GetOpenGripperService()
-    close_gripper = GetCloseGripperService()
-    update = GetUpdate(observe, collector) # uses collector because it listens for js
-    stack_task.setUpdate(update) # set fn to call after actions
+    home, rate, move_to_pose, close_gripper, open_gripper = initialize_collection_objects(args, observe, collector, stack_task) # set fn to call after actions
 
     # How we verify the objet
     def verify(object_name):
@@ -175,16 +169,18 @@ def collect_data(args):
         if pose is None:
             rospy.logwarn("Failed lookup: %s to %s"%(collector.base_link, object_name))
             return False
-        print(">>>", object_name, pose)
+        print("object name and pose: ", object_name, pose)
         return pose.transform.translation.z > 0.095
 
+    consecutive_bad_rounds = 0
+    max_consecutive_bad_rounds = 5
     start = max(0, args.start-1)
     i = start
     while i < args.execute:
         home()
         rospy.sleep(0.1) # Make sure nothing weird happens with timing
         idx = i + 1
-        print("Executing trial %d..."%(idx))
+        print("Executing trial %d" % (idx))
         _, world = observe()
         # NOTE: not using CTP task execution framework right now
         # It's just overkill
@@ -237,16 +233,25 @@ def collect_data(args):
         if stack_task.ok:
             collector.save(idx, reward)
             print("------------------------------------------------------------")
-            print("Finished one round of data collection. Please reset the test")
-            print("environment before continuing.")
+            print("Finished one round of data collection. Attempting to automatically ")
+            print("reset the test environment to continue.")
             print("")
             print("Example number:", idx, "/", args.execute)
             print("Success:", reward)
             print("")
+            consecutive_bad_rounds = 0
         else:
             print("------------------------------------------------------------")
-            print("Bad data collection round. Manually reset.")
+            print("Bad data collection round, " + str(consecutive_bad_rounds) + " consecutive. Attempting to automatically reset.")
+            print("If this happens repeatedly try restarting the program or loading in a debugger.")
             collector.reset()
+            consecutive_bad_rounds += 1
+            if consecutive_bad_rounds > 5:
+                print("Hit limit of " + str(max_consecutive_bad_rounds) + "max consecutive bad rounds. ")
+                print("Attempting to reset state completely.")
+                home, rate, move_to_pose, close_gripper, open_gripper = initialize_collection_objects(
+                    args, observe, collector, stack_task) # set fn to call after actions
+                poses = []
             #try:
             #    input("Press Enter to continue...")
             #except SyntaxError as e:
@@ -265,15 +270,26 @@ def collect_data(args):
             z = 0.3
             pose_random = kdl.Frame(drop_pose.M,
                     kdl.Vector(x,y,z))
-            rospy.logwarn(str(drop_pose))
+            rospy.logwarn('unstack drop_pose:\n' + str(drop_pose))
             move_to_pose(drop_pose)
-            rospy.logwarn(str(grasp_pose))
+            rospy.logwarn('unstack grasp_pose:\n' + str(grasp_pose))
             move_to_pose(grasp_pose)
             close_gripper()
+            rospy.logwarn('unstack grasp_pose2:\n' + str(grasp_pose2))
             move_to_pose(grasp_pose2)
             rospy.logwarn(str(pose_random))
             move_to_pose(pose_random)
             open_gripper()
+
+def initialize_collection_objects(args, observe, collector, stack_task):
+    rate = rospy.Rate(args.rate)
+    home = GetHome()
+    move_to_pose = GetMoveToPose()
+    open_gripper = GetOpenGripperService()
+    close_gripper = GetCloseGripperService()
+    update = GetUpdate(observe, collector) # uses collector because it listens for js
+    stack_task.setUpdate(update) # set fn to call after actions
+    return home, rate, move_to_pose, close_gripper, open_gripper
 
 def main():
     args = getArgs()
