@@ -112,7 +112,6 @@ def MakeJigsawsTransform(model, h_dim=(12,16), perm_drop=False):
     This will also set the "transform_model" field of "model".
     '''
     h = Input((h_dim[0], h_dim[1], model.encoder_channels),name="h_in")
-    h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
     option = Input((model.num_options,), name="t_opt_in")
     activation_fn = model.activation_fn
     if model.use_noise:
@@ -128,10 +127,8 @@ def MakeJigsawsTransform(model, h_dim=(12,16), perm_drop=False):
     kwargs_dr0["dropout_rate"] = 0.
 
     x = AddConv2D(h, 64, [1,1], 1, **kwargs)
-    x0 = AddConv2D(h0, 64, [1,1], 1, **kwargs)
 
     # Combine the hidden state observations
-    x = Concatenate()([x, x0])
     x = AddConv2D(x, 64, [5,5], 1, **kwargs)
     skip0 = x
 
@@ -181,7 +178,7 @@ def MakeJigsawsTransform(model, h_dim=(12,16), perm_drop=False):
     # --------------------------------------------------------------------
     # Put resulting image into the output shape
     x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1, **kwargs_dr0)
-    l = [h0, h, option, z] if model.use_noise else [h0, h, option]
+    l = [h, option, z] if model.use_noise else [h, option]
     model.transform_model = Model(l, x, name="tform")
     model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
     model.transform_model.summary()
@@ -199,6 +196,7 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False, perm_drop=False):
           we handle things slightly differently.
     '''
     img = Input(img_shape,name="img_encoder_in")
+    img0 = Input(img_shape,name="img0_encoder_in")
     bn = not disc and model.use_batchnorm
     dr = model.dropout_rate
     kwargs = {
@@ -208,8 +206,10 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False, perm_drop=False):
             "activation" : model.activation_fn,
             "perm_drop" : perm_drop,
             }
-    x = img
+    x, x0 = img, img0
     x = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
+    x = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
+
     x = AddConv2D(x,  32, [5,5], 2, dr, **kwargs)
     x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
     x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
@@ -227,7 +227,7 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False, perm_drop=False):
     model.hidden_shape = (model.hidden_dim1, model.hidden_dim2, model.encoder_channels)
 
     if not disc:
-        image_encoder = Model([img], x, name="Ienc")
+        image_encoder = Model([img0, img], x, name="Ienc")
         image_encoder.compile(loss="mae", optimizer=model.getOptimizer())
         model.image_encoder = image_encoder
     else:
@@ -235,7 +235,7 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False, perm_drop=False):
         x = Flatten()(x)
         x = AddDense(x, 512, "lrelu", dr, output=True, bn=bnv, perm_drop=perm_drop)
         x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=bnv)
-        image_encoder = Model([img], x, name="Idisc")
+        image_encoder = Model([img0, img], x, name="Idisc")
         image_encoder.compile(loss="mae", optimizer=model.getOptimizer())
         model.image_discriminator = image_encoder
     return image_encoder
@@ -296,7 +296,6 @@ def GetJigsawsNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
     option_in = Input((1,), name="Nx_prev_o_in")
     x = xin
     x0 = x0in

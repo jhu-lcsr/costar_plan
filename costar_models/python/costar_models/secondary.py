@@ -82,18 +82,18 @@ class Secondary(PredictionSampler2):
             metrics=["accuracy"]
         elif self.submodel == "q":
             model = GetNextModel(h, self.num_options, 128,
-                    self.decoder_dropout_rate)
+                    self.decoder_dropout_rate, add_done=True)
             model.compile(loss="mae", optimizer=self.getOptimizer())
-            outs = model([h0,h,label_in])
+            outs = model([h,label_in])
             self.q_model = model
             loss = "binary_crossentropy"
             loss_wts = [1,1]
             metrics=["accuracy"]
         elif self.submodel == "next":
             model = GetNextModel(h, self.num_options, 128,
-                    self.decoder_dropout_rate)
+                    self.decoder_dropout_rate, add_done=False)
             model.compile(loss="mae", optimizer=self.getOptimizer())
-            outs = model([h0,h,label_in])
+            outs = model([h,label_in])
             self.next_model = model
             loss = "binary_crossentropy"
             loss_wts = [1,1]
@@ -145,7 +145,7 @@ class Secondary(PredictionSampler2):
         if self.submodel == "value":
             outs = [v]
         elif self.submodel == "next":
-            outs = [o1_1h, done]
+            outs = [o1_1h]
         elif self.submodel == "q":
             if len(v.shape) == 1:
                 v = np.expand_dims(v,axis=1)
@@ -185,8 +185,7 @@ class HuskySecondary(Secondary):
 
         # =====================================================================
         # Load the arm and gripper representation
-        h = encoder([img_in])
-        h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
@@ -208,18 +207,18 @@ class HuskySecondary(Secondary):
             metrics=["accuracy"]
         elif self.submodel == "q":
             model = GetNextModel(h, self.num_options, 128,
-                    self.decoder_dropout_rate)
+                    self.decoder_dropout_rate, add_done=True)
             model.compile(loss="mae", optimizer=self.getOptimizer())
-            outs = model([h0,h,label_in])
+            outs = model([h,label_in])
             self.q_model = model
             loss = "binary_crossentropy"
             loss_wts = [1,1]
             metrics=["accuracy"]
         elif self.submodel == "next":
             model = GetNextModel(h, self.num_options, 128,
-                    self.decoder_dropout_rate)
+                    self.decoder_dropout_rate, add_done=False)
             model.compile(loss="mae", optimizer=self.getOptimizer())
-            outs = model([h0,h,label_in])
+            outs = model([h,label_in])
             self.next_model = model
             loss_wts = [1,1]
             loss = "binary_crossentropy"
@@ -290,7 +289,7 @@ class HuskySecondary(Secondary):
         if self.submodel == "value":
             outs = [v]
         elif self.submodel == "next":
-            outs = [o1_1h, done]
+            outs = [o1_1h]
         elif self.submodel == "q":
             if len(v.shape) == 1:
                 v = np.expand_dims(v,axis=1)

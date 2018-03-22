@@ -50,8 +50,7 @@ class ConditionalImageJigsaws(ConditionalImage):
 
         # =====================================================================
         # Create encoded state
-        h = encoder(img_in)
-        h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         option_in = Input((1,), name="option_in")
         option_in2 = Input((1,), name="option_in2")
@@ -66,9 +65,9 @@ class ConditionalImageJigsaws(ConditionalImage):
             tform = MakeJigsawsTransform(self, h_dim=(12,16))
         else:
             tform = self._makeDenseTransform(h_dim=(12, 16))
-        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        l = [h, y, z1] if self.use_noise else [h, y]
         x = tform(l)
-        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]
+        l = [x, y2, z2] if self.use_noise else [x, y]
         x2 = tform(l)
         image_out, image_out2 = decoder([x]), decoder([x2])
 

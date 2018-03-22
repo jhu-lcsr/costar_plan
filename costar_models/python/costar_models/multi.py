@@ -210,6 +210,120 @@ def MakeMultiPolicy(model, encoder, features, arm, gripper,
     policy.compile(loss=model.loss, optimizer=model.getOptimizer())
     return policy
 
+def MakeImageEncoder(model, img_shape, perm_drop=False):
+    '''
+    create image-only decoder to extract keypoints from the scene.
+    
+    Params:
+    -------
+    img_shape: shape of the image to encode
+    '''
+    img0 = Input(img_shape,name="img0_encoder_in")
+    img = Input(img_shape,name="img_encoder_in")
+    bn = model.use_batchnorm
+    dr = model.dropout_rate
+    use_lrelu = True
+    x = img
+    kwargs = {
+            "padding" : "same",
+            "lrelu" : use_lrelu,
+            "bn" : bn,
+            "activation" : model.activation_fn,
+            "perm_drop" : perm_drop,
+            }
+
+    x = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
+    x0 = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
+
+    x = Concatenate()([x, x0])
+
+    x = AddConv2D(x,  32, [5,5], 2, dr, **kwargs)
+    x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
+    x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
+    x = AddConv2D(x,  64, [5,5], 2, dr, **kwargs)
+    x = AddConv2D(x,  64, [5,5], 1, 0., **kwargs)
+    x = AddConv2D(x, 128, [5,5], 2, dr, **kwargs)
+
+    if model.encode_spatial_softmax:
+        def _ssm(x):
+            return spatial_softmax(x)
+        model.encoder_channels = 32
+        x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
+                "same", lrelu=False, bn=False, perm_drop=perm_drop,
+                activation="sigmoid",
+                )
+        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+        model.hidden_shape = (model.encoder_channels*2,)
+        model.hidden_size = 2*model.encoder_channels
+        model.hidden_shape = (model.hidden_size,)
+    else:
+        model.encoder_channels = 8
+        # Note: I removed the BN here
+        x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
+                "same", lrelu=False,
+                activation="sigmoid",
+                bn=False, perm_drop=perm_drop)
+        model.steps_down = 3
+        model.hidden_dim = int(img_shape[0]/(2**model.steps_down))
+        model.hidden_shape = (model.hidden_dim, model.hidden_dim, model.encoder_channels)
+
+    image_encoder = Model([img0, img], x, name="Ienc")
+    image_encoder.compile(loss="mae", optimizer=model.getOptimizer())
+    model.image_encoder = image_encoder
+    return image_encoder
+
+def MakeImageDecoder(model, hidden_shape, img_shape=None, copy=False, perm_drop=False):
+    '''
+    helper function to construct a decoder that will make images.
+
+    parameters:
+    -----------
+    img_shape: shape of the image, e.g. (64,64,3)
+    '''
+    if model.encode_spatial_softmax:
+        rep = Input((model.hidden_size,),name="decoder_hidden_in")
+    else:
+        rep = Input(hidden_shape,name="decoder_hidden_in")
+
+    x = rep
+    dr = model.decoder_dropout_rate if model.hypothesis_dropout else 0
+    bn = model.use_batchnorm
+    
+    if model.encode_spatial_softmax:
+        model.steps_up = 3
+        hidden_dim = int(img_shape[0]/(2**model.steps_up))
+        (h,w,c) = (hidden_dim,
+                   hidden_dim,
+                   model.encoder_channels)
+        x = AddDense(x, int(h*w*c), "relu", dr, bn=bn)
+        x = Reshape((h,w,c))(x)
+
+    kwargs = {
+            "bn" : bn,
+            "activation" : model.activation_fn,
+            "perm_drop" : perm_drop,
+            }
+
+    x = AddConv2DTranspose(x, 128, [1,1], 1, 0., **kwargs)
+    x = AddConv2DTranspose(x,  64, [5,5], 2, dr, **kwargs)
+    x = AddConv2DTranspose(x,  64, [5,5], 1, 0., **kwargs)
+    x = AddConv2DTranspose(x,  32, [5,5], 2, dr, **kwargs)
+    x = AddConv2DTranspose(x,  32, [5,5], 1, 0., **kwargs)
+    x = AddConv2DTranspose(x,  32, [5,5], 2, dr, **kwargs)
+    x = AddConv2DTranspose(x,  32, [5,5], 1, 0., **kwargs)
+    ins = rep
+    x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
+    x = Activation("sigmoid")(x)
+    if not copy:
+        decoder = Model(ins, x, name="Idec")
+        decoder.compile(loss="mae",optimizer=model.getOptimizer())
+        model.image_decoder = decoder
+    else:
+        decoder = Model(ins, x,)
+        decoder.compile(loss="mae",optimizer=model.getOptimizer())
+    return decoder
+
+
 
 
 def GetAllMultiData(num_options, features, arm, gripper, arm_cmd, gripper_cmd, label,
