@@ -69,7 +69,7 @@ flags.DEFINE_string('save_weights', 'grasp_model_weights',
 # flags.DEFINE_string('load_weights', 'converted2018-01-20-06-41-24_grasp_model_weights-delta_depth_sin_cos_3-grasp_model_levine_2016-dataset_062_b_063_072_a_082_b_102-epoch-014-val_loss-0.641-val_acc-0.655.h5',
 flags.DEFINE_string('load_weights', 'grasp_model_weights.h5',
                     """Load and continue training the specified file containing model weights.""")
-flags.DEFINE_integer('epochs', 5,
+flags.DEFINE_integer('epochs', 2,
                      """Epochs of training""")
 flags.DEFINE_string('grasp_dataset_test', '097',
                     """Filter the subset of 1TB Grasp datasets to test.
@@ -675,10 +675,9 @@ class GraspTrain(object):
                                  'the last sample, so in a worst case choose a batch size of 1. Not ideal,'
                                  'but manageable. num_samples: {} batch_size: {}'.format(num_samples, batch_size))
 
-            print('<<<<<<<<<<<<')
             if test_per_epoch:
-                print('<<<<<<<<<<<<2')
                 return model, int(steps)
+
             model.summary()
 
             try:
@@ -717,6 +716,8 @@ class GraspTrain(object):
                            model_name=None,
                            loss=None,
                            metric=None):
+        """ Generate a model and load a dataset and return it for later use.
+        """
         with K.name_scope('predict') as scope:
             if dataset is None:
                 dataset = FLAGS.grasp_dataset_test
@@ -823,21 +824,21 @@ class GraspTrain(object):
 
     def gather_losses(self, loss):
         loss_name = 'loss'
-        if 'segmentation_single_pixel_binary_crossentropy' in loss:
+        if isinstance(loss, str) and 'segmentation_single_pixel_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_single_pixel_binary_crossentropy
             loss_name = 'segmentation_single_pixel_binary_crossentropy'
 
-        if isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
+        elif isinstance(loss, str) and 'segmentation_gaussian_binary_crossentropy' in loss:
             loss = grasp_loss.segmentation_gaussian_binary_crossentropy
             loss_name = 'segmentation_gaussian_binary_crossentropy'
-        if isinstance(loss, (list, tuple)) and len(loss) == 1:
+        elif isinstance(loss, (list, tuple)) and len(loss) == 1:
             # strip it to just one element
             [loss] = loss
 
         return loss
 
 
-def choose_make_model_fn(grasp_model_name=None):
+def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
     """ Select the Neural Network Model to use.
 
         Gets a command line specified function that
@@ -913,9 +914,11 @@ def choose_make_model_fn(grasp_model_name=None):
                 input_vector_op=None,
                 input_image_shape=None,
                 **kw):
-            if FLAGS.load_hyperparams:
+            if hyperparams is None and FLAGS.load_hyperparams:
                 hyperparams = grasp_utilities.load_hyperparams_json(
                     FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate)
+
+            if hyperparams is not None:
                 kw.update(hyperparams)
             print('kw: ', kw)
             images = [clear_view_image_op, current_time_image_op]
@@ -940,7 +943,35 @@ def choose_make_model_fn(grasp_model_name=None):
     return make_model_fn
 
 
-def main(_):
+def run_hyperopt(hyperparams=None, **kwargs):
+    """Launch the training and/or evaluation script for the particular model specified on the command line.
+    """
+
+    # create the object that does training and evaluation
+    # The init() function configures Keras and the tf session if the tf_session parameter is None.
+    gt = GraspTrain()
+
+    with K.get_session() as sess:
+        model_name = 'grasp_model_hypertree'
+        # Read command line arguments selecting the Keras model to train.
+        # The specific Keras Model varies based on the command line arguments.
+        # Based on the selection choose_make_model_fn()
+        # will create a function that can be called later
+        # to actually create a Keras Model object.
+        # This is done so GraspTrain doesn't need specific code for every possible Keras Model.
+        make_model_fn = choose_make_model_fn(
+            grasp_model_name=model_name,
+            hyperparams=hyperparams)
+
+        # train the model
+        load_weights, history = gt.train(
+            make_model_fn=make_model_fn,
+            load_weights=None,
+            model_name=model_name)
+        return history
+
+
+def run_training(hyperparams=None):
     """Launch the training and/or evaluation script for the particular model specified on the command line.
     """
 
@@ -955,7 +986,8 @@ def main(_):
         # will create a function that can be called later
         # to actually create a Keras Model object.
         # This is done so GraspTrain doesn't need specific code for every possible Keras Model.
-        make_model_fn = choose_make_model_fn()
+        make_model_fn = choose_make_model_fn(
+            hyperparams=hyperparams)
 
         # Weights file to load, if any
         load_weights = FLAGS.load_weights
@@ -963,9 +995,9 @@ def main(_):
         # train the model
         if 'train' in FLAGS.pipeline_stage:
             print('Training ' + FLAGS.grasp_model)
-            load_weights, _ = gt.train(make_model_fn=make_model_fn,
-                                       load_weights=load_weights,
-                                       model_name=FLAGS.grasp_model)
+            load_weights, history = gt.train(make_model_fn=make_model_fn,
+                                             load_weights=load_weights,
+                                             model_name=FLAGS.grasp_model)
         # evaluate the model
         if 'eval' in FLAGS.pipeline_stage:
             print('Evaluating ' + FLAGS.grasp_model + ' on weights ' + load_weights)
@@ -974,10 +1006,10 @@ def main(_):
                     load_weights=load_weights,
                     model_name=FLAGS.grasp_model,
                     test_per_epoch=False)
-        return None
+        return history
 
 if __name__ == '__main__':
     # FLAGS._parse_flags()
-    tf.app.run(main=main)
+    tf.app.run(main=run_training)
     print('grasp_train.py run complete, original command: ', sys.argv)
     sys.exit()

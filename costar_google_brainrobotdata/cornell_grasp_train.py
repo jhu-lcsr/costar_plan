@@ -1149,7 +1149,7 @@ def evaluate(
             # init_l = tf.local_variables_initializer()
             # sess.run(init_g)
             # sess.run(init_l)
-            # TODO(ahundt) Do insane hack resetting & reloading weights for now... will fix later
+            # TODO(ahundt) Do insane hack which resets the session & reloads weights for now... will fix later
             if should_initialize:
                     # tensorflow setup to make sure all variables are initialized
                     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())

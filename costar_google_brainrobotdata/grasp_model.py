@@ -642,9 +642,14 @@ def choose_hypertree_model(
                 # get the layer before the global average pooling
                 image_model = resnet_model.layers[-2]
             elif image_model_name == 'densenet':
-                image_model = keras.applications.densenet.DenseNet169(
-                    input_shape=image_input_shape, include_top=False,
-                    classes=classes)
+                if image_model_weights == 'shared':
+                    image_model = keras.applications.densenet.DenseNet169(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.densenet.DenseNet169
+                else:
+                    raise ValueError('Unsupported image_model_name')
             else:
                 raise ValueError('Unsupported image_model_name')
 
