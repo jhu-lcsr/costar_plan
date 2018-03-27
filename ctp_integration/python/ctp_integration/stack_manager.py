@@ -9,6 +9,13 @@ class StackManager(object):
     '''
     This class creates and holds the different services we need to call to
     create the stacking task and execute it.
+
+    It defines "children", a dictionary of strings/None to lists of strings.
+    At each step(), it will:
+      - check on its service thread and determine if its running or failed
+      - if done with service call, choose a new child at random from children[current]
+
+    Make sure you call reset() after each trial.
     '''
     objs = ["red_cube", "green_cube", "blue_cube", "yellow_cube"]
 
@@ -36,6 +43,17 @@ class StackManager(object):
         self.service.reset()
 
     def addRequest(self, parents, name, srv, req):
+        '''
+        Add service call request to execute a high-level costar action.
+
+        Parameters:
+        -----------
+        parents: list of strings or None indicating which actions can preceed
+                 a particular action.
+        name: name of this action.
+        srv: service to call
+        req: service call request (ROS message)
+        '''
         self.reqs[name] = (srv, req)
         if not isinstance(parents, list):
             parents = [parents]

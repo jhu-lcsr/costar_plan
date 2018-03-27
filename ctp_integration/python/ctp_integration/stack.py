@@ -143,17 +143,39 @@ def GetUpdate(observe, collector):
     collector: wrapper class aggregating robot info including joint state
     '''
     go_to_js = GetPlanToJointStateService()
+
+
+    # Create cartesian move request:
     pose_home = kdl.Frame(
             kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
             kdl.Vector(0.174, -0.157, 0.682))
-    req = ServoToPoseRequest()
-    req.target = pm.toMsg(pose_home)
-    move = GetPlanToPoseService()
+    #req = ServoToPoseRequest()
+    #req.target = pm.toMsg(pose_home)
+    #move = GetPlanToPoseService()
+
+    # Create joint move request:
+    q_home = [-0.202,
+            -0.980,
+            -1.800,
+            -0.278,
+            1.460,
+            1.613]
+    req = MakeServoToJointStateRequest(q_home)
+
     servo_mode = GetServoModeService()
     def update():
         q0 = collector.q
         servo_mode("servo")
-        res = move(req)
+
+        # -------
+        # Uncomment if you want to move to a 6DOF cartesian pose instead of a
+        # joint pose
+        #res = move(req)
+    
+        # -------
+        # Move to joint position    
+        res = go_to_js(req)
+
         if res is None or "failure" in res.ack.lower():
             rospy.logerr(res.ack)
             raise RuntimeError("UPDATE(): error moving out of the way")
@@ -169,6 +191,9 @@ def GetUpdate(observe, collector):
     return update
 
 def GetStackManager():
+    '''
+    Use addRequest() to create the graph of high-level actions to be performed.
+    '''
     sm = StackManager()
     grasp = GetSmartGraspService()
     release = GetSmartReleaseService()
@@ -196,6 +221,21 @@ def GetStackManager():
                         name4 = "4%s%s:place_%s_on_%s%s"%(color,color2,color3,color2,color)
                         req4 = _makeSmartReleaseRequest(color)
                         sm.addRequest(name3, name4, release, req4)
+
+    return sm
+
+def GetKittingManager():
+    sm = StackManager()
+    grasp = GetSmartGraspService()
+    release = GetSmartReleaseService()
+
+    for color in colors:
+        name = "1:grab_%s"%color
+        req = _makeSmartGraspRequest(color)
+        sm.addRequest(None, name, grasp, req)
+        
+        # TODO(ahundt): place block of "color" in the appropriate place
+        # TODO(ahundt): grasp next block, etc.
 
     return sm
 
