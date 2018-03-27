@@ -541,8 +541,12 @@ class GraspTrain(object):
                 final_weights_name = log_dir_run_name + '-final.h5'
                 model.save_weights(final_weights_name)
             except (Exception, KeyboardInterrupt) as e:
+                ex_type, ex, tb = sys.exc_info()
+                traceback.print_tb(tb)
+                # deletion must be explicit to prevent leaks
+                # https://stackoverflow.com/a/16946886/99379
+                del tb
                 # always try to save weights
-                traceback.print_exc()
                 final_weights_name = log_dir_run_name + '-autosaved-on-exception.h5'
                 model.save_weights(final_weights_name)
                 raise e
