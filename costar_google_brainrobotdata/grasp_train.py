@@ -159,7 +159,11 @@ flags.DEFINE_string(
 )
 flags.DEFINE_string('load_hyperparams', None,
                     """Load hyperparams from a json file. Only applies to grasp_model_hypertree""")
-
+flags.DEFINE_string(
+    'run_name',
+    '',
+    'A string that will become part of the logged directories and filenames.'
+)
 # flags.FLAGS._parse_flags() not needed for tf 1.5
 FLAGS = flags.FLAGS
 
@@ -243,6 +247,7 @@ class GraspTrain(object):
             grasp_sequence_max_time_step: number of motion steps to train in the grasp sequence,
                 this affects the memory consumption of the system when training, but if it fits into memory
                 you almost certainly want the value to be None, which includes every image.
+            hyperparams: A dictionary from hyperparameter strings to values. None by default.
         """
         if dataset is None:
             dataset = FLAGS.grasp_datasets_train
@@ -294,6 +299,10 @@ class GraspTrain(object):
             test_dataset = FLAGS.grasp_dataset_test
         if validation_dataset is None:
             test_dataset = FLAGS.grasp_dataset_validation
+        if run_name is None:
+            run_name = FLAGS.run_name
+        if log_dir is None:
+            log_dir = FLAGS.log_dir
 
         with K.name_scope('train') as scope:
             datasets = dataset.split(',')
@@ -312,17 +321,18 @@ class GraspTrain(object):
                  grasp_sequence_min_time_step,
                  grasp_sequence_max_time_step)
 
+            print('resize_height: >>>>>> ' + str(resize_height))
+            print('resize_width: >>>>>> ' + str(resize_width))
             if resize:
-                input_image_shape = [resize_height, resize_width, 3]
+                input_image_shape = [batch_size, int(resize_height), int(resize_width), 3]
             else:
-                input_image_shape = [512, 640, 3]
-            if log_dir is None:
-                log_dir = FLAGS.log_dir
+                input_image_shape = [batch_size, 512, 640, 3]
+            print('input_image_shape: ' + str(input_image_shape))
 
             ########################################################
             # End tensor configuration, begin model configuration and training
 
-            run_name = grasp_utilities.timeStamped(save_weights + '-' + model_name + '-dataset_' + dataset_names_str)
+            run_name = grasp_utilities.timeStamped(run_name + '-' + model_name + '-dataset_' + dataset_names_str)
 
             # ###############learning rate scheduler####################
             # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
@@ -414,12 +424,16 @@ class GraspTrain(object):
                 validation_model, step_num = self.eval(dataset=validation_dataset,
                                                        make_model_fn=make_model_fn,
                                                        model_name=model_name,
-                                                       test_per_epoch=test_per_epoch)
+                                                       test_per_epoch=test_per_epoch,
+                                                       resize_height=resize_height,
+                                                       resize_width=resize_width)
                 callbacks = callbacks + [EvaluateInputTensor(validation_model, step_num)]
                 test_model, step_num = self.eval(dataset=test_dataset,
                                                  make_model_fn=make_model_fn,
                                                  model_name=model_name,
-                                                 test_per_epoch=test_per_epoch)
+                                                 test_per_epoch=test_per_epoch,
+                                                 resize_height=resize_height,
+                                                 resize_width=resize_width)
                 callbacks = callbacks + [EvaluateInputTensor(test_model, step_num, metrics_prefix='test')]
 
             if early_stopping is not None and early_stopping > 0.0:
@@ -495,7 +509,7 @@ class GraspTrain(object):
             with open(log_dir_run_name + '_model.json', 'w') as fp:
                 fp.write(model.to_json())
 
-            if(load_weights):
+            if load_weights:
                 if os.path.isfile(load_weights):
                     model.load_weights(load_weights)
                 else:
@@ -622,10 +636,11 @@ class GraspTrain(object):
                                                       grasp_sequence_max_time_step=grasp_sequence_max_time_step,
                                                       shift_ratio=0.0)
 
+            batch_index_dimension = K.int_shape(grasp_success_op_batch)[0]
             if resize:
-                input_image_shape = [resize_height, resize_width, 3]
+                input_image_shape = [batch_index_dimension, resize_height, resize_width, 3]
             else:
-                input_image_shape = [512, 640, 3]
+                input_image_shape = [batch_index_dimension, 512, 640, 3]
 
             ########################################################
             # End tensor configuration, begin model configuration and training
@@ -638,7 +653,7 @@ class GraspTrain(object):
                 clear_view_image_op=pregrasp_op_batch,
                 current_time_image_op=grasp_step_op_batch,
                 input_vector_op=simplified_grasp_command_op_batch,
-                # input_image_shape=input_image_shape,
+                input_image_shape=input_image_shape,
                 dropout_rate=0.0)
 
             loss = self.gather_losses(loss)
@@ -754,20 +769,21 @@ class GraspTrain(object):
              features_complete_list,
              time_ordered_feature_name_dict,
              num_samples) = data.get_training_tensors_and_dictionaries(
-                batch_size=batch_size,
-                imagenet_preprocessing=imagenet_preprocessing,
-                random_crop=False,
-                image_augmentation=False,
-                resize=resize,
-                grasp_sequence_min_time_step=grasp_sequence_min_time_step,
-                grasp_sequence_max_time_step=grasp_sequence_max_time_step,
-                shift_ratio=0.0)
+                 batch_size=batch_size,
+                 imagenet_preprocessing=imagenet_preprocessing,
+                 random_crop=False,
+                 image_augmentation=False,
+                 resize=resize,
+                 grasp_sequence_min_time_step=grasp_sequence_min_time_step,
+                 grasp_sequence_max_time_step=grasp_sequence_max_time_step,
+                 shift_ratio=0.0)
 
+            batch_index_dimension = K.int_shape(grasp_success_op_batch)[0]
             if resize:
-                input_image_shape = [resize_height, resize_width, 3]
+                input_image_shape = [batch_index_dimension, int(resize_height), int(resize_width), 3]
             else:
-                input_image_shape = [512, 640, 3]
-            print('input tensor shape:', K.int_shape(pregrasp_op_batch))
+                input_image_shape = [batch_index_dimension, 512, 640, 3]
+            print('input tensor shape pregrasp_op_batch:', K.int_shape(pregrasp_op_batch))
             ########################################################
             # End tensor configuration, begin model configuration and training
 
@@ -776,7 +792,7 @@ class GraspTrain(object):
                 clear_view_image_op=pregrasp_op_batch,
                 current_time_image_op=grasp_step_op_batch,
                 input_vector_op=simplified_grasp_command_op_batch,
-                # input_image_shape=input_image_shape,
+                input_image_shape=input_image_shape,
                 dropout_rate=0.0)
 
             loss = self.gather_losses(loss)
@@ -871,6 +887,11 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
                 'grasp_model_levine_2016'
 
     """
+    # defining a temporary variable scope for the callbacks
+    class HyperparamCarrier:
+        hyperparams = None
+    HyperparamCarrier.hyperparams = hyperparams
+
     if grasp_model_name is None:
         grasp_model_name = FLAGS.grasp_model
     if grasp_model_name == 'grasp_model_resnet':
@@ -914,9 +935,15 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
                 input_vector_op=None,
                 input_image_shape=None,
                 **kw):
-            if hyperparams is None and FLAGS.load_hyperparams:
+            print('hyperparams make_model_fn input_image_shape:' )
+            hyperparams = None
+            if 'hyperparams' in kw:
+                hyperparams = kw['hyperparams']
+            elif HyperparamCarrier.hyperparams is None and FLAGS.load_hyperparams:
                 hyperparams = grasp_utilities.load_hyperparams_json(
                     FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate)
+            elif HyperparamCarrier.hyperparams is not None:
+                hyperparams = HyperparamCarrier.hyperparams
 
             if hyperparams is not None:
                 kw.update(hyperparams)
@@ -926,13 +953,16 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
             print('vectors: ' + str(vectors))
             vector_shapes = [K.int_shape(input_vector_op)]
             image_shapes = [input_image_shape] * 2
+            print('grasp_model_hypertree image_shapes: ' + str(image_shapes))
+            image_model_weights = 'shared'
+            print('image_model_weights: ' + image_model_weights)
             # TODO(ahundt) consider making image_model_weights shared vs separate configurable
             return grasp_model.choose_hypertree_model(
                 images=images,
                 vectors=vectors,
                 image_shapes=image_shapes,
                 vector_shapes=vector_shapes,
-                image_model_weights='separate',
+                image_model_weights=image_model_weights,
                 **kw)
     else:
         available_functions = globals()
@@ -953,6 +983,7 @@ def run_hyperopt(hyperparams=None, **kwargs):
 
     with K.get_session() as sess:
         model_name = 'grasp_model_hypertree'
+        grasp_dataset = '102'
         # Read command line arguments selecting the Keras model to train.
         # The specific Keras Model varies based on the command line arguments.
         # Based on the selection choose_make_model_fn()
@@ -967,7 +998,8 @@ def run_hyperopt(hyperparams=None, **kwargs):
         load_weights, history = gt.train(
             make_model_fn=make_model_fn,
             load_weights=None,
-            model_name=model_name)
+            model_name=model_name,
+            dataset=grasp_dataset)
         return history
 
 
