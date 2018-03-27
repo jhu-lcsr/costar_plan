@@ -178,9 +178,9 @@ def collect_data(args):
     i = start
     while i < args.execute:
         home()
-        rospy.sleep(0.1) # Make sure nothing weird happens with timing
+        rospy.sleep(0.5) # Make sure nothing weird happens with timing
         idx = i + 1
-        print("Executing trial %d" % (idx))
+        rospy.loginfo("Executing trial %d" % (idx))
         _, world = observe()
         # NOTE: not using CTP task execution framework right now
         # It's just overkill
@@ -190,11 +190,13 @@ def collect_data(args):
         # Reset the task manager
         reward = 0.
         stack_task.reset()
+        rospy.loginfo("Starting loop...")
 
         poses = []
         cur_pose = None
         # Update the plan and the collector in synchrony.
         while not rospy.is_shutdown():
+
             cur_pose = collector.current_ee_pose
             
             # Note: this will be "dummied out" for most of 
@@ -245,6 +247,7 @@ def collect_data(args):
             print("Bad data collection round, " + str(consecutive_bad_rounds) + " consecutive. Attempting to automatically reset.")
             print("If this happens repeatedly try restarting the program or loading in a debugger.")
             collector.reset()
+            stack_task.reset()
             consecutive_bad_rounds += 1
             if consecutive_bad_rounds > 5:
                 print("Hit limit of " + str(max_consecutive_bad_rounds) + "max consecutive bad rounds. ")
@@ -281,6 +284,8 @@ def collect_data(args):
             rospy.logwarn(str(pose_random))
             move_to_pose(pose_random)
             open_gripper()
+
+        rospy.loginfo("Done one loop.")
 
 def initialize_collection_objects(args, observe, collector, stack_task):
     rate = rospy.Rate(args.rate)
