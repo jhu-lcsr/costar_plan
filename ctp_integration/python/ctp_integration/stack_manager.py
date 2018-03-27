@@ -79,6 +79,7 @@ class StackManager(object):
 
         if not self.done:
             self.finished_action = True
+            rospy.logwarn("current = " + str(self.current))
             children = self.children[self.current]
             idx = np.random.randint(len(children))
             next_action = children[idx]

@@ -247,6 +247,7 @@ def collect_data(args):
             print("Bad data collection round, " + str(consecutive_bad_rounds) + " consecutive. Attempting to automatically reset.")
             print("If this happens repeatedly try restarting the program or loading in a debugger.")
             collector.reset()
+            stack_task.reset()
             consecutive_bad_rounds += 1
             if consecutive_bad_rounds > 5:
                 print("Hit limit of " + str(max_consecutive_bad_rounds) + "max consecutive bad rounds. ")
