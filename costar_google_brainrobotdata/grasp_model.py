@@ -111,10 +111,12 @@ def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vect
         if vector_shape is None:
             # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
             # https://github.com/fchollet/keras/issues/5211
+            # TODO(ahundt) ensure shape works in both google brain/cornell dataset input tensor and keras Input() aka numpy array cases
             vector_shape = K.int_shape(vector)[1:]
         if image_shape is None:
             # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
             # https://github.com/fchollet/keras/issues/5211
+            # TODO(ahundt) ensure shape works in both google brain/cornell dataset input tensor and keras Input() aka numpy array cases
             image_shape = K.int_shape(images[0])[1:]
         vector = Reshape([1, 1, vector_shape[-1]])(vector)
         tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))

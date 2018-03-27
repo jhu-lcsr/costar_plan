@@ -1,4 +1,4 @@
-
+import tensorflow as tf
 from tensorflow.python.platform import flags
 
 import hyperopt
@@ -9,25 +9,28 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
+    """ Hyperparameter optimization of grasp classification with the google brain robot grasping dataset.
+    """
+    problem_type = 'grasp_classification'
     FLAGS.grasp_success_label = 'move_to_grasp/time_ordered/grasp_success'
-    FLAGS.problem_type = 'grasp_classification'
     FLAGS.grasp_sequence_motion_command_feature = 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'
     FLAGS.loss = 'binary_crossentropy'
     FLAGS.metric = 'binary_accuracy'
-    FLAGS.num_validation = 1
-    FLAGS.num_test = 1
     FLAGS.epochs = 1
     FLAGS.fine_tuning_epochs = 0
-    print('Overriding some flags, edit google_grasp_hyperopt.py directly to change them.' +
-          ' num_validation: ' + str(FLAGS.num_validation) +
-          ' num_test: ' + str(FLAGS.num_test) +
+    FLAGS.grasp_dataset_validation = '092'
+    FLAGS.grasp_dataset_test = '097'
+    # TODO(ahundt) also make sure run_hyperopt grasp_dataset is 102, or correct bug in FLAGS
+    FLAGS.grasp_dataset = '102'
+    FLAGS.grasp_datasets_train = FLAGS.grasp_dataset
+    FLAGS.log_dir = './hyperopt_logs_google_brain_classification/'
+    print('Overriding some flags, edit google_grasp_hyperopt.py directly to see and change them.' +
           ' epochs: ' + str(FLAGS.epochs) +
-          ' fine_tuning_epochs: ' + str(FLAGS.fine_tuning_epochs) +
-          ' problem_type:' + str(FLAGS.problem_type))
+          ' fine_tuning_epochs: ' + str(FLAGS.fine_tuning_epochs))
     run_name = FLAGS.run_name
     log_dir = FLAGS.log_dir
     run_name = grasp_utilities.timeStamped(run_name)
-    run_training_fn = grasp_train.run_training
+    run_training_fn = grasp_train.run_hyperopt
     param_to_optimize = 'val_acc'
     batch_size = 4
     min_top_block_filter_multiplier = 6
@@ -42,7 +45,7 @@ def main(_):
     hyperopt.optimize(
         run_training_fn=run_training_fn,
         feature_combo_name=feature_combo_name,
-        problem_type=FLAGS.problem_type,
+        problem_type=problem_type,
         run_name=run_name,
         log_dir=log_dir,
         min_top_block_filter_multiplier=min_top_block_filter_multiplier,

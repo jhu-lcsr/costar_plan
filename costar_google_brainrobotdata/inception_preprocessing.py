@@ -302,10 +302,10 @@ def preprocess_for_train(image,
         # Randomly distort the colors. There are 4 ways to do it.
         if image2 is not None:
             image = apply_with_random_selector(
-                image,
-                lambda x, x2, should_blend:
-                    blend_images(
-                        image=x, image2=x2, should_blend=should_blend, alpha=blend_alpha),
+                image, lambda x, x2, should_blend: blend_images(image=x,
+                                                                image2=x2,
+                                                                should_blend=should_blend,
+                                                                alpha=blend_alpha),
                 num_cases=skip_blend_every_n)
 
         if image.dtype != tf.float32:

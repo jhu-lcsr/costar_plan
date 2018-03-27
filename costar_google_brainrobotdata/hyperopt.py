@@ -23,8 +23,6 @@ except ImportError:
             return args[0]
         return kwargs.get('iterable', None)
 
-FLAGS = flags.FLAGS
-
 
 class HyperparameterOptions(object):
 
@@ -188,7 +186,7 @@ def optimize(
                 'will go with your choice.')
 
     if hyperoptions is None:
-        hyperoptions = hyperopt.HyperparameterOptions()
+        hyperoptions = HyperparameterOptions()
     # Configuring hyperparameters
 
     if variable_trainability:
