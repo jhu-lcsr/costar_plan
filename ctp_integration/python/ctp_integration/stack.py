@@ -118,16 +118,21 @@ def GetHome():
     move = GetPlanToPoseService()
     servo_mode = GetServoModeService()
     def home():
+        rospy.loginfo("HOME: set servo mode")
         servo_mode("servo")
+        rospy.loginfo("HOME: open gripper to drop anything")
         open_gripper()
+        rospy.loginfo("HOME: move to config home")
         res1 = js_home(ServoToPoseRequest())
         if "failure" in res1.ack.lower():
             rospy.logerr(res1.ack)
             sys.exit(-1)
+        rospy.loginfo("HOME: move to pose over objects")
         res2 = move(req)
         if "failure" in res2.ack.lower():
             rospy.logerr("move failed:" + str(res2.ack))
             sys.exit(-1)
+        rospy.loginfo("HOME: done")
     return home
 
 def GetUpdate(observe, collector):

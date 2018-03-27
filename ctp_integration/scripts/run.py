@@ -177,7 +177,6 @@ def collect_data(args):
     start = max(0, args.start-1)
     i = start
     while i < args.execute:
-        rospy.loginfo("Reset to home...")
         home()
         rospy.sleep(0.1) # Make sure nothing weird happens with timing
         idx = i + 1
@@ -189,9 +188,9 @@ def collect_data(args):
         #plan = OptionsExecutionManager(options)
 
         # Reset the task manager
-        rospy.loginfo("Resetting task state")
         reward = 0.
         stack_task.reset()
+        rospy.loginfo("Starting loop...")
 
         poses = []
         cur_pose = None
