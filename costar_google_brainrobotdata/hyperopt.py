@@ -232,8 +232,9 @@ def optimize(
     hyperoptions.add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
                            enable=False, required=True, default=feature_combo_name)
     # leaving out nasnet_large for now because it needs different input dimensions.
-    # other supported options: 'densenet', 'nasnet_mobile', 'resnet'
-    hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'])
+    # other supported options: 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'
+    hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'],
+                           enable=False, required=True, default='vgg')
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
     hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 12)])
@@ -301,6 +302,15 @@ def optimize(
                   'To avoid this entirely you will need to debug your model w.r.t. '
                   'the current hyperparam choice.'
                   'Error: ', exception)
+            loss = float('inf')
+            ex_type, ex, tb = sys.exc_info()
+            traceback.print_tb(tb)
+            # deletion must be explicit to prevent leaks
+            # https://stackoverflow.com/a/16946886/99379
+            del tb
+        except KeyboardInterrupt as e:
+            print('Evaluation of this model canceled based on a user request. '
+                  'We will continue to next stage and return infinity loss for the canceled model.')
             loss = float('inf')
             ex_type, ex, tb = sys.exc_info()
             traceback.print_tb(tb)

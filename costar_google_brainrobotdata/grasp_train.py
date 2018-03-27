@@ -44,6 +44,8 @@ import grasp_utilities
 import keras_workaround
 from callbacks import EvaluateInputTensor
 from callbacks import PrintLogsCallback
+from callbacks import SlowModelStopping
+from callbacks import InaccurateModelStopping
 
 from tqdm import tqdm  # progress bars https://github.com/tqdm/tqdm
 from keras_tqdm import TQDMCallback  # Keras tqdm progress bars https://github.com/bstriner/keras-tqdm
@@ -321,8 +323,6 @@ class GraspTrain(object):
                  grasp_sequence_min_time_step,
                  grasp_sequence_max_time_step)
 
-            print('resize_height: >>>>>> ' + str(resize_height))
-            print('resize_width: >>>>>> ' + str(resize_width))
             if resize:
                 input_image_shape = [batch_size, int(resize_height), int(resize_width), 3]
             else:
@@ -451,6 +451,7 @@ class GraspTrain(object):
                                                write_grads=True, write_images=True)
                 callbacks = callbacks + [progress_tracker]
 
+            callbacks += [SlowModelStopping(max_batch_time_seconds=1.25), InaccurateModelStopping()]
             # 2017-08-28 trying SGD
             # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
             if FLAGS.optimizer == 'SGD':

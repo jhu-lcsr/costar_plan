@@ -61,6 +61,8 @@ from cornell_grasp_dataset_reader import parse_and_preprocess
 from callbacks import EvaluateInputGenerator
 from callbacks import PrintLogsCallback
 from callbacks import FineTuningCallback
+from callbacks import SlowModelStopping
+from callbacks import InaccurateModelStopping
 
 import grasp_loss
 import grasp_metrics
@@ -385,6 +387,7 @@ def run_training(
         save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
     callbacks = callbacks + [checkpoint]
+    callbacks += [SlowModelStopping(max_batch_time_seconds=0.5), InaccurateModelStopping()]
     # An additional useful param is write_batch_performance:
     #  https://github.com/keras-team/keras/pull/7617
     #  write_batch_performance=True)

@@ -1,6 +1,8 @@
-import keras
-import sys
 
+import sys
+from timeit import default_timer
+import numpy as np
+import keras
 
 class EvaluateInputTensor(keras.callbacks.Callback):
     """ Validate a model which does not expect external numpy data during training.
@@ -152,3 +154,76 @@ class FineTuningCallback(keras.callbacks.Callback):
             print('\n\nepoch:' + str(epoch) + ' self.epoch: ' + str(self.epoch) + ' lr: ' + str(logs['lr']) +
                   ' self.learning_rate: ' + str(self.learning_rate) + ' float(K.get_value(self.model.optimizer.lr)): ' +
                   str(float(keras.backend.get_value(self.model.optimizer.lr))) + ' what is going on?1\n\n')
+
+
+class SlowModelStopping(keras.callbacks.Callback):
+    """ Stop a model from training if it runs too slowly.
+    """
+
+    def __init__(self, min_batch_patience=30, max_batch_time_seconds=1, max_epoch_time_seconds=7000, verbose=0):
+        self._min_batch_patience = min_batch_patience
+        self._max_batch_time_seconds = max_batch_time_seconds
+        self._max_epoch_time_seconds = max_epoch_time_seconds
+        self._epoch_elapsed = 0
+        self.verbose = verbose
+        self.stopped_epoch = 0
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self._epoch_start = default_timer()
+
+    def on_batch_begin(self, batch, logs=None):
+        self._batch_start = default_timer()
+        self._batch_elapsed = []
+
+    def on_batch_end(self, batch, logs=None):
+        batch_elapsed = default_timer() - self._batch_start
+        self._batch_elapsed.append(batch_elapsed)
+        if(self._min_batch_patience is not None and
+           self._max_batch_time_seconds is not None and
+           batch > self._min_batch_patience and
+           batch < self._min_batch_patience + 10):
+
+            mean_batch = np.mean(self._batch_elapsed)
+            if mean_batch > self._max_batch_time_seconds:
+                raise ValueError('Batches took too long: ' + str(mean_batch) +
+                                 ' vs max allowed: ' + str(self._max_batch_time_seconds))
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs if logs is not None else {}
+        self._epoch_elapsed = default_timer() - self._epoch_start
+        logs['epoch_elapsed'] = self._epoch_elapsed
+        mean_batch = np.mean(self._batch_elapsed)
+        logs['mean_batch_elapsed'] = mean_batch
+        if mean_batch > self._max_batch_time_seconds:
+            self.model.stop_training = True
+            self.stopped_epoch = epoch
+
+    def on_train_end(self, logs=None):
+        if self.stopped_epoch > 0 and self.verbose > 0:
+            print('Epoch %05d: slow model, stopping early' % (self.stopped_epoch + 1))
+
+
+class InaccurateModelStopping(keras.callbacks.Callback):
+    """ Stop a model from training if it ends up on perverse solutions like always 0 or 1.
+    """
+
+    def __init__(self, min_batch_patience=300, min_pred=0.1, max_pred=0.9, metric='mean_pred', verbose=0):
+        self._min_batch_patience = min_batch_patience
+        self._max_pred = max_pred
+        self._min_pred = min_pred
+        self._epoch_elapsed = 0
+        self.verbose = verbose
+        self.stopped_epoch = 0
+        self.metric = metric
+
+    def on_batch_end(self, batch, logs=None):
+        if self.metric in logs:
+            value = logs[self.metric]
+            if(self._min_batch_patience is not None and
+               self._max_pred is not None and
+               batch > self._min_batch_patience):
+
+                if value > self._max_pred or value < self._min_pred:
+                    raise ValueError(str(self.metric) + ' was inaccurate: ' + str(value) +
+                                     ' vs allowed range [ ' + + str(self._min_pred) +
+                                     ', ' + str(self._max_pred) + ']')

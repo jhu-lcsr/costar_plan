@@ -35,6 +35,7 @@ def main(_):
     batch_size = 4
     min_top_block_filter_multiplier = 6
     feature_combo_name = None
+    seed = 2
 
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
@@ -50,7 +51,8 @@ def main(_):
         log_dir=log_dir,
         min_top_block_filter_multiplier=min_top_block_filter_multiplier,
         batch_size=batch_size,
-        param_to_optimize=param_to_optimize)
+        param_to_optimize=param_to_optimize,
+        seed=seed)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
