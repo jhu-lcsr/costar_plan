@@ -124,14 +124,14 @@ def GetHome():
         open_gripper()
         rospy.loginfo("HOME: move to config home")
         res1 = js_home(ServoToPoseRequest())
-        if "failure" in res1.ack.lower():
+        if res1 is None or "failure" in res1.ack.lower():
             rospy.logerr(res1.ack)
-            sys.exit(-1)
+            raise RuntimeError("HOME(): error moving to home1")
         rospy.loginfo("HOME: move to pose over objects")
         res2 = move(req)
-        if "failure" in res2.ack.lower():
+        if res2 is None or "failure" in res2.ack.lower():
             rospy.logerr("move failed:" + str(res2.ack))
-            sys.exit(-1)
+            raise RuntimeError("HOME(): error moving to pose over workspace")
         rospy.loginfo("HOME: done")
     return home
 
@@ -154,16 +154,16 @@ def GetUpdate(observe, collector):
         q0 = collector.q
         servo_mode("servo")
         res = move(req)
-        if "failure" in res.ack.lower():
+        if res is None or "failure" in res.ack.lower():
             rospy.logerr(res.ack)
-            sys.exit(-1)
+            raise RuntimeError("UPDATE(): error moving out of the way")
             return False
         observe()
         res2 = go_to_js(MakeServoToJointStateRequest(q0))
-        if "failure" in res2.ack.lower():
+        if res2 is None or "failure" in res2.ack.lower():
             rospy.logerr(res2.ack)
+            raise RuntimeError("UPDATE(): error returning to original joint pose")
             return False
-            sys.exit(-1)
         else:
             return True
     return update

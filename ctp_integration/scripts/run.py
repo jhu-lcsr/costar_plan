@@ -178,7 +178,7 @@ def collect_data(args):
     i = start
     while i < args.execute:
         home()
-        rospy.sleep(0.1) # Make sure nothing weird happens with timing
+        rospy.sleep(0.5) # Make sure nothing weird happens with timing
         idx = i + 1
         rospy.loginfo("Executing trial %d" % (idx))
         _, world = observe()
