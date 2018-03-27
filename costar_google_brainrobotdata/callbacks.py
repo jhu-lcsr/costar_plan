@@ -225,5 +225,5 @@ class InaccurateModelStopping(keras.callbacks.Callback):
 
                 if value > self._max_pred or value < self._min_pred:
                     raise ValueError(str(self.metric) + ' was inaccurate: ' + str(value) +
-                                     ' vs allowed range [ ' + + str(self._min_pred) +
+                                     ' vs allowed range [ ' + str(self._min_pred) +
                                      ', ' + str(self._max_pred) + ']')
