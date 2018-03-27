@@ -59,31 +59,33 @@ class StackManager(object):
         if not self.ok:
             self.done = True
 
-        # Return status or continue
-        if self.done:
-            return self.ok
-        elif self.service.update():
-            self.done = False
-            return
-        elif self.current in self.children:
-            # This one has a child to execute
-            self.done = False
-        else:
-            self.done = True
+        rospy.logwarn("current = " + str(self.current))
+        if self.current is not None:
+            # Return status or continue
+            if self.done:
+                return self.ok
+            elif self.service.update():
+                self.done = False
+                return
+            elif self.current in self.children:
+                # This one has a child to execute
+                self.done = False
+            else:
+                self.done = True
 
         if self.service.ok:
             self.ok = True
         else:
             self.ok = False
             self.done = True
-            rospy.logerr(self.service.result.ack)
+            rospy.logerr("service was not ok: " + str(self.service.result.ack))
 
         if not self.done:
             self.finished_action = True
-            rospy.logwarn("current = " + str(self.current))
             children = self.children[self.current]
             idx = np.random.randint(len(children))
             next_action = children[idx]
+            rospy.logwarn("next action = " + str(next_action))
             srv, req = self.reqs[next_action]
             self.update()
             if not self.service(srv, req):

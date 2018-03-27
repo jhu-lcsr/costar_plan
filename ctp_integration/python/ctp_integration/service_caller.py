@@ -41,6 +41,7 @@ class ServiceCaller(object):
             self.thread.join()
             self.thread = None
         self.running = False
+        self.ok = True
 
     def update(self):
         if self.thread is None:
