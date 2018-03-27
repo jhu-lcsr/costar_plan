@@ -177,10 +177,11 @@ def collect_data(args):
     start = max(0, args.start-1)
     i = start
     while i < args.execute:
+        rospy.loginfo("Reset to home...")
         home()
         rospy.sleep(0.1) # Make sure nothing weird happens with timing
         idx = i + 1
-        print("Executing trial %d" % (idx))
+        rospy.loginfo("Executing trial %d" % (idx))
         _, world = observe()
         # NOTE: not using CTP task execution framework right now
         # It's just overkill
@@ -188,6 +189,7 @@ def collect_data(args):
         #plan = OptionsExecutionManager(options)
 
         # Reset the task manager
+        rospy.loginfo("Resetting task state")
         reward = 0.
         stack_task.reset()
 
@@ -195,6 +197,7 @@ def collect_data(args):
         cur_pose = None
         # Update the plan and the collector in synchrony.
         while not rospy.is_shutdown():
+
             cur_pose = collector.current_ee_pose
             
             # Note: this will be "dummied out" for most of 
@@ -281,6 +284,8 @@ def collect_data(args):
             rospy.logwarn(str(pose_random))
             move_to_pose(pose_random)
             open_gripper()
+
+        rospy.loginfo("Done one loop.")
 
 def initialize_collection_objects(args, observe, collector, stack_task):
     rate = rospy.Rate(args.rate)
