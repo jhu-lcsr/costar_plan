@@ -12,19 +12,27 @@ class StackManager(object):
     '''
     objs = ["red_cube", "green_cube", "blue_cube", "yellow_cube"]
 
-    def __init__(self, collector=None, *args, **kwargs):
-        self.collector = collector
+    def __init__(self, *args, **kwargs):
         self.service = ServiceCaller(*args, **kwargs)
         self.detect = GetDetectObjectsService()
         self.place = GetSmartPlaceService()
         self.reset()
         self.reqs = {}
         self.children = {}
+        self.labels = set()
+        self.update = self._update()
+
+    def _update(self):
+        pass
+
+    def setUpdate(self, update_fn):
+        self.update = update_fn
 
     def reset(self):
         self.done = False
         self.current = None
         self.ok = True
+        self.finished_action = False
 
     def addRequest(self, parents, name, srv, req):
         self.reqs[name] = (srv, req)
@@ -34,8 +42,18 @@ class StackManager(object):
             if parent not in self.children:
                 self.children[parent] = []
             self.children[parent].append(name)
+            self.labels.add(name.split(':')[-1])
+            self.labels_list = list(self.labels)
+
+    def index(self, label):
+        return self.labels_list.index(label.split(':')[-1])
+
+    def validLabel(self, label):
+        return label.split(':')[-1] in self.labels
 
     def tick(self):
+        self.finished_action = False
+
         # Check to make sure everything is ok
         if not self.ok:
             self.done = True
@@ -45,7 +63,6 @@ class StackManager(object):
             return self.ok
         elif self.service.update():
             self.done = False
-            rospy.loginfo("still running: " + str(self.current))
             return
         elif self.current in self.children:
             # This one has a child to execute
@@ -58,12 +75,15 @@ class StackManager(object):
         else:
             self.ok = False
             self.done = True
+            rospy.logerr(self.service.result.ack)
 
         if not self.done:
+            self.finished_action = True
             children = self.children[self.current]
             idx = np.random.randint(len(children))
             next_action = children[idx]
             srv, req = self.reqs[next_action]
+            self.update()
             if not self.service(srv, req):
                 raise RuntimeError('could not start service: ' + next_action)
             self.current = next_action

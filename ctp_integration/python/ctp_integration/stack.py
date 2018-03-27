@@ -73,7 +73,10 @@ def GetGraspPose():
 
 def GetStackPose():
     # Grasp from the top, centered (roughly)
-    pose = GetGraspPose() * kdl.Frame(kdl.Vector(-0.05,0.,0.))
+    pose = kdl.Frame(
+            kdl.Rotation.Quaternion(1.,0.,0.,0.),
+            kdl.Vector(-0.22, -0.02, -0.01))
+    pose = pose * kdl.Frame(kdl.Vector(-0.052,0.,0.))
     return pose
 
 def GetTowerPoses():
@@ -95,7 +98,17 @@ def _makeSmartPlaceRequest(poses, name):
     req.backoff = 0.05
     return req
 
+def GetMoveToPose():
+    move_srv = GetPlanToPoseService()
+    servo_mode = GetServoModeService()
+    def move(pose):
+        req = ServoToPoseRequest()
+        req.target = pm.toMsg(pose)
+        move_srv(req)
+    return move
+
 def GetHome():
+    js_home = GetPlanToHomeService()
     pose_home = kdl.Frame(
             kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
             kdl.Vector(0.174, -0.157, 0.682))
@@ -107,19 +120,56 @@ def GetHome():
     def home():
         servo_mode("servo")
         open_gripper()
+        res1 = js_home(ServoToPoseRequest())
+        if "failure" in res1.ack.lower():
+            rospy.logerr(res1.ack)
+            sys.exit(-1)
+        res2 = move(req)
+        if "failure" in res2.ack.lower():
+            rospy.logerr("move failed:" + str(res2.ack))
+            sys.exit(-1)
+    return home
+
+def GetUpdate(observe, collector):
+    '''
+    Parameters:
+    -----------
+    observe: callable functor that will call object detection
+    collector: wrapper class aggregating robot info including joint state
+    '''
+    go_to_js = GetPlanToJointStateService()
+    pose_home = kdl.Frame(
+            kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
+            kdl.Vector(0.174, -0.157, 0.682))
+    req = ServoToPoseRequest()
+    req.target = pm.toMsg(pose_home)
+    move = GetPlanToPoseService()
+    servo_mode = GetServoModeService()
+    def update():
+        q0 = collector.q
+        servo_mode("servo")
         res = move(req)
         if "failure" in res.ack.lower():
             rospy.logerr(res.ack)
             sys.exit(-1)
-    return home
+            return False
+        observe()
+        res2 = go_to_js(MakeServoToJointStateRequest(q0))
+        if "failure" in res2.ack.lower():
+            rospy.logerr(res2.ack)
+            return False
+            sys.exit(-1)
+        else:
+            return True
+    return update
 
-def GetStackManager(collector):
-    sm = StackManager(collector)
+def GetStackManager():
+    sm = StackManager()
     grasp = GetSmartGraspService()
     release = GetSmartReleaseService()
 
     for color in colors:
-        name = "grab_%s"%color
+        name = "1:grab_%s"%color
         req = _makeSmartGraspRequest(color)
         sm.addRequest(None, name, grasp, req)
 
@@ -127,9 +177,20 @@ def GetStackManager(collector):
             if color2 == color:
                 continue
             else:
-                name2 = "place_%s_on_%s"%(color,color2)
+                name2 = "2%s:place_%s_on_%s"%(color2,color,color2)
                 req2 = _makeSmartReleaseRequest(color2)
                 sm.addRequest(name, name2, release, req2)
+
+                for color3 in colors:
+                    if color3 in [color, color2]:
+                        continue
+                    else:
+                        name3 = "3%s%s:grab_%s"%(color,color2,color3)
+                        req3 = _makeSmartGraspRequest(color3)
+                        sm.addRequest(name2, name3, grasp, req3)
+                        name4 = "4%s%s:place_%s_on_%s%s"%(color,color2,color3,color2,color)
+                        req4 = _makeSmartReleaseRequest(color)
+                        sm.addRequest(name3, name4, release, req4)
 
     return sm
 
@@ -143,7 +204,7 @@ def _makeSmartGraspRequest(color):
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
     req.name = "grasp_%s" % req.obj_class
-    req.backoff = 0.05
+    req.backoff = 0.075
     return req
 
 def _makeSmartReleaseRequest(color):
@@ -160,7 +221,7 @@ def _makeSmartReleaseRequest(color):
         raise RuntimeError("color %s not recognized" % color)
     req.obj_class = "%s_cube" % color
     req.name = "place_on_%s" % color
-    req.backoff = 0.1
+    req.backoff = 0.075
     req.constraints = [constraint]
     return req
 

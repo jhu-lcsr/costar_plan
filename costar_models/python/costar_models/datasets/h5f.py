@@ -3,6 +3,15 @@ from __future__ import print_function
 import h5py as h5f
 import numpy as np
 import os
+import datetime
+
+# TODO(ahundt) move to a utilities location
+def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
+    """ Apply a timestamp to the front of a filename description.
+
+    see: http://stackoverflow.com/a/5215012/99379
+    """
+    return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 class H5fDataset(object):
     '''
@@ -28,7 +37,7 @@ class H5fDataset(object):
             status = "success"
         else:
             status = "failure"
-        filename = "example%06d.%s.h5f"%(i,status)
+        filename = timeStamped("example%06d.%s.h5f"%(i,status))
         filename = os.path.join(self.name, filename)
         f = h5f.File(filename, 'w')
         for key, value in example.items():
