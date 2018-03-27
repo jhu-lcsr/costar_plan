@@ -33,6 +33,7 @@ class StackManager(object):
         self.current = None
         self.ok = True
         self.finished_action = False
+        self.service.reset()
 
     def addRequest(self, parents, name, srv, req):
         self.reqs[name] = (srv, req)
