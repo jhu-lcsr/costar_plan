@@ -99,8 +99,8 @@ def main(args):
                   " not match.")
             print("num goals =", len(data["goal_idx"]))
             print("num images =", len(data["image"]))
-
-        write(new_data_file, filename, newdata)
+        else:
+            write(new_data_file, filename, newdata)
 
 def write(directory, filename, data):
     filename = os.path.join(directory, filename)
