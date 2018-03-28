@@ -549,7 +549,6 @@ class GraspTrain(object):
                 raise e
             return final_weights_name, history
 
-
     def eval(self, dataset=None,
              batch_size=None,
              load_weights=None,
