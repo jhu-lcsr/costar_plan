@@ -136,7 +136,8 @@ def make_model_description(run_name, model_name, hyperparams, dataset_names_str)
     model_description = ''
     if run_name:
         model_description += run_name + '-'
-        model_description += model_name
+    if model_name:
+        model_description += model_name + '-'
 
     if hyperparams is not None:
         if 'image_model_name' in hyperparams:

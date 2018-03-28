@@ -938,7 +938,7 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
                 input_vector_op=None,
                 input_image_shape=None,
                 **kw):
-            print('hyperparams make_model_fn input_image_shape:' )
+            print('hyperparams make_model_fn input_image_shape: ' + str(input_image_shape))
             hyperparams = None
             if 'hyperparams' in kw:
                 hyperparams = kw['hyperparams']
@@ -1002,7 +1002,8 @@ def run_hyperopt(hyperparams=None, **kwargs):
             make_model_fn=make_model_fn,
             load_weights=None,
             model_name=model_name,
-            dataset=grasp_dataset)
+            dataset=grasp_dataset,
+            hyperparams=hyperparams)
         return history
 
 
