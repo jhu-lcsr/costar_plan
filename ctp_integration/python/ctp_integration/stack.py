@@ -118,16 +118,21 @@ def GetHome():
     move = GetPlanToPoseService()
     servo_mode = GetServoModeService()
     def home():
+        rospy.loginfo("HOME: set servo mode")
         servo_mode("servo")
+        rospy.loginfo("HOME: open gripper to drop anything")
         open_gripper()
+        rospy.loginfo("HOME: move to config home")
         res1 = js_home(ServoToPoseRequest())
-        if "failure" in res1.ack.lower():
+        if res1 is None or "failure" in res1.ack.lower():
             rospy.logerr(res1.ack)
-            sys.exit(-1)
+            raise RuntimeError("HOME(): error moving to home1")
+        rospy.loginfo("HOME: move to pose over objects")
         res2 = move(req)
-        if "failure" in res2.ack.lower():
+        if res2 is None or "failure" in res2.ack.lower():
             rospy.logerr("move failed:" + str(res2.ack))
-            sys.exit(-1)
+            raise RuntimeError("HOME(): error moving to pose over workspace")
+        rospy.loginfo("HOME: done")
     return home
 
 def GetUpdate(observe, collector):
@@ -138,32 +143,57 @@ def GetUpdate(observe, collector):
     collector: wrapper class aggregating robot info including joint state
     '''
     go_to_js = GetPlanToJointStateService()
+
+
+    # Create cartesian move request:
     pose_home = kdl.Frame(
             kdl.Rotation.Quaternion(0.711, -0.143, -0.078, 0.684),
             kdl.Vector(0.174, -0.157, 0.682))
-    req = ServoToPoseRequest()
-    req.target = pm.toMsg(pose_home)
-    move = GetPlanToPoseService()
+    #req = ServoToPoseRequest()
+    #req.target = pm.toMsg(pose_home)
+    #move = GetPlanToPoseService()
+
+    # Create joint move request:
+    q_home = [-0.202,
+            -0.980,
+            -1.800,
+            -0.278,
+            1.460,
+            1.613]
+    req = MakeServoToJointStateRequest(q_home)
+
     servo_mode = GetServoModeService()
     def update():
         q0 = collector.q
         servo_mode("servo")
-        res = move(req)
-        if "failure" in res.ack.lower():
+
+        # -------
+        # Uncomment if you want to move to a 6DOF cartesian pose instead of a
+        # joint pose
+        #res = move(req)
+    
+        # -------
+        # Move to joint position    
+        res = go_to_js(req)
+
+        if res is None or "failure" in res.ack.lower():
             rospy.logerr(res.ack)
-            sys.exit(-1)
+            raise RuntimeError("UPDATE(): error moving out of the way")
             return False
         observe()
         res2 = go_to_js(MakeServoToJointStateRequest(q0))
-        if "failure" in res2.ack.lower():
+        if res2 is None or "failure" in res2.ack.lower():
             rospy.logerr(res2.ack)
+            raise RuntimeError("UPDATE(): error returning to original joint pose")
             return False
-            sys.exit(-1)
         else:
             return True
     return update
 
 def GetStackManager():
+    '''
+    Use addRequest() to create the graph of high-level actions to be performed.
+    '''
     sm = StackManager()
     grasp = GetSmartGraspService()
     release = GetSmartReleaseService()
@@ -191,6 +221,21 @@ def GetStackManager():
                         name4 = "4%s%s:place_%s_on_%s%s"%(color,color2,color3,color2,color)
                         req4 = _makeSmartReleaseRequest(color)
                         sm.addRequest(name3, name4, release, req4)
+
+    return sm
+
+def GetKittingManager():
+    sm = StackManager()
+    grasp = GetSmartGraspService()
+    release = GetSmartReleaseService()
+
+    for color in colors:
+        name = "1:grab_%s"%color
+        req = _makeSmartGraspRequest(color)
+        sm.addRequest(None, name, grasp, req)
+        
+        # TODO(ahundt): place block of "color" in the appropriate place
+        # TODO(ahundt): grasp next block, etc.
 
     return sm
 
