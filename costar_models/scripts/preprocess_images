@@ -19,6 +19,7 @@ from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
 from costar_models.datasets.h5f_generator import H5fGeneratorDataset
+from costar_models.datasets.image import *
 
 from costar_models.planner import *
 from costar_models.multi import *
@@ -70,16 +71,24 @@ def main(args):
     for fnum, filename in enumerate(dataset.test + dataset.train):
         newdata = {}
         data = dataset.loadFile(filename)
+        print(fnum, "Loaded", filename)
         for k, v in data.items():
-            if not k == "images":
+            print(k)
+            if not k == "image":
                 newdata[k] = v
-            for i in range(0):
-                crop = frame
-                image = imresize(crop, (96, 96))
-                image = image.astype(np.uint8)
-                plt.figure()
-                plt.imshow(image)
-                plt.show()
+            else:
+                f = ConvertJpegListToNumpy(np.squeeze(v))
+                for i in range(f.shape[0]):
+                    frame = f[i]
+                    print(frame.shape)
+                    dim = min(frame.shape[0], frame.shape[1])
+                    crop = frame[:dim, :dim, :]
+                    image = imresize(crop, (96, 96))
+                    image = image.astype(np.uint8)
+                    plt.figure()
+                    plt.imshow(image)
+                    plt.show()
+        break
 
 
 def write(directory, filename, data):
