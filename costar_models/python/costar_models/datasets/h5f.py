@@ -29,7 +29,7 @@ class H5fDataset(object):
         except OSError as e:
             pass
 
-    def write(self, example, i, r):
+    def write(self, example, i, r, image_type=None):
         '''
         Write an example out to disk.
         '''
@@ -42,6 +42,9 @@ class H5fDataset(object):
         f = h5f.File(filename, 'w')
         for key, value in example.items():
             f.create_dataset(key, data=value)
+        if image_type is not None:
+            dt = h5py.special_dtype(vlen=bytes)
+            f.create_dataset("image_type", data=["image_type"])
         f.close()
 
     def load(self,success_only=False):

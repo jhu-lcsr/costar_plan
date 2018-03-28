@@ -23,7 +23,7 @@ class NpzDataset(object):
         except OSError:
             pass
 
-    def write(self, example, i, r):
+    def write(self, example, i, r, image_type=None):
         '''
         Write an example out to disk.
         '''
@@ -33,6 +33,8 @@ class NpzDataset(object):
             status = "failure"
         filename = "example%06d.%s.npz"%(i,status)
         filename = os.path.join(self.name, filename)
+        if image_type is not None:
+            example["image_type"] = image_type
         np.savez(filename, **example)
 
     def load(self,success_only=False):
