@@ -89,7 +89,7 @@ def main(args):
                     #plt.figure()
                     #plt.imshow(image)
                     #plt.show()
-                    images.append(image)
+                    images.append(GetJpeg(image))
                 newdata[k] = np.array(images)
 
         write(new_data_file, filename, newdata)
