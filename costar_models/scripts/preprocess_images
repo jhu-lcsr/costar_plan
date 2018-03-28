@@ -95,7 +95,7 @@ def main(args):
                     #plt.show()
                     images.append(GetJpeg(image))
                 newdata[k] = np.array(images)
-        print(data['labels_to_name'].shape)
+        print("- total number of options =", data['labels_to_name'].shape)
         ok = len(newdata['image']) == len(newdata['goal_idx'])
 
 
