@@ -241,11 +241,14 @@ class DataCollector(object):
                 obj_pose = self.tf_listener.lookup_transform(self.base_link, self.object, t)
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                rospy.logwarn("Failed lookup: %s to %s, %s"%(self.base_link, self.camera_frame, self.ee_frame))
+                rospy.logwarn("Failed lookup: %s to %s, %s, %s" % 
+                        (self.base_link, self.camera_frame, self.ee_frame, str(self.object)))
                 have_data = False
                 attempts += 1
                 if attempts > max_attempts:
-                    return False
+                    # Could not look up one of the transforms -- either could 
+                    # not look up camera, endpoint, or object.
+                    raise e
 
         c_xyz = [c_pose.transform.translation.x,
                  c_pose.transform.translation.y,
