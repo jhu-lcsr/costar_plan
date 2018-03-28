@@ -68,10 +68,6 @@ def main(args):
         raise RuntimeError('Must provide features specification')
     features_arg = args['features']
 
-    if 'model' not in args or args['model'] is None:
-        raise RuntimeError('Must provide a model to load')
-    model_arg = args['model']
-
     for fnum, filename in enumerate(dataset.test + dataset.train):
         newdata = {}
         ok = True
@@ -97,7 +93,6 @@ def main(args):
                 newdata[k] = np.array(images)
         print("- total number of options =", data['labels_to_name'].shape)
         ok = len(newdata['image']) == len(newdata['goal_idx'])
-
 
         if not ok:
             print("Skipping ", filename, "because data type shapes do"
