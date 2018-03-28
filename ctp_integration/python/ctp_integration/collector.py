@@ -181,7 +181,7 @@ class DataCollector(object):
         print(self.data["goal_idx"])
 
         # for now all examples are considered a success
-        self.writer.write(self.data, seed, result)
+        self.writer.write(self.data, seed, result, image_type="jpeg")
         self.reset()
 
     def update(self, action_label, is_done):
