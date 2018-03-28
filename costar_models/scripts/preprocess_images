@@ -46,7 +46,10 @@ def main(args):
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]
     new_data_file = "small_" + data_file_info[0]
-    os.mkdir(new_data_file)
+    try:
+        os.mkdir(new_data_file)
+    except OSError as e:
+        pass
     root = ""
     for i, tok in enumerate(data_file_info[:-1]):
         if i < len(data_file_info)-1 and i > 0:
@@ -71,6 +74,7 @@ def main(args):
 
     for fnum, filename in enumerate(dataset.test + dataset.train):
         newdata = {}
+        ok = True
         data = dataset.loadFile(filename)
         print(fnum, "Loaded", filename)
         for k, v in data.items():
@@ -92,6 +96,14 @@ def main(args):
                     images.append(GetJpeg(image))
                 newdata[k] = np.array(images)
         print(data['labels_to_name'].shape)
+        ok = len(newdata['image']) == len(newdata['goal_idx'])
+
+
+        if not ok:
+            print("Skipping ", filename, "because data type shapes do"
+                  "not match.")
+            print("num goals =", len(data["goal_idx"]))
+            print("num images =", len(data["image"]))
 
         write(new_data_file, filename, newdata)
 

@@ -138,38 +138,44 @@ class ConditionalImageCostar(ConditionalImage):
         '''
 
         # Null option to be set as the first option
-        #self.null_option = len(labels_to_name)
+        # Verify this to make sure we aren't loading things with different
+        # numbers of available options/high-level actions
+        assert(len(labels_to_name) == self.null_option)
+        self.null_option = len(labels_to_name)
         # Total number of options incl. null
-        #self.num_options = len(labels_to_name) + 1
+        self.num_options = len(labels_to_name) + 1
 
         length = label.shape[0]
         prev_label = np.zeros_like(label)
         prev_label[1:] = label[:(length-1)]
         prev_label[0] = self.null_option
 
-        print(label)
-        print(prev_label)
-        print(labels_to_name)
-        asdf
+        goal_idx = np.min((goal_idx, np.ones_like(goal_idx)*(length-1)),axis=0)
 
-        imgs, lbls, goal_idxs, goal_lbls, prev_lbls = image, label, goal_idx, goal_label, prev_label
-        goal_imgs = imgs[goal_idxs]
-        goal_imgs2, lbls2 = GetNextGoal(goal_imgs, lbls)
+        if not (image.shape[0] == goal_idx.shape[0]):
+            print("Image shape:", image.shape)
+            print("Goal idxs:", goal_idx.shape)
+            print(label)
+            print(goal_idx)
+            raise RuntimeError('data type shapes did not match')
+        goal_label = label[goal_idx]
+        goal_image = image[goal_idx]
+        goal_image2, goal_label2 = GetNextGoal(goal_image, label)
 
-        # Extend imgs_0 to full length of sequence
-        imgs0 = imgs[0]
-        length = imgs.shape[0]
-        imgs0 = np.tile(np.expand_dims(imgs0,axis=0),[length,1,1,1])
+        # Extend image_0 to full length of sequence
+        image0 = image[0]
+        length = image.shape[0]
+        image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
 
-        lbls_1h = np.squeeze(ToOneHot2D(lbls, self.num_options))
-        lbls2_1h = np.squeeze(ToOneHot2D(lbls2, self.num_options))
+        lbls_1h = np.squeeze(ToOneHot2D(label, self.num_options))
+        lbls2_1h = np.squeeze(ToOneHot2D(goal_label2, self.num_options))
         if self.no_disc:
-            return ([imgs0, imgs, lbls, goal_lbls, prev_lbls],
-                    [goal_imgs,
-                     goal_imgs2,])
+            return ([image0, image, label, goal_label, prev_label],
+                    [goal_image,
+                     goal_image2,])
         else:
-            return ([imgs0, imgs, lbls, goal_lbls, prev_lbls],
-                    [goal_imgs,
-                     goal_imgs2,
+            return ([image0, image, lbls, goal_lbls, prev_lbls],
+                    [goal_image,
+                     goal_image2,
                      lbls2_1h,])
 
