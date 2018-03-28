@@ -44,7 +44,7 @@ class Observer(object):
         self.task.clear()
 
         # Call the detect objects service and wait for response
-        world = self.world.fork()
+        #world = self.world.fork()
         self.detect_srv()
 
         # Spin
@@ -66,7 +66,7 @@ class Observer(object):
         rospy.loginfo("Detected objects: " + str(args))
 
         # Step 2. Compile the plan.
-        self.world.addObjects(args)
+        #self.world.addObjects(args)
         #filled_args = self.task.compile(args)
         #print(filled_args)
 
