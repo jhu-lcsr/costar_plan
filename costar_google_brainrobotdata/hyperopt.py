@@ -296,7 +296,7 @@ def optimize(
             # deletion must be explicit to prevent leaks
             # https://stackoverflow.com/a/16946886/99379
             del tb
-        except (ValueError, tf.python.framework.errors_impl.FailedPreconditionError) as exception:
+        except (ValueError, tf.errors.FailedPreconditionError, tf.errors.OpError) as exception:
             print('Hyperparams encountered a model that failed with an invalid combination of values, '
                   'we will continue to next stage and return infinity loss for now.'
                   'To avoid this entirely you will need to debug your model w.r.t. '
