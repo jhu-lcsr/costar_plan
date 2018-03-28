@@ -123,14 +123,27 @@ rosrun costar_models ctp_model_tool --model conditional_image \
     --dropout_rate 0.1 --data_file small_robot2.h5f --lr 0.001 \
     --features costar -e 150 --model_directory $HOME/.costar/models \
     --skip_connections 1 --use_ssm 1 --batch_size 64 --no_disc \
-    --steps_per_epoch 300   
+    --steps_per_epoch 300 --retrain
 # Without ROS
 $COSTAR_PLAN/costar_models/scripts/ctp_model_tool --model conditional_image \
     --dropout_rate 0.1 --data_file small_robot2.h5f --lr 0.001 \
     --features costar -e 150 --model_directory $HOME/.costar/models \
     --skip_connections 1 --use_ssm 1 --batch_size 64 --no_disc \
-    --steps_per_epoch 300
+    --steps_per_epoch 300 --retrain
 ```
+
+Rundown of flags:
+  - `--retrain` tells it to re-learn the encoder and decoder
+  - `--data_file` tells it which directory and file format to load data from
+  - `--lr` sets the learning rate
+  - `--no_disc` tells it to use a simplified model without the augmented loss
+  - `--features costar` tells it to load the costar (real robot) version of the training model setup
+  - `--model_directory` will tell it where models and results are to be saved
+  - `--dropout_rate 0.1` sets 10% dropout
+  - `--skip_connections 1` activates skip connections in the transform
+  - `--use_ssm 1` enables a spatial softmax in the transform
+  - `--batch_size 64` tells it to use batches of 64 examples
+  - `--steps_per_epoch` tells it how often to update metrics and compute validation performance
 
 ## Debugging
 
