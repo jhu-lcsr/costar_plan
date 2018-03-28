@@ -101,13 +101,15 @@ Use the preproccessing script in `costar_models`:
 ```
 # With ROS
 rosrun costar_models ./costar_models/scripts/preprocess_images \
-    --data_file robot.h5f
+    --data_file robot.h5f --cpu
 # Without ROS
 $COSTAR_PLAN/costar_models/scripts/preprocess_images \
-    --data_file robot.h5f
+    --data_file robot.h5f --cpu
 ```
 
 Data will be placed in the directory name prepended with "small". In the above, we see the directories "robot" and "small_robot", each filled with ".h5f" files.
+
+A note on the `--cpu` flag: this is just to tell tensorflow it does not need the GPU for this script, really it should not need this anyway because we do not use tensorflow here.
 
 ## Training Models
 
