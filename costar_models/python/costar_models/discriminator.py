@@ -155,6 +155,8 @@ class CostarDiscriminator(RobotMultiPredictionSampler):
         #I = np.array(image)
         #I_target = np.array(goal_image)
         I = image
+        length = label.shape[0]
+        goal_idx = np.min((goal_idx, np.ones_like(goal_idx)*(length-1)),axis=0)
         I_target = I[goal_idx]
         o1 = np.array(label)
         o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))

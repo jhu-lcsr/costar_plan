@@ -150,8 +150,6 @@ class ConditionalImageCostar(ConditionalImage):
         prev_label[1:] = label[:(length-1)]
         prev_label[0] = self.null_option
 
-        goal_idx = np.min((goal_idx, np.ones_like(goal_idx)*(length-1)),axis=0)
-
         if not (image.shape[0] == goal_idx.shape[0]):
             print("Image shape:", image.shape)
             print("Goal idxs:", goal_idx.shape)
