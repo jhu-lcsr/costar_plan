@@ -24,6 +24,7 @@ from .secondary import Secondary
 
 # CoSTAR
 from .pretrain_image_costar import PretrainImageCostar
+from .conditional_image_costar import ConditionalImageCostar
 
 # Jigsaws stuff
 from .dvrk import *
@@ -187,6 +188,11 @@ def MakeModel(features, model, taskdef, **kwargs):
             model_instance = PretrainImageCostar(taskdef,
                     model=model,
                     features=features,
+                    **kwargs)
+        elif model == "conditional_image":
+            model_instance = ConditionalImageCostar(taskdef,
+                    features=features,
+                    model=model,
                     **kwargs)
 
         # Global setup for CoSTAR
