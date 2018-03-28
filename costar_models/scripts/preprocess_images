@@ -101,7 +101,7 @@ def main(args):
 
         if not ok:
             print("Skipping ", filename, "because data type shapes do"
-                  "not match.")
+                  " not match.")
             print("num goals =", len(data["goal_idx"]))
             print("num images =", len(data["image"]))
 
