@@ -93,6 +93,28 @@ As of March 14, 2018, the list of actions in `labels_to_name` returns:
  'place_green_on_bluered', 'place_blue_on_yellow']
 ```
 
+There are a total of 40 actions (also referred to as options throughout the code, to differentiate them from low-level actions). We also add in an extra symbol for the "null" option, corresponding to no action having been selected.
+
+## Data Preprocessing
+
+Use the preproccessing script in `costar_models`:
+```
+# With ROS
+rosrun costar_models ./costar_models/scripts/preprocess_images \
+    --data_file robot.h5f
+# Without ROS
+$COSTAR_PLAN/costar_models/scripts/preprocess_images \
+    --data_file robot.h5f
+```
+
+Data will be placed in the directory name prepended with "small". In the above, we see the directories "robot" and "small_robot", each filled with ".h5f" files.
+
+## Training Models
+
+### Pretrain Image Autoencoder
+
+### Conditional Image Model
+
 ## Debugging
 
 ### Debugging CoSTAR Arm
