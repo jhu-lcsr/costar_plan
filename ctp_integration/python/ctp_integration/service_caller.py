@@ -36,6 +36,13 @@ class ServiceCaller(object):
     def call(self, *args, **kwargs):
         self(*args, **kwargs)
 
+    def reset(self):
+        if self.thread is not None:
+            self.thread.join()
+            self.thread = None
+        self.running = False
+        self.ok = True
+
     def update(self):
         if self.thread is None:
             self.running = False
