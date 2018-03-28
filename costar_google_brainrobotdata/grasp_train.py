@@ -329,10 +329,7 @@ class GraspTrain(object):
                 input_image_shape = [batch_size, 512, 640, 3]
             print('input_image_shape: ' + str(input_image_shape))
 
-            ########################################################
-            # End tensor configuration, begin model configuration and training
-
-            run_name = grasp_utilities.timeStamped(run_name + '-' + model_name + '-dataset_' + dataset_names_str)
+            run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str)
 
             # ###############learning rate scheduler####################
             # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
@@ -551,6 +548,7 @@ class GraspTrain(object):
                 model.save_weights(final_weights_name)
                 raise e
             return final_weights_name, history
+
 
     def eval(self, dataset=None,
              batch_size=None,
