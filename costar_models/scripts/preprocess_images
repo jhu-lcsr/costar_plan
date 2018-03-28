@@ -72,7 +72,6 @@ def main(args):
         newdata = {}
         ok = True
         data = dataset.loadFile(filename)
-        print(fnum, "Loaded", filename)
         for k, v in data.items():
             if not k == "image":
                 newdata[k] = v
@@ -100,7 +99,15 @@ def main(args):
             print("num goals =", len(data["goal_idx"]))
             print("num images =", len(data["image"]))
         else:
-            write(new_data_file, filename, newdata)
+            toks = filename.split('.')
+            print(toks)
+            filename = toks[0]
+            success = toks[1]
+            ext = toks[2]
+            toks = filename.split('_')
+            new_filename = toks[1] + "_" + toks[0] + "." + success + "." + ext
+            print(fnum, "Loaded", filename, "to", new_filename)
+            write(new_data_file, new_filename, newdata)
 
 def write(directory, filename, data):
     filename = os.path.join(directory, filename)
