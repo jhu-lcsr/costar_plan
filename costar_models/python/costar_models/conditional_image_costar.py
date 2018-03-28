@@ -26,7 +26,7 @@ from .costar import *
 class ConditionalImageCostar(ConditionalImage):
 
     def __init__(self, *args, **kwargs):
-        super(ConditionalImageJigsaws, self).__init__(*args, **kwargs)
+        super(ConditionalImageCostar, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageWithFirstCb
 
     def _makeModel(self, image, *args, **kwargs):
@@ -70,6 +70,7 @@ class ConditionalImageCostar(ConditionalImage):
         y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
 
         tform = self._makeTransform() if not self.dense_transform else self._makeDenseTransform()
+        tform.summary()
         x = tform([h,y])
         x2 = tform([x,y2])
 
@@ -124,8 +125,32 @@ class ConditionalImageCostar(ConditionalImage):
         self.model = train_predictor
 
 
-     def _getData(self, image, label, goal_idx, goal_label,
-            prev_label, *args, **kwargs):
+    def _getData(self, image, label, goal_idx, q, gripper, labels_to_name, *args, **kwargs):
+        '''
+        Parameters:
+        -----------
+        image: jpeg encoding of image
+        label: integer code for which action is being performed
+        goal_idx: index of the start of the next action
+        q: joint states
+        gripper: floating point gripper openness
+        labels_to_name: list of high level actions (AKA options)
+        '''
+
+        # Null option to be set as the first option
+        #self.null_option = len(labels_to_name)
+        # Total number of options incl. null
+        #self.num_options = len(labels_to_name) + 1
+
+        length = label.shape[0]
+        prev_label = np.zeros_like(label)
+        prev_label[1:] = label[:(length-1)]
+        prev_label[0] = self.null_option
+
+        print(label)
+        print(prev_label)
+        print(labels_to_name)
+        asdf
 
         imgs, lbls, goal_idxs, goal_lbls, prev_lbls = image, label, goal_idx, goal_label, prev_label
         goal_imgs = imgs[goal_idxs]

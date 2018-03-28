@@ -91,6 +91,7 @@ def main(args):
                     #plt.show()
                     images.append(GetJpeg(image))
                 newdata[k] = np.array(images)
+        print(data['labels_to_name'].shape)
 
         write(new_data_file, filename, newdata)
 
