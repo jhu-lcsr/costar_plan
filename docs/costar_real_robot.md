@@ -115,6 +115,23 @@ Data will be placed in the directory name prepended with "small". In the above, 
 
 ### Conditional Image Model
 
+The conditional image model is supposed to train the whole pipeline now.
+
+```
+# With ROS
+rosrun costar_models ctp_model_tool --model conditional_image \
+    --dropout_rate 0.1 --data_file small_robot2.h5f --lr 0.001 \
+    --features costar -e 150 --model_directory $HOME/.costar/models \
+    --skip_connections 1 --use_ssm 1 --batch_size 64 --no_disc \
+    --steps_per_epoch 300   
+# Without ROS
+$COSTAR_PLAN/costar_models/scripts/ctp_model_tool --model conditional_image \
+    --dropout_rate 0.1 --data_file small_robot2.h5f --lr 0.001 \
+    --features costar -e 150 --model_directory $HOME/.costar/models \
+    --skip_connections 1 --use_ssm 1 --batch_size 64 --no_disc \
+    --steps_per_epoch 300
+```
+
 ## Debugging
 
 ### Debugging CoSTAR Arm
