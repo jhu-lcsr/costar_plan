@@ -79,7 +79,7 @@ class ConditionalImageCostar(ConditionalImage):
         # Compute classifier on the last transform
         if not self.no_disc:
             image_discriminator = LoadGoalClassifierWeights(self,
-                    make_classifier_fn=MakeImageClassifier,
+                    make_classifier_fn=MakeCostarImageClassifier,
                     img_shape=img_shape)
             #disc_out1 = image_discriminator([img0_in, image_out])
             disc_out2 = image_discriminator([img0_in, image_out2])
