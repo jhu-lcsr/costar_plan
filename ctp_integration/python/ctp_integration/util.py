@@ -6,9 +6,17 @@ This function contains some helpful functions for different purposes.
 from std_srvs.srv import Empty as EmptySrv
 from costar_robot_msgs.srv import SmartMove
 from costar_robot_msgs.srv import ServoToJointState
+from costar_robot_msgs.srv import ServoToJointStateRequest
 from costar_robot_msgs.srv import ServoToPose, SetServoMode
 
 import rospy
+
+def GetService(name, config_class):
+    service = None
+    while service is None:
+        rospy.wait_for_service(name)
+        service = rospy.ServiceProxy(name, config_class)
+    return service
 
 def GetDetectObjectsService(srv='/costar_perception/segmenter'):
     '''
@@ -18,46 +26,41 @@ def GetDetectObjectsService(srv='/costar_perception/segmenter'):
     ----------
     srv: service, defaults to the correct name for costar
     '''
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, EmptySrv)
+    return GetService(srv, EmptySrv)
 
-def GetCloseGripperService(srv="/costar/gripper/close"):
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, EmptySrv)
-
-def GetCloseGripperService(srv="/costar/gripper/open"):
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, EmptySrv)
+def GetCloseGripperService():
+    return GetService("/costar/gripper/close", EmptySrv)
 
 def GetSmartGraspService(srv="/costar/SmartGrasp"):
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, SmartMove)
+    return GetService(srv, SmartMove)
 
 def GetSmartPlaceService(srv="/costar/SmartPlace"):
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, SmartMove)
+    return GetService(srv, SmartMove)
 
 def GetSmartReleaseService():
-    srv = "/costar/SmartRelease"
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, SmartMove)
+    return GetService("/costar/SmartRelease", SmartMove)
 
-def GetServoToJointStateService(srv="/costar/ServoToJointState"):
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, ServoToJointState)
+def GetServoToJointStateService():
+    return GetService("/costar/ServoToJointState", ServoToJointState)
+
+def GetPlanToJointStateService():
+    return GetService("/costar/PlanToJointState", ServoToJointState)
 
 def GetPlanToPoseService():
-    srv = "/costar/PlanToPose"
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, ServoToPose)
+    return GetService("/costar/PlanToPose", ServoToPose)
+
+def GetPlanToHomeService():
+    return GetService("/costar/PlanToHome", ServoToPose)
 
 def GetOpenGripperService():
-    srv = "/costar/gripper/open"
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, EmptySrv)
+    return GetService("/costar/gripper/open", EmptySrv)
 
 def GetServoModeService():
-    srv = "/costar/SetServoMode"
-    rospy.wait_for_service(srv)
-    return rospy.ServiceProxy(srv, SetServoMode)
+    return GetService("/costar/SetServoMode", SetServoMode)
 
+def MakeServoToJointStateRequest(position):
+    req = ServoToJointStateRequest()
+    req.target.position = position
+    req.vel = 0.5
+    req.accel = 0.5
+    return req

@@ -402,7 +402,7 @@ def transform_crop_and_resize_image(
                 if coordinate_theta is None:
                     coordinate = transform_and_crop_coordinate(coordinate, transform, offset)
                 else:
-                    coordinate, theta = transform_and_crop_coordinate(coordinate, transform, offset, theta=coordinate_theta)
+                    coordinate, coordinate_theta = transform_and_crop_coordinate(coordinate, transform, offset, theta=coordinate_theta)
         if resize_shape is not None:
             if coordinate is not None:
                 coordinate = resize_coordinate(coordinate, tf.shape(image), resize_shape)
@@ -411,10 +411,10 @@ def transform_crop_and_resize_image(
         if coordinate is None:
             return image
         else:
-            if theta is None:
+            if coordinate_theta is None:
                 return image, coordinate
             else:
-                return image, coordinate, theta
+                return image, coordinate, coordinate_theta
 
 
 def random_translation_in_bounds(grasp_center_coordinate, output_shape, max_pixels, seed=None):

@@ -61,6 +61,8 @@ from cornell_grasp_dataset_reader import parse_and_preprocess
 from callbacks import EvaluateInputGenerator
 from callbacks import PrintLogsCallback
 from callbacks import FineTuningCallback
+from callbacks import SlowModelStopping
+from callbacks import InaccurateModelStopping
 
 import grasp_loss
 import grasp_metrics
@@ -385,6 +387,7 @@ def run_training(
         save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
     callbacks = callbacks + [checkpoint]
+    callbacks += [SlowModelStopping(max_batch_time_seconds=0.5), InaccurateModelStopping()]
     # An additional useful param is write_batch_performance:
     #  https://github.com/keras-team/keras/pull/7617
     #  write_batch_performance=True)
@@ -1149,7 +1152,7 @@ def evaluate(
             # init_l = tf.local_variables_initializer()
             # sess.run(init_g)
             # sess.run(init_l)
-            # TODO(ahundt) Do insane hack resetting & reloading weights for now... will fix later
+            # TODO(ahundt) Do insane hack which resets the session & reloads weights for now... will fix later
             if should_initialize:
                     # tensorflow setup to make sure all variables are initialized
                     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
