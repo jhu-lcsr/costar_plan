@@ -113,7 +113,7 @@ flags.DEFINE_integer(
     2,
     'Number of epochs to run trainer with all weights marked as trainable.'
 )
-flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
+flags.DEFINE_integer('eval_batch_size', 2, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
                      """DenseNet and DenseNetFCN parameter growth rate""")
 flags.DEFINE_integer('densenet_depth', 40,
@@ -448,7 +448,7 @@ class GraspTrain(object):
                                                write_grads=True, write_images=True)
                 callbacks = callbacks + [progress_tracker]
 
-            callbacks += [SlowModelStopping(max_batch_time_seconds=1.25), InaccurateModelStopping()]
+            callbacks += [SlowModelStopping(max_batch_time_seconds=2.5), InaccurateModelStopping()]
             # 2017-08-28 trying SGD
             # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
             if FLAGS.optimizer == 'SGD':
