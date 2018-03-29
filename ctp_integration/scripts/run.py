@@ -261,6 +261,8 @@ def collect_data(args):
             #except SyntaxError as e:
             #    pass
 
+        import sys
+        sys.exit(0)
         # Undo the stacking
         for drop_pose in reversed(poses):
             if drop_pose is None:
