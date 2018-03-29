@@ -148,7 +148,7 @@ def optimize(
         feature_combo_name,
         seed=1,
         verbose=1,
-        initial_num_samples=200,
+        initial_num_samples=1000,
         maximum_hyperopt_steps=100,
         num_cores=15,
         baysean_batch_size=1,
