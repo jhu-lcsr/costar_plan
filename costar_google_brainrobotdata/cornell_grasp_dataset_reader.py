@@ -431,7 +431,7 @@ def parse_and_preprocess(
     # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
     image, preprocessed_grasp_center_coordinate, grasp_center_rotation_theta, random_features = projective_image_augmentation(
         image, is_training, crop_to, crop_shape, random_translation_box, grasp_center_coordinate, grasp_center_rotation_theta, output_shape,
-        random_rotation=random_rotation,
+        random_rotation=random_rotation, random_translation=random_translation,
         verbose=verbose)
 
     if random_features is not None:
@@ -536,7 +536,7 @@ def parse_and_preprocess(
 def projective_image_augmentation(
         image, is_training, crop_to, crop_shape, random_translation_box,
         grasp_center_coordinate, grasp_center_rotation_theta, output_shape,
-        random_rotation=None, verbose=0):
+        random_rotation=None, random_translation=None, verbose=0):
     """ perform image augmentation with projective transforms
     """
     # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
