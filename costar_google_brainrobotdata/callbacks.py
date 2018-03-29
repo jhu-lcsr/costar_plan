@@ -4,6 +4,7 @@ from timeit import default_timer
 import numpy as np
 import keras
 
+
 class EvaluateInputTensor(keras.callbacks.Callback):
     """ Validate a model which does not expect external numpy data during training.
 
