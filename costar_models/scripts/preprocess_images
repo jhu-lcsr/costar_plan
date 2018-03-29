@@ -73,6 +73,10 @@ def main(args):
         ok = True
         data = dataset.loadFile(filename)
         for k, v in data.items():
+            if v.shape[0] == 0:
+                ok = False
+                break
+
             if not k == "image":
                 newdata[k] = v
             else:
@@ -91,8 +95,12 @@ def main(args):
                     images.append(GetJpeg(image))
                 newdata[k] = np.array(images)
         #print("- total number of options =", data['labels_to_name'].shape)
-        ok = len(newdata['image']) == len(newdata['goal_idx'])
 
+        if not ok:
+            print("Skipping because empty data for key %s" % k)
+            continue
+
+        ok = len(newdata['image']) == len(newdata['goal_idx'])
         if not ok:
             print("Skipping ", filename, "because data type shapes do"
                   " not match.")

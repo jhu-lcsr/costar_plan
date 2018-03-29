@@ -146,6 +146,7 @@ class ConditionalImageCostar(ConditionalImage):
         self.num_options = len(labels_to_name) + 1
 
         length = label.shape[0]
+        print(label.shape)
         prev_label = np.zeros_like(label)
         prev_label[1:] = label[:(length-1)]
         prev_label[0] = self.null_option

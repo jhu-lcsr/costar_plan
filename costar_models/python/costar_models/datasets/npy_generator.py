@@ -58,6 +58,7 @@ class NpzGeneratorDataset(object):
                     if value.shape[0] == 0:
                         sample = {}
                         continue
+
                     if key not in sample:
                         sample[key] = value
                     else:
