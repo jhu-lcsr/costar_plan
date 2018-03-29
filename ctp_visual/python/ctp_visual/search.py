@@ -153,6 +153,7 @@ class VisualSearchNode(object):
         self._setPQ()
 
     def _setPQ(self):
+        # TODO: remove done_a here
         p_a, done_a = self.cim.pnext(self.h0, self.h, self.action)
         q, done_qa = self.cim.q(self.h0, self.h, self.action)
         self.p = p_a[0]
