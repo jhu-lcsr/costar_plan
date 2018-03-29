@@ -43,7 +43,7 @@ class H5fDataset(object):
         for key, value in example.items():
             f.create_dataset(key, data=value)
         if image_type is not None:
-            dt = h5py.special_dtype(vlen=bytes)
+            dt = h5f.special_dtype(vlen=bytes)
             f.create_dataset("image_type", data=["image_type"])
         f.close()
 
