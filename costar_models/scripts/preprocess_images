@@ -81,8 +81,8 @@ def main(args):
                 for i in range(f.shape[0]):
                     frame = f[i]
                     #print(frame.shape)
-                    dim = min(frame.shape[0], frame.shape[1])
-                    crop = frame[:dim, :dim, :]
+                    dim = min(frame.shape[0], frame.shape[1]) - 80
+                    crop = frame[80:(dim+80), 10:(dim+10), :]
                     image = imresize(crop, (96, 96))
                     image = image.astype(np.uint8)
                     #plt.figure()

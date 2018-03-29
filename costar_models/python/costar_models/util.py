@@ -209,6 +209,7 @@ def MakeModel(features, model, taskdef, **kwargs):
         model_instance.load_jpeg = True
         model_instance.null_option = 40
         model_instance.num_options = 41
+        model_instance.validation_split = 0.2
 
     elif features == "husky":
         '''

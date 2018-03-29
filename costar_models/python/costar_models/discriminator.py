@@ -17,6 +17,7 @@ from .multi_sampler import *
 from .multi import *
 from .husky import *
 from .dvrk import *
+from .costar import *
 
 class Discriminator(RobotMultiPredictionSampler):
 
@@ -146,7 +147,7 @@ class CostarDiscriminator(RobotMultiPredictionSampler):
         Create model to predict possible manipulation goals.
         '''
         img_shape = image.shape[1:]
-        disc = MakeImageClassifier(self, img_shape)
+        disc = MakeCostarImageClassifier(self, img_shape)
         disc.summary()
 
         self.model = disc

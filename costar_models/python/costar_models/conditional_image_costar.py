@@ -150,6 +150,8 @@ class ConditionalImageCostar(ConditionalImage):
         prev_label[1:] = label[:(length-1)]
         prev_label[0] = self.null_option
 
+        goal_idx = np.min((goal_idx, np.ones_like(goal_idx)*(length-1)),axis=0)
+
         if not (image.shape[0] == goal_idx.shape[0]):
             print("Image shape:", image.shape)
             print("Goal idxs:", goal_idx.shape)
@@ -162,7 +164,6 @@ class ConditionalImageCostar(ConditionalImage):
 
         # Extend image_0 to full length of sequence
         image0 = image[0]
-        length = image.shape[0]
         image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
 
         lbls_1h = np.squeeze(ToOneHot2D(label, self.num_options))
@@ -172,7 +173,7 @@ class ConditionalImageCostar(ConditionalImage):
                     [goal_image,
                      goal_image2,])
         else:
-            return ([image0, image, lbls, goal_lbls, prev_lbls],
+            return ([image0, image, label, goal_label, prev_label],
                     [goal_image,
                      goal_image2,
                      lbls2_1h,])
