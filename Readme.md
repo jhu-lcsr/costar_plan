@@ -4,7 +4,11 @@
 
 The CoSTAR Planner is part of the larger [CoSTAR project](https://github.com/cpaxton/costar_stack/). It integrates some learning from demonstration and task planning capabilities into the larger CoSTAR framework in different ways.
 
+[![Visual Task Planning](https://img.youtube.com/vi/Rk4EDL4B7zQ/0.jpg)](https://youtu.be/Rk4EDL4B7zQ "Visual Task Planning")
+
 Specifically it is a project for creating task and motion planning algorithms that use machine learning to solve challenging problems in a variety of domains. This code provides a testbed for complex task and motion planning search algorithms. The goal is to describe example problems where actor must move around in the world and plan complex interactions with other actors or the environment that correspond to high-level symbolic states. Among these is our Visual Task Planning project, in which robots learn representations of their world and use these to imagine possible futures, then use these for planning.
+
+[![CoSTAR Real Robot Data Collection](https://img.youtube.com/vi/LMqEcoYbrLM/0.jpg)](https://youtu.be/LMqEcoYbrLM "CoSTAR Real Robot Data Collection")
 
 To run deep learning examples, you will need TensorFlow and Keras, plus a number of Python packages. To run robot experiments, you'll need a simulator (Gazebo or PyBullet), and ROS Indigo or Kinetic. Other versions of ROS may work but have not been tested. If you want to stick to the toy examples, you do not need to use this as a ROS package.
 
