@@ -1,7 +1,9 @@
 
 # Experiments and Training Notes for Task Learning
 
-This document is for experiments from 2018-01-05. 
+This document is for the full set of task learning experiments, and contains notes on how to run them and reproduce them.
+
+For most of these, we will use the [simulation dataset](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz) that was included with the v0.6.0 release of CoSTAR-Plan. The primary model associated with this is the `conditional_image` model, which trains on generating a set of predictive images from simulated data.
 
 ## Learning
 
