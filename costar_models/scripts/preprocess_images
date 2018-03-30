@@ -68,7 +68,10 @@ def main(args):
         raise RuntimeError('Must provide features specification')
     features_arg = args['features']
 
-    for fnum, filename in enumerate(dataset.test + dataset.train):
+    all_files = dataset.test + dataset.train
+    idxs = range(len(all_files))
+    np.random.shuffle(idxs)
+    for fnum, filename in enumerate(all_files):
         newdata = {}
         ok = True
         data = dataset.loadFile(filename)
@@ -108,13 +111,12 @@ def main(args):
             print("num images =", len(data["image"]))
         else:
             toks = filename.split('.')
-            print(toks)
             filename = toks[0]
             success = toks[1]
             ext = toks[2]
             toks = filename.split('_')
-            new_filename = toks[1] + "_" + toks[0] + "." + success + "." + ext
-            print(fnum, "Loaded", filename, "to", new_filename)
+            new_filename = ("example%06d" % (idxs[fnum])) + "." + success + "." + ext
+            print(fnum, "Loaded", filename, "and saved to", new_filename)
             write(new_data_file, new_filename, newdata)
 
 def write(directory, filename, data):
