@@ -83,7 +83,7 @@ def load_tom_data_and_run():
     try:
         while True:
           # Update observations about the world
-          world.updateObservation()
+          #world.updateObservation()
 
           # Print out visualization information about the world.
           world.visualize()
