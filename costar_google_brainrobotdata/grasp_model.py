@@ -6,6 +6,7 @@ import keras
 from keras.applications.nasnet import NASNetLarge
 from keras.applications.resnet50 import ResNet50
 from keras.applications.nasnet import NASNetMobile
+from keras.applications.inception_resnet_v2 import InceptionResNetV2
 from keras import backend as K
 from keras.layers import Dense
 from keras.layers import Dropout
@@ -110,10 +111,12 @@ def concat_images_with_tiled_vector_layer(images, vector, image_shape=None, vect
         if vector_shape is None:
             # check if K.shape, K.int_shape, or vector.get_shape().as_list()[1:] is better
             # https://github.com/fchollet/keras/issues/5211
+            # TODO(ahundt) ensure shape works in both google brain/cornell dataset input tensor and keras Input() aka numpy array cases
             vector_shape = K.int_shape(vector)[1:]
         if image_shape is None:
             # check if K.shape, K.int_shape, or image.get_shape().as_list()[1:] is better
             # https://github.com/fchollet/keras/issues/5211
+            # TODO(ahundt) ensure shape works in both google brain/cornell dataset input tensor and keras Input() aka numpy array cases
             image_shape = K.int_shape(images[0])[1:]
         vector = Reshape([1, 1, vector_shape[-1]])(vector)
         tile_shape = (int(1), int(image_shape[0]), int(image_shape[1]), int(1))
@@ -607,7 +610,7 @@ def choose_hypertree_model(
                 # and an aux network the two outputs will be different
                 # dimensions! Therefore, we need to add our own pooling
                 # for the aux network.
-                # TODO(ahundt) just max pooling in NasNetLarge for now, but need to figure out pooling for the segmentation case.
+                # TODO(ahundt) just max pooling in NASNetLarge for now, but need to figure out pooling for the segmentation case.
                 image_model = keras_contrib.applications.nasnet.NASNetLarge(
                     input_shape=image_input_shape, include_top=False, pooling=None,
                     classes=classes, use_auxiliary_branch=use_auxiliary_branch
@@ -617,6 +620,15 @@ def choose_hypertree_model(
                     input_shape=image_input_shape, include_top=False,
                     classes=classes, pooling=False
                 )
+            elif image_model_name == 'inception_resnet_v2':
+                if image_model_weights == 'shared':
+                    image_model = keras.applications.inception_resnet_v2.InceptionResNetV2(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.inception_resnet_v2.InceptionResNetV2
+                else:
+                    raise ValueError('Unsupported image_model_name')
             elif image_model_name == 'resnet':
                 # resnet model is special because we need to
                 # skip the average pooling part.
@@ -632,15 +644,18 @@ def choose_hypertree_model(
                 # get the layer before the global average pooling
                 image_model = resnet_model.layers[-2]
             elif image_model_name == 'densenet':
-                image_model = keras.applications.densenet.DenseNet169(
-                    input_shape=image_input_shape, include_top=False,
-                    classes=classes)
+                if image_model_weights == 'shared':
+                    image_model = keras.applications.densenet.DenseNet169(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes)
+                elif image_model_weights == 'separate':
+                    image_model = keras.applications.densenet.DenseNet169
+                else:
+                    raise ValueError('Unsupported image_model_name')
             else:
                 raise ValueError('Unsupported image_model_name')
 
-        if not trainable and getattr(image_model, 'layers', None) is not None:
-            for layer in image_model.layers:
-                layer.trainable = False
+        set_trainable_layers(trainable, image_model)
 
         class ImageModelCarrier():
             # Create a temporary scope for the list
@@ -783,6 +798,34 @@ def choose_hypertree_model(
         )
     print('hypertree model complete')
     return model
+
+
+def set_trainable_layers(trainable, image_model):
+    """ Set the trainable layers in a model.
+
+    trainable: Either a boolean to set all layers or a
+       floating point value from 0 to 1 indicating the proportion of
+       layer depths to make trainable. In other words with 0.5 all
+       layers past the halfway point in terms of depth will be trainable.
+    image_model: The model to configure
+    """
+    if ((not isinstance(trainable, bool) or not trainable)
+        and getattr(image_model, 'layers', None) is not None):
+        # enable portion of network depending on the depth
+        if not trainable:
+            for layer in image_model.layers:
+                layer.trainable = False
+        else:
+            # Set all layers past a certain depth to trainable
+            # using a fractional scale
+            num_depths = len(image_model.layers_by_depth)
+            num_untrainable_depths = np.round((1.0 - trainable) * num_depths)
+            should_train = False
+            for i, layers in enumerate(image_model.layers):
+                if i > num_untrainable_depths:
+                    should_train = True
+                for layer in layers:
+                    layer.trainable = should_train
 
 
 def grasp_model_resnet(clear_view_image_op,

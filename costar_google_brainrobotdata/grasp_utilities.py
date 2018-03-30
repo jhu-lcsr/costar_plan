@@ -128,3 +128,25 @@ def find_best_weights(fold_log_dir, match_string='', verbose=0, out_file=sys.std
                          'model checkpoint files we were looking at: \n\n' +
                          str(fold_checkpoint_files))
     return fold_checkpoint_file
+
+
+def make_model_description(run_name, model_name, hyperparams, dataset_names_str):
+    """ Put several strings together for a model description used in file and folder names
+    """
+    model_description = ''
+    if run_name:
+        model_description += run_name + '-'
+    if model_name:
+        model_description += model_name + '-'
+
+    if hyperparams is not None:
+        if 'image_model_name' in hyperparams:
+            model_description += '_' + hyperparams['image_model_name']
+        if 'trunk_model_name' in hyperparams:
+            model_description += '_' + hyperparams['trunk_model_name']
+    ########################################################
+    # End tensor configuration, begin model configuration and training
+    model_description += '-dataset_' + dataset_names_str
+
+    run_name = timeStamped(model_description)
+    return run_name
