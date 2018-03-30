@@ -1,7 +1,28 @@
 
 # Experiments and Training Notes for Task Learning
 
-This document is for experiments from 2018-01-05. 
+Commands for reproducing the submitted paper results written 2018-03-30.
+
+## Discriminator
+
+This command generates the goal_discriminator, which provides an additional loss to the real final model. In essence, it tries to classify which action is being performed at a given time step. This model is trained on the actual input data, not on any hallucinated outputs.
+
+```
+export CUDA_VISIBLE_DEVICES="0" && rosrun costar_models ctp_model_tool --model goal_discriminator --data_file ~/datasets/costar_plan/data.h5f --lr 0.0001 --dropout_rate 0.2 --retrain
+```
+
+Dataset files will be in a certain format like hdf5 in a directory. Please note that the data_file path doesn't have to be the name of the actual file, the folder and extension will be used to extract all the relevant files from the folder.
+
+## Prediction model
+
+```
+export CUDA_VISIBLE_DEVICES="0" && rosrun costar_models ctp_model_tool --model conditional_image --data_file ~/datasets/costar_plan/data.h5f --lr 0.0001 --dropout_rate 0.2 --retrain
+```
+
+This will train the main model which hallucinates possible futures and save the output into `~/.costar/models`, where you can view image files of the progress.
+
+
+# experiments from 2018-01-05
 
 ## Learning
 
