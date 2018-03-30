@@ -1,0 +1,2 @@
+~/datasets/logs/hyperopt_logs_cornell_classification/2018-03-16-06-15-01_-densenet_dense_model-dataset_cornell_grasping-grasp_success
+5 epoch hyperopt classification accuracy: 0.885 
