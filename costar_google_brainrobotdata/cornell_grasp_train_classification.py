@@ -23,7 +23,11 @@ def main(_):
     # recommended for
     # - pixelwise classification
     # - classification of images centered and rotated to grasp proposals
-    feature_combo = 'image_preprocessed_norm_sin2_cos2_width_3'
+    # feature_combo = 'image_preprocessed_norm_sin2_cos2_width_3'
+
+    # Warning: this version will have some correlation with due to the height parameter!
+    # However, it will be OK to use to classify the output of regression
+    feature_combo = 'image_preprocessed_norm_sin2_cos2_height_width_4'
 
     # Recommended for single prediction if images are merely center cropped
     # and not rotated or translated to the proposed grasp positions:
@@ -41,15 +45,35 @@ def main(_):
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'center_on_gripper_grasp_box_and_rotate_upright'
     if FLAGS.load_hyperparams is None:
-        FLAGS.load_hyperparams = '/home/ahundt/datasets/logs/hyperopt_logs_cornell/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success/2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json'
+        # FLAGS.load_hyperparams = ('/home/ahundt/datasets/logs/hyperopt_logs_cornell/'
+        #                           '2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success/'
+        #                           '2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+
+        # About 0.95 k-fold accuracy on preprocessed_norm_sin2_cos2_w_3:
+        # FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_classification/'
+        #                           '2018-03-03-07-14-59_-vgg_dense_model-dataset_cornell_grasping-grasp_success/'
+        #                           '2018-03-03-07-14-59_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+
+        # Best result from classification hyperopt run ending 2018-03-16:
+        # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
+        #                           '2018-03-14-00-40-09_-vgg19_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+
+        # Best NON VGG result from classification hyperopt run ending 2018-03-16:
+        FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
+                                  '2018-03-16-06-15-01_-densenet_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+
     FLAGS.epochs = 40
-    FLAGS.fine_tuning_epochs = 10
+    FLAGS.fine_tuning_epochs = 0
+    # This only means that the first part of the run is not fine tuning
+    # The later fine_tuning_epochs will work correctly.
+    FLAGS.fine_tuning = False
     print('Classification Training on grasp_success is about to begin. '
           'This mode overrides some command line parameters so to change them '
           'you will need to modify cornell_grasp_train_classification.py directly.')
 
     hyperparams = grasp_utilities.load_hyperparams_json(
-        FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
+        FLAGS.load_hyperparams, fine_tuning=FLAGS.fine_tuning,
+        learning_rate=FLAGS.learning_rate,
         feature_combo_name=feature_combo)
 
     if 'k_fold' in FLAGS.pipeline_stage:
