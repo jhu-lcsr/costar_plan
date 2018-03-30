@@ -30,6 +30,22 @@ parse.py $BAGS --fake --plan --max_depth $X --iter $Y # change planning params
 
 Using these without the `--fake` flag is currently a WIP.
 
+#### Current Commands To Run
+
+```
+roslaunch ctp_tom planner.launch fake:=True
+rosrun ctp_tom parse.py --fake --show --debug cubes_test/Gripper/planning_gripper_cubes_2018-02-23-15-18-41.bag
+```
+
+You should see a graph of the actions being performed, and which objects they were relative to.
+
+The TOM-Test script contains actual execution code, once we have a working graph:
+```
+rosrun ctp_tom tom_test.py
+```
+
+However this is not currently configured (as of 2018-03-30) to run graphs parsed from rosbag files.
+
 ### Execution Setup (Work in progress)
 
 ```
