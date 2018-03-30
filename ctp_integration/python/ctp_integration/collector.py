@@ -215,7 +215,11 @@ class DataCollector(object):
             else:
                 extra = 0
 
-            rospy.loginfo("Starting new action: " + str(action_label) + ", prev was from " + str(self.prev_last_goal) + " to " + str(self.last_goal))
+            rospy.loginfo("Starting new action: "
+                    + str(action_label)
+                    + ", prev was from "
+                    + str(self.prev_last_goal)
+                    + " to " + str(self.last_goal))
             self.data["goal_idx"] += (self.last_goal - self.prev_last_goal + extra) * [self.last_goal]
 
             len_idx = len(self.data["goal_idx"])

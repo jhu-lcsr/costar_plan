@@ -183,7 +183,7 @@ flags.DEFINE_string(
     objectwise split.
     This parameter only has effect when is_fold_splits is true.
     """)
-flags.DEFINE_integer('num_fold', 10, 'number of fold for K-Fold splits, default to 5')
+flags.DEFINE_integer('num_fold', 10, 'number of fold for K-Fold splits, default to 10')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
 flags.DEFINE_boolean('plot', True, 'Plot images and grasp bounding box data in matplotlib as it is traversed')

@@ -1,0 +1,20 @@
+
+
+objectwise k fold s2c2wyx5:
+0.976 0.94 0.952 0.930 0.949
+
+objectwise average k fold s2c2wyx5:
+0.9494
+
+imagewise k fold s2c2wyx5:
+(need to rerun, bad initialization or something)
+0.966 ?0.382? 0.951 0.956 0.961
+
+--------------------------------------------
+"height" (length of graspable region) may have correlation with ground truth:
+
+objectwise s2c2hwyx6 Fold val results:
+0.983 0.946 0.959 0.945 0.959
+
+objectwise s2c2hwyx6 Average k-fold:
+0.9584

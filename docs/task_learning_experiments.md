@@ -3,27 +3,74 @@
 
 This document is for the full set of task learning experiments, and contains notes on how to run them and reproduce them.
 
-For most of these, we will use the [simulation dataset](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz) that was included with the v0.6.0 release of CoSTAR-Plan. The primary model associated with this is the `conditional_image` model, which trains on generating a set of predictive images from simulated data.
+For most of these examples, we will use the [simulation dataset](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz) that was included with the v0.6.0 release of CoSTAR-Plan. The primary model associated with this is the `conditional_image` model, which trains on generating a set of predictive images from simulated data.
 
-## Learning
+Commands for reproducing the submitted paper results were current as of 2018-03-30.
+
+## Learning Commands
 
 This contains some examples of commands you can run on different data sets.
 
 ### Stacking Task
 
+The stacking task uses the [simulation dataset](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz). You can run the simulation with the `costar_bullet` tool, and PyBullet v1.2.2.
+
+## Discriminator and Goal Discriminator
+
+This command generates the goal discriminator, which provides an additional loss to the real final model. In essence, it tries to classify which action is being performed at a given time step. This model is trained on the actual input data, not on any hallucinated outputs.
+
+```
+export CUDA_VISIBLE_DEVICES="0" && rosrun costar_models ctp_model_tool --model goal_discriminator --data_file ~/datasets/costar_plan/data.h5f --lr 0.001 --dropout_rate 0.1 --retrain
+```
+
+Dataset files will be in a certain format like hdf5 in a directory. Please note that the `data_file` path doesn't have to be the name of the actual file, the folder and extension will be used to extract all the relevant files from the folder.
+
 #### Pretrain Encoders
+
+You can pretrain autoencoders with:
+
+```
+rosrun costar_models ctp_model_tool --model pretrain_image_encoder --data_file data.h5f --lr 0.001 --dropout_rate 0.1
+```
+
+I recommend using the `feh` tool to visualize results:
+```
+sudo apt-get install feh
+```
+
+Now you can start visualizing images as the model trains:
+```
+feh ~/.costar/models/debug
+```
+
+Remember at any time you can change the model output path with the `--model_directory` flag.
 
 #### Conditional Images
 
+The `conditional_image` model is the main predictive model, which trains on predicting the results of the next two high level actions.
+
+Example command from 2018-03-30:
+```
+export CUDA_VISIBLE_DEVICES="0" && rosrun costar_models ctp_model_tool --model conditional_image --data_file ~/datasets/costar_plan/data.h5f --lr 0.001 --dropout_rate 0.1 --retrain
+```
+
+Notes on flags:
+  - The default optimizer setting is `--optimizer adam`.
+  - `--lr` sets the learning rate.
+  - `--dropout_rate 0.1` sets 10% dropout, which is what we used in the paper.
+  - `--retrain` tells it to train the encoder and decoder end-to-end. This is a new addition, not in the paper.
+
+This will train the main model which hallucinates possible futures and save the output into `~/.costar/models`, where you can view image files of the progress.
+
 ```
 # Start training
-rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2
+rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.001 --dropout_rate 0.1
 
 # Resume training
-rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2 --load_model
+rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.001 --dropout_rate 0.1 --load_model
 
 # Retrain encoder and decoder end-to-end
-rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.0001 --dropout_rate 0.2 --retrain
+rosrun costar_models ctp_model_tool --model conditional_image --data_file data.h5f --lr 0.001 --dropout_rate 0.1 --retrain
 ```
 
 #### Conditional Image GAN
