@@ -21,7 +21,6 @@ from .abstract import *
 from .callbacks import *
 from .multi_hierarchical import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 
 class RobotMultiSequencePredictor(RobotMultiHierarchical):
@@ -257,6 +256,7 @@ class RobotMultiSequencePredictor(RobotMultiHierarchical):
                     [np.expand_dims(f,1) for f in targets],
                     callbacks=[modelCheckpointCb, imageCb],
                     validation_split=self.validation_split,
+                    initial_epoch=self.initial_epoch,
                     epochs=self.epochs)
         else:
             for i in range(self.iter):

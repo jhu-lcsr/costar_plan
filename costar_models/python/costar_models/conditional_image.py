@@ -16,12 +16,12 @@ from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from .callbacks import *
-from .sampler2 import *
+from .multi_sampler import *
 from .data_utils import GetNextGoal, ToOneHot
 from .multi import *
+from .loss import *
 
-
-class ConditionalImage(PredictionSampler2):
+class ConditionalImage(RobotMultiPredictionSampler):
     '''
     Version of the sampler that only produces results conditioned on a
     particular action; this version does not bother trying to learn a separate
@@ -47,7 +47,6 @@ class ConditionalImage(PredictionSampler2):
         self.rep_size = 256
         self.num_transforms = 3
         self.transform_model = None
-        self.skip_connections = False
         self.save_encoder_decoder = self.retrain
 
         if self.use_noise:
@@ -73,22 +72,14 @@ class ConditionalImage(PredictionSampler2):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = MakeImageEncoder(self, img_shape)
+        decoder = MakeImageDecoder(self, self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder)
 
         # =====================================================================
         # Load the arm and gripper representation
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder([img_in])
-            h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         if self.validate:
             self.loadValidationModels(arm_size, gripper_size, h0, h)
@@ -102,9 +93,9 @@ class ConditionalImage(PredictionSampler2):
         y = Flatten()(OneHot(self.num_options)(next_option_in))
         y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
 
-        tform = self._makeTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
+        tform = self._makeTransform() if not self.dense_transform else self._makeDenseTransform()
+        x = tform([h,y])
+        x2 = tform([x,y2])
 
         image_out, image_out2 = decoder([x]), decoder([x2])
 
@@ -113,7 +104,21 @@ class ConditionalImage(PredictionSampler2):
             image_discriminator = LoadGoalClassifierWeights(self,
                     make_classifier_fn=MakeImageClassifier,
                     img_shape=img_shape)
+            #disc_out1 = image_discriminator([img0_in, image_out])
             disc_out2 = image_discriminator([img0_in, image_out2])
+
+        # Create custom encoder loss
+        if self.enc_loss:
+            loss = EncoderLoss(self.image_encoder, self.loss)
+            enc_losses = [loss, loss]
+            enc_outs = [x, x2]
+            enc_wts = [1e-2, 1e-2]
+            img_loss_wt = 1.
+        else:
+            enc_losses = []
+            enc_outs = []
+            enc_wts = []
+            img_loss_wt = 1.
 
         # Create models to train
         if self.no_disc:
@@ -122,18 +127,21 @@ class ConditionalImage(PredictionSampler2):
             disc_wt = 1e-3
         if self.no_disc:
             train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2])
+                    [image_out, image_out2] + enc_outs)
             train_predictor.compile(
-                    loss=[self.loss, self.loss,],
-                    loss_weights=[1., 1.,],
+                    loss=[self.loss, self.loss,] + enc_losses,
+                    loss_weights=[img_loss_wt, img_loss_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         else:
             train_predictor = Model(ins + [label_in],
-                    [image_out, image_out2, disc_out2])
+                    #[image_out, image_out2, disc_out1, disc_out2] + enc_outs)
+                    [image_out, image_out2, disc_out2] + enc_outs)
             train_predictor.compile(
-                    loss=[self.loss, self.loss, "categorical_crossentropy"],
-                    loss_weights=[1., 1., disc_wt],
+                    loss=[self.loss, self.loss, "categorical_crossentropy"] + enc_losses,
+                    #loss_weights=[img_loss_wt, img_loss_wt, 0.9*disc_wt, disc_wt] + enc_wts,
+                    loss_weights=[img_loss_wt, img_loss_wt, disc_wt] + enc_wts,
                     optimizer=self.getOptimizer())
+        train_predictor.summary()
         return None, train_predictor, None, ins, h
 
     def _getData(self, *args, **kwargs):
@@ -149,13 +157,21 @@ class ConditionalImage(PredictionSampler2):
         o2_1h = ToOneHot(o2, self.num_options)
         qa = np.squeeze(qa)
         ga = np.squeeze(ga)
+        features = [I0, I, o1, o2, oin]
         if self.validate:
-            return [I0, I, o1, o2, oin], [ I_target, I_target2, o1_1h, v, qa,
-                    ga, o2_1h]
+            # Return the specific set of features that are just for validation
+            return (features,
+                    [I_target, I_target2, o1_1h, v, qa, ga, o2_1h])
         elif self.no_disc:
-            return [I0, I, o1, o2, oin], [I_target, I_target2]
+            targets = [I_target, I_target2]
         else:
-            return [I0, I, o1, o2, oin], [I_target, I_target2, o2_1h]
+            # Uncomment if you want to try the whole "two discriminator" thing
+            # again -- this might need a more fully supported option
+            #targets = [I_target, I_target2, o1_1h, o2_1h]
+            targets = [I_target, I_target2, o2_1h]
+        if self.enc_loss:
+            targets += [I_target, I_target2]
+        return features, targets
 
 
     def loadValidationModels(self, arm_size, gripper_size, h0, h):
@@ -165,79 +181,61 @@ class ConditionalImage(PredictionSampler2):
         arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
 
-        self.value_model = GetValueModel(h, self.num_options, 64,
+        print(">>> GOAL_CLASSIFIER")
+        image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=(64, 64, 3))
+        image_discriminator.compile(loss="categorical_crossentropy",
+                                    metrics=["accuracy"],
+                                    optimizer=self.getOptimizer())
+        self.discriminator = image_discriminator
+
+        print(">>> VALUE MODEL")
+        self.value_model = GetValueModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.value_model.compile(loss="mae", optimizer=self.getOptimizer())
         self.value_model.load_weights(self.makeName("secondary", "value"))
 
+        print(">>> NEXT MODEL")
         self.next_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.next_model.compile(loss="mae", optimizer=self.getOptimizer())
         self.next_model.load_weights(self.makeName("secondary", "next"))
 
+        print(">>> ACTOR MODEL")
         self.actor = GetActorModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         self.actor.compile(loss="mae",optimizer=self.getOptimizer())
         self.actor.load_weights(self.makeName("secondary", "actor"))
 
+        print(">>> POSE MODEL")
         self.pose_model = GetPoseModel(h, self.num_options, arm_size, gripper_size,
                 self.decoder_dropout_rate)
         self.pose_model.compile(loss="mae",optimizer=self.getOptimizer())
         self.pose_model.load_weights(self.makeName("secondary", "pose"))
 
+        print(">>> Q MODEL")
         self.q_model = GetNextModel(h, self.num_options, 128,
                 self.decoder_dropout_rate)
         self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
         self.q_model.load_weights(self.makeName("secondary", "q"))
 
-
-    def encode(self, img):
-        '''
-        Encode available features into a new state
-
-        Parameters:
-        -----------
-        [unknown]: all are parsed via _getData() function.
-        '''
-        return self.image_encoder.predict(img)
-
-    def decode(self, hidden):
-        '''
-        Decode features and produce a set of visualizable images or other
-        feature outputs.
-
-        '''
-        return self.image_decoder.predict(hidden)
-
     def pnext(self, hidden0, hidden, prev_option):
         '''
         Visualize based on hidden
         '''
-        p = self.next_model.predict([hidden0, hidden, prev_option])
-        #p = np.exp(p)
-        #p /= np.sum(p)
-        return p
+        p, done = self.next_model.predict([hidden0, hidden, prev_option])
+        return p, done
 
-    def value(self, hidden0, hidden):
-        #v = self.value_model.predict([h0, hidden, prev_option])
-        v = self.value_model.predict([hidden0, hidden])
+    def q(self, hidden0, hidden, prev_option):
+        #p, done, value = self.q_model.predict([hidden0, hidden, prev_option])
+        p, done = self.q_model.predict([hidden0, hidden, prev_option])
+        return p, done
+
+    def value(self, hidden, *args, **kwargs):
+        v = self.value_model.predict([hidden])
         return v
-
-    def transform(self, hidden0, hidden, option_in=-1):
-        #if option_in < 0 or option_in > self.num_options:
-        #    option_in = self.null_option
-        #oin = MakeOption1h(option_in, self.num_options)
-        if len(option_in.shape) == 1:
-            oin = ToOneHot(option_in, self.num_options)
-        else:
-            oin = option_in
-        #length = hidden.shape[0]
-        #oin = np.repeat(oin, length, axis=0)
-        h = self.transform_model.predict([hidden0, hidden, oin])
-        return h
 
     def act(self, *args, **kwargs):
         raise NotImplementedError('act() not implemented')
 
-    def debugImage(self, features):
-        return features[1]

@@ -60,10 +60,28 @@ class RosTaskParser(TaskParser):
     def loadFromBag(self, bag, seq=0):
         '''
         Parse an individual bag.
+        Call whenever adding a new rosbag or data source for a particular trial.
         '''
 
-        # call whenever adding a new rosbag or data source for a particular
-        # trial.
+        # NOTES ON LOADING:
+        # - 12 frames before set correctly in newest bags
+        # - plastic blocks should be best with:
+        #   - IDLE --> REACH 4x
+        #   - REACH --> TAKE 2x
+        #   - PUT --> STACK 2x
+        #   - STACK --> IDLE 2x
+        #   - REACH --> IDLE 2x
+        # How to deal with idle:
+        #   - remove idle at beginning and end
+        #   - start with REACH (- 12? no)
+        #   - end with IDLE (ignore last idle)
+        # How to deal with trajectories:
+        #   - put something somewhere (acts on table)
+        #   - put needs to act on a block
+        #   - stack also acts on a block
+        started = [False, False]
+        left = None
+        right = None
         for topic, msg, _ in bag:
             # We do not trust the timestamps associated with the bag since
             # these may be written separately from when the data was actually
@@ -72,9 +90,23 @@ class RosTaskParser(TaskParser):
                 # Demo topic: read object information and add
                 t = self._getTime(msg)
                 objs = self._getObjects(msg)
-                left = self._getHand(msg.left, ActionInfo.ARM_LEFT)
-                right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
-                self.addExample(t, objs, [left, right], seq)
+                left = self._getHand(msg.left, ActionInfo.ARM_LEFT, left)
+                right = self._getHand(msg.right, ActionInfo.ARM_RIGHT, right)
+                started = [s or x.base_name == "Reach"
+                           for s, x 
+                           in zip(started, [left, right])]
+                print ("L=", left.base_name,
+                       "R=", right.base_name,
+                       "started=", started)
+                self.printAction(left)
+                self.printAction(right)
+                actions = []
+                for s, a in zip(started, [left, right]):
+                    if s:
+                        actions.append(a)
+                if len(actions) < 0:
+                    continue
+                self.addExample(t, objs, actions, seq)
             elif topic == self.alias_topic:
                 self.addAlias(msg.old_name, msg.new_name)
 
@@ -96,7 +128,7 @@ class RosTaskParser(TaskParser):
                 goal_object=goal,
                 config=self.configs[0],
                 skill_name=skill_name,
-                feature_model=self.lfd.skill_models[skill_name],
+                feature_model=self.lfd.getSkillModel(skill_name),
                 kinematics=self.lfd.kdl_kin,
                 traj_dist=self.lfd.getParamDistribution(skill_name),
                 policy_type=CartesianDmpPolicy)
@@ -107,17 +139,31 @@ class RosTaskParser(TaskParser):
                 "remap": {obj: "goal"},
                 }
 
-    def _getHand(self, msg, id):
+    def _getHand(self, msg, id, prev):
         '''
         Get the robot hand and create all appropiate fields here
         '''
         action_name = msg.activity
-        obj_acted_on = msg.object_acted_on
-        obj_in_gripper = msg.object_in_hand
+        if action_name is None:
+            raise RuntimeError('unnamed action')
+
+        if prev is not None and prev.base_name == action_name:
+            obj_acted_on = prev.object_acted_on
+            obj_in_gripper = prev.object_in_hand
+        else:
+            obj_acted_on = msg.object_acted_on
+            obj_in_gripper = msg.object_in_hand
+
         if (obj_acted_on == HandInfo.NO_OBJECT
+                or obj_acted_on == None
+                or len(obj_acted_on) == 0
+                or action_name in self.idle_tags
                 or obj_acted_on in self.ignore):
             obj_acted_on = None
         if (obj_in_gripper == HandInfo.NO_OBJECT
+                or obj_in_gripper == None
+                or len(obj_in_gripper) == 0
+                or action_name in self.idle_tags
                 or obj_in_gripper in self.ignore):
             obj_in_gripper = None
         pose = self._makePose(msg.pose)
@@ -219,8 +265,14 @@ class RosTaskParser(TaskParser):
         print("-------------------------------")
         for key, traj in self.trajectories.items():
             print("%s:"%key, len(traj), "with", self.trajectory_features[key])
+        trajectories, data, features, params = self.collectTrajectories()
+        print("-------------------------------")
+        print("Number of parent trajectories:")
+        print("-------------------------------")
+        for key, traj in trajectories.items():
+            print("%s:"%key, len(traj), "with", features[key])
         print("===============================")
-        self.lfd.train(self.trajectories, self.trajectory_data, self.trajectory_features)
+        self.lfd.train(trajectories, data, features, params)
 
     def debug(self, world):
         self.lfd.debug(world)

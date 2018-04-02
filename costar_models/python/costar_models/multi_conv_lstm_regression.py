@@ -19,7 +19,6 @@ from keras.optimizers import Adam
 
 from .abstract import AbstractAgentBasedModel
 from .robot_multi_models import *
-from .split import *
 
 class RobotMultiConvLSTMRegression(AbstractAgentBasedModel):
     '''
@@ -132,6 +131,7 @@ class RobotMultiConvLSTMRegression(AbstractAgentBasedModel):
                 x=[features, arm, gripper],
                 y=[arm_cmd_target, gripper_cmd_target],
                 epochs=self.epochs,
+                initial_epoch=self.initial_epoch,
                 batch_size=self.batch_size,
                 )
 

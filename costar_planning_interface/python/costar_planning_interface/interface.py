@@ -37,6 +37,24 @@ class PlanningInterface(object):
                 num_basis_functions,
                 verbose)
 
+    def generate(self, params, goal):
+        '''
+        Generate a trajectory and verify it
+
+        Parameters:
+        -----------
+        params: parameters of the DMP to use
+        goal: 6-DOF goal pose
+
+        Returns:
+        --------
+        ok: trajectory does not collide
+        traj: trajectory
+        '''
+        ok = True
+        traj = []
+        return ok, traj
+
 if __name__ == '__main__':
     pi = PlanningInterface()
     rospy.spin()

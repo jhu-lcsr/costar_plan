@@ -41,6 +41,7 @@ def visualizeHiddenMain(args):
 
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
+        model.setValidationMode()
         model.load(world=None,**data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
@@ -50,22 +51,20 @@ def visualizeHiddenMain(args):
                                'supported')
 
         features, targets = next(test_generator)
-        h = model.encode(features)
-        img = model.debugImage(features)
-        #img = model.decode(h)
-        #h = model.image_encoder.predict(img)
-        #img = model.decode(h)
-        #h = model.image_encoder.predict(img)
-        if not h.shape[0] == img.shape[0]:
+        I0 = features[0]
+        I = features[1]
+        
+        h = model.encode(I)
+        if not h.shape[0] == I.shape[0]:
             raise RuntimeError('something went wrong with dimensions')
 
         print("--------------\nHidden state:\n--------------\n")
         print("shape of hidden samples =", h.shape)
-        print("shape of images =", img.shape)
+        print("shape of images =", I.shape)
         for i in range(h.shape[0]):
             plt.figure(figsize=(3,3))
             plt.subplot(3,3,1)
-            Show(img[i])
+            Show(I[i])
             for j in range(h.shape[-1]):
                 plt.subplot(3,3,j+2)
                 Show(np.squeeze(h[i,:,:,j]))

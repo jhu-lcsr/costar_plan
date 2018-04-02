@@ -28,33 +28,31 @@ from .temporary import *
 def SuturingNumOptions():
     return 16
 
+def SuturingNullOption():
+    return 15
+
 def MakeJigsawsImageClassifier(model, img_shape, trainable = True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
-    bn = True
+    bn = model.use_batchnorm
     disc = True
-    dr = 0.5 #model.dropout_rate
+    dr = 0. #model.dropout_rate
     x = img
     x0 = img0
 
-    x0 = AddConv2D(x0, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = Add()([x0, x])
+    x = AddConv2D(x, 32, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
+    x0 = AddConv2D(x0, 32, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
 
-    x = AddConv2D(x, 32, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [3,3], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [3,3], 2, dr, "same", lrelu=disc, bn=bn)
+    x = Concatenate()([x0, x])
+    x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 64, [4,4], 2, 0., "same", lrelu=disc, bn=bn)
 
-    #x = MaxPooling2D((3,4))(x)
     x = Flatten()(x)
-    x = AddDense(x, 512, "lrelu", dr, output=True, bn=bn)
+    x = Dropout(0.5)(x)
+    x = AddDense(x, 256, "lrelu", 0.5, output=True, bn=False, kr=0.)
     x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=False)
     image_encoder = Model([img0, img], x, name="classifier")
     if not trainable:
@@ -96,7 +94,7 @@ def MakeJigsawsMultiDecoder(model, decoder, num_images=4, h_dim=(12,16)):
 
     return mm
 
-def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
+def MakeJigsawsTransform(model, h_dim=(12,16), perm_drop=False):
     '''
     This is the version made for the newer code, it is set up to use both
     the initial and current observed world and creates a transform
@@ -113,74 +111,81 @@ def MakeJigsawsTransform(model, h_dim=(12,16), small=True):
 
     This will also set the "transform_model" field of "model".
     '''
-    if small:
-	    h = Input((h_dim[0], h_dim[1], 8),name="h_in")
-    else:
-	    h = Input((h_dim[0], h_dim[1], 64),name="h_in")
-    h0 = Input((h_dim[0],h_dim[1], model.encoder_channels),name="h0_in")
-    option = Input((model.num_options,),name="t_opt_in")
+    h = Input((h_dim[0], h_dim[1], model.encoder_channels),name="h_in")
+    option = Input((model.num_options,), name="t_opt_in")
+    activation_fn = model.activation_fn
     if model.use_noise:
-        z = Input((self.noise_dim,), name="z_in")
+        z = Input((model.noise_dim,), name="z_in")
 
-    x = h # This is already encoded
-    x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
+    kwargs = {
+            "activation": activation_fn,
+            "perm_drop": perm_drop,
+            "dropout_rate": model.dropout_rate,
+            }
+
+    kwargs_dr0 = kwargs.copy()
+    kwargs_dr0["dropout_rate"] = 0.
+
+    x = AddConv2D(h, 64, [1,1], 1, **kwargs)
 
     # Combine the hidden state observations
-    x = Concatenate()([x, x0])
-    x = AddConv2D(x, 64, [5,5], 1, 0.)
+    x = AddConv2D(x, 64, [5,5], 1, **kwargs)
     skip0 = x
 
     # store this for skip connection
-    x = AddConv2D(x, 64, [5,5], 2, 0.)
-    skip = x
+    #x = AddConv2D(x, 64, [5,5], 2, **kwargs)
+    #h_dim_down = (int(h_dim[0]/2), int(h_dim[1]/2))
+    #skip = x
 
     if model.use_noise:
-        y = AddDense(z, 32, "relu", 0., constrain=None, output=False)
+        y = AddDense(z, 32, activation_fn, 0., constraint=None, output=False)
+        #x = TileOnto(x, y, 32, h_dim_down)
         x = TileOnto(x, y, 32, h_dim)
-        x = AddConv2D(x, 32, [5,5], 1, 0.)
+        x = AddConv2D(x, 64, [5,5], 1, 0.)
 
     # Add dense information
-    y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
-    x = TileOnto(x, y, 64, (int(h_dim[0]/2), int(h_dim[1]/2)), add=True)
-    x = AddConv2D(x, 64, [5,5], 1, 0.)
+    y = AddDense(option, 64, activation_fn, 0., constraint=None, output=False)
+    #x = TileOnto(x, y, 64, h_dim_down, add=False)
+    x = TileOnto(x, y, 64, h_dim, add=False)
+    x = AddConv2D(x, 64, [5,5], 1, **kwargs_dr0)
 
     # --- start ssm block
-    def _ssm(x):
-        return spatial_softmax(x)
-    x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-    x = AddDense(x, 128, "relu", 0.,
-            constraint=None, output=False,)
-    x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16), "relu", model.dropout_rate, constraint=None, output=False)
-    x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
-    x = AddConv2DTranspose(x, 64, [5,5], 2, 0.)
+    if model.use_ssm:
+        def _ssm(x):
+            return spatial_softmax(x)
+        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
+        x = Concatenate(axis=-1)([x, y])
+        x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/16),
+              activation_fn, model.dropout_rate, constraint=None, bn=False,
+              output=False, perm_drop=True)
+        x = Reshape([int(h_dim[0]/4), int(h_dim[1]/4), 64])(x)
+    else:
+        x = AddConv2D(x, 64, [5,5], 2, **kwargs_dr0)
+        x = AddConv2D(x, 64, [5,5], 1, **kwargs_dr0)
+    x = AddConv2DTranspose(x, 64, [5,5], stride=2, **kwargs)
 
     # --- end ssm block
-    x = Concatenate()([x, skip])
-    x = Dropout(model.dropout_rate)(x)
-    x = AddConv2DTranspose(x, 64,
-            [5,5],
-            stride=2,
-            dropout_rate=model.dropout_rate)
+    #if model.skip_connections:
+    #    x = Concatenate()([x, skip])
+    x = AddConv2DTranspose(x, 64, [5,5], stride=2, **kwargs)
 
-    x = Concatenate()([x, skip0])
-    x = AddConv2D(x, 64,
-            [5,5],
-            stride=1,
-            dropout_rate=model.dropout_rate)
+    if model.skip_connections:
+        x = Concatenate()([x, skip0])
+
+    for _ in range(1):
+        x = AddConv2D(x, 64, [5,5], stride=1, **kwargs)
 
     # --------------------------------------------------------------------
     # Put resulting image into the output shape
-    if small:
-        x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1,
-                      dropout_rate=0.)
-    l = [h0, h, option, z] if model.use_noise else [h0, h, option]
+    x = AddConv2D(x, model.encoder_channels, [1, 1], stride=1, **kwargs_dr0)
+    l = [h, option, z] if model.use_noise else [h, option]
     model.transform_model = Model(l, x, name="tform")
     model.transform_model.compile(loss="mae", optimizer=model.getOptimizer())
-    #model.transform_model.summary()
+    model.transform_model.summary()
     return model.transform_model
 
 
-def MakeJigsawsImageEncoder(model, img_shape, disc=False):
+def MakeJigsawsImageEncoder(model, img_shape, disc=False, perm_drop=False):
     '''
     create image-only decoder to extract keypoints from the scene.
     
@@ -191,58 +196,51 @@ def MakeJigsawsImageEncoder(model, img_shape, disc=False):
           we handle things slightly differently.
     '''
     img = Input(img_shape,name="img_encoder_in")
+    img0 = Input(img_shape,name="img0_encoder_in")
     bn = not disc and model.use_batchnorm
-    #img0 = Input(img_shape,name="img0_encoder_in")
     dr = model.dropout_rate
-    x = img
-    #x0 = img0
-    x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-    #x0 = AddConv2D(x0, 32, [7,7], 1, dr, "same", lrelu=disc, bn=bn)
-    #x = Concatenate(axis=-1)([x,x0])
+    kwargs = {
+            "lrelu" : disc,
+            "padding" : "same",
+            "bn" : bn,
+            "activation" : model.activation_fn,
+            "perm_drop" : perm_drop,
+            }
+    x, x0 = img, img0
+    x = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
+    x = AddConv2D(x,  32, [7,7], 1, 0., **kwargs)
 
-    x = AddConv2D(x, 32, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 64, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    #x = AddConv2D(x, 128, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
-    #x = AddConv2D(x, 128, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
-    #x = AddConv2D(x, 256, [5,5], 2, dr, "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x,  32, [5,5], 2, dr, **kwargs)
+    x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
+    x = AddConv2D(x,  32, [5,5], 1, 0., **kwargs)
+    x = AddConv2D(x,  64, [5,5], 2, dr, **kwargs)
+    x = AddConv2D(x,  64, [5,5], 1, 0., **kwargs)
+    x = AddConv2D(x, 128, [5,5], 2, dr, **kwargs)
+    #x = AddConv2D(x, 128, [5,5], 1, 0., **kwargs)
+    #x = AddConv2D(x, 128, [5,5], 2, dr, **kwargs)
 
-    if model.use_spatial_softmax and not disc:
-        def _ssm(x):
-            return spatial_softmax(x)
-        model.encoder_channels = 32
-        x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
-                "same", lrelu=disc, bn=bn)
-        x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-        model.hidden_shape = (model.encoder_channels*2,)
-        model.hidden_size = 2*model.encoder_channels
-        model.hidden_shape = (model.hidden_size,)
-    else:
-        model.encoder_channels = 8
-        x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
-                "same", lrelu=disc, bn=bn)
-        model.steps_down = 3
-        model.hidden_dim = int(img_shape[0]/(2**model.steps_down))
-        model.hidden_shape = (model.hidden_dim,model.hidden_dim,model.encoder_channels)
+    model.encoder_channels = 8
+    x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr, **kwargs)
+    model.steps_down = 3
+    model.hidden_dim1 = int(img_shape[0]/(2**model.steps_down))
+    model.hidden_dim2 = int(img_shape[1]/(2**model.steps_down))
+    model.hidden_shape = (model.hidden_dim1, model.hidden_dim2, model.encoder_channels)
 
     if not disc:
-        image_encoder = Model([img], x, name="Ienc")
+        image_encoder = Model([img0, img], x, name="Ienc")
         image_encoder.compile(loss="mae", optimizer=model.getOptimizer())
         model.image_encoder = image_encoder
     else:
         bnv = model.use_batchnorm
         x = Flatten()(x)
-        x = AddDense(x, 512, "lrelu", dr, output=True, bn=bnv)
+        x = AddDense(x, 512, "lrelu", dr, output=True, bn=bnv, perm_drop=perm_drop)
         x = AddDense(x, model.num_options, "softmax", 0., output=True, bn=bnv)
-        image_encoder = Model([img], x, name="Idisc")
+        image_encoder = Model([img0, img], x, name="Idisc")
         image_encoder.compile(loss="mae", optimizer=model.getOptimizer())
         model.image_discriminator = image_encoder
     return image_encoder
 
-def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
+def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False, perm_drop=False):
     '''
     helper function to construct a decoder that will make images.
 
@@ -261,33 +259,35 @@ def MakeJigsawsImageDecoder(model, hidden_shape, img_shape=None, copy=False):
     
     if model.use_spatial_softmax:
         model.steps_up = 3
-        hidden_dim = int(img_shape[0]/(2**model.steps_up))
-        (h,w,c) = (hidden_dim,
-                   hidden_dim,
+        (h,w,c) = (model.hidden_dim1,
+                   model.hidden_dim2,
                    model.encoder_channels)
         x = AddDense(x, int(h*w*c), "relu", dr, bn=bn)
         x = Reshape((h,w,c))(x)
 
-    #x = AddConv2DTranspose(x, 64, [5,5], 1, dr, bn=bn)
-    x = AddConv2DTranspose(x, 128, [1,1], 1, 0., bn=bn)
-    #x = AddConv2DTranspose(x, 128, [5,5], 2, dr, bn=bn)
-    #x = AddConv2DTranspose(x, 128, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 64, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 64, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 2, dr, bn=bn)
-    x = AddConv2DTranspose(x, 32, [5,5], 1, 0., bn=bn)
+    kwargs = {
+            "bn" : bn,
+            "activation" : model.activation_fn,
+            "perm_drop" : perm_drop,
+            }
+
+    x = AddConv2DTranspose(x, 128, [1,1], 1, 0., **kwargs)
+    x = AddConv2DTranspose(x,  64, [5,5], 2, dr, **kwargs)
+    x = AddConv2DTranspose(x,  64, [5,5], 1, 0., **kwargs)
+    x = AddConv2DTranspose(x,  32, [5,5], 2, dr, **kwargs)
+    x = AddConv2DTranspose(x,  32, [5,5], 1, 0., **kwargs)
+    x = AddConv2DTranspose(x,  32, [5,5], 2, dr, **kwargs)
+    x = AddConv2DTranspose(x,  32, [5,5], 1, 0., **kwargs)
     ins = rep
     x = Conv2D(3, kernel_size=[1,1], strides=(1,1),name="convert_to_rgb")(x)
     x = Activation("sigmoid")(x)
     if not copy:
         decoder = Model(ins, x, name="Idec")
-        decoder.compile(loss="mae",optimizer=model.getOptimizer())
+        decoder.compile(loss="mae", optimizer=model.getOptimizer())
         model.image_decoder = decoder
     else:
         decoder = Model(ins, x,)
-        decoder.compile(loss="mae",optimizer=model.getOptimizer())
+        decoder.compile(loss="mae", optimizer=model.getOptimizer())
     return decoder
 
 def GetJigsawsNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=True):
@@ -296,7 +296,6 @@ def GetJigsawsNextModel(x, num_options, dense_size, dropout_rate=0.5, batchnorm=
     '''
 
     xin = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h_in")
-    x0in = Input([int(d) for d in x.shape[1:]], name="Nx_prev_h0_in")
     option_in = Input((1,), name="Nx_prev_o_in")
     x = xin
     x0 = x0in

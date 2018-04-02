@@ -17,6 +17,7 @@ from matplotlib import pyplot as plt
 
 from .conditional_image import *
 from .husky import *
+from .multi import MakeImageDecoder, MakeImageDecoder
 from .planner import *
 
 class ConditionalImageHusky(ConditionalImage):
@@ -42,22 +43,14 @@ class ConditionalImageHusky(ConditionalImage):
         label_in = Input((1,))
         ins = [img0_in, img_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = MakeImageEncoder(self, img_shape)
+        decoder = MakeImageDecoder(self, self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder, gan=False)
 
         # =====================================================================
         # Load the arm and gripper representation
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder([img_in])
-            h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         next_option_in = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
@@ -69,10 +62,13 @@ class ConditionalImageHusky(ConditionalImage):
         y2 = Flatten()(y2)
         x = h
         tform = self._makeTransform()
-        x = tform([h0,h,y])
-        x2 = tform([h0,x,y2])
+        x = tform([h,y])
+        x2 = tform([x,y2])
         image_out = decoder([x])
         image_out2 = decoder([x2])
+
+        if self.validate:
+            self.loadValidationModels(pose_size, h0, h)
 
         if not self.no_disc:
             image_discriminator = LoadGoalClassifierWeights(self,
@@ -102,5 +98,51 @@ class ConditionalImageHusky(ConditionalImage):
                     optimizer=self.getOptimizer())
         self.model = model
 
+    def loadValidationModels(self, pose_size, h0, h):
+
+        pose_in = Input((pose_size,))
+        label_in = Input((1,))
+
+        print(">>> GOAL_CLASSIFIER")
+        image_discriminator = LoadGoalClassifierWeights(self,
+                    make_classifier_fn=MakeImageClassifier,
+                    img_shape=(64, 64, 3))
+        image_discriminator.compile(loss="categorical_crossentropy",
+                                    metrics=["accuracy"],
+                                    optimizer=self.getOptimizer())
+        self.discriminator = image_discriminator
+
+        print(">>> VALUE MODEL")
+        self.value_model = GetValueModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        self.value_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.value_model.load_weights(self.makeName("secondary", "value"))
+
+        print(">>> NEXT MODEL")
+        self.next_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        self.next_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.next_model.load_weights(self.makeName("secondary", "next"))
+
+        print(">>> ACTOR MODEL")
+        self.actor = GetHuskyActorModel(h, self.num_options, pose_size,
+                self.decoder_dropout_rate)
+        self.actor.compile(loss="mae",optimizer=self.getOptimizer())
+        self.actor.load_weights(self.makeName("secondary", "actor"))
+
+        print(">>> POSE MODEL")
+        self.pose_model = GetHuskyPoseModel(h, self.num_options, pose_size,
+                self.decoder_dropout_rate)
+        self.pose_model.compile(loss="mae",optimizer=self.getOptimizer())
+        self.pose_model.load_weights(self.makeName("secondary", "pose"))
+
+        print(">>> Q MODEL")
+        self.q_model = GetNextModel(h, self.num_options, 128,
+                self.decoder_dropout_rate)
+        self.q_model.compile(loss="mae", optimizer=self.getOptimizer())
+        self.q_model.load_weights(self.makeName("secondary", "q"))
+
+
+
     def _getData(self, *args, **kwargs):
-        return GetConditionalHuskyData(self.no_disc, self.num_options, *args, **kwargs)
+        return GetConditionalHuskyData(self.validate, self.no_disc, self.num_options, *args, **kwargs)

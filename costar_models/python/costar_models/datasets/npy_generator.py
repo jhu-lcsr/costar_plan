@@ -3,6 +3,8 @@ from __future__ import print_function
 import numpy as np
 import os
 
+from .image import *
+
 class NpzGeneratorDataset(object):
     '''
     Get the list of objects from a folder full of NP arrays. 
@@ -24,6 +26,7 @@ class NpzGeneratorDataset(object):
         self.test = []
         self.preload = preload
         self.preload_cache = {}
+        self.load_jpeg = False
 
     def write(self, *args, **kwargs):
         raise NotImplementedError('this dataset does not save things')
@@ -45,14 +48,23 @@ class NpzGeneratorDataset(object):
             if success_only and f.split('.')[1] == 'failure':
                 continue
 
-            if i < 2:
+            if i < 1:
                 fsample = self._load(os.path.join(self.name, f))
                 for key, value in fsample.items():
+
+                    if self.load_jpeg and key in ["image", "goal_image"]:
+                        value = ConvertJpegListToNumpy(value)
+
+                    if value.shape[0] == 0:
+                        sample = {}
+                        continue
+
                     if key not in sample:
                         sample[key] = value
-                    if value.shape[0] == 0:
-                        continue
-                    sample[key] = np.concatenate([sample[key],value],axis=0)
+                    else:
+                        # Note: do not collect multiple samples anymore; this
+                        # hould never be reached
+                        sample[key] = np.concatenate([sample[key],value],axis=0)
             i += 1
             acceptable_files.append(f)
 
@@ -135,4 +147,8 @@ class NpzGeneratorDataset(object):
 
     def _load(self, filename):
         return np.load(filename)
+
+    def loadFile(self, filename):
+        full_filename = os.path.join(self.name, filename)
+        return self._load(full_filename)
 

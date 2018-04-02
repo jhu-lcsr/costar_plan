@@ -53,6 +53,10 @@ class AbstractRobotInterface(object):
                 uidx, flags, damping, friction, \
                 lower, upper, max_force, max_vel, \
                 link_name = pb.getJointInfo(self.handle, i)
+            #info = pb.getJointInfo(self.handle, i)
+            #print(info)
+            #link_name = info[12]
+            assert(isinstance(link_name, str))
             if link_name == self.grasp_link:
                 grasp_idx = i
                 break

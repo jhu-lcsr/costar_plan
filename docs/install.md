@@ -43,9 +43,9 @@ To use the CoSTAR plan system, you will need to install the following software p
 
   - Python (tested version 2.7.12)
   - Git (tested version 1.9.1)
-  - ROS (tested ROS Indigo, Ubuntu 14.04)
+  - ROS (tested ROS Indigo/Kinetic, Ubuntu 14.04 and 16.04 LTS)
   - Catkin Build Tools
-  - [OpenAI Gym](https://github.com/openai/gym)
+  - [OpenAI Gym](https://github.com/openai/gym) -- mostly deprecated but important for acouple things
   - [TensorFlow](https://www.tensorflow.org/)
   - [Keras 2](https://github.com/fchollet/keras)
   - [Keras-RL](https://github.com/matthiasplappert/keras-rl/)
@@ -65,6 +65,12 @@ sudo apt-get install -y python-catkin-pkg python-rosdep python-wstool python-cat
 sudo rosdep init
 rosdep update
 ```
+
+#### Python Packages
+
+For `convert_jigsaws.py` tool:
+  - `pip install opencv-python` for video tools
+  - `pip install pillow` for image resizing tools
 
 #### Nvidia CudaNN
 

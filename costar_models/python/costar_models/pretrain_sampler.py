@@ -47,24 +47,7 @@ class PretrainSampler(PredictionSampler2):
         # Load the image decoders
         img_in = Input(img_shape,name="predictor_img_in")
         encoder = self._makeImageEncoder(img_shape)
-
-
-        if self.skip_connections:
-            decoder = self._makeImageDecoder(self.hidden_shape,self.skip_shape)
-        else:
-            decoder = self._makeImageDecoder(self.hidden_shape)
-
-        try:
-            decoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_decoder.h5f"))
-            encoder.load_weights(self._makeName(
-                "pretrain_image_encoder_model",
-                "image_encoder.h5f"))
-            decoder.trainable = self.retrain
-            encoder.trainable = self.retrain
-        except Exception as e:
-            pass
+        decoder = self._makeImageDecoder(self.hidden_shape)
 
         encoder.summary()
         decoder.summary()

@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import keras
 import keras.backend as K
 import keras.losses as losses
 import keras.optimizers as optimizers
@@ -19,7 +20,6 @@ from .callbacks import *
 from .multi_hierarchical import *
 from .multi import *
 from .robot_multi_models import *
-from .split import *
 from .mhp_loss import *
 from .loss import *
 
@@ -51,9 +51,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         # Layer and model configuration
         self.extra_layers = 1
-        self.use_spatial_softmax = False
         self.dense_representation = True
-        if self.use_spatial_softmax and self.dense_representation:
+        if self.encode_spatial_softmax and self.dense_representation:
             self.steps_down = 2
             self.steps_down_no_skip = 0
             self.steps_up = 4
@@ -291,11 +290,10 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 "categorical_crossentropy",
                 "mae"],
         optimizer=self.getOptimizer())
-        model.summary()
 
         return predictor, model, actor, ins, enc
 
-    def _makeTransform(self, h_dim=(8,8)):
+    def _makeTransform(self, perm_drop=False):
         '''
         This is the version made for the newer code, it is set up to use both
         the initial and current observed world and creates a transform
@@ -309,63 +307,169 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
+        h_dim = self.hidden_shape
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
-        h0 = Input((h_dim[0],h_dim[1], self.encoder_channels),name="h0_in")
         option = Input((self.num_options,),name="t_opt_in")
+        # Never use the BN here?
+        bn = self.use_batchnorm
+
+        # Common arguments
+        kwargs = {
+                "activation" : self.activation_fn,
+                "bn" : self.use_batchnorm,
+                "perm_drop" : perm_drop,
+                }
+
         if self.use_noise:
             z = Input((self.noise_dim,), name="z_in")
 
-        x = AddConv2D(h, 64, [1,1], 1, 0.)
-        x0 = AddConv2D(h0, 64, [1,1], 1, 0.)
+        # 2 x "decoder" convolutions
+        x = AddConv2D(h, 64, [1,1], 1, 0., **kwargs)
+        #x0 = AddConv2D(h0, 64, [1,1], 1, 0., **kwargs)
 
         # Combine the hidden state observations
-        x = Concatenate()([x, x0])
-        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate)
+        #x = Concatenate()([x, x0])
+        # 1 convolution to merge h, h0
+        x = AddConv2D(x, 64, [5,5], 1, self.dropout_rate, **kwargs) # Removed this dropout
 
         # store this for skip connection
         skip = x
 
         if self.use_noise:
-            y = AddDense(z, 32, "relu", 0., constraint=None, output=False)
+            y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False, bn=bn)
             x = TileOnto(x, y, 32, h_dim)
-            x = AddConv2D(x, 32, [5,5], 1, 0.)
+            x = AddConv2D(x, 32, [5,5], 1, 0., **kwargs)
 
-        # Add dense information
-        y = AddDense(option, 64, "relu", 0., constraint=None, output=False)
+        # Add convolution to incorporate action info -- 2 + 1 + 1 = 4
+        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False,
+                bn=bn, perm_drop=True)
         x = TileOnto(x, y, 64, h_dim)
-        x = AddConv2D(x, 64, [5,5], 1, 0.)
-        #x = AddConv2D(x, 128, [5,5], 2, 0.)
+        x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
 
         # --- start ssm block
-        use_ssm = True
-        if use_ssm:
+        if self.use_ssm:
             def _ssm(x):
                 return spatial_softmax(x)
             x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
-            x = AddDense(x, 256, "relu", 0.,
-                    constraint=None, output=False,)
-            x = AddDense(x, int(h_dim[0] * h_dim[1] * 32/4), "relu", 0., constraint=None, output=False)
-            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 32])(x)
+            x = Concatenate(axis=-1)([x, y])
+            #x = AddDense(x,
+            #        256,
+            #        self.activation_fn, 0.,
+            #        constraint=None, bn=False)
+            #x = Concatenate(axis=-1)([x, y])
+            x = AddDense(x, int(h_dim[0] * h_dim[1] * 64/4),
+                         self.activation_fn,
+                         self.dropout_rate,
+                         constraint=None, bn=False,
+                         perm_drop=True,)
+            x = Reshape([int(h_dim[0]/2), int(h_dim[1]/2), 64])(x)
         else:
-            x = AddConv2D(x, 128, [5,5], 1, 0.)
+            # U-net scale down
+            # 2x optional convolutions to replace the missing ones from the SSM
+            # block
+            x = AddConv2D(x, 64, [5,5], 2, 0., **kwargs)
+            x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
+
+        # Transpose conv back up to 8x8: 4 + 1 = 5 (or 7, or 8)
         x = AddConv2DTranspose(x, 64, [5,5], 2,
-                self.dropout_rate)
+                dropout_rate=self.dropout_rate,
+                **kwargs) # Removed dropout from this block
         # --- end ssm block
 
-        if self.skip_connections or True:
+        if self.skip_connections:
             x = Concatenate()([x, skip])
 
+        # Convolution to merge information from "skip": 6-9 convolutions
         for i in range(1):
-            #x = TileOnto(x, y, self.num_options, (8,8))
-            x = AddConv2D(x, 64,
-                    [7,7],
-                    stride=1,
-                    dropout_rate=self.dropout_rate)
+            x = AddConv2D(x, 64, [5,5], stride=1, dropout_rate=self.dropout_rate, **kwargs)
 
         # --------------------------------------------------------------------
         # Put resulting image into the output shape
+        # Encode again -- 1x1 convolution -- 7-10 convolutions total
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
+                bn=False, # disables batchnorm here
+                activation="sigmoid", # outputs in [0, 1]
                 dropout_rate=0.)
+
+        #l = [h0, h, option, z] if self.use_noise else [h0, h, option]
+        l = [h, option, z] if self.use_noise else [h, option]
+        self.transform_model = Model(l, x, name="tform")
+        self.transform_model.compile(loss="mae", optimizer=self.getOptimizer())
+        return self.transform_model
+
+    def _getTransform(self,i=0,rep_channels=32):
+        transform_dropout = False
+        use_options_again = self.use_next_option
+        transform_batchnorm = True
+        transform_relu = True
+        if use_options_again:
+            options = self.num_options
+        else:
+            options = None
+        if self.dense_representation:
+            transform = GetDenseTransform(
+                    dim=self.img_col_dim,
+                    input_size=self.img_col_dim,
+                    output_size=self.img_col_dim,
+                    idx=i,
+                    batchnorm=transform_batchnorm,
+                    dropout=transform_dropout,
+                    dropout_rate=self.dropout_rate,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=transform_relu,
+                    option=options,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
+        else:
+            transform_kernel_size = self.tform_kernel_size
+            transform = GetTransform(
+                    rep_size=(self.hidden_dim, self.hidden_dim,
+                        rep_channels),
+                    filters=self.tform_filters,
+                    kernel_size=transform_kernel_size,
+                    idx=i,
+                    batchnorm=True,
+                    dropout=transform_dropout,
+                    dropout_rate=self.dropout_rate,
+                    leaky=True,
+                    num_blocks=self.num_transforms,
+                    relu=True,
+                    option=options,
+                    use_noise=self.use_noise,
+                    noise_dim=self.noise_dim,)
+        return transform
+
+    def _makeDenseTransform(self, h_dim=(8,8), perm_drop=False, small=False):
+        '''
+        Returns:
+        --------
+        transform model
+        '''
+        l0, l1, c = h_dim[0], h_dim[1], self.encoder_channels
+        h = Input((l0, l1, c), name="h_in")
+        h0 = Input((l0, l1, c), name="h0_in")
+        option = Input((self.num_options,),name="t_opt_in")
+        bn = self.use_batchnorm
+        dr = self.dropout_rate
+
+        # Combine the hidden state observations
+        x = Flatten()(h)
+        x0 = Flatten()(h0)
+
+        if self.use_noise:
+            z = Input((self.noise_dim,), name="z_in")
+            x = Concatenate([x, x0, option, z])
+        else:
+            x = Concatenate()([x, x0, option])
+
+        factor = 0.25 if small else 1.
+
+        x = AddDense(x, int(l0 * l1 * c * factor), "relu", 0., constraint=None, bn=bn, perm_drop=perm_drop)
+        x = AddDense(x, int(l0 * l1 * c * factor), "relu", dr, constraint=None, bn=bn, perm_drop=perm_drop)
+        x = AddDense(x, l0 * l1 * c, "relu", dr, constraint=None, bn=bn, perm_drop=perm_drop)
+
+        x = Reshape([l0, l1, c])(x)
 
         l = [h0, h, option, z] if self.use_noise else [h0, h, option]
         self.transform_model = Model(l, x, name="tform")
@@ -484,7 +588,8 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             predictor = self.model
         if self.PredictorCb is not None:
             imageCb = self.PredictorCb(
-                predictor,
+                saved_model=self,
+                predictor=predictor,
                 name=self.name_prefix,
                 features_name=self.features,
                 features=cbf,
@@ -507,13 +612,17 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             train_generator,
             self.steps_per_epoch,
             epochs=self.epochs,
+            initial_epoch=self.initial_epoch,
             validation_steps=self.validation_steps,
             validation_data=test_generator,
             callbacks=callbacks)
 
     def _getSaveLoadItems(self, is_save):
 
-        items = [(self.model, 'train_predictor')]
+        if self.save_train_state:
+            items = [(self.model, 'train_predictor')]
+        else:
+            items = []
 
         if self.save_encoder_decoder:
             items += [
@@ -559,8 +668,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             for (item, name) in items:
                 if item is not None:
-                    print(">>> Saving", name)
-                    item.save_weights('{}_{}.h5f'.format(self.name, name))
+                    filename = '{}_{}.h5f'.format(self.name, name)
+                    print(">>> Saving", name, "to", filename)
+                    item.save_weights(filename)
         else:
             raise RuntimeError('save() failed: model not found.')
 
@@ -575,8 +685,9 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
             for (item, name) in items:
                 if item is not None:
-                    print(">>> Loading", name)
-                    item.load_weights('{}_{}.h5f'.format(self.name, name))
+                    filename = '{}_{}.h5f'.format(self.name, name)
+                    print(">>> Loading", name, "from", filename)
+                    item.load_weights(filename)
         else:
             raise RuntimeError('_loadWeights() failed: model not yet created.')
 
@@ -790,14 +901,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 dense=self.dense_representation,
                 batchnorm=True,
                 tile=True,
-                flatten=(not self.use_spatial_softmax),
+                flatten=(not self.encode_spatial_softmax),
                 option=enc_options,
-                use_spatial_softmax=self.use_spatial_softmax,
+                encode_spatial_softmax=self.encode_spatial_softmax,
                 output_filters=self.tform_filters,
                 )
         self.encoder = Model(ins, [enc]+skips, name="encoder")
         self.encoder.compile(loss="mae",optimizer=self.getOptimizer())
-        self.encoder.summary()
         new_ins = []
         for idx, i in enumerate(ins):
             i2 = Input(
@@ -841,7 +951,6 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                         skips=self.skip_connections,
                         batchnorm=True,)
         decoder.compile(loss="mae",optimizer=self.getOptimizer())
-        decoder.summary()
         return decoder
 
     def _makeStateEncoder(self, arm_size, gripper_size, disc=False):
@@ -909,24 +1018,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 name="state_decoder")
         state_decoder.compile(loss="mae", optimizer=self.getOptimizer())
         self.state_decoder = state_decoder
-        state_decoder.summary()
         return state_decoder
-
-    def _makeMergeEncoder(self, img_shape, arm_shape, gripper_shape):
-        '''
-        Take input image and state information and encode them into a single
-        hidden representation
-        '''
-        img_in = Input(img_shape,name="predictor_img_in")
-        option_in = Input((1,), name="predictor_option_in")
-
-
-    def _makeMergeDecoder(self, rep_size):
-        '''
-        Take input state and image information projected into a latent space
-        and decode them back into their appropriate output representations
-        '''
-
 
     def _targetsFromTrainTargets(self, train_targets):
         '''
@@ -1019,4 +1111,47 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
                 sums += np.array(losses)
 
         return sums, train_sum, length
+
+
+    def addNoiseIfNeeded(self, in_data):
+        if not self.use_noise:
+            return in_data
+        out = [in_data] if type(in_data).__name__ != 'list' else in_data[:]
+        sz = out[0].shape[0]
+        for _ in range(self.noise_iters):
+            x = np.random.random((sz, self.noise_dim))
+            out.append(x)
+        return out
+
+    def encode(self, img0, img):
+        '''
+        Encode available features into a new state
+
+        Parameters:
+        -----------
+        [unknown]: all are parsed via _getData() function.
+        '''
+        return self.image_encoder.predict([img0, img])
+
+    def decode(self, hidden):
+        '''
+        Decode features and produce a set of visualizable images or other
+        feature outputs.
+
+        '''
+        return self.image_decoder.predict(hidden)
+
+    def transform(self, hidden, option_in=-1):
+        #if option_in < 0 or option_in > self.num_options:
+        #    option_in = self.null_option
+        #oin = MakeOption1h(option_in, self.num_options)
+        if len(option_in.shape) == 1:
+            oin = ToOneHot(option_in, self.num_options)
+        else:
+            oin = option_in
+        #length = hidden.shape[0]
+        #oin = np.repeat(oin, length, axis=0)
+        h = self.transform_model.predict([hidden, oin])
+        return h
+
 

@@ -1,0 +1,160 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import matplotlib as mpl
+#mpl.use("Agg")
+
+import numpy as np
+import matplotlib.pyplot as plt
+#import imageio
+#import moviepy.editor as mpy
+
+from costar_models import *
+from costar_models.planner import GetOrderedList, PrintTopQ
+from costar_models.sampler2 import PredictionSampler2
+from costar_models.datasets.npz import NpzDataset
+from costar_models.datasets.npy_generator import NpzGeneratorDataset
+from costar_models.datasets.h5f_generator import H5fGeneratorDataset
+
+from costar_models.planner import *
+from costar_models.multi import *
+from costar_models.dvrk import MakeJigsawsImageClassifier
+
+def main(args):
+    '''
+    Tool for running model training without the rest of the simulation/planning/ROS
+    code. This should be more or less independent and only rely on a couple
+    external features.
+    '''
+    ConfigureGPU(args)
+
+    np.random.seed(0)
+    data_file_info = args['data_file'].split('.')
+    data_type = data_file_info[-1]
+    root = ""
+    for i, tok in enumerate(data_file_info[:-1]):
+        if i < len(data_file_info)-1 and i > 0:
+            root += '.'
+        root += tok
+    if data_type == "npz":
+        dataset = NpzGeneratorDataset(root)
+        data = dataset.load(success_only = args['success_only'])
+    elif data_type == "h5f":
+        dataset = H5fGeneratorDataset(root)
+        data = dataset.load(success_only = args['success_only'])
+    else:
+        raise NotImplementedError('data type not implemented: %s'%data_type)
+
+    if 'features' not in args or args['features'] is None:
+        raise RuntimeError('Must provide features specification')
+    features_arg = args['features']
+
+    if 'model' not in args or args['model'] is None:
+        raise RuntimeError('Must provide a model to load')
+    model_arg = args['model']
+
+    model = MakeModel(taskdef=None, **args)
+    #model.validate = True
+    model.load(world=None,**data)
+
+    show = False
+    correct_g1 = 0
+    correct_g2 = 0
+    total = 0.
+    err1_sum = 0.
+    err2_sum = 0.
+    v_sum = 0.
+    ii = 0
+    imgs = []
+    model_features = model.features
+    if model_features is None:
+        model_features = "def"
+    if model_features in ["husky", "multi", "def"]:
+        ht = 64
+        w = 64
+        imgpos = [(30, 0), (0, 66), (66,66)]
+        imgw, imgh = 130, 130
+        inchw = imgw / 43
+        inchh = imgh / 43
+    elif model_features == "jigsaws":
+        ht = 96
+        w = 128
+        imgpos = [(70,13), (4,145), (102,145)]
+        imgw, imgh = 200, 280
+        inchw = imgw / 40
+        inchh = imgh / 40
+    for fnum, filename in enumerate(dataset.test):
+        print(fnum, filename)
+        data = dataset.loadFile(filename)
+        features, targets = model._getData(**data)
+        model.convert(features, targets)
+        if not args["cpu"]:
+            res = model.model.evaluate(features, targets)
+            print("res =", res)
+        #[I0, I, o1, o2, oin] = features
+        I0 = features[0]
+        I = features[1]
+        o1 = features[2]
+        o2 = features[3]
+        length = I0.shape[0]
+        [I_target, I_target2] = targets[:2]
+        img = np.zeros((imgw,imgh,3))
+        for i in range(length):
+            ii += 1
+            xi = np.expand_dims(I[i],axis=0)
+            x0 = np.expand_dims(I0[i],axis=0)
+            h = model.encode(x0, xi)
+            #p_a, done1 = model.pnext(h0, h, prev_option)
+            #v2 = model.value(h0, h)
+            h_goal = model.transform(h, np.array([o1[i]]))
+            h_goal2 = model.transform(h_goal, np.array([o2[i]]))
+            xg = model.decode(h_goal)
+            xg2 = model.decode(h_goal2)
+            if False and ((i % 100) == 0):
+                plt.subplot(1,4,1); plt.imshow(x0[0])
+                plt.subplot(1,4,2); plt.imshow(xi[0])
+                plt.subplot(1,4,3); plt.imshow(xg[0])
+                plt.subplot(1,4,4); plt.imshow(xg2[0])
+                plt.show()
+            err1 = np.mean(np.abs((xg[0] - I_target[i])))
+            err2 = np.mean(np.abs((xg2[0] - I_target2[i])))
+            yimg, ximg = imgpos[0]
+            img[yimg:(yimg+ht),ximg:(ximg+w),:] = xi[0]
+            yimg, ximg = imgpos[1]
+            img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg[0]
+            yimg, ximg = imgpos[2]
+            img[yimg:(yimg+ht),ximg:(ximg+w),:] = xg2[0]
+            imgs.append(img)
+            err1_sum += err1
+            err2_sum += err2
+            total += 1.
+            mean1 = err1_sum / total
+            mean2 = err2_sum / total
+            print( "actions =", o1[i], o2[i],
+                   "errs =", err1, err2,
+                    "means =", mean1, mean2,
+                    "avg =", v_sum/total )
+            fig = plt.figure(frameon=False)
+            fig.set_size_inches(inchh,inchw)
+            ax = plt.Axes(fig, [0., 0., 1., 1.])
+            ax.set_axis_off()
+            fig.add_axes(ax)
+            ax.imshow(img)
+            fig.savefig("movie_%s/%05d.jpg"%(model_features,ii))
+            plt.close(fig)
+        if fnum >= 9:
+             break
+    #print(len(imgs))
+    #imageio.mimsave('movie.gif', imgs, duration=0.04)
+    #clip = mpy.ImageSequenceClip(imgs, fps=30)
+    #clip.write_gif('movie.gif')
+
+
+if __name__ == '__main__':
+    args = ParseModelArgs()
+    if args['profile']:
+        import cProfile
+        cProfile.run('main(args)')
+    else:
+        main(args)

@@ -12,6 +12,7 @@ from keras.layers.embeddings import Embedding
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
+from keras.layers.pooling import GlobalAveragePooling2D
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
@@ -45,8 +46,6 @@ class ConditionalImageGan(PretrainImageGan):
         self.rep_size = 256
         self.num_transforms = 3
         self.do_all = True
-        self.skip_connections = False
-        self.num_generator_files = 1
         self.save_encoder_decoder = self.retrain
         self.noise_iters = 2
 
@@ -71,12 +70,8 @@ class ConditionalImageGan(PretrainImageGan):
         next_option2_in = Input((1,), name="next_option2_in")
         ins = [img0_in, img_in, next_option_in, next_option2_in]
 
-        if self.skip_connections:
-            encoder = self._makeImageEncoder2(img_shape)
-            decoder = self._makeImageDecoder2(self.hidden_shape)
-        else:
-            encoder = self._makeImageEncoder(img_shape)
-            decoder = self._makeImageDecoder(self.hidden_shape)
+        encoder = self._makeImageEncoder(img_shape, perm_drop=True)
+        decoder = self._makeImageDecoder(self.hidden_shape, perm_drop=True)
 
         LoadEncoderWeights(self, encoder, decoder, gan=True)
 
@@ -87,21 +82,17 @@ class ConditionalImageGan(PretrainImageGan):
             z2 = Input((self.noise_dim,), name="z2_in")
             ins += [z1, z2]
 
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder([img_in])
-            h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         # =====================================================================
         # Actually get the right outputs
         y = Flatten()(OneHot(self.num_options)(next_option_in))
         y2 = Flatten()(OneHot(self.num_options)(next_option2_in))
         x = h
-        tform = self._makeTransform()
-        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        tform = self._makeTransform(perm_drop=True)
+        l = [h, y, z1] if self.use_noise else [h, y]
         x = tform(l)
-        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y2]
+        l = [x, y2, z2] if self.use_noise else [x, y2]
         x2 = tform(l)
         image_out, image_out2 = decoder([x]), decoder([x2])
 
@@ -132,7 +123,7 @@ class ConditionalImageGan(PretrainImageGan):
         # =====================================================================
         # And adversarial model
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
-        weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
+        weights = [0.1, 0.1, 1.] if self.use_wasserstein else [100., 100., 1.]
 
         model = Model(ins, [image_out, image_out2, is_fake])
         model.compile(
@@ -158,7 +149,14 @@ class ConditionalImageGan(PretrainImageGan):
 
         # Extract the next goal
         I_target2, o2 = GetNextGoal(I_target, o1)
-        return [I0, I, o1, o2], [ I_target, I_target2 ]
+        if not self.validate:
+            return [I0, I, o1, o2], [ I_target, I_target2 ]
+        else:
+            features = [I0, I, o1, o2, oin]
+            o1_1h = ToOneHot(o1, self.num_options)
+            o2_1h = ToOneHot(o2, self.num_options)
+            return (features, 
+                    [I_target, I_target2, o1_1h, v, qa, ga, o2_1h])
 
     def _makeImageDiscriminator(self, img_shape):
         '''
@@ -176,12 +174,19 @@ class ConditionalImageGan(PretrainImageGan):
         option2 = Input((1,),name="disc2_options")
         ins = [img0, img, option, option2, img_goal, img_goal2]
         dr = self.dropout_rate
-        dr = 0
 
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xobs = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg1 = AddConv2D(img_goal, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg2 = AddConv2D(img_goal2, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        # common arguments
+        kwargs = { "dropout_rate" : dr,
+                   "padding" : "same",
+                   "lrelu" : True,
+                   "bn" : False,
+                   "perm_drop" : True,
+                 }
+
+        x0   = AddConv2D(img0,      64, [4,4], 1, **kwargs)
+        xobs = AddConv2D(img,       64, [4,4], 1, **kwargs)
+        xg1  = AddConv2D(img_goal,  64, [4,4], 1, **kwargs)
+        xg2  = AddConv2D(img_goal2, 64, [4,4], 1, **kwargs)
 
         #x1 = Add()([x0, xobs, xg1])
         #x2 = Add()([x0, xg1, xg2])
@@ -190,32 +195,35 @@ class ConditionalImageGan(PretrainImageGan):
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option)
-        y = AddDense(y, 64, "lrelu", dr)
+        y = AddDense(y, 64, "lrelu", dr, perm_drop=True)
         x1 = TileOnto(x1, y, 64, (64,64), add=True)
-        x1 = AddConv2D(x1, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x1 = AddConv2D(x1, 64, [4,4], 2, **kwargs)
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
-        y = AddDense(y, 64, "lrelu", dr)
+        y = AddDense(y, 64, "lrelu", dr, perm_drop=True)
         x2 = TileOnto(x2, y, 64, (64,64), add=True)
-        x2 = AddConv2D(x2, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
+        x2 = AddConv2D(x2, 64, [4,4], 2, **kwargs)
 
         #x = Concatenate()([x1, x2])
         x = x2
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True)
-        #x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
-        #        bn=False)
+        x = AddConv2D(x, 128, [4,4], 2, **kwargs)
+        x = AddConv2D(x, 256, [4,4], 2, **kwargs)
 
-        #x = MaxPooling2D(pool_size=(8,8))(x)
-        #x = AveragePooling2D(pool_size=(8,8))(x)
-        x = Flatten()(x)
-        x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+        if self.use_wasserstein:
+            x = Flatten()(x)
+            x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+        else:
+            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
+                bn=False)
+            x = GlobalAveragePooling2D()(x)
+            #x = Flatten()(x)
+            #x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False, perm_drop=True)
+
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
-        discrim.compile(loss=loss, loss_weights=[1.],
-                optimizer=self.getOptimizer())
+        discrim.compile(loss=loss, optimizer=self.getOptimizer())
         self.lr *= 0.5
         self.image_discriminator = discrim
         return discrim

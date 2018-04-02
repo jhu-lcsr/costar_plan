@@ -5,11 +5,15 @@ Chris Paxton
 (c) 2017 Johns Hopkins University
 See license for details
 '''
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 
 import keras.backend as K
 import keras.optimizers as optimizers
+
+from .datasets.image import *
+from .plotting import *
 
 class AbstractAgentBasedModel(object):
     '''
@@ -18,10 +22,16 @@ class AbstractAgentBasedModel(object):
     will also provide the model with a way to collect data or whatever.
     '''
 
-    def makeName(self, prefix, submodel=None):
-        name = os.path.join(self.model_directory, prefix) + "_model"
+    def scale(self, img):
+        return img / 255.
+
+    def makeName(self, prefix, submodel=None, reqs_dir=False):
+        dir = self.model_directory
+        if reqs_dir and self.reqs_directory is not None:
+            dir = self.reqs_directory
+        name = os.path.join(dir, prefix) + "_model"
         if self.features is not None:
-            name += "_%s"%self.features   
+            name += "_%s"%self.features
         if submodel is not None:
             name += "_%s.h5f"%submodel
         return name
@@ -38,17 +48,36 @@ class AbstractAgentBasedModel(object):
             name += "_%s.h5f"%self.submodel
         return name
 
-    def __init__(self, taskdef=None, lr=1e-4, epochs=1000, iter=1000, batch_size=32,
-            clipnorm=100., show_iter=0, pretrain_iter=5,
-            optimizer="sgd", model_descriptor="model", zdim=16, features=None,
-            steps_per_epoch=500, validation_steps=25,
-            dropout_rate=0.5, decoder_dropout_rate=None,
+    def setValidationMode(self):
+        self.save_train_state = False
+
+    def __init__(self, taskdef=None,
+            lr=1e-4,
+            epochs=500,
+            initial_epoch=0,
+            iter=1000,
+            batch_size=32,
+            clipnorm=100.,
+            show_iter=0,
+            pretrain_iter=5,
+            optimizer="sgd",
+            model_descriptor="model",
+            zdim=16,
+            features=None,
+            steps_per_epoch=500,
+            validation_steps=100,
+            dropout_rate=0.1,
+            decoder_dropout_rate=None,
             tform_dropout_rate=0.,
+            activation_fn="relu",
             validate=False,
+            enc_loss=False,
             use_batchnorm=1,
+            use_ssm=1,
             hypothesis_dropout=False,
             dense_representation=True,
-            skip_connections=0,
+            dense_transform=False,
+            skip_connections=1,
             use_noise=False,
             load_pretrained_weights=False,
             retrain=True,
@@ -63,8 +92,13 @@ class AbstractAgentBasedModel(object):
             num_generator_files=3, upsampling=None,
             clip_weights=0, use_wasserstein=False,
             option_num=None, # for policy model
-            task=None, robot=None, model="", model_directory="./", *args,
-            **kwargs):
+            unique_id="", # for status file
+            task=None,
+            robot=None,
+            model="",
+            model_directory="./",
+            reqs_directory=None,
+            *args, **kwargs):
 
         if lr == 0 or lr < 1e-30:
             raise RuntimeError('You probably did not mean to set ' + \
@@ -74,9 +108,11 @@ class AbstractAgentBasedModel(object):
 
         self.submodel = submodel
         self.loss = loss
+        self.enc_loss = enc_loss
         self.retrain = retrain
         self.success_only = success_only
         self.use_prev_option = use_prev_option
+        self.activation_fn = activation_fn
         self.lr = lr
         self.iter = iter
         self.upsampling_method = upsampling
@@ -85,12 +121,14 @@ class AbstractAgentBasedModel(object):
         self.pretrain_iter = pretrain_iter
         self.noise_dim = zdim
         self.epochs = epochs
+        self.initial_epoch = initial_epoch
         self.use_batchnorm = use_batchnorm > 0
         self.batch_size = batch_size
         self.load_pretrained_weights = load_pretrained_weights
         self.optimizer = optimizer
         self.validation_steps = validation_steps
         self.no_disc = no_disc
+        self.encode_spatial_softmax = False
         self.validate = validate
         self.task = task
         if features == "multi":
@@ -98,10 +136,14 @@ class AbstractAgentBasedModel(object):
         else:
             self.features = features
         self.robot = robot
+        self.save_train_state = True
         self.name_prefix = model
         self.clipnorm = float(clipnorm)
         self.taskdef = taskdef
         self.model_directory = os.path.expanduser(model_directory)
+        self.reqs_directory = None
+        if reqs_directory is not None:
+            self.reqs_directory = os.path.expanduser(reqs_directory)
         self.name = self.makeName(self.name_prefix)
         self.num_generator_files = num_generator_files
         self.dropout_rate = dropout_rate
@@ -116,12 +158,15 @@ class AbstractAgentBasedModel(object):
         else:
             self.decoder_dropout_rate = 0.
         self.skip_connections = skip_connections > 0
+        self.use_ssm = use_ssm > 0
         self.dense_representation = dense_representation
+        self.dense_transform = dense_transform
         self.gan_method = gan_method
         self.save_model = save_model
         self.hidden_size = hidden_size
         self.option_num = option_num
-        
+        self.load_jpeg = False
+
         if self.noise_dim < 1:
             self.use_noise = False
 
@@ -135,7 +180,10 @@ class AbstractAgentBasedModel(object):
         # None, set to 2 for testing only
         self.prev_option = 2
 
-        
+        # Unique id for status file
+        self.unique_id = unique_id
+
+
 
         # default: store the whole model here.
         # NOTE: this may not actually be where you want to save it.
@@ -145,16 +193,19 @@ class AbstractAgentBasedModel(object):
         print("==========   TRAINING CONFIGURATION REPORT   ==============")
         print("===========================================================")
         print("Name =", self.name_prefix)
-        print("Features = ", self.features)
-        print("Robot = ", self.robot)
-        print("Task = ", self.task)
-        print("Model type = ", model)
-        print("Model directory = ", self.model_directory)
-        print("Models saved with prefix = ", self.name)
+        print("Features =", self.features)
+        print("Robot =", self.robot)
+        print("Task =", self.task)
+        print("Model type =", model)
+        print("Model directory =", self.model_directory)
+        print("Reqs directory =", self.reqs_directory)
+        print("Models saved with prefix =", self.name)
+        print("Unique id for status file =", self.unique_id)
         print("-----------------------------------------------------------")
         print("---------------- General Training Options -----------------")
         print("Iterations =", self.iter)
         print("Epochs =", self.epochs)
+        print("Initial epoch =", self.initial_epoch)
         print("Steps per epoch =", self.steps_per_epoch)
         print("Batch size =", self.batch_size)
         print("Noise dim =", self.noise_dim)
@@ -212,9 +263,9 @@ class AbstractAgentBasedModel(object):
     def _getData(self, *args, **kwargs):
         '''
         This function should process all the data you need for a generator.
-        ''' 
+        '''
         raise NotImplementedError('_getData() requires a dataset.')
-        
+
     def trainGenerator(self, dataset):
         return self._yieldLoop(dataset.sampleTrain)
 
@@ -227,7 +278,7 @@ class AbstractAgentBasedModel(object):
 
     def _yieldLoop(self, sampleFn):
       '''
-      This helper function runs in a loop infinitely, executing some callable 
+      This helper function runs in a loop infinitely, executing some callable
       to extract a set of feature information from a dataset file, and then
       performs any necessary preprocessing on it.
 
@@ -301,8 +352,22 @@ class AbstractAgentBasedModel(object):
 
             #print("Collected ", n_samples, " samples")
             idx = np.random.randint(n_samples,size=(self.batch_size,))
-            yield ([f[idx] for f in features],
-                   [t[idx] for t in targets])
+            features, targets = ([f[idx] for f in features],
+                                 [t[idx] for t in targets])
+
+            self.convert(features, targets)              
+            yield features, targets
+
+    def convert(self, features, targets):
+        if self.load_jpeg:
+            for i, f in enumerate(features):
+                if str(f.dtype)[:2] == "|S":
+                    f = ConvertJpegListToNumpy(np.squeeze(f))
+                    #print("converted", type(f), f.shape, f.dtype)
+                    features[i] = self.scale(f)
+            for i, f in enumerate(targets):
+                if str(f.dtype)[:2] == "|S":
+                    targets[i] = self.scale(ConvertJpegListToNumpy(np.squeeze(f)))
 
     def save(self):
         '''
@@ -403,7 +468,7 @@ class HierarchicalAgentBasedModel(AbstractAgentBasedModel):
         self.baseline = None
         # All low-level policies pi(x,o) --> u
         self.policies = []
-       
+
     def _makeSupervisor(self, feature):
         '''
         This needs to create a supervisor. This one maps from input to the

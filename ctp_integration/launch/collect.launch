@@ -1,10 +1,6 @@
 <launch>
 
-  <arg name="rviz" default="true"/>
-
-  <include file="$(find ctp_integration)/launch/robot.launch"/>
-  <include file="$(find ctp_integration)/launch/perception.launch"/>
-  <include if="$(arg rviz)"
-    file="$(find costar_bringup)/launch/rviz.launch"/>
+  <node pkg="ctp_integration" type="scripts/run.py" name="run" >
+  <!-- </node> -->
 
 </launch>

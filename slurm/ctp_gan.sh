@@ -7,107 +7,236 @@
 #SBATCH --mem=8G
 #SBATCH --mail-type=end
 
-
-echo "Running $@ on $SLURMD_NODENAME ..."
-
-module load tensorflow/cuda-8.0/r1.3 
-
-export train_image_encoder=false
-export train_gan_image_encoder=false
-
-export dataset=$1
-export features=$2
-export learning_rate=$3
-export dropout=$4
-export optimizer=$5
-export noise_dim=$6
-export loss=$7
-export wass=$8 # 'wass
-export use_noise=$9
-export MODELDIR="$HOME/.costar/${dataset}_${learning_rate}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass}_${use_noise}"
-touch $MODELDIR/$SLURM_JOB_ID
-
-# Handle different Marcc layouts
-data_dir=$HOME/work/$dataset
-if [[ ! -d $data_dir ]]; then
-  data_dir=$HOME/work/dev_yb/$dataset
-fi
-if [[ $features == husky ]]; then
-  data_dir=${data_dir}.npz
+# Check if running on marcc
+if [[ -z ${SLURM_JOB_ID+x} ]]; then marcc=false; else marcc=true; fi
+if $marcc; then
+  echo "Running $@ on $SLURMD_NODENAME ..."
+  module load tensorflow/cuda-8.0/r1.3
 else
-  data_dir=${data_dir}.h5f
+  echo "Not running on Marcc"
 fi
 
-wass_cmd=''
-if [[ $wass == wass* ]]; then wass_cmd='--wasserstein'; fi
+## Option Processing ----
+OPTS=$(getopt -o '' --long lr:,dr:,opt:,noisedim:,loss:,wass,no_wass,noise,retrain,gan_encoder,gan_transform,no_gan_transform,skip_encoder,load_model,suffix:,multi,husky,jigsaws,no_resume,epochs1:,epochs2:,enc_dir:,skip_cond,dense_transform -n ctp_gan -- "$@")
 
-use_noise_cmd=''
-if [[ $use_noise == true ]]; then use_noise_cmd='--use_noise'; fi
-	
-if $train_image_encoder; then
-  echo "Training discriminator"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features $features \
-    -e 100 \
-    --model discriminator \
-    --data_file $data_dir \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 300 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --batch_size 64
+[[ $? != 0 ]] && echo "Failed parsing options." && exit 1
 
-  echo "Training non-gan image encoder"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features $features \
-    -e 100 \
-    --model pretrain_image_encoder \
-    --data_file $data_dir \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 300 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --batch_size 64
+gan_encoder=false
+skip_encoder=false
+lr=0.001
+dropout=0.1
+optimizer=adam
+noise_dim=1
+loss=mae
+wass=false
+use_noise=false
+retrain=false
+load_model=false
+dataset=''
+features=''
+suffix=''
+resume=true # resume a job
+epochs1=100
+epochs2=100
+enc_dir=''
+skip_cond=false
+dense_transform=false
+gan_transform=true
+
+echo "$OPTS"
+eval set -- "$OPTS"
+
+while true; do
+  case "$1" in
+    --lr) lr="$2"; shift 2 ;;
+    --dr) dropout="$2"; shift 2 ;;
+    --opt) optimizer="$2"; shift 2 ;;
+    --noisedim) noise_dim="$2"; shift 2 ;;
+    --noise) use_noise=true; shift ;;
+    --loss) loss="$2"; shift 2 ;;
+    --wass) wass=true; shift ;;
+    --no_wass) wass=false; shift ;;
+    --retrain) retrain=true; shift ;;
+    --skip_encoder) skip_encoder=true; shift ;;
+    --skip_cond) skip_cond=true; shift ;;
+    --gan_encoder) gan_encoder=true; shift ;;
+    --load_model) load_model=true; shift ;;
+    --multi) dataset=ctp_dec; features=multi; shift ;;
+    --husky) dataset=husky_data; features=husky; shift ;;
+    --jigsaws) dataset=suturing_data2; features=jigsaws; shift ;;
+    --suffix) suffix="$2"; shift 2 ;;
+    --no_resume) resume=false; shift ;;
+    --epochs1) epochs1="$2"; shift 2 ;;
+    --epochs2) epochs2="$2"; shift 2 ;;
+    --enc_dir) enc_dir="$2"; shift 2 ;;
+    --dense_transform) dense_transform=true; shift ;;
+    --no_gan_transform) gan_transform=false; shift ;;
+    --gan_transform) gan_transform=true; shift ;;
+    --) shift; break ;;
+    *) echo "Internal error!" ; exit 1 ;;
+  esac
+done
+
+# positional arguments
+[[ ! -z "$1" ]] && dataset="$1"
+[[ ! -z "$2" ]] && features="$2"
+
+[[ $dataset == '' ]] && echo 'Dataset is mandatory!' && exit 1
+[[ $features == '' ]] && echo 'Features are mandatory!' && exit 1
+
+## End of option processing ---------------------
+
+if ! $gan_transform; then gan_transform_dir='_nogantrans'; else gan_transform_dir=''; fi
+if $wass; then wass_dir=wass; else wass_dir=nowass; fi
+if $use_noise; then noise_dir=noise; else noise_dir=nonoise; fi
+if $retrain; then retrain_dir=retrain; else retrain_dir=noretrain; fi
+if $gan_encoder; then gan_enc_dir=ganenc; else gan_enc_dir=noganenc; fi
+if $dense_transform; then dense_dir='_dense'; else dense_dir=''; fi
+
+# Handle model directory
+MODELDIR="$HOME/.costar/${dataset}_${lr}_${optimizer}_${dropout}_${noise_dim}_${loss}_${wass_dir}_${noise_dir}_${gan_enc_dir}_${retrain_dir}${dense_dir}${gan_transform_dir}${suffix}"
+
+[[ ! -d $MODELDIR ]] && mkdir -p $MODELDIR
+
+# Get rid of old status files if not resuming
+! $resume && rm "$MODELDIR"/status*.txt
+
+# Set data directory
+if $marcc; then
+  touch $MODELDIR/$SLURM_JOB_ID
+  # Handle different Marcc layouts
+  data_dir=$HOME/work/$dataset
+  [[ ! -d $data_dir ]] && data_dir=$HOME/work/dev_yb/$dataset
+else
+  data_dir=$dataset
 fi
-if $train_gan_image_encoder; then
-  echo "Training encoder gan: no wasserstein"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features $features \
-    -e 100 \
-    --model pretrain_image_gan \
-    --data_file $data_dir \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 100 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --gan_method gan \
-    --batch_size 64 \
-    $wass_cmd
+if [[ $features == husky ]]; then data_suffix=npz; else data_suffix=h5f; fi
+data_dir=${data_dir}.${data_suffix}
+
+# Set up command line
+if $wass; then wass_cmd='--wasserstein'; else wass_cmd=''; fi
+if $use_noise; then use_noise_cmd='--use_noise'; else use_noise_cmd=''; fi
+if $retrain; then retrain_cmd='--retrain'; else retrain_cmd=''; fi
+if $dense_transform; then dense_transform_cmd='--dense_transform'; else dense_transform_cmd=''; fi
+
+if $marcc; then
+  cmd_prefix="$HOME/costar_plan/costar_models/scripts/"
+else
+  cmd_prefix='rosrun costar_models '
 fi
 
-echo "Training conditional gan"
-$HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-  --features $features \
-  -e 100 \
-  --model conditional_image_gan \
-  --data_file $data_dir \
-  --lr $learning_rate \
-  --dropout_rate $dropout \
-  --model_directory $MODELDIR/ \
-  --optimizer $optimizer \
-  --steps_per_epoch 100 \
-  --noise_dim $noise_dim \
-  --loss $loss \
-  --gan_method gan \
-  --batch_size 64 \
-  $wass_cmd
+## Pretrain_image_encoder ---------------------------
 
+if ! $skip_encoder; then
+  status_file="$MODELDIR"/status_pretrain.txt
+  # Check if we should load the model
+  load_cmd=''
+  $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
+
+  # Calculate epochs left
+  epochs_done=0
+  if $resume && [[ -f $status_file ]]; then
+    contents=($(cat $status_file))
+    epochs_done=${contents[0]}
+  fi
+  # Check for resume after finish
+  if $resume && (($epochs_done >= $epochs1)); then
+    echo Skipping pretrain_image due to resume
+    echo $epochs_done/$epochs1 epochs already done
+  elif $gan_encoder; then
+    echo "Training gan encoder. $epochs_done/$epochs1 epochs done"
+    ${cmd_prefix}ctp_model_tool \
+      --features $features \
+      -e $epochs1 \
+      --initial_epoch $epochs_done \
+      --model pretrain_image_gan \
+      --data_file $data_dir \
+      --lr $lr \
+      --dropout_rate $dropout \
+      --model_directory $MODELDIR/ \
+      --optimizer $optimizer \
+      --steps_per_epoch 100 \
+      --noise_dim $noise_dim \
+      --loss $loss \
+      --gan_method gan \
+      --batch_size 64 \
+      --unique_id _pretrain \
+      $wass_cmd \
+      $load_cmd
+  else
+    echo "Training non-gan image encoder. $epochs_done/$epochs1 epochs done"
+    ${cmd_prefix}ctp_model_tool \
+      --features $features \
+      -e $epochs1 \
+      --initial_epoch $epochs_done \
+      --model pretrain_image_encoder \
+      --data_file $data_dir \
+      --lr $lr \
+      --dropout_rate $dropout \
+      --model_directory $MODELDIR/ \
+      --optimizer $optimizer \
+      --steps_per_epoch 300 \
+      --noise_dim $noise_dim \
+      --loss $loss \
+      --batch_size 64 \
+      --no_disc \
+      --unique_id _pretrain \
+      $load_cmd
+  fi
+fi
+
+## Conditional model ---------------------------------
+
+if ! $skip_cond; then
+
+  status_file="$MODELDIR"/status_cond.txt
+  # Check if we should load the model
+  load_cmd=''
+  $load_model || ($resume && [[ -f $status_file ]]) && load_cmd='--load_model'
+
+  req_dir_cmd=''
+  [[ $enc_dir ]] && req_dir_cmd="--reqs_directory $enc_dir"
+
+  if $gan_transform; then
+    model=conditional_image_gan
+    disc_suffix=''
+  else
+    model=conditional_image
+    disc_suffix=--no_disc
+  fi
+
+  # Calculate epochs left
+  epochs_done=0
+  if $resume && [[ -f $status_file ]]; then
+    contents=($(cat $status_file))
+    epochs_done=${contents[0]}
+  fi
+  # Check for resume after finish
+  if $resume && (($epochs_done >= $epochs2)); then
+    echo Skipping conditional model due to resume!
+  else
+    echo "Training conditional model. $epochs_done/$epochs2 epochs done."
+      ${cmd_prefix}ctp_model_tool \
+      --features $features \
+      -e $epochs2 \
+      --initial_epoch $epochs_done \
+      --model $model \
+      --data_file $data_dir \
+      --lr $lr \
+      --dropout_rate $dropout \
+      --model_directory $MODELDIR/ \
+      --optimizer $optimizer \
+      --steps_per_epoch 100 \
+      --noise_dim $noise_dim \
+      --loss $loss \
+      --gan_method gan \
+      --batch_size 64 \
+      --unique_id _cond \
+      $wass_cmd \
+      $use_noise_cmd \
+      $load_cmd \
+      $req_dir_cmd \
+      $dense_transform_cmd \
+      $disc_suffix
+  fi
+fi

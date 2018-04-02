@@ -13,6 +13,7 @@ from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers.merge import Concatenate, Multiply
 from keras.losses import binary_crossentropy
 from keras.models import Model, Sequential
+from keras.layers.pooling import GlobalAveragePooling2D
 
 from .callbacks import *
 from .multi_sampler import *
@@ -30,6 +31,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         super(PretrainImageGan, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageCb
         self.load_pretrained_weights = False
+        self.save_encoder_decoder = True
         self.noise_iters = 1
 
     def _makePredictor(self, features):
@@ -45,11 +47,11 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img_in = Input(img_shape,name="predictor_img_in")
         test_in = Input(img_shape, name="descriminator_test_in")
 
-        encoder = self._makeImageEncoder(img_shape)
+        encoder = self._makeImageEncoder(img_shape, perm_drop=True)
         enc = encoder([img_in])
         decoder = self._makeImageDecoder(
                 self.hidden_shape,
-                self.skip_shape, False)
+                self.skip_shape, False, perm_drop=True)
 
         if self.load_pretrained_weights:
             try:
@@ -91,14 +93,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         [img, q, g, oin, label, q_target, g_target,] = features
         return [img], [img]
 
-    def _addNoise(self, in_data):
-        out = [x for x in in_data]
-        sz = out[0].shape[0]
-        for _ in range(self.noise_iters):
-            x = np.random.random((sz, self.noise_dim))
-            out.append(x)
-        return out
-
     def _makeImageDiscriminator(self, img_shape):
         '''
         create image-only encoder to extract keypoints from the scene.
@@ -111,7 +105,6 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         img0 = Input(img_shape,name="img0_encoder_in")
         ins = [img, img0]
         dr = self.dropout_rate
-        dr = 0
 
         if self.use_wasserstein:
             loss = wasserstein_loss
@@ -120,18 +113,28 @@ class PretrainImageGan(RobotMultiPredictionSampler):
             loss = "binary_crossentropy"
             activation = "sigmoid"
 
-        x = AddConv2D(img, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x0 = AddConv2D(img0, 64, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        x = Add()([x, x0])
-        x = AddConv2D(x, 64, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 128, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 256, [4,4], 2, dr, "same", lrelu=True, bn=False)
-        x = AddConv2D(x, 1, [1,1], 1, 0., "same",
-                activation=activation,
-                bn=False)
-        #x = AveragePooling2D(pool_size=(16,16))(x)
-        x = AveragePooling2D(pool_size=(8,8))(x)
-        x = Flatten()(x)
+        # common arguments
+        kwargs = { "dropout_rate" : dr,
+                   "padding" : "same",
+                   "lrelu" : True,
+                   "bn" : False,
+                   "perm_drop" : True,
+                 }
+
+        x  = AddConv2D(img,  64, [4,4], 1, **kwargs)
+        x0 = AddConv2D(img0, 64, [4,4], 1, **kwargs)
+        x  = Add()([x, x0])
+        x  = AddConv2D(x,    64, [4,4], 2, **kwargs)
+        x  = AddConv2D(x,   128, [4,4], 2, **kwargs)
+        x  = AddConv2D(x,   256, [4,4], 2, **kwargs)
+
+        if self.use_wasserstein:
+            x = Flatten()(x)
+            x = AddDense(x, 1, "linear", 0., output=True, bn=False, perm_drop=True)
+        else:
+            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="sigmoid",
+                bn=False, perm_drop=True)
+            x = GlobalAveragePooling2D()(x)
 
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
@@ -145,19 +148,19 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
         if self.gan_method == 'mae':
             # MAE
-            for i in range(self.epochs):
+            for i in range(self.initial_epoch, self.epochs):
                 for j in range(self.steps_per_epoch):
                     img, _ = next(train_generator)
                     img = img[0]
                     res = self.generator.train_on_batch(img, img)
                     print("\rEpoch {}, {}/{}: MAE loss {:.5}".format(
-                        i+1, j, self.steps_per_epoch, res), end="")
+                        i, j, self.steps_per_epoch, res), end="")
 
                 for c in callbacks:
                     c.on_epoch_end(i)
 
         elif self.gan_method == 'desc':
-            for i in range(self.epochs):
+            for i in range(self.initial_epoch, self.epochs):
                 for j in range(self.steps_per_epoch):
                     # Descriminator pass
                     img, target = next(train_generator)
@@ -175,7 +178,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
                     res2 = self.discriminator.train_on_batch(inputs, is_fake)
                     self.discriminator.trainable = False
                     print("\rEpoch {}, {}/{}: D Real loss {}, Fake loss {}".format(
-                        i+1, j, self.steps_per_epoch, res1, res2), end="")
+                        i, j, self.steps_per_epoch, res1, res2), end="")
 
                 # Accuracy tests
                 img, target = next(train_generator)
@@ -195,7 +198,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
         else: # actual gan
             d_iters = 10
 
-            for i in range(self.epochs):
+            for i in range(self.initial_epoch, self.epochs):
                 totals = [0, 0, 0, 0]
 
                 for j in range(self.steps_per_epoch):
@@ -217,7 +220,8 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                         # Descriminator pass
                         img, target = next(train_generator)
-                        data = self._addNoise(img) if self.use_noise else img
+                        self.convert(img, target)
+                        data = self.addNoiseIfNeeded(img)
                         fake = self.generator.predict(data)
                         self.discriminator.trainable = True
                         if self.use_wasserstein:
@@ -237,7 +241,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                     # Generator pass
                     img, target = next(train_generator)
-                    data = self._addNoise(img) if self.use_noise else img
+                    data = self.addNoiseIfNeeded(img)
                     res = self.model.train_on_batch(
                             data, target + [is_not_fake]
                     )
@@ -252,7 +256,7 @@ class PretrainImageGan(RobotMultiPredictionSampler):
 
                 # Accuracy tests
                 img, target = next(train_generator)
-                data = self._addNoise(img) if self.use_noise else img
+                data = self.addNoiseIfNeeded(img)
                 fake = self.generator.predict(data)
                 inputs = img + fake if isinstance(fake, list) else img + [fake]
                 results = self.discriminator.predict(inputs)

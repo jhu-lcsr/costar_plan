@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 import keras.backend as K
 import keras.losses as losses
@@ -6,6 +5,7 @@ import keras.optimizers as optimizers
 import numpy as np
 
 from keras.layers.pooling import MaxPooling2D, AveragePooling2D
+from keras.layers.pooling import GlobalAveragePooling2D
 from keras.layers import Input, RepeatVector, Reshape
 from keras.layers.merge import Concatenate, Multiply
 from keras.models import Model, Sequential
@@ -15,6 +15,8 @@ from .conditional_image_gan import ConditionalImageGan
 from .dvrk import *
 from .data_utils import *
 from .pretrain_image_gan import wasserstein_loss
+
+import costar_models.planner as planner
 
 class ConditionalImageGanJigsaws(ConditionalImageGan):
     '''
@@ -26,9 +28,8 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
     def __init__(self, *args, **kwargs):
 
         super(ConditionalImageGanJigsaws, self).__init__(*args, **kwargs)
-
-        self.num_options = 16
         self.save_encoder_decoder = self.retrain
+        planner.PERMANENT_DROPOUT = False
 
     def _makeModel(self, image, *args, **kwargs):
 
@@ -46,17 +47,14 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         # =====================================================================
         # Load weights and stuff. We'll load the GAN version of the weights.
-        encoder = MakeJigsawsImageEncoder(self, img_shape)
-        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape)
+        encoder = MakeJigsawsImageEncoder(self, img_shape, perm_drop=False)
+        decoder = MakeJigsawsImageDecoder(self, self.hidden_shape,
+                perm_drop=False)
         LoadEncoderWeights(self, encoder, decoder, gan=True)
 
         # =====================================================================
         # Create outputs
-        if self.skip_connections:
-            h, s32, s16, s8 = encoder([img0_in, img_in])
-        else:
-            h = encoder(img_in)
-            h0 = encoder(img0_in)
+        h = encoder([img0_in, img_in])
 
         if self.use_noise:
             z1 = Input((self.noise_dim,), name="z1_in")
@@ -66,10 +64,10 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         y = Flatten()(OneHot(self.num_options)(option_in))
         y2 = Flatten()(OneHot(self.num_options)(option_in2))
         x = h
-        tform = MakeJigsawsTransform(self, h_dim=(12,16), small=True)
-        l = [h0, h, y, z1] if self.use_noise else [h0, h, y]
+        tform = MakeJigsawsTransform(self, h_dim=(12,16))
+        l = [h, y, z1] if self.use_noise else [h, y]
         x = tform(l)
-        l = [h0, x, y2, z2] if self.use_noise else [h0, x, y]
+        l = [x, y2, z2] if self.use_noise else [x, y]
         x2 = tform(l)
         image_out, image_out2 = decoder([x]), decoder([x2])
 
@@ -99,7 +97,7 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         # And adversarial model
         model = Model(ins, [image_out, image_out2, is_fake])
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"
-        weights = [0.01, 0.01, 1.] if self.use_wasserstein else [100., 100., 1.]
+        weights = [0.1, 0.1, 1.] if self.use_wasserstein else [100., 100., 1.]
         model.compile(
                 loss=["mae", "mae", loss],
                 loss_weights=weights,
@@ -110,16 +108,16 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         self.predictor = generator
 
-    def _getData(self, image, label, goal_image, goal_label,
+    def _getData(self, image, label, goal_idx, goal_label,
             prev_label, *args, **kwargs):
 
-        image = np.array(image) / 255.
-        goal_image = np.array(goal_image) / 255.
+        image = image
+        goal_image = image[goal_idx]
 
         goal_image2, _ = GetNextGoal(goal_image, label)
 
         # Extend image_0 to full length of sequence
-        image0 = image[0,:,:,:]
+        image0 = image[0]
         length = image.shape[0]
         image0 = np.tile(np.expand_dims(image0,axis=0),[length,1,1,1])
         return [image0, image, label, goal_label], [goal_image, goal_image2]
@@ -140,13 +138,19 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         option2 = Input((1,),name="disc2_options")
         ins = [img0, img, option, option2, img_goal, img_goal2]
         dr = self.dropout_rate
-        dr = 0
         img_size = (96, 128)
 
-        x0 = AddConv2D(img0, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xobs = AddConv2D(img, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg1 = AddConv2D(img_goal, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
-        xg2 = AddConv2D(img_goal2, 32, [4,4], 1, dr, "same", lrelu=True, bn=False)
+        # common arguments
+        kwargs = { "dropout_rate" : dr,
+                   "padding" : "same",
+                   "lrelu" : True,
+                   "bn" : False,
+                   "perm_drop" : True,
+                 }
+        x0   = AddConv2D(img0,      32, [4,4], 1, **kwargs)
+        xobs = AddConv2D(img,       32, [4,4], 1, **kwargs)
+        xg1  = AddConv2D(img_goal,  32, [4,4], 1, **kwargs)
+        xg2  = AddConv2D(img_goal2, 32, [4,4], 1, **kwargs)
 
         #x1 = Add()([x0, xobs, xg1])
         #x2 = Add()([x0, xg1, xg2])
@@ -155,14 +159,17 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
 
         # -------------------------------------------------------------
         y = OneHot(self.num_options)(option2)
-        y = AddDense(y, 32, "lrelu", dr)
+        y = AddDense(y, 32, "lrelu", dr, perm_drop=True)
         x2 = TileOnto(x2, y, 32, img_size, add=True)
-        x2 = AddConv2D(x2, 32, [4,4], 2, dr, "valid", lrelu=True, bn=False)
+
+        kwargs["padding"] = "valid"
+
+        x2 = AddConv2D(x2, 32, [4,4], 2, **kwargs)
 
         # Final block
-        x2 = AddConv2D(x2, 64, [4,4], 2, dr, "valid", lrelu=True, bn=True)
-        x2 = AddConv2D(x2, 128, [4,4], 2, dr, "valid", lrelu=True, bn=True)
-        x2 = AddConv2D(x2, 256, [4,4], 2, dr, "valid", lrelu=True, bn=True)
+        x2 = AddConv2D(x2, 64,  [4,4], 2, **kwargs)
+        x2 = AddConv2D(x2, 128, [4,4], 2, **kwargs)
+        x2 = AddConv2D(x2, 256, [4,4], 2, **kwargs)
         #x = Concatenate(axis=-1)([x1, x2])
         #x = Add()([x1, x2])
         #x = AddConv2D(x2, 1, [1,1], 1, 0., "same", l, bn=True)
@@ -172,8 +179,16 @@ class ConditionalImageGanJigsaws(ConditionalImageGan):
         #x = AveragePooling2D(pool_size=(12,16))(x)
         #x = AveragePooling2D(pool_size=(24,32))(x)
         x = x2
-        x = Flatten()(x)
-        x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+        if self.use_wasserstein:
+            x = Flatten()(x)
+            x = AddDense(x, 1, "linear", 0., output=True, bn=False)
+        else:
+            #x = Flatten()(x)
+            #x = AddDense(x, 1, "sigmoid", 0., output=True, bn=False)
+            x = AddConv2D(x, 1, [1,1], 1, 0., "same", activation="linear",
+                bn=False)
+            x = GlobalAveragePooling2D()(x)
+
         discrim = Model(ins, x, name="image_discriminator")
         self.lr *= 2.
         loss = wasserstein_loss if self.use_wasserstein else "binary_crossentropy"

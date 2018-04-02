@@ -10,15 +10,13 @@
 
 
 echo "Running $@ on $SLURMD_NODENAME ..."
-
-module load tensorflow/cuda-8.0/r1.3 
+echo $1 $2 $3 $4 $5 $6 $7 $8 $9
+echo "use disc = $use_disc"
 
 export DATASET="husky_data"
-export train_discriminator=false
 export train_discriminator2=true
-export train_image_encoder=false
-export train_gans=false
-export train_encoder_gan=true
+export train_image_encoder=true
+export train_encoder_gan=false
 export learning_rate=$1
 export dropout=$2
 export optimizer=$3
@@ -26,20 +24,15 @@ export noise_dim=$4
 export loss=$5
 export retrain=$6
 export use_disc=$7
+export use_skips=$8
+export use_ssm=$9
 #export MODELDIR="$HOME/.costar/husky_$learning_rate$optimizer$dropout$noise_dim$loss"
 export MODELROOT="$HOME/.costar"
-export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim$loss"
-
-retrain_cmd=""
-if $retrain
-then
-  retrain_cmd="--retrain"
-  SUBDIR=${SUBDIR}_retrain
-fi
+export SUBDIR="husky_$learning_rate$optimizer$dropout$noise_dim${loss}_skip${use_skips}_ssm${use_ssm}"
+export USE_BN=1
 
 use_disc_cmd=""
-if [[ ! $use_disc ]]
-then
+if ! $use_disc ; then
   use_disc_cmd="--no_disc"
   SUBDIR=${SUBDIR}_nodisc
 fi
@@ -48,25 +41,14 @@ export MODELDIR="$MODELROOT/$SUBDIR"
 mkdir $MODELDIR
 touch $MODELDIR/$SLURM_JOB_ID
 
-if [[ $train_discriminator && $use_disc ]]
-then
-  echo "Training discriminator 1"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
-    -e 100 \
-    --model discriminator \
-    --data_file $HOME/work/$DATASET.npz \
-    --features husky \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 500 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --batch_size 64
-fi
-if [[ $train_discriminator2 && $use_disc ]]
+export learning_rate_disc=0.01
+export learning_rate_enc=0.01
+
+echo "Options are: $retrain_cmd $use_disc_cmd $1 $2 $3 $4 $5"
+echo "Directory is $MODELDIR"
+echo "Slurm job ID = $SLURM_JOB_ID"
+
+if $train_discriminator2 && $use_disc ; then
   echo "Training discriminator 2"
   $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
     --features multi \
@@ -81,26 +63,8 @@ if [[ $train_discriminator2 && $use_disc ]]
     --steps_per_epoch 500 \
     --noise_dim $noise_dim \
     --loss $loss \
-    --batch_size 64
-fi
-
-if $train_image_encoder
-then
-  echo "Training encoder 1 $use_disc_cmd"
-  $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
-    --features multi \
-    -e 100 \
-    --model pretrain_image_encoder \
-    --data_file $HOME/work/$DATASET.npz \
-    --lr $learning_rate \
-    --dropout_rate $dropout \
-    --features husky \
-    --model_directory $MODELDIR/ \
-    --optimizer $optimizer \
-    --steps_per_epoch 500 \
-    --noise_dim $noise_dim \
-    --loss $loss \
-    --batch_size 64 $use_disc_cmd
+    --use_batchnorm $USE_BN \
+    --batch_size 64 --no_disc
 fi
 
 $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
@@ -115,5 +79,8 @@ $HOME/costar_plan/costar_models/scripts/ctp_model_tool \
   --optimizer $optimizer \
   --steps_per_epoch 500 \
   --loss $loss \
-  --batch_size 64 $retrain_cmd $use_disc_cmd
+  --use_batchnorm $USE_BN \
+  --skip_connections $use_skips \
+  --use_ssm $use_ssm \
+  --batch_size 64 --retrain $use_disc_cmd
 

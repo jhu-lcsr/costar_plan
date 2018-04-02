@@ -18,13 +18,12 @@ def GetAvailableFeatures():
     '''
     return ['empty',
             'null',
-            'husky',
-            'jigsaws',
+            'husky', # for the husky robot
+            'jigsaws', # for the jigsaws data
+            'costar', # for the real robot
             'depth', # depth channel only
             'rgb', # RGB channels only
-            'joint_state', # robot joints only
             'multi', # RGB+joints+gripper
-            'pose', #object poses + joints + gripper
             'grasp_segmentation',]
 
 def GetModelParser():
@@ -39,6 +38,10 @@ def GetModelParser():
     parser.add_argument('--model_directory',
                         help="models directory",
                         default = "~/.costar/models")
+    parser.add_argument('--reqs_directory',
+                        help="directory for reading in required submodels",
+                        type = str,
+                        default = None)
     parser.add_argument('-i', '--iter',
                         help='Number of iterations to run',
                         default=100,
@@ -51,6 +54,10 @@ def GetModelParser():
                         help="Number of epochs",
                         type=int,
                         default=500,)
+    parser.add_argument('--initial_epoch',
+                        help="Where to start counting epochs",
+                        type=int,
+                        default=0) # epoch 0 = 1
     parser.add_argument('--data_file', '--file',
                         help="File name for data archive.",
                         default='data.npz')
@@ -128,7 +135,10 @@ def GetModelParser():
     parser.add_argument("--dropout_rate", "--dr",
                         help="Dropout rate to use",
                         type=float,
-                        default=0.5)
+                        default=0.1)
+    parser.add_argument("--enc_loss",
+                        help="Add encoder loss",
+                        action="store_true")
     parser.add_argument("--use_noise",
                         help="use random noise to sample distributions",
                         action='store_true',
@@ -136,7 +146,11 @@ def GetModelParser():
     parser.add_argument("--skip_connections", "--sc",
                         help="use skip connections to generate better outputs",
                         type=int,
-                        default=0)
+                        default=1)
+    parser.add_argument("--use_ssm", "--ssm",
+                        help="use spatial softmax to compute global information",
+                        type=int,
+                        default=1)
     parser.add_argument("--decoder_dropout_rate", "--ddr",
                         help="specify a separate dropout for the model decoder",
                         #type=float,
@@ -192,6 +206,13 @@ def GetModelParser():
     parser.add_argument("--no_disc",
                         help="Disable discriminator usage with images",
                         action="store_true")
+    parser.add_argument("--unique_id",
+                        help="Unique id to differentiate status file",
+                        default="")
+    parser.add_argument("--dense_transform",
+                        help="Use dense layer for trasform",
+                        default=False,
+                        action='store_true')
     return parser
 
 def GetSubmodelOptions():

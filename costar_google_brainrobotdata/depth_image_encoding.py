@@ -218,6 +218,7 @@ def ImageToFloatArray(image, scale_factor=None):
 def FloatArrayToRawRGB(im, min_value=0.0, max_value=1.0):
     """Convert a grayscale image to rgb, no encoding.
 
+    For proper display try matplotlib's rendering/conversion instead of this version.
     Please be aware that this does not incorporate a proper color transform.
     http://pillow.readthedocs.io/en/3.4.x/reference/Image.html#PIL.Image.Image.convert
     https://en.wikipedia.org/wiki/Rec._601

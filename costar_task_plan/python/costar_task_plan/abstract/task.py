@@ -124,10 +124,13 @@ class Task(object):
                     inodes[name].append(iname)
                 for child in task.children[iname]:
                     self.children[iname].add(child)
+                for wt in task.weights[iname]:
+                    self.weights[iname].append(wt)
             else:
                 inodes[name] = [iname]
                 self.nodes[iname] = option
                 self.children[iname] = task.children[iname]
+                self.weights[iname] = task.weights[iname]
 
         return inodes
 
@@ -161,10 +164,13 @@ class Task(object):
             self.template_connections.append((parent, name, frequency))
 
     def getChildren(self, node):
+        '''
+        Return the children associated with this particular node.
+        '''
         if node in self.children:
             return self.children[node], self.weights[node]
         else:
-            return []
+            return [], []
 
     def getOption(self, node):
         if node in self.nodes:
@@ -241,7 +247,8 @@ class Task(object):
                     continue
                 for iname in inodes[name]:
                     self.generic_names[iname] = name
-                    self.weights[iname] = []
+                    if iname not in self.weights:
+                        self.weights[iname] = []
                     # loop over all templated (abstract) actions
                     for child, frequency in zip(template.children, template.frequencies):
                         # If this child is in the set of instantiated nodes...
@@ -255,8 +262,8 @@ class Task(object):
                                 self.children[iname].add(ichild)
                                 self.weights[iname].append(
                                     float(frequency) / num_ichildren)
-                    self.weights[iname] = (np.array(self.weights[iname]) / 
-                                           np.sum(self.weights[iname]))
+                    #self.weights[iname] = (np.array(self.weights[iname]) / 
+                    #                       np.sum(self.weights[iname]))
 
         if self.subtask_name == None:
                 # WARNING: this is kind of terrible and might be sort of inefficient.
@@ -283,6 +290,16 @@ class Task(object):
                 inodes[name] = [iname]
             self.nodes[iname] = option
             self.children[iname] = set()
+            self.weights[iname] = []
+
+    def clear(self):
+        self.nodes = {}
+        self.children = {}
+        self.weights = {}
+        self.indices = {}
+        self.names = {}
+        self.compiled = False
+        self.generic_names = {}
 
     def makeTree(self, world, max_depth=10):
         '''
@@ -414,12 +431,16 @@ class OptionTemplate(object):
 
         if self.task is None:
             iname = self.name_template % (name, make_str(name_args))
-            try:
-                option = self.constructor(**filled_args)
-                for pc in self.postconditions:
-                    option.addPostCondition(pc)
-            except Exception as e:
-                option = None
+            #try:
+            option = self.constructor(**filled_args)
+            for pc in self.postconditions:
+                option.addPostCondition(pc)
+            #except Exception as e:
+            #    print("Warning: failed to create option %s (instance of %s)" % (iname, name))
+            #    print("args =", arg_dict)
+            #    print("name_args =", name_args)
+            #    print(e)
+            #    option = None
         else:
             option = Task(subtask_name=self.task.name)
             for args in self.task.options:

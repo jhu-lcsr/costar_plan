@@ -27,6 +27,7 @@ except ImportError:
     eigen = None
     sva = None
 import pytest
+import random_crop as rcp
 from grasp_geometry import grasp_dataset_to_transforms_and_features
 from grasp_geometry import depth_image_to_point_cloud
 import grasp_geometry_tf
@@ -201,6 +202,15 @@ def test_grasp_dataset_to_transforms_and_features():
                                      base_to_end_current,
                                      base_to_end_final)
 
+        assert len(delta_depth_sin_cos_3) == 3
+        assert np.allclose(delta_depth_sin_cos_3[0], delta_depth_quat_5[0])
+        # TODO(ahundt) check if only a tolerance increase is needed for the following error:
+        # >       assert np.allclose(delta_depth_sin_cos_3[0], np.array([1]))
+        # E       assert False
+        # E        +  where False = <function allclose at 0x7f65996cd668>(1.05, array([1]))
+        # E        +    where <function allclose at 0x7f65996cd668> = np.allclose
+        # E        +    and   array([1]) = <built-in function array>([1])
+        # E        +      where <built-in function array> = np.array
         assert np.allclose(delta_depth_sin_cos_3[0], np.array([1]))
 
     depth_image = np.ones([10, 20, 1])
@@ -211,7 +221,9 @@ def test_grasp_dataset_to_transforms_and_features():
                                [0., 1., 0., 0.],
                                [0., 0., 1., 0.],
                                [0., 0., 0., 1.]])
+    # vector and quaternion
     base_to_end_current = np.array([0., 0., 1., 0., 0., 0., 1.])
+    # vector and quaternion
     base_to_end_final = np.array([1., 1., 2., 0., 0., 0., 1.])
 
     evaluate_grasp_dataset_to_transforms_and_features(depth_image, intrinsics, camera_to_base, base_to_end_current, base_to_end_final)
@@ -288,6 +300,29 @@ def test_depth_image_to_point_cloud():
         assert np.allclose(XYZ, XYZ_np)
         assert np.allclose(np.squeeze(XYZ[:, :, 2]), np.squeeze(depth))
 
+
+def test_crop_pointcloud():
+    """ Test pointcloud use random crop of tensor
+    """
+    with tf.Session() as sess:
+        test_input = np.random.rand(30, 20, 1)
+        test_input_size_tf = tf.constant([30, 20, 1])
+        intrinsics = np.random.rand(3, 3)
+        intrinsics_tf = tf.convert_to_tensor(intrinsics)
+        crop_size_np = np.array([5, 4, 1])
+        cropped_size_tf = tf.constant([5, 4, 1])
+        XYZ_np = depth_image_to_point_cloud(test_input, intrinsics)
+        depth_tf = tf.convert_to_tensor(test_input)
+        offset_tf = rcp.random_crop_offset(test_input_size_tf, cropped_size_tf)
+        rcp_crop_tf = rcp.crop_images(depth_tf, offset_tf, cropped_size_tf)
+        cropped_intrinsics_tf = rcp.crop_image_intrinsics(intrinsics_tf, offset_tf)
+        cropped_intrinsics_np = sess.run(cropped_intrinsics_tf)
+        rcp_crop_np = sess.run(rcp_crop_tf)
+        offset_np = sess.run(offset_tf)
+        crop_XYZ_np = depth_image_to_point_cloud(rcp_crop_np, cropped_intrinsics_np)
+        assert np.allclose(np.squeeze(crop_XYZ_np[:, :, 0]),
+            np.squeeze(XYZ_np[offset_np[1]:offset_np[1] + crop_size_np[1],
+                              offset_np[0]:offset_np[0] + crop_size_np[0], 0]))
 
 if __name__ == '__main__':
     pytest.main([__file__])

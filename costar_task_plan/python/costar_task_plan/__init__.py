@@ -15,18 +15,12 @@ __all__ = ['World', 'HorizontalRoadMap', 'State', 'Action',
 import abstract
 import needle_master
 import grid_world
+import robotics
 
 try:
     import simulation
-except ImportError, e:
-    print "[WARNING] simulation requires pybullet3"
-    print e
-
-try:
-    import robotics
-except ImportError, e:
-    print "[WARNING] ROS/CoSTAR failed to import. ROS may be missing."
-    print e
+except ImportError as e:
+    print("[WARNING] simulation requires pybullet3")
 
 # =============================================================================
 # Neural Nets
@@ -41,11 +35,6 @@ except ImportError, e:
 # Task Planning
 # All things MCTS go in ehre
 import mcts
-
-# =============================================================================
-# OpenAI Gym Environments
-# These provide the abstracted interfaces to worlds, etc.
-import gym
 
 # =============================================================================
 # Draw and interact with programs
