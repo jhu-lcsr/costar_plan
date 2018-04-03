@@ -387,7 +387,8 @@ def run_training(
         save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
     callbacks = callbacks + [checkpoint]
-    callbacks += [SlowModelStopping(max_batch_time_seconds=0.5), InaccurateModelStopping()]
+    callbacks += [SlowModelStopping(max_batch_time_seconds=0.5),
+                  InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
     # An additional useful param is write_batch_performance:
     #  https://github.com/keras-team/keras/pull/7617
     #  write_batch_performance=True)
@@ -444,7 +445,10 @@ def run_training(
     # This lets us take advantage of tensorboard visualization
     if 'train' in pipeline:
         if 'test' in pipeline:
-            # we need this callback to be at the beginning!
+            if test_steps == 0:
+                raise ValueError('Attempting to run test data' + str(test_filenames) +
+                                 ' with an invalid number of steps: ' + str(test_steps))
+            # we need this callback to be at the beginning of the callbacks list!
             print('test_data function: ' + str(test_data) + ' steps: ' + str(test_steps) +
                   'test filenames: ' + str(test_filenames))
             callbacks = [EvaluateInputGenerator(generator=test_data,
@@ -503,6 +507,9 @@ def run_training(
                 initial_epoch=epochs)
 
     elif 'test' in pipeline:
+        if test_steps == 0:
+            raise ValueError('Attempting to run test data' + str(test_filenames) +
+                             ' with an invalid number of steps: ' + str(test_steps))
         history = model.evaluate_generator(generator=test_data, steps=test_steps)
     else:
         raise ValueError('unknown pipeline configuration ' + pipeline + ' chosen, try '
