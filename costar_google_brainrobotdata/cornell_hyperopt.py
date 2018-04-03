@@ -57,7 +57,7 @@ def main(_):
     FLAGS.problem_type = 'classification'
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
-    FLAGS.epochs = 5
+    FLAGS.epochs = 1
     FLAGS.fine_tuning_epochs = 0
     print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
           ' num_validation: ' + str(FLAGS.num_validation) +
