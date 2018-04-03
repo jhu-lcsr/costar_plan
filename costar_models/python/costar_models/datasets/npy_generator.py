@@ -48,18 +48,23 @@ class NpzGeneratorDataset(object):
             if success_only and f.split('.')[1] == 'failure':
                 continue
 
-            if i < 2:
+            if i < 1:
                 fsample = self._load(os.path.join(self.name, f))
                 for key, value in fsample.items():
 
                     if self.load_jpeg and key in ["image", "goal_image"]:
                         value = ConvertJpegListToNumpy(value)
 
+                    if value.shape[0] == 0:
+                        sample = {}
+                        continue
+
                     if key not in sample:
                         sample[key] = value
-                    if value.shape[0] == 0:
-                        continue
-                    sample[key] = np.concatenate([sample[key],value],axis=0)
+                    else:
+                        # Note: do not collect multiple samples anymore; this
+                        # hould never be reached
+                        sample[key] = np.concatenate([sample[key],value],axis=0)
             i += 1
             acceptable_files.append(f)
 
