@@ -22,7 +22,7 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
     # we can also optimize batch size.
     # This will be noticeably slower.
     batch_size = FLAGS.batch_size
-    if problem_type == 'classification':
+    if problem_type == 'classification' or problem_type == 'grasp_classification':
         FLAGS.problem_type = problem_type
         # note: this version will have some correlation with success,
         # but it will be OK to use to classify the output of regression
@@ -39,7 +39,7 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
         if param_to_optimize == 'val_acc':
             param_to_optimize = 'val_binary_accuracy'
         min_top_block_filter_multiplier = 6
-    elif problem_type == 'grasp_regression' or 'regression':
+    elif problem_type == 'grasp_regression' or problem_type == 'regression':
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
         # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
@@ -54,7 +54,7 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
 
 def main(_):
 
-    FLAGS.problem_type = 'grasp_regression'
+    FLAGS.problem_type = 'classification'
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
     FLAGS.epochs = 5
@@ -71,6 +71,8 @@ def main(_):
     run_training_fn = cornell_grasp_train.run_training
     problem_type = FLAGS.problem_type
     param_to_optimize = 'val_acc'
+    seed = 5
+    initial_num_samples = 1000
 
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
@@ -87,7 +89,9 @@ def main(_):
         log_dir=log_dir,
         min_top_block_filter_multiplier=min_top_block_filter_multiplier,
         batch_size=batch_size,
-        param_to_optimize=param_to_optimize)
+        param_to_optimize=param_to_optimize,
+        initial_num_samples=initial_num_samples,
+        seed=seed)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
