@@ -18,7 +18,7 @@ sudo apt-get -y install python-pygame python-dev
 echo "Installing graphviz..."
 sudo apt-get install graphviz libgraphviz-dev pkg-config
 echo "Installing libraries and drivers..."
-sudo apt-get -y install -y build-essential autoconf libtool pkg-config python-opengl python-imaging python-pyrex python-pyside.qtopengl idle-python2.7 qt4-dev-tools qt4-designer libqtgui4 libqtcore4 libqt4-xml libqt4-test libqt4-script libqt4-network libqt4-dbus python-qt4 python-qt4-gl libgle3 python-dev libssl-dev
+sudo apt-get -y install -y build-essential pip autoconf libtool pkg-config python-opengl python-imaging python-pyrex python-pyside.qtopengl idle-python2.7 qt4-dev-tools qt4-designer libqtgui4 libqtcore4 libqt4-xml libqt4-test libqt4-script libqt4-network libqt4-dbus python-qt4 python-qt4-gl libgle3 python-dev libssl-dev
 sudo apt-get -y install -y libx11-dev libpq-dev python-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libffi-dev mongodb
 echo "Installing smaller libraries from pip..."
 sudo -H pip install --no-binary numpy
@@ -62,7 +62,6 @@ git clone https://github.com/cburbridge/python_pcd.git
 git clone https://github.com/jhu-lcsr/costar_objects.git
 git clone https://github.com/cpaxton/dmp.git --branch indigo
 git clone git@github.com:ccny-ros-pkg/imu_tools.git 
-git clone https://github.com/cpaxton/robotiq_85_gripper.git
 git clone https://github.com/cpaxton/tom_robot.git
 git clone git@github.com:cpaxton/urdf_parser_py.git --branch indigo-devel
 #git clone https://github.com/cpaxton/costar_plan.git

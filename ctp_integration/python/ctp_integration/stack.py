@@ -73,10 +73,11 @@ def GetGraspPose():
 
 def GetStackPose():
     # Grasp from the top, centered (roughly)
-    pose = kdl.Frame(
-            kdl.Rotation.Quaternion(1.,0.,0.,0.),
-            kdl.Vector(-0.22, -0.02, -0.01))
-    pose = pose * kdl.Frame(kdl.Vector(-0.052,0.,0.))
+    pose = GetGraspPose()
+    #pose = pose * kdl.Frame(kdl.Vector(-0.052,0.0,0.0))
+    pose.p[0] += -0.052
+    pose.p[1] = -0.01
+    pose.p[2] = 0.
     return pose
 
 def GetTowerPoses():
