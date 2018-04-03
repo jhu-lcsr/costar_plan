@@ -192,7 +192,7 @@ class SlowModelStopping(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs if logs is not None else {}
         self._epoch_elapsed = default_timer() - self._epoch_start
-        logs['epoch_elapsed'] = self._epoch_elapsed
+        logs['epoch_elapsed'] = np.array(self._epoch_elapsed)
         mean_batch = np.mean(self._batch_elapsed)
         logs['mean_batch_elapsed'] = mean_batch
         if mean_batch > self._max_batch_time_seconds:
