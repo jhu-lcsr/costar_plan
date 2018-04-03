@@ -26,7 +26,7 @@ except ImportError:
 
 class HyperparameterOptions(object):
 
-    def __init__(self, verbose=1):
+    def __init__(self, verbose=0):
         self.index_dict = {}
         self.search_space = []
         self.verbose = verbose
@@ -51,7 +51,7 @@ class HyperparameterOptions(object):
         if 'current_index' not in self.index_dict:
             self.index_dict['current_index'] = 0
 
-        if enable:
+        if enable or required:
             param_index = self.index_dict['current_index']
             numerical_domain = domain
             needs_reverse_lookup = False
@@ -87,11 +87,12 @@ class HyperparameterOptions(object):
             opt_dict['enable'] = enable
             opt_dict['required'] = required
             opt_dict['default'] = default
-            opt_dict['index'] = param_index
             opt_dict['domain'] = domain
             opt_dict['needs_reverse_lookup'] = needs_reverse_lookup
             self.index_dict[name] = opt_dict
-            self.index_dict['current_index'] += 1
+            if enable:
+                opt_dict['index'] = param_index
+                self.index_dict['current_index'] += 1
 
     def params_to_args(self, x):
         """ Convert GPyOpt Bayesian Optimizer params back into function call arguments
@@ -106,6 +107,8 @@ class HyperparameterOptions(object):
             x = np.expand_dims(x, axis=0)
         # x is a funky 2d numpy array, so we convert it back to normal parameters
         kwargs = {}
+        if self.verbose > 0:
+            print('INDEX DICT: ' + str(self.index_dict))
         for key, opt_dict in six.iteritems(self.index_dict):
             if key == 'current_index':
                 continue
@@ -134,6 +137,8 @@ class HyperparameterOptions(object):
 
                 kwargs[arg_name] = value
             elif opt_dict['required']:
+                if self.verbose > 0:
+                    print('REQUIRED NAME: ' + str(opt_dict['name']) + ' DEFAULT: ' + str(opt_dict['default']))
                 kwargs[opt_dict['name']] = opt_dict['default']
         return kwargs
 
@@ -148,7 +153,7 @@ def optimize(
         feature_combo_name,
         seed=1,
         verbose=1,
-        initial_num_samples=1000,
+        initial_num_samples=300,
         maximum_hyperopt_steps=100,
         num_cores=15,
         baysean_batch_size=1,
@@ -197,7 +202,7 @@ def optimize(
         hyperoptions.add_param('trainable', (0.0, 1.0), 'continuous',
                                enable=True, required=True, default=0.0)
     else:
-        # The trainable flag referrs to the imagenet pretrained network being trainable or not trainable.
+        # The trainable flag refers to the imagenet pretrained network being trainable or not trainable.
         # We are defaulting to a reasonable learning rate found by prior searches and disabling trainability so that
         # we can restrict the search to more model improvements due to the outsized effects of these changes on performance
         # during the random search phase. We plan to run a separate search on enabling trainable models on one of the best models
@@ -210,7 +215,7 @@ def optimize(
     # with a base of 0.9.
     # Therefore the value 50 is 0.9^50 == 0.005 (approx).
     hyperoptions.add_param('learning_rate', (0.0, 100.0), 'continuous',
-                           enable=learning_rate_enabled, required=True, default=0.01)
+                           enable=learning_rate_enabled, required=True, default=0.02)
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
     # TODO(ahundt) run a separate search for the best dropout rate after finding a good model
     hyperoptions.add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75],

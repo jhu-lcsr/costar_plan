@@ -13,7 +13,8 @@ def main(_):
     """
     problem_type = 'grasp_classification'
     FLAGS.grasp_success_label = 'move_to_grasp/time_ordered/grasp_success'
-    FLAGS.grasp_sequence_motion_command_feature = 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'
+    # FLAGS.grasp_sequence_motion_command_feature = 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'
+    FLAGS.grasp_sequence_motion_command_feature = 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3'
     FLAGS.loss = 'binary_crossentropy'
     FLAGS.metric = 'binary_accuracy'
     FLAGS.epochs = 1
@@ -28,6 +29,7 @@ def main(_):
           ' epochs: ' + str(FLAGS.epochs) +
           ' fine_tuning_epochs: ' + str(FLAGS.fine_tuning_epochs))
     run_name = FLAGS.run_name
+    run_name += '-' + FLAGS.grasp_sequence_motion_command_feature.split('/')[-1]
     log_dir = FLAGS.log_dir
     run_name = grasp_utilities.timeStamped(run_name)
     run_training_fn = grasp_train.run_hyperopt

@@ -958,6 +958,11 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
             print('grasp_model_hypertree image_shapes: ' + str(image_shapes))
             image_model_weights = 'shared'
             print('image_model_weights: ' + image_model_weights)
+            # there are hyperparams that are loaded from other areas of the code,
+            # so here we remove those that don't apply to the hypertree model directly.
+            kw.pop('learning_rate', None)
+            kw.pop('batch_size', None)
+            kw.pop('feature_combo_name', None)
             # TODO(ahundt) consider making image_model_weights shared vs separate configurable
             return grasp_model.choose_hypertree_model(
                 images=images,
