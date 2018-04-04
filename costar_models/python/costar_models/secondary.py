@@ -4,12 +4,12 @@ from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from .callbacks import *
-from .sampler2 import *
 from .data_utils import GetNextGoal, ToOneHot2D
 from .multi import *
+from .multi_sampler import RobotMultiPredictionSampler
 
 
-class Secondary(PredictionSampler2):
+class Secondary(RobotMultiPredictionSampler):
     '''
     Version of the sampler that only produces results conditioned on a
     particular action; this version does not bother trying to learn a separate
