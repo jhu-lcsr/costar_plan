@@ -93,7 +93,7 @@ flags.DEFINE_integer('crop_width', 448,  # formerly 560
                      """Width to crop images""")
 flags.DEFINE_integer('crop_height', 448,  # formerly 448
                      """Height to crop images""")
-flags.DEFINE_boolean('random_crop', True,
+flags.DEFINE_boolean('random_crop', False,
                      """random_crop will apply the tf random crop function with
                         the parameters specified by crop_width and crop_height.
 
@@ -119,7 +119,7 @@ flags.DEFINE_float('gripper_z_offset_meters', 0.15,
                        step of grasp, the gripper reaches the object surface.
                        default value 0.02.
                    """)
-flags.DEFINE_boolean('image_augmentation', True,
+flags.DEFINE_boolean('image_augmentation', False,
                      """Image augmentation applies random brightness, saturation, hue, contrast to input rgb images only.
                         This option should only be utilized during training,
                         and only has an effect when imagenet_preprocessing is True.
@@ -141,7 +141,7 @@ flags.DEFINE_integer('grasp_sequence_min_time_step', None,
                         stages of a grasping motion.""")
 flags.DEFINE_string(
     'grasp_sequence_motion_command_feature',
-    'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3',
+    'move_to_grasp/time_ordered/reached_pose/transforms/all_transforms',
     """Different ways of representing the motion vector parameter.
 
     Options include:
@@ -168,6 +168,11 @@ flags.DEFINE_string(
             the real reached gripper pose of the end effector to calculate
             the transform from the current time step to the final time step
             to generate the parameters [x, y, z, qx, qy, qz, qw].
+        'move_to_grasp/time_ordered/reached_pose/transforms/all_transforms'
+            All perspectives of current and final end effector poses concatenated into one large vector.
+            This includes angle changes, vectors quaternions, base relative, camera relative, current end effector relative,
+            final end effecor pose relative.
+            # TODO(ahundt) all_transforms currently does not account for any augmentation!
     """)
 flags.DEFINE_string(
     'clear_view_image_feature', 'move_to_grasp/time_ordered/clear_view/rgb_image/preprocessed',
@@ -1111,6 +1116,34 @@ class GraspDataset(object):
                     'endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_quat_5',
                     batch_i, time_step_j)
 
+                # all_transforms combined into one large vector
+                # TODO(ahundt) remove direct flags dependency & parameterize
+                max_sensor_dim = np.max(FLAGS.sensor_image_width, FLAGS.sensor_image_height)
+                all_transforms = K.concatenate([
+                    camera_T_endeffector_current_vec_quat_7_array,
+                    camera_T_depth_pixel_current_vec_quat_7_array,
+                    depth_pixel_T_endeffector_current_vec_quat_7_array,
+                    # normalize image coordinate to max sensor dimensions
+                    K.cast(image_coordinate_current, 'float32') / max_sensor_dim,
+                    camera_T_endeffector_final_vec_quat_7_array,
+                    camera_T_depth_pixel_final_vec_quat_7_array,
+                    # normalize image coordinate to max sensor dimensions
+                    K.cast(image_coordinate_final, 'float32') / max_sensor_dim,
+                    current_base_T_camera_vec_quat_7_array,
+                    eectf_vec_quat_7_array,
+                    sin_cos_2,
+                    vec_sin_cos_5,
+                    delta_depth_sin_cos_3,
+                    delta_depth_quat_5
+                ])
+                # TODO(ahundt) all_transforms currently does not account for any augmentation!
+                all_transforms_shape = K.int_shape(all_transforms)
+                (fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict) = add_feature_op(
+                    fixed_feature_op_dict, features_complete_list, time_ordered_feature_name_dict,
+                    all_transforms, all_transforms_shape,
+                    'all_transforms',
+                    batch_i, time_step_j)
+
             # assemble the updated feature op dicts
             new_feature_op_dicts.append((fixed_feature_op_dict, sequence_feature_op_dict))
 
@@ -1964,6 +1997,13 @@ class GraspDataset(object):
         preprocessed_current_coordinate_names = self.get_time_ordered_features(
             features_complete_list,
             feature_type='endeffector_clear_view_depth_pixel_T_endeffector/image_coordinate/' + preprocessed_final_coordinate_suffix,
+            step='move_to_grasp'
+        )
+
+        # get the sequence of all_transforms features
+        preprocessed_current_coordinate_names = self.get_time_ordered_features(
+            features_complete_list,
+            feature_type='all_transforms',
             step='move_to_grasp'
         )
 

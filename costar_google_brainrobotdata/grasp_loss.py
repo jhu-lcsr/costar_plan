@@ -3,6 +3,7 @@ from grasp_model import tile_vector_as_image_channels
 import keras
 from keras import backend as K
 from keras_contrib.losses import segmentation_losses
+from keras.utils.generic_utils import get_custom_objects
 
 
 def gripper_coordinate_y_pred(y_true, y_pred):
@@ -306,3 +307,15 @@ def mean_true(y_true, y_pred):
         if len(K.int_shape(y_true)) == 2 and K.int_shape(y_true)[1] == 3:
             y_true = K.cast(y_true[:, :1], 'float32')
         return K.mean(y_true)
+
+
+get_custom_objects().update({
+    'mean_true': mean_true,
+    'mean_pred': mean_pred,
+    'mean_pred_single_pixel': mean_pred_single_pixel,
+    'segmentation_single_pixel_binary_accuracy': segmentation_single_pixel_binary_accuracy,
+    'segmentation_single_pixel_binary_crossentropy': segmentation_single_pixel_binary_crossentropy,
+    'segmentation_single_pixel_mean_squared_error': segmentation_single_pixel_mean_squared_error,
+    'gripper_coordinate_y_pred': gripper_coordinate_y_pred,
+    'gripper_coordinate_y_true': gripper_coordinate_y_true
+})

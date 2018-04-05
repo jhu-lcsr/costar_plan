@@ -14,7 +14,8 @@ def main(_):
     problem_type = 'grasp_classification'
     FLAGS.grasp_success_label = 'move_to_grasp/time_ordered/grasp_success'
     # FLAGS.grasp_sequence_motion_command_feature = 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_current_T_endeffector_final/vec_sin_cos_5'
-    FLAGS.grasp_sequence_motion_command_feature = 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3'
+    # FLAGS.grasp_sequence_motion_command_feature = 'move_to_grasp/time_ordered/reached_pose/transforms/endeffector_final_clear_view_depth_pixel_T_endeffector_final/delta_depth_sin_cos_3'
+    FLAGS.grasp_sequence_motion_command_feature = 'move_to_grasp/time_ordered/reached_pose/transforms/all_transforms'
     FLAGS.loss = 'binary_crossentropy'
     FLAGS.metric = 'binary_accuracy'
     FLAGS.epochs = 1

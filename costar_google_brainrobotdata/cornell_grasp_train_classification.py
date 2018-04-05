@@ -41,6 +41,8 @@ def main(_):
     # feature_combo = 'image_preprocessed_sin2_cos2_height_width_4'
     # Override some default flags for this configuration
     # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
+    FLAGS.crop_height = 224
+    FLAGS.crop_width = 224
     FLAGS.problem_type = problem_type
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'center_on_gripper_grasp_box_and_rotate_upright'
