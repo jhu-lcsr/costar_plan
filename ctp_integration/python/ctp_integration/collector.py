@@ -2,17 +2,22 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import PyKDL as kdl
-import rospy 
+import rospy
 import tf2_ros as tf2
 import tf_conversions.posemath as pm
 
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
-from costar_models.datasets.image import *
+from costar_models.datasets.image import GetJpeg
+from costar_models.datasets.image import GetPng
+from costar_models.datasets.image import JpegToNumpy
+from costar_models.datasets.image import ConvertJpegListToNumpy
+from costar_models.datasets.depth_image_encoding import FloatArrayToRgbImage
 
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import JointState
+from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import String
 from robotiq_c_model_control.msg import CModel_robot_input as GripperMsg
 
@@ -35,15 +40,18 @@ class DataCollector(object):
     info_topic = "/costar/info"
     object_topic = "/costar/SmartMove/object"
     gripper_topic = "/CModelRobotInput"
+    camera_depth_info_topic = "/camera/rgb/camera_info"
+    camera_rgb_info_topic = "/camera/depth/camera_info"
 
-    def __init__(self, robot_config,
-            task,
-            data_type="h5f",
-            rate=10,
-            data_root=".",
-            img_shape=(128,128),
-            camera_frame = "camera_link",
-            tf_listener=None):
+    def __init__(
+        self, robot_config,
+        task,
+        data_type="h5f",
+        rate=10,
+        data_root=".",
+        img_shape=(128,128),
+        camera_frame="camera_link",
+        tf_listener=None):
 
         '''
         Set up the writer (to save trials to disk) and subscribers (to process
@@ -91,15 +99,15 @@ class DataCollector(object):
         self.task = task
         self.reset()
 
-        #self._camera_depth_info_sub = rospy.Subscriber(camera_depth_info_topic, CameraInfo, self._depthInfoCb)
-        #self._camera_rgb_info_sub = rospy.Subscriber(camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
+        self._camera_depth_info_sub = rospy.Subscriber(camera_depth_info_topic, CameraInfo, self._depthInfoCb)
+        self._camera_rgb_info_sub = rospy.Subscriber(camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
         self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
         self._depth_sub = rospy.Subscriber(self.depth_topic, Image, self._depthCb)
         self._joints_sub = rospy.Subscriber(self.js_topic,
                 JointState,
                 self._jointsCb)
         self._info_sub = rospy.Subscriber(self.info_topic,
-                String, 
+                String,
                 self._infoCb)
         self._smartmove_object_sub = rospy.Subscriber(self.object_topic,
                 String,
@@ -107,7 +115,7 @@ class DataCollector(object):
         self._gripper_sub = rospy.Subscriber(self.gripper_topic,
                 GripperMsg,
                 self._gripperCb)
- 
+
         self.verbosity = 1
 
     def _rgbCb(self, msg):
@@ -120,6 +128,12 @@ class DataCollector(object):
 
     def _infoCb(self, msg):
         self.info = msg.data
+
+    def _depthInfoCb(self, msg):
+        self.depth_info = msg.data
+
+    def _rgbInfoCb(self, msg):
+        self.rgb_info = msg.data
 
     def _objectCb(self, msg):
         self.object = msg.data
@@ -149,6 +163,8 @@ class DataCollector(object):
         self.data["gripper"] = []
         self.data["label"] = []
         self.data["info"] = []
+        self.data["depth_info"] = []
+        self.data["rgb_info"] = []
         self.data["object"] = []
         self.data["object_pose"] = []
         self.data["labels_to_name"] = list(self.task.labels)
@@ -206,7 +222,7 @@ class DataCollector(object):
             self.prev_last_goal = self.last_goal
             self.last_goal = len(self.data["label"])
             len_label = len(self.data["label"])
-            
+
             # Count one more if this is the last frame -- since our goal could
             # not be the beginning of a new action
             if is_done:
@@ -245,12 +261,12 @@ class DataCollector(object):
                 obj_pose = self.tf_listener.lookup_transform(self.base_link, self.object, t)
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                rospy.logwarn("Failed lookup: %s to %s, %s, %s" % 
+                rospy.logwarn("Failed lookup: %s to %s, %s, %s" %
                         (self.base_link, self.camera_frame, self.ee_frame, str(self.object)))
                 have_data = False
                 attempts += 1
                 if attempts > max_attempts:
-                    # Could not look up one of the transforms -- either could 
+                    # Could not look up one of the transforms -- either could
                     # not look up camera, endpoint, or object.
                     raise e
 
@@ -286,6 +302,7 @@ class DataCollector(object):
         #plt.imshow(self.rgb_img)
         #plt.show()
         self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
+        delf.data["depth_image"].append(GetPng(FloatArrayToRgbImage(self.depth_img)))
         self.data["gripper"].append(self.gripper_msg.gPO / 255.)
 
         # TODO(cpaxton): verify
@@ -295,6 +312,8 @@ class DataCollector(object):
         action = self.task.index(action_label)
         self.data["label"].append(action) # integer code for high-level action
         self.data["info"].append(self.info) # string description of current step
+        self.data["rgb_info"].append(self.rgb_info)
+        self.data["depth_info"].append(self.depth_info)
         self.data["object"].append(self.object)
 
         # TODO(cpaxton): add pose of manipulated object
