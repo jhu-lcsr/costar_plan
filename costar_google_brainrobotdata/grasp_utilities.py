@@ -130,7 +130,7 @@ def find_best_weights(fold_log_dir, match_string='', verbose=0, out_file=sys.std
     return fold_checkpoint_file
 
 
-def make_model_description(run_name, model_name, hyperparams, dataset_names_str):
+def make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features=None):
     """ Put several strings together for a model description used in file and folder names
     """
     model_description = ''
@@ -149,6 +149,9 @@ def make_model_description(run_name, model_name, hyperparams, dataset_names_str)
     ########################################################
     # End tensor configuration, begin model configuration and training
     model_description += '-dataset_' + dataset_names_str
+
+    if label_features is not None:
+        model_description += '-' + label_features
 
     run_name = timeStamped(model_description)
     return run_name

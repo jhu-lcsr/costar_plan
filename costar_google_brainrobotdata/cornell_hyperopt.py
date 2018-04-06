@@ -39,6 +39,8 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
         if param_to_optimize == 'val_acc':
             param_to_optimize = 'val_binary_accuracy'
         min_top_block_filter_multiplier = 6
+        FLAGS.crop_height = 224
+        FLAGS.crop_width = 224
     elif problem_type == 'grasp_regression' or problem_type == 'regression':
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
@@ -49,6 +51,8 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
         if param_to_optimize == 'val_acc':
             param_to_optimize = 'val_grasp_jaccard'
         min_top_block_filter_multiplier = 8
+        FLAGS.crop_height = 331
+        FLAGS.crop_width = 331
     return feature_combo_name, min_top_block_filter_multiplier, batch_size, param_to_optimize
 
 
@@ -59,12 +63,6 @@ def main(_):
     FLAGS.num_test = 1
     FLAGS.epochs = 1
     FLAGS.fine_tuning_epochs = 0
-    print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
-          ' num_validation: ' + str(FLAGS.num_validation) +
-          ' num_test: ' + str(FLAGS.num_test) +
-          ' epochs: ' + str(FLAGS.epochs) +
-          ' fine_tuning_epochs: ' + str(FLAGS.fine_tuning_epochs) +
-          ' problem_type:' + str(FLAGS.problem_type))
     run_name = FLAGS.run_name
     log_dir = FLAGS.log_dir
     run_name = grasp_utilities.timeStamped(run_name)
@@ -72,7 +70,8 @@ def main(_):
     problem_type = FLAGS.problem_type
     param_to_optimize = 'val_acc'
     seed = 5
-    initial_num_samples = 1000
+    initial_num_samples = 2000
+    maximum_hyperopt_steps = 10
 
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
@@ -81,6 +80,14 @@ def main(_):
     # we can also optimize batch size.
     # This will be noticeably slower.
     feature_combo_name, min_top_block_filter_multiplier, batch_size, param_to_optimize = cornell_hyperoptions(problem_type, param_to_optimize)
+
+    print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
+          ' num_validation: ' + str(FLAGS.num_validation) +
+          ' num_test: ' + str(FLAGS.num_test) +
+          ' epochs: ' + str(FLAGS.epochs) +
+          ' fine_tuning_epochs: ' + str(FLAGS.fine_tuning_epochs) +
+          ' problem_type:' + str(FLAGS.problem_type) +
+          ' crop (height, width): ({}, {})'.format(FLAGS.crop_height, FLAGS.crop_width))
     hyperopt.optimize(
         run_training_fn=run_training_fn,
         feature_combo_name=feature_combo_name,
@@ -91,6 +98,7 @@ def main(_):
         batch_size=batch_size,
         param_to_optimize=param_to_optimize,
         initial_num_samples=initial_num_samples,
+        maximum_hyperopt_steps=maximum_hyperopt_steps,
         seed=seed)
 
 if __name__ == '__main__':

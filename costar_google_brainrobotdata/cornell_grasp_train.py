@@ -347,7 +347,7 @@ def run_training(
     # loss = grasp_loss.segmentation_gaussian_measurement
 
     dataset_names_str = 'cornell_grasping'
-    run_name = grasp_utilities.timeStamped(run_name + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
+    run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
     callbacks = []
 
     loss_weights = None

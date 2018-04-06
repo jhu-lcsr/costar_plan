@@ -208,7 +208,7 @@ def optimize(
         # during the random search phase. We plan to run a separate search on enabling trainable models on one of the best models
         # found when trainable is false. This is due to limitations in processing time availability at the time of writing and
         # multi stage training not yet being configurable during hyperopt.
-        hyperoptions.add_param('trainable', [True, False], enable=False, required=True, default=False)
+        hyperoptions.add_param('trainable', [True, False], enable=True, required=True, default=False)
 
     # Learning rates are exponential so we take a uniform random
     # input and map it from 1 to 3e-5 on an exponential scale.
