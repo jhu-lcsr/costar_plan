@@ -91,17 +91,22 @@ Just download them and unpack into whatever location makes sense for you. You'll
 
 ### Getting started
 
-Run the simple TOM simulator and server. This takes in joint positions and will move the arm to those positions:
+The TOM code and scripts are located in the `ctp_tom` ROS package.
 
+Run the simple TOM simulator and server. This takes in joint positions and will move the arm to those positions:
 ```
-roslaunch costar_task_plan simple_sim.launch
+# No visualization
+roslaunch ctp_tom simple_sim.launch
+
+# With visualization
+roslaunch ctp_tom simple_sim.launch rviz:=True
 ```
 
 Then move into your data directory:
 ```
-roscd costar_task_plan
+roscd ctp_tom
 cd data
-rosrun costar_task_plan tom_test.py
+rosrun ctp_tom tom_test.py
 ```
 
 We should see a trajectory appear, and output like:

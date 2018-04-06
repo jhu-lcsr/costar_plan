@@ -293,7 +293,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, model, actor, ins, enc
 
-    def _makeTransform(self, h_dim=(8,8), perm_drop=False):
+    def _makeTransform(self, perm_drop=False):
         '''
         This is the version made for the newer code, it is set up to use both
         the initial and current observed world and creates a transform
@@ -307,6 +307,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
+        h_dim = self.hidden_shape
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         option = Input((self.num_options,),name="t_opt_in")
         # Never use the BN here?
