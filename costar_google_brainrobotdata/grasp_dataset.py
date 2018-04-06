@@ -119,7 +119,7 @@ flags.DEFINE_float('gripper_z_offset_meters', 0.15,
                        step of grasp, the gripper reaches the object surface.
                        default value 0.02.
                    """)
-flags.DEFINE_boolean('image_augmentation', False,
+flags.DEFINE_boolean('image_augmentation', True,
                      """Image augmentation applies random brightness, saturation, hue, contrast to input rgb images only.
                         This option should only be utilized during training,
                         and only has an effect when imagenet_preprocessing is True.
