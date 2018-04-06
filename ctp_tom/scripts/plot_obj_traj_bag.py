@@ -29,9 +29,11 @@ Modify to dealing with different cases
 '''
 def getHandName(hand,name):
     #if not hand.object_in_hand is None:
-    name += '_with_' + hand.object_in_hand
+    name += "_" + str(hand.activity)
+    name += '_with_' + str(hand.object_in_hand)
     #if not hand.object_acted_on is None:
-    name += '_to_' + hand.object_acted_on
+    name += '_to_' + str(hand.object_acted_on)
+    return name
 
 
 def _main(filename, ignore_inputs, **kwargs):
@@ -48,32 +50,23 @@ def _main(filename, ignore_inputs, **kwargs):
  			print("Alias: ",msg.old_name,msg.new_name)
  			continue
  		if topic == demo_topic:
- 			# get objects
- 			for obj in msg.object:
- 				name = obj.name
-				if ignore_inputs:
-					if 'Hand' in name or 'Controller' in name:
- 						continue
- 				if not name in obj_history:
- 					obj_history[name] = []
- 				obj_history[name].append([obj.pose.position.x, obj.pose.position.y, obj.pose.position.z])
 
  			# get hands
  			hand = msg.left
  			name = 'left_hand'
- 			getHandName(hand,name)
+ 			name = getHandName(hand,name)
  			if not name in obj_history:
  				obj_history[name] = []
  			obj_history[name].append([hand.pose.position.x, hand.pose.position.y, hand.pose.position.z])
 
+                        """
 			hand = msg.right
  			name = 'right_hand'
- 			getHandName(hand,name)
+ 			name = getHandName(hand,name)
  			if not name in obj_history:
  				obj_history[name] = []
  			obj_history[name].append([hand.pose.position.x, hand.pose.position.y, hand.pose.position.z])
-
- 	
+                        """
  	
  	# plot
  	fig = plt.figure()
@@ -82,7 +75,7 @@ def _main(filename, ignore_inputs, **kwargs):
  		data = np.array(data)
  		ax.plot(data[:,0], data[:,1], data[:,2], label=obj)
  	plt.title('Object Positons')
- 	ax.legend()
+ 	ax.legend(loc=2, prop={'size': 6})
  	plt.show()
 
 if __name__ == "__main__":

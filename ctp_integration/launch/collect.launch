@@ -1,0 +1,6 @@
+<launch>
+
+  <node pkg="ctp_integration" type="scripts/run.py" name="run" >
+  <!-- </node> -->
+
+</launch>

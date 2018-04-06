@@ -80,6 +80,8 @@ class RosTaskParser(TaskParser):
         #   - put needs to act on a block
         #   - stack also acts on a block
         started = [False, False]
+        left = None
+        right = None
         for topic, msg, _ in bag:
             # We do not trust the timestamps associated with the bag since
             # these may be written separately from when the data was actually
@@ -88,8 +90,8 @@ class RosTaskParser(TaskParser):
                 # Demo topic: read object information and add
                 t = self._getTime(msg)
                 objs = self._getObjects(msg)
-                left = self._getHand(msg.left, ActionInfo.ARM_LEFT)
-                right = self._getHand(msg.right, ActionInfo.ARM_RIGHT)
+                left = self._getHand(msg.left, ActionInfo.ARM_LEFT, left)
+                right = self._getHand(msg.right, ActionInfo.ARM_RIGHT, right)
                 started = [s or x.base_name == "Reach"
                            for s, x 
                            in zip(started, [left, right])]
@@ -137,21 +139,29 @@ class RosTaskParser(TaskParser):
                 "remap": {obj: "goal"},
                 }
 
-    def _getHand(self, msg, id):
+    def _getHand(self, msg, id, prev):
         '''
         Get the robot hand and create all appropiate fields here
         '''
         action_name = msg.activity
         if action_name is None:
             raise RuntimeError('unnamed action')
-        obj_acted_on = msg.object_acted_on
-        obj_in_gripper = msg.object_in_hand
+
+        if prev is not None and prev.base_name == action_name:
+            obj_acted_on = prev.object_acted_on
+            obj_in_gripper = prev.object_in_hand
+        else:
+            obj_acted_on = msg.object_acted_on
+            obj_in_gripper = msg.object_in_hand
+
         if (obj_acted_on == HandInfo.NO_OBJECT
+                or obj_acted_on == None
                 or len(obj_acted_on) == 0
                 or action_name in self.idle_tags
                 or obj_acted_on in self.ignore):
             obj_acted_on = None
         if (obj_in_gripper == HandInfo.NO_OBJECT
+                or obj_in_gripper == None
                 or len(obj_in_gripper) == 0
                 or action_name in self.idle_tags
                 or obj_in_gripper in self.ignore):

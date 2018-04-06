@@ -19,6 +19,7 @@ from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
 from costar_models.datasets.h5f_generator import H5fGeneratorDataset
+from costar_models.datasets.image import *
 
 from costar_models.planner import *
 from costar_models.multi import *
@@ -44,6 +45,11 @@ def main(args):
     np.random.seed(0)
     data_file_info = args['data_file'].split('.')
     data_type = data_file_info[-1]
+    new_data_file = "small_" + data_file_info[0]
+    try:
+        os.mkdir(new_data_file)
+    except OSError as e:
+        pass
     root = ""
     for i, tok in enumerate(data_file_info[:-1]):
         if i < len(data_file_info)-1 and i > 0:
@@ -62,19 +68,62 @@ def main(args):
         raise RuntimeError('Must provide features specification')
     features_arg = args['features']
 
-    if 'model' not in args or args['model'] is None:
-        raise RuntimeError('Must provide a model to load')
-    model_arg = args['model']
-
     for fnum, filename in enumerate(dataset.test + dataset.train):
+        newdata = {}
+        ok = True
         data = dataset.loadFile(filename)
         for k, v in data.items():
-            if not k == "images":
-                continue
-            for i in range(0):
-                crop = frame
-                image = imresize(crop, (96, 96))
-                image = image.astype(np.uint8)
+            if v.shape[0] == 0:
+                ok = False
+                break
+
+            if not k == "image":
+                newdata[k] = v
+            else:
+                f = ConvertJpegListToNumpy(np.squeeze(v))
+                images = []
+                for i in range(f.shape[0]):
+                    frame = f[i]
+                    #print(frame.shape)
+                    dim = min(frame.shape[0], frame.shape[1]) - 80
+                    crop = frame[80:(dim+80), 10:(dim+10), :]
+                    image = imresize(crop, (96, 96))
+                    image = image.astype(np.uint8)
+                    #plt.figure()
+                    #plt.imshow(image)
+                    #plt.show()
+                    images.append(GetJpeg(image))
+                newdata[k] = np.array(images)
+        #print("- total number of options =", data['labels_to_name'].shape)
+
+        if not ok:
+            print("Skipping because empty data for key %s" % k)
+            continue
+
+        ok = len(newdata['image']) == len(newdata['goal_idx'])
+        if not ok:
+            print("Skipping ", filename, "because data type shapes do"
+                  " not match.")
+            print("num goals =", len(data["goal_idx"]))
+            print("num images =", len(data["image"]))
+        else:
+            toks = filename.split('.')
+            print(toks)
+            filename = toks[0]
+            success = toks[1]
+            ext = toks[2]
+            toks = filename.split('_')
+            new_filename = toks[1] + "_" + toks[0] + "." + success + "." + ext
+            print(fnum, "Loaded", filename, "to", new_filename)
+            write(new_data_file, new_filename, newdata)
+
+def write(directory, filename, data):
+    filename = os.path.join(directory, filename)
+    f = h5py.File(filename, 'w')
+    for key, value in data.items():
+        f.create_dataset(key, data=value)
+    f.close()
+
 
 info = """
 This script will preprocess images collected from the real robot (with the 

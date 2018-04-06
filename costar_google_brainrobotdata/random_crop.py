@@ -227,7 +227,7 @@ def random_projection_transform(
         return composed_transforms, features
 
 
-def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inverse=True, name=None):
+def transform_and_crop_coordinate(coordinate, transform=None, offset=None, theta=None, inverse=True, name=None):
     """ Transforms a single coordinate then applies a crop offset.
 
      You probably don't need to use this, just call random_projection_transform()
@@ -243,16 +243,17 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inver
         coordinate: A 2D image coordinate.
         transform: A 3x3 homogenous 2D image transform matrix stored in shape [1, 8].
         offset: A crop offset which is the location of (0,0) in the post-crop image.
+            offset is in y, x order.
+        theta: An optional orientation angle for the 2D image coordinate.
 
     # Returns
 
         The coordinate after a tranform and crop is applied.
     """
     with tf.name_scope(name, "transform_and_crop_coordinate",
-                       [coordinate, transform, offset]) as name:
+                       [coordinate, transform, offset, theta]) as name:
 
         if transform is not None:
-            # TODO(ahundt) I may need to invert the coordinate transform matrix
             projection_matrix = _flat_transforms_to_matrices(transform)
             # TODO(ahundt) replace above with the following once flat_transforms_to_matrices becomes public in tf
             # projection_matrix = tf.contrib.image._flat_transforms_to_matrices(transform)
@@ -260,33 +261,61 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, inver
             # Very important: most TF code expects y, x coordinates
             # but the projection matrix is generated uing x, y coordinates
             # so we swap it from (y,x) to (x,y) here.
-            if not tf.contrib.framework.is_tensor(coordinate):
-                coordinate = tf.transpose(tf.convert_to_tensor(
-                    coordinate[1],
-                    coordinate[0],
-                    1
-                ))
+            if theta is None:
+                if not tf.contrib.framework.is_tensor(coordinate):
+                    coordinate = tf.transpose(tf.convert_to_tensor(
+                        [coordinate[1],
+                         coordinate[0],
+                         1]
+                    ))
+                else:
+                    coordinate = tf.stack([tf.reshape(coordinate[1], (1,)),
+                                           tf.reshape(coordinate[0], (1,)),
+                                           tf.constant([1], tf.float32)], axis=-1)
+
+                coordinate = tf.transpose(coordinate)
+                if inverse:
+                    projection_matrix = tf.matrix_inverse(projection_matrix)
+                projection_matrix = tf.squeeze(projection_matrix)
+                coordinate = tf.matmul(projection_matrix,
+                                       coordinate)
+                coordinate = tf.squeeze(tf.transpose(coordinate))
+                coordinate = tf.stack([coordinate[1], coordinate[0]])
+
+                # Very important: most TF code expects y, x coordinates
+                # but the projection matrix is generated uing x, y coordinates
+                # so we swap it back from (x,y) to (y,x) here.
             else:
-                coordinate = tf.stack([tf.reshape(coordinate[1], (1,)),
-                                       tf.reshape(coordinate[0], (1,)),
-                                       tf.constant([1], tf.float32)], axis=-1)
-            coordinate = tf.transpose(coordinate)
-            if inverse:
-                projection_matrix = tf.matrix_inverse(projection_matrix)
-            projection_matrix = tf.squeeze(projection_matrix)
-            coordinate = tf.matmul(projection_matrix,
-                                   coordinate)
-            coordinate = tf.squeeze(tf.transpose(coordinate))
-            # coordinate -= transform_offset
-            coordinate = tf.stack([coordinate[1], coordinate[0]])
-            # Very important: most TF code expects y, x coordinates
-            # but the projection matrix is generated uing x, y coordinates
-            # so we swap it back from (x,y) to (y,x) here.
-        if offset is not None:
-            if isinstance(offset, list):
-                offset = tf.constant([[offset[0]], [offset[1]]], tf.float32)
-            coordinate = coordinate - tf.cast(offset[:2], tf.float32)
-    return coordinate
+                if not tf.contrib.framework.is_tensor(coordinate):
+                    raise NotImplementedError
+                else:
+                    # TODO(ahundt) should theta be positive or negative?
+                    oriented_coordinate_matrix = array_ops.concat(
+                        values=[
+                            math_ops.cos(theta),
+                            -math_ops.sin(theta),
+                            coordinate[1],  # x_offset
+                            math_ops.sin(theta),
+                            math_ops.cos(theta),
+                            coordinate[0],  # y_offset
+                            array_ops.zeros((1, 2), dtypes.float32),
+                        ],
+                        axis=1)
+                    oriented_coordinate_matrix = tf.contrib.image.compose_transforms([transform, oriented_coordinate_matrix])
+                    # Very important: most TF code expects y, x coordinates
+                    # but the projection matrix is generated uing x, y coordinates
+                    # so we swap it back from (x,y) to (y,x) here.
+                    coordinate = tf.stack([oriented_coordinate_matrix[5], oriented_coordinate_matrix[2]])
+                    theta = tf.atan2(oriented_coordinate_matrix[3], oriented_coordinate_matrix[4])
+
+            if offset is not None:
+                if isinstance(offset, list):
+                    offset = tf.constant([[offset[0]], [offset[1]]], tf.float32)
+                coordinate = coordinate - tf.cast(offset[:2], tf.float32)
+            if theta is None:
+                return coordinate
+            else:
+                return coordinate, theta
 
 
 def resize_coordinate(coordinate, input_shape, output_shape, dtype=tf.float32, name=None):
@@ -312,7 +341,7 @@ def resize_coordinate(coordinate, input_shape, output_shape, dtype=tf.float32, n
 def transform_crop_and_resize_image(
         image, offset=None, crop_shape=None, transform=None,
         interpolation='BILINEAR', central_crop=False,
-        resize_shape=None, coordinate=None,
+        resize_shape=None, coordinate=None, coordinate_theta=None,
         name=None):
     """ Project the image with a 3x3 htransform, crop, then resize the image to the output shape.
 
@@ -340,6 +369,8 @@ def transform_crop_and_resize_image(
         crop_shape: The output image shape, default None is the input image shape.
         transform: An 8 element homogeneous projective transformation matrix.
         interpolation: Interpolation mode. Supported values: "NEAREST", "BILINEAR".
+        coordinate: An optional specific coordinate to which a transform should also be applied.
+        coordinate_theta: An optional orientation for the coordinate.
 
     # Returns
 
@@ -368,7 +399,10 @@ def transform_crop_and_resize_image(
             image = crop_images(image, offset, crop_shape)
 
             if coordinate is not None and (transform is not None or offset is not None):
-                coordinate = transform_and_crop_coordinate(coordinate, transform, offset)
+                if coordinate_theta is None:
+                    coordinate = transform_and_crop_coordinate(coordinate, transform, offset)
+                else:
+                    coordinate, coordinate_theta = transform_and_crop_coordinate(coordinate, transform, offset, theta=coordinate_theta)
         if resize_shape is not None:
             if coordinate is not None:
                 coordinate = resize_coordinate(coordinate, tf.shape(image), resize_shape)
@@ -377,7 +411,10 @@ def transform_crop_and_resize_image(
         if coordinate is None:
             return image
         else:
-            return image, coordinate
+            if coordinate_theta is None:
+                return image, coordinate
+            else:
+                return image, coordinate, coordinate_theta
 
 
 def random_translation_in_bounds(grasp_center_coordinate, output_shape, max_pixels, seed=None):
@@ -427,6 +464,3 @@ def _flat_transforms_to_matrices(transforms):
 #   # Divide each matrix by the last entry (normally 1).
 #   transforms /= transforms[:, 8:9]
 #   return transforms[:, :8]
-
-
-

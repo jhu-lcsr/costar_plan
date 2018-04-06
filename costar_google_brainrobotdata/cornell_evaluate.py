@@ -33,9 +33,15 @@ def main(_):
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     feature_combo = 'image_preprocessed'
     # TODO(ahundt) remove the hardcoded folder or put it on a github release server
-    kfold_params = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/'
-                    'logs_cornell/2018-02-26-22-57-58_200_epoch_real_run_-objectwise-kfold/'
-                    '2018-02-26-22-57-58_200_epoch_real_run_-objectwise-kfold_params.json')
+    # kfold_params = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/'
+    #                 'logs_cornell/2018-02-26-22-57-58_200_epoch_real_run_-objectwise-kfold/'
+    #                 '2018-02-26-22-57-58_200_epoch_real_run_-objectwise-kfold_params.json')
+    # kfold_params = ('/home/ahundt/datasets/logs/logs_cornell/2018-03-08-17-39-42_60_epoch_real_run-objectwise-kfold/'
+    #                 '2018-03-08-17-39-42_60_epoch_real_run-objectwise-kfold_params.json')
+    # kfold_params = ('/home/ahundt/datasets/logs/logs_cornell/2018-03-09-04-09-19_60_epoch_real_run-imagewise-kfold/'
+    #                 '2018-03-09-04-09-19_60_epoch_real_run-imagewise-kfold_params.json')
+    kfold_params = ('/home/ahundt/datasets/logs/logs_cornell/2018-03-07-14-14-23_120_epoch_real_run-objectwise-kfold/'
+                    '2018-03-07-14-14-23_120_epoch_real_run-objectwise-kfold_params.json')
 
     print('Model evaluation on Jaccard Distance is about to begin. '
           'It overrides some command line parameters so to change them '
