@@ -1118,7 +1118,7 @@ class GraspDataset(object):
 
                 # all_transforms combined into one large vector
                 # TODO(ahundt) remove direct flags dependency & parameterize
-                max_sensor_dim = np.max(FLAGS.sensor_image_width, FLAGS.sensor_image_height)
+                max_sensor_dim = float(max(FLAGS.sensor_image_width, FLAGS.sensor_image_height))
                 all_transforms = K.concatenate([
                     camera_T_endeffector_current_vec_quat_7_array,
                     camera_T_depth_pixel_current_vec_quat_7_array,
