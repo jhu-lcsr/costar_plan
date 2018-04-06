@@ -141,9 +141,11 @@ def make_model_description(run_name, model_name, hyperparams, dataset_names_str)
 
     if hyperparams is not None:
         if 'image_model_name' in hyperparams:
-            model_description += '_' + hyperparams['image_model_name']
+            model_description += '_img_' + hyperparams['image_model_name']
+        if 'vector_model_name' in hyperparams:
+            model_description += '_vec_' + hyperparams['vector_model_name']
         if 'trunk_model_name' in hyperparams:
-            model_description += '_' + hyperparams['trunk_model_name']
+            model_description += '_trunk_' + hyperparams['trunk_model_name']
     ########################################################
     # End tensor configuration, begin model configuration and training
     model_description += '-dataset_' + dataset_names_str
