@@ -80,8 +80,8 @@ def main(_):
         print(results_df)
     if FLAGS.save_dir is None:
         FLAGS.save_dir = FLAGS.log_dir
-    os.path.join(FLAGS.save_dir, FLAGS.save_csv)
-    results_df.to_csv()
+    output_filename = os.path.join(FLAGS.save_dir, FLAGS.save_csv)
+    results_df.to_csv(output_filename)
 
 if __name__ == '__main__':
     app.run(main=main)
