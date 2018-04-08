@@ -9,7 +9,7 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 import os
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
-from tensorflow.app import run
+from tensorflow.python.platform import app
 import pandas
 
 
@@ -66,4 +66,4 @@ def main(_):
     results_df.to_csv(save_dir)
 
 if __name__ == '__main__':
-    run(main=main)
+    app.run(main=main)
