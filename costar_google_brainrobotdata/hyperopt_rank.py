@@ -30,6 +30,12 @@ flags.DEFINE_string(
     'Directory for tensorboard, model layout, model weight, csv, and hyperparam files'
 )
 
+flags.DEFINE_string(
+    'glob',
+    '*/*.csv',
+    'File path to glob for collecting hyperopt results.'
+)
+
 
 flags.DEFINE_string(
     'sort_by',
@@ -55,11 +61,17 @@ flags.DEFINE_string(
     'Where to save the csv, defaults to log_dir'
 )
 
+flags.DEFINE_boolean(
+    'print_results',
+    False,
+    'Print the results'
+)
+
 FLAGS = flags.FLAGS
 
 
 def main(_):
-    csv_files = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.log_dir), '*/*.csv'))
+    csv_files = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.log_dir), ))
     dataframe_list = []
     progress = tqdm(csv_files)
     for csv_file in progress:
@@ -67,7 +79,8 @@ def main(_):
         try:
             dataframe = pandas.read_csv(csv_file, index_col=None, header=0)
             # add a filename column for this csv file's name
-            dataframe['filename'] = os.path.basename(csv_file)
+            dataframe['basename'] = os.path.basename(csv_file)
+            dataframe['filename'] = csv_file
             dataframe_list.append(dataframe)
         except pandas.io.common.EmptyDataError as exception:
             # Ignore empty files, it just means hyperopt got killed early
@@ -76,12 +89,14 @@ def main(_):
     results_df = pandas.DataFrame()
     results_df = pandas.concat(dataframe_list)
     results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending)
-    with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
-        print(results_df)
+    if FLAGS.print_results:
+        with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
+            print(results_df)
     if FLAGS.save_dir is None:
         FLAGS.save_dir = FLAGS.log_dir
     output_filename = os.path.join(FLAGS.save_dir, FLAGS.save_csv)
     results_df.to_csv(output_filename)
+    print('Processing complete. Results saved to file: ' + str(output_filename))
 
 if __name__ == '__main__':
     app.run(main=main)
