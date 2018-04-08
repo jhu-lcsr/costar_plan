@@ -63,11 +63,15 @@ def main(_):
     dataframe_list = []
     progress = tqdm(csv_files)
     for csv_file in progress:
-        progress.write('reading: ' + str(csv_file))
-        dataframe = pandas.read_csv(csv_file, index_col=None, header=0)
-        # add a filename column for this csv file's name
-        dataframe['filename'] = csv_file
-        dataframe_list.append(dataframe)
+        # progress.write('reading: ' + str(csv_file))
+        try:
+            dataframe = pandas.read_csv(csv_file, index_col=None, header=0)
+            # add a filename column for this csv file's name
+            dataframe['filename'] = csv_file
+            dataframe_list.append(dataframe)
+        except pandas.io.common.EmptyDataError as exception:
+            # Ignore empty files, it just means hyperopt got killed early
+            pass
 
     results_df = pandas.DataFrame()
     results_df.concat(dataframe_list)
