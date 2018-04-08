@@ -75,7 +75,7 @@ def main(_):
 
     results_df = pandas.DataFrame()
     results_df = pandas.concat(dataframe_list)
-    results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending)
+    results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending)
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
         print(results_df)
     if FLAGS.save_dir is None:
