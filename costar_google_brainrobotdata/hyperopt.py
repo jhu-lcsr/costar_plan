@@ -1,4 +1,10 @@
+#!/usr/local/bin/python
+"""
+Manage hyperparameter optimization.
 
+Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
+
+"""
 
 import os
 import sys
@@ -11,6 +17,7 @@ import numpy as np
 import tensorflow as tf
 import traceback
 import keras
+import grasp_utilities
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -147,6 +154,15 @@ class HyperparameterOptions(object):
         """
         return self.search_space
 
+    def save(self, filename):
+        """ Save the HyperParameterOptions search space and argument index dictionary to a json file.
+        """
+        data = {}
+        data['search_space'] = self.search_space
+        data['index_dict'] = self.index_dict
+        with open(filename, 'w') as fp:
+            json.dump(data, fp)
+
 
 def optimize(
         run_training_fn,
@@ -166,11 +182,16 @@ def optimize(
         learning_rate_enabled=False,
         min_top_block_filter_multiplier=6,
         batch_size=2,
-        hyperoptions=None):
+        hyperoptions=None,
+        **kwargs):
     """ Run hyperparameter optimization
 
     hyperoptions: an instance of thee hyperopt.HyperparameterOptions class,
         default of None will create one automatically
+
+    kwargs: these are passed to the run_training_fn but *not* saved as hyperparameters.
+        The current example use case is to disable model checkpointing if it takes too much space
+        with the parameter checkpoint=False (assuming the run_training_fn accepts that parameter).
     """
     np.random.seed(seed)
 
@@ -268,26 +289,31 @@ def optimize(
 
     def train_callback(x):
         # x is a funky 2d numpy array, so we convert it back to normal parameters
-        kwargs = hyperoptions.params_to_args(x)
+        training_arguments = hyperoptions.params_to_args(x)
 
         if learning_rate_enabled:
             # Learning rates are exponential so we take a uniform random
             # input and map it from 1 to 3e-5 on an exponential scale.
-            kwargs['learning_rate'] = 0.9 ** kwargs['learning_rate']
+            training_arguments['learning_rate'] = 0.9 ** training_arguments['learning_rate']
 
         if verbose:
             # update counts by 1 each step
             ProgUpdate.progbar.update()
-            ProgUpdate.progbar.write('Training with hyperparams: \n' + str(kwargs))
+            ProgUpdate.progbar.write('Training with hyperparams: \n' + str(training_arguments))
         ProgUpdate.hyperopt_current_update += 1
 
         history = None
 
+        # hyperparams need to be kept separate from some extra training arguments
+        # not relevant to hyperparameter optimization
+        hyper_params = training_arguments
+        training_arguments.update(kwargs)
+
         try:
             # call the function that performs actual training and returns a history object
             history = run_training_fn(
-                hyperparams=kwargs,
-                **kwargs)
+                hyperparams=hyper_params,
+                **training_arguments)
         except tf.errors.ResourceExhaustedError as exception:
             print('Hyperparams caused algorithm to run out of resources, '
                   'will continue to next stage and return infinity loss for now.'
@@ -357,14 +383,23 @@ def optimize(
         return loss
 
     log_run_prefix = os.path.join(log_dir, run_name)
+    grasp_utilities.mkdir_p(log_run_prefix)
+    print('Hyperopt log run results prefix directory: ' + str(log_run_prefix))
+    hyperoptions.save(log_run_prefix + '_hyperoptions.json')
+
+    # model_type chosen based on https://github.com/SheffieldML/GPyOpt/issues/152
+    # also see https://github.com/SheffieldML/GPyOpt/issues/107
+    # Previous choice before 2018-04-06 was as follows, but became too slow past 300 samples:
+    # model_type='GP_MCMC',
+    # acquisition_type='EI_MCMC',  # EI
 
     bayesian_optimization = GPyOpt.methods.BayesianOptimization(
         f=train_callback,  # function to optimize
         domain=hyperoptions.get_domain(),  # where are we going to search
         initial_design_numdata=initial_num_samples,
-        model_type='GP_MCMC',
-        acquisition_type='EI_MCMC',  # EI
-        evaluator_type="predictive",  # Expected Improvement
+        model_type='sparseGP',
+        acquisition_type='EI',  # Expected Improvement
+        evaluator_type="predictive",
         batch_size=baysean_batch_size,
         num_cores=num_cores,
         exact_feval=algorithm_gives_exact_results,
@@ -383,6 +418,7 @@ def optimize(
         json.dump(best_hyperparams, fp)
     print('Hyperparameter Optimization final best result:\n' + str(best_hyperparams))
     print('Optimized ' + param_to_optimize + ': {0}'.format(bayesian_optimization.fx_opt))
+    print('Hyperopt log run results prefix directory: ' + str(log_run_prefix))
 
-    bayesian_optimization.plot_convergence()
-    bayesian_optimization.plot_acquisition()
+    bayesian_optimization.plot_convergence(log_run_prefix + '_bayesian_optimization_convergence_plot.png')
+    bayesian_optimization.plot_acquisition(log_run_prefix + '_bayesian_optimization_acquisition_plot.png')

@@ -231,7 +231,8 @@ class GraspTrain(object):
               fine_tuning_epochs=None,
               pipeline=None,
               test_dataset=None,
-              validation_dataset=None):
+              validation_dataset=None,
+              checkpoint=True):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -475,12 +476,13 @@ class GraspTrain(object):
                 with open(log_dir_run_name + '_hyperparams.json', 'w') as fp:
                     json.dump(hyperparams, fp)
 
-            checkpoint = keras.callbacks.ModelCheckpoint(
-                log_dir_run_name + '-epoch-{epoch:03d}-' +
-                monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
-                monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
-                save_best_only=False, verbose=1, monitor=monitor_metric_name)
-            callbacks = callbacks + [checkpoint]
+            if checkpoint:
+                checkpoint = keras.callbacks.ModelCheckpoint(
+                    log_dir_run_name + '-epoch-{epoch:03d}-' +
+                    monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
+                    monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
+                    save_best_only=False, verbose=1, monitor=monitor_metric_name)
+                callbacks = callbacks + [checkpoint]
 
             # progress bar
             # callbacks += [TQDMCallback()]

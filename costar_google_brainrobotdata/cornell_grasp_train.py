@@ -261,6 +261,7 @@ def run_training(
         fine_tuning=None,
         fine_tuning_epochs=None,
         loss=None,
+        checkpoint=True,
         **kwargs):
     """
 
@@ -278,6 +279,7 @@ def run_training(
     hyperparams: a dictionary of hyperparameter selections made for this training run.
        If provided these values will simply be dumped to a file and
        not utilized in any other way.
+    checkpoint: if True, checkpoints will be save, if false they will not.
     """
     if epochs is None:
         epochs = FLAGS.epochs
@@ -380,13 +382,14 @@ def run_training(
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
 
-    checkpoint = keras.callbacks.ModelCheckpoint(
-        log_dir_run_name + '-epoch-{epoch:03d}-' +
-        monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
-        monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
-        save_best_only=True, verbose=1, monitor=monitor_metric_name)
+    if checkpoint:
+        checkpoint = keras.callbacks.ModelCheckpoint(
+            log_dir_run_name + '-epoch-{epoch:03d}-' +
+            monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
+            monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
+            save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
-    callbacks = callbacks + [checkpoint]
+        callbacks = callbacks + [checkpoint]
     callbacks += [SlowModelStopping(max_batch_time_seconds=0.5),
                   InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
     # An additional useful param is write_batch_performance:
@@ -1339,6 +1342,7 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
 
 def main(_):
 
+    # tf.enable_eager_execution()
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     if 'k_fold' in FLAGS.pipeline_stage:

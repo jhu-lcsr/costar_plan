@@ -72,6 +72,10 @@ def main(_):
     seed = 5
     initial_num_samples = 2000
     maximum_hyperopt_steps = 10
+    # checkpoint is a special parameter to not save hdf5 files because training runs
+    # are very quick (~1min) and checkpoint files are very large (~100MB)
+    # which is forwarded to cornell_grasp_train.py run_training() function.
+    checkpoint = False
 
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
@@ -99,7 +103,8 @@ def main(_):
         param_to_optimize=param_to_optimize,
         initial_num_samples=initial_num_samples,
         maximum_hyperopt_steps=maximum_hyperopt_steps,
-        seed=seed)
+        seed=seed,
+        checkpoint=checkpoint)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
