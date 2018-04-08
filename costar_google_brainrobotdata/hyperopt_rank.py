@@ -67,7 +67,7 @@ def main(_):
         try:
             dataframe = pandas.read_csv(csv_file, index_col=None, header=0)
             # add a filename column for this csv file's name
-            dataframe['filename'] = csv_file
+            dataframe['filename'] = os.path.basename(csv_file)
             dataframe_list.append(dataframe)
         except pandas.io.common.EmptyDataError as exception:
             # Ignore empty files, it just means hyperopt got killed early
@@ -79,8 +79,9 @@ def main(_):
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
         print(results_df)
     if FLAGS.save_dir is None:
-        save_dir = FLAGS.log_dir
-    results_df.to_csv(save_dir)
+        FLAGS.save_dir = FLAGS.log_dir
+    os.path.join(FLAGS.save_dir, FLAGS.save_csv)
+    results_df.to_csv()
 
 if __name__ == '__main__':
     app.run(main=main)
