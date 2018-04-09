@@ -197,7 +197,7 @@ flags.DEFINE_boolean('verbose', False, 'Print actual features for each image')
 flags.DEFINE_boolean('write', False, 'Actually write the tfrecord files if True, simply gather stats if False.')
 flags.DEFINE_boolean('shuffle', True, 'shuffle the image order before running')
 flags.DEFINE_boolean(
-    'redundant', True,
+    'redundant', False,
     """Duplicate images for every bounding box so dataset is easier to traverse.
        Please note that this substantially affects the output file size,
        but the dataset parsing code becomes much easier to write.
