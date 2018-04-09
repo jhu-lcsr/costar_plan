@@ -62,21 +62,21 @@ class HyperparameterOptions(object):
             param_index = self.index_dict['current_index']
             numerical_domain = domain
             needs_reverse_lookup = False
-            lookup_as = float
+            lookup_as = 'float'
             # convert string domains to a domain of integer indexes
             if domain_type == 'discrete':
                 if isinstance(domain, list) and isinstance(domain[0], str):
                     numerical_domain = [i for i in range(len(domain))]
-                    lookup_as = str
+                    lookup_as = 'str'
                     needs_reverse_lookup = True
                 elif isinstance(domain, list) and isinstance(domain[0], bool):
                     numerical_domain = [i for i in range(len(domain))]
-                    lookup_as = bool
+                    lookup_as = 'bool'
                     needs_reverse_lookup = True
                 elif isinstance(domain, list) and isinstance(domain[0], float):
-                    lookup_as = float
+                    lookup_as = 'float'
                 else:
-                    lookup_as = int
+                    lookup_as = 'int'
 
             opt_dict = {
                 'name': name,
@@ -112,6 +112,21 @@ class HyperparameterOptions(object):
         if len(x.shape) == 1:
             # if we get a 1d array convert it to 2d so we are consistent
             x = np.expand_dims(x, axis=0)
+
+        def lookup_as(name, value):
+            """ How to lookup internally stored values.
+            """
+            if name == 'float':
+                return float(value)
+            elif name == 'int':
+                return int(value)
+            elif name == 'str':
+                return str(value)
+            elif name == 'bool':
+                return bool(value)
+            else:
+                raise ValueError('Trying to lookup unsupported type: ' + str(name))
+
         # x is a funky 2d numpy array, so we convert it back to normal parameters
         kwargs = {}
         if self.verbose > 0:
@@ -134,13 +149,13 @@ class HyperparameterOptions(object):
                     if opt_dict['needs_reverse_lookup']:
                         domain_index = int(param_value)
                         domain_value = opt_dict['domain'][domain_index]
-                        value = opt_dict['lookup_as'](domain_value)
+                        value = lookup_as(opt_dict['lookup_as'], domain_value)
                     else:
-                        value = opt_dict['lookup_as'](param_value)
+                        value = lookup_as(opt_dict['lookup_as'], param_value)
 
                 else:
                     # the value is a param to use directly
-                    value = opt_dict['lookup_as'](param_value)
+                    value = lookup_as(opt_dict['lookup_as'], param_value)
 
                 kwargs[arg_name] = value
             elif opt_dict['required']:
