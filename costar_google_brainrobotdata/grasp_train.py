@@ -301,7 +301,7 @@ class GraspTrain(object):
         if test_dataset is None:
             test_dataset = FLAGS.grasp_dataset_test
         if validation_dataset is None:
-            test_dataset = FLAGS.grasp_dataset_validation
+            validation_dataset = FLAGS.grasp_dataset_validation
         if run_name is None:
             run_name = FLAGS.run_name
         if log_dir is None:
@@ -418,7 +418,9 @@ class GraspTrain(object):
 
             # add evalation callback, calls evalation of self.validation_model
             if test_per_epoch:
-                print('make_model_fn: ' + str(make_model_fn) + ' model_name: ' + model_name + ' test_per_epoch: ' + str(test_per_epoch))
+                print('make_model_fn: ' + str(make_model_fn) + ' model_name: ' + model_name +
+                      ' test_per_epoch: ' + str(test_per_epoch) +
+                      'validation_dataset: ' + str(validation_dataset) + ' test_dataset: ' + str(test_dataset))
                 validation_model, step_num = self.eval(dataset=validation_dataset,
                                                        make_model_fn=make_model_fn,
                                                        model_name=model_name,
