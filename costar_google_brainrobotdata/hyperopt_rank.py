@@ -100,7 +100,11 @@ def main(_):
             csv_dir = os.path.dirname(csv_file)
             hyperparam_filename = gfile.Glob(os.path.join(csv_dir, FLAGS.glob_hyperparams))
             dataframe['hyper_parameters_filename'] = hyperparam_filename
-            if FLAGS.load_hyperparams:
+            if FLAGS.load_hyperparams and len(hyperparam_filename) > 0:
+                if len(hyperparam_filename) > 1:
+                    progress.write('Unexpectedly got more than hyperparam file match, '
+                                   'only keeping the first one: ' + str(hyperparam_filename))
+                hyperparam_filename = hyperparam_filename[0]
                 hyperparams = grasp_utilities.load_hyperparams_json(hyperparam_filename)
                 for key, val in six.iteritems(hyperparams):
                     dataframe[key] = val
