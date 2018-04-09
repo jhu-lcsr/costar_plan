@@ -38,7 +38,7 @@ def main(_):
     batch_size = 4
     min_top_block_filter_multiplier = 6
     feature_combo_name = None
-    seed = 6
+    seed = 7
 
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
