@@ -79,8 +79,20 @@ flags.DEFINE_boolean(
 
 flags.DEFINE_string(
     'glob_hyperparams',
-    '*hyperp*.json',
+    '*hyperparam*.json',
     'Hyperparams json filename strings to match in the directory of the corresponding csv file.'
+)
+
+flags.DEFINE_boolean(
+    'filter_epoch',
+    True,
+    'Filter results, dropping everything except a single epoch'
+)
+
+flags.DEFINE_integer(
+    'epoch',
+    0,
+    'Results should only belong to this epoch if filter_epoch is True'
 )
 
 FLAGS = flags.FLAGS
@@ -99,15 +111,23 @@ def main(_):
             dataframe['csv_filename'] = csv_file
             csv_dir = os.path.dirname(csv_file)
             hyperparam_filename = gfile.Glob(os.path.join(csv_dir, FLAGS.glob_hyperparams))
+
+            # filter specific epochs
+            if FLAGS.filter_epoch:
+                dataframe = dataframe.loc[dataframe['epoch'] == FLAGS.epoch]
+
+            # manage hyperparams
             if len(hyperparam_filename) > 1:
                 progress.write('Unexpectedly got more than hyperparam file match, '
-                                'only keeping the first one: ' + str(hyperparam_filename))
+                               'only keeping the first one: ' + str(hyperparam_filename))
             hyperparam_filename = hyperparam_filename[0]
             dataframe['hyperparameters_filename'] = hyperparam_filename
             if FLAGS.load_hyperparams and len(hyperparam_filename) > 0:
                 hyperparams = grasp_utilities.load_hyperparams_json(hyperparam_filename)
                 for key, val in six.iteritems(hyperparams):
                     dataframe[key] = val
+
+            # accumulate the data
             dataframe_list.append(dataframe)
         except pandas.io.common.EmptyDataError as exception:
             # Ignore empty files, it just means hyperopt got killed early
