@@ -7,10 +7,12 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 """
 
 import os
+import six
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import app
 import pandas
+import grasp_utilities
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -31,7 +33,7 @@ flags.DEFINE_string(
 )
 
 flags.DEFINE_string(
-    'glob',
+    'glob_csv',
     '*/*.csv',
     'File path to glob for collecting hyperopt results.'
 )
@@ -67,11 +69,25 @@ flags.DEFINE_boolean(
     'Print the results'
 )
 
+flags.DEFINE_boolean(
+    'load_hyperparams',
+    True,
+    """load the hyperparameter include them in the results file.
+       If something breaks try making this False.
+    """
+)
+
+flags.DEFINE_string(
+    'glob_hyperparams',
+    '*hyperp*.json',
+    'Hyperparams json filename strings to match in the directory of the corresponding csv file.'
+)
+
 FLAGS = flags.FLAGS
 
 
 def main(_):
-    csv_files = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.log_dir), FLAGS.glob))
+    csv_files = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.log_dir), FLAGS.glob_csv))
     dataframe_list = []
     progress = tqdm(csv_files)
     for csv_file in progress:
@@ -80,7 +96,14 @@ def main(_):
             dataframe = pandas.read_csv(csv_file, index_col=None, header=0)
             # add a filename column for this csv file's name
             dataframe['basename'] = os.path.basename(csv_file)
-            dataframe['filename'] = csv_file
+            dataframe['csv_filename'] = csv_file
+            csv_dir = os.path.dirname(csv_file)
+            hyperparam_filename = gfile.Glob(os.path.join(csv_dir, FLAGS.glob_hyperparams))
+            dataframe['hyper_parameters_filename'] = hyperparam_filename
+            if FLAGS.load_hyperparams:
+                hyperparams = grasp_utilities.load_hyperparams_json(hyperparam_filename)
+                for key, val in six.iteritems(hyperparams):
+                    dataframe[key] = val
             dataframe_list.append(dataframe)
         except pandas.io.common.EmptyDataError as exception:
             # Ignore empty files, it just means hyperopt got killed early
