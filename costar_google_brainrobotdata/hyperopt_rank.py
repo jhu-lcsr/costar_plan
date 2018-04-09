@@ -71,7 +71,7 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    csv_files = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.log_dir), ))
+    csv_files = gfile.Glob(os.path.join(os.path.expanduser(FLAGS.log_dir), FLAGS.glob))
     dataframe_list = []
     progress = tqdm(csv_files)
     for csv_file in progress:
