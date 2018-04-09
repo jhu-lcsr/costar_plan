@@ -518,7 +518,9 @@ def run_training(
         raise ValueError('unknown pipeline configuration ' + pipeline + ' chosen, try '
                          'train, test, train_test, or train_test_kfold')
 
-    model.save_weights(log_dir_run_name + '_model_weights.h5')
+    if checkpoint:
+        # only save the weights if we are also checkpointing
+        model.save_weights(log_dir_run_name + '_model_weights.h5')
 
     print('')
     print('')
