@@ -52,8 +52,8 @@ def main(_):
         #                           '2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
         # About 0.95 k-fold accuracy on preprocessed_norm_sin2_cos2_w_3:
-        FLAGS.load_hyperparams = ('hyperparams/classification/2018-03-03-07-14-59_'
-                                  '-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+        # FLAGS.load_hyperparams = ('hyperparams/classification/2018-03-03-07-14-59_'
+        #                           '-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
         # (not very good) Best result from classification hyperopt run ending 2018-03-16:
         # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
@@ -63,6 +63,7 @@ def main(_):
         # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
         #                           '2018-03-16-06-15-01_-densenet_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
+        FLAGS.load_hyperparams = ('hyperparams/classification/2018-04-08-21-04-19__optimized_hyperparams.json')
     FLAGS.epochs = 40
     FLAGS.fine_tuning_epochs = 0
     # 8 training folds
@@ -84,23 +85,27 @@ def main(_):
         learning_rate=FLAGS.learning_rate,
         feature_combo_name=feature_combo)
 
+    # keep feature_combo_name from causing errors if it is present or not present
+    if feature_combo not in hyperparams:
+        hyperparams['feature_combo_name'] = feature_combo
+
     if 'k_fold' in FLAGS.pipeline_stage:
         cornell_grasp_train.train_k_fold(
             problem_name=problem_type,
-            feature_combo_name=feature_combo,
+            # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='objectwise',
             **hyperparams)
         cornell_grasp_train.train_k_fold(
             problem_name=problem_type,
-            feature_combo_name=feature_combo,
+            # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='imagewise',
             **hyperparams)
     else:
         cornell_grasp_train.run_training(
             problem_name=problem_type,
-            feature_combo_name=feature_combo,
+            # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             **hyperparams)
 
