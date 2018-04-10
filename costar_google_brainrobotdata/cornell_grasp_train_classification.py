@@ -90,6 +90,8 @@ def main(_):
         hyperparams['feature_combo_name'] = feature_combo
 
     if 'k_fold' in FLAGS.pipeline_stage:
+        FLAGS.num_validation = 2
+        FLAGS.num_test = 0
         cornell_grasp_train.train_k_fold(
             problem_name=problem_type,
             # feature_combo_name=feature_combo,
