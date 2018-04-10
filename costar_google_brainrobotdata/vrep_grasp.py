@@ -52,7 +52,7 @@ from grasp_dataset import GraspDataset
 import grasp_geometry
 import grasp_geometry_tf
 from grasp_train import GraspTrain
-from grasp_train import define_make_model_fn
+from grasp_train import choose_make_model_fn
 from depth_image_encoding import ClipFloatValues
 from depth_image_encoding import FloatArrayToRgbImage
 from depth_image_encoding import FloatArrayToRawRGB
@@ -124,10 +124,14 @@ tf.flags.DEFINE_string('vrepVisualizationPipeline', 'tensorflow',
                                then the visualize_python function calculates the features
                                before they are rendered with vrep.
                        """)
-tf.flags.DEFINE_boolean('vrepVisualizePredictions', True,
+tf.flags.DEFINE_boolean('vrepVisualizePredictions', False,
                         """Visualize the predictions of weights defined in grasp_train.py,
                            If loss is pixel-wise, prediction will be 2d image of probabilities.
                            Otherwise it's boolean indicate success or failure.
+
+                           Model weights must be available to load, and the weights must match
+                           the model being created for this to work correctly.
+                           If you only wish to visualize the data, set this to False.
                         """
                         )
 tf.flags.DEFINE_boolean('vrepVisualizeMatPlotLib', True,
@@ -135,7 +139,8 @@ tf.flags.DEFINE_boolean('vrepVisualizeMatPlotLib', True,
                         """
                         )
 
-flags.FLAGS._parse_flags()
+# the following line is needed for tf versions before 1.5
+# flags.FLAGS._parse_flags()
 FLAGS = flags.FLAGS
 
 
@@ -544,7 +549,7 @@ class VREPGraspVisualization(object):
         batch_size = 1
         grasp_dataset_object = GraspDataset(dataset=dataset)
         if FLAGS.vrepVisualizePredictions is True:
-            make_model_fn = define_make_model_fn()
+            make_model_fn = choose_make_model_fn()
             gt = GraspTrain()
             (pred_model, pregrasp_op_batch, grasp_step_op_batch,
              simplified_grasp_command_op_batch,
@@ -704,7 +709,7 @@ class VREPGraspVisualization(object):
                 crop_offset = features_dict_np['random_crop_offset'] # 3-dim
                 crop_size = features_dict_np['rgb_random_crop_dimensions'] # 3-dim
                 # create color map
-                color_map=plt.cm.RdBu
+                color_map = plt.cm.RdBu
                 # Display each point cloud
                 for img_num, (rgb, depth, xyz, current_coordinate,
                               final_coordinate, prediction) in enumerate(zip(rgb_images, depth_images,
@@ -1146,9 +1151,11 @@ class VREPGraspVisualization(object):
         vrep.simxFinish(-1)
 
 
-if __name__ == '__main__':
-
+def vrep_grasp_main(_):
     with tf.Session() as sess:
         viz = VREPGraspVisualization()
         viz.visualize(sess)
+
+if __name__ == '__main__':
+    tf.app.run(main=vrep_grasp_main)
 

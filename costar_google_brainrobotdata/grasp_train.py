@@ -113,7 +113,7 @@ flags.DEFINE_integer(
     2,
     'Number of epochs to run trainer with all weights marked as trainable.'
 )
-flags.DEFINE_integer('eval_batch_size', 1, 'batch size per compute device')
+flags.DEFINE_integer('eval_batch_size', 2, 'batch size per compute device')
 flags.DEFINE_integer('densenet_growth_rate', 12,
                      """DenseNet and DenseNetFCN parameter growth rate""")
 flags.DEFINE_integer('densenet_depth', 40,
@@ -231,7 +231,8 @@ class GraspTrain(object):
               fine_tuning_epochs=None,
               pipeline=None,
               test_dataset=None,
-              validation_dataset=None):
+              validation_dataset=None,
+              checkpoint=True):
         """Train the grasping dataset
 
         This function depends on https://github.com/fchollet/keras/pull/6928
@@ -300,7 +301,7 @@ class GraspTrain(object):
         if test_dataset is None:
             test_dataset = FLAGS.grasp_dataset_test
         if validation_dataset is None:
-            test_dataset = FLAGS.grasp_dataset_validation
+            validation_dataset = FLAGS.grasp_dataset_validation
         if run_name is None:
             run_name = FLAGS.run_name
         if log_dir is None:
@@ -417,7 +418,9 @@ class GraspTrain(object):
 
             # add evalation callback, calls evalation of self.validation_model
             if test_per_epoch:
-                print('make_model_fn: ' + str(make_model_fn) + ' model_name: ' + model_name + ' test_per_epoch: ' + str(test_per_epoch))
+                print('make_model_fn: ' + str(make_model_fn) + ' model_name: ' + model_name +
+                      ' test_per_epoch: ' + str(test_per_epoch) +
+                      'validation_dataset: ' + str(validation_dataset) + ' test_dataset: ' + str(test_dataset))
                 validation_model, step_num = self.eval(dataset=validation_dataset,
                                                        make_model_fn=make_model_fn,
                                                        model_name=model_name,
@@ -448,7 +451,7 @@ class GraspTrain(object):
                                                write_grads=True, write_images=True)
                 callbacks = callbacks + [progress_tracker]
 
-            callbacks += [SlowModelStopping(max_batch_time_seconds=1.25), InaccurateModelStopping()]
+            callbacks += [SlowModelStopping(max_batch_time_seconds=1.5), InaccurateModelStopping()]
             # 2017-08-28 trying SGD
             # 2017-12-18 SGD worked very well and has been the primary training optimizer from 2017-09 to 2018-01
             if FLAGS.optimizer == 'SGD':
@@ -475,12 +478,13 @@ class GraspTrain(object):
                 with open(log_dir_run_name + '_hyperparams.json', 'w') as fp:
                     json.dump(hyperparams, fp)
 
-            checkpoint = keras.callbacks.ModelCheckpoint(
-                log_dir_run_name + '-epoch-{epoch:03d}-' +
-                monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
-                monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
-                save_best_only=False, verbose=1, monitor=monitor_metric_name)
-            callbacks = callbacks + [checkpoint]
+            if checkpoint:
+                checkpoint = keras.callbacks.ModelCheckpoint(
+                    log_dir_run_name + '-epoch-{epoch:03d}-' +
+                    monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
+                    monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
+                    save_best_only=False, verbose=1, monitor=monitor_metric_name)
+                callbacks = callbacks + [checkpoint]
 
             # progress bar
             # callbacks += [TQDMCallback()]
@@ -781,6 +785,14 @@ class GraspTrain(object):
                  shift_ratio=0.0)
 
             batch_index_dimension = K.int_shape(grasp_success_op_batch)[0]
+
+            # sometimes we get a tuple of size 1, so extract the number
+            if isinstance(resize_height, tuple):
+                resize_height = resize_height[0]
+            if isinstance(resize_width, tuple):
+                resize_width = resize_width[0]
+
+            print('batch_index_dimension ' + str(batch_index_dimension) + ' resize h w ' + str(resize_height) + ' ' + str(resize_width) )
             if resize:
                 input_image_shape = [batch_index_dimension, int(resize_height), int(resize_width), 3]
             else:
@@ -958,6 +970,11 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
             print('grasp_model_hypertree image_shapes: ' + str(image_shapes))
             image_model_weights = 'shared'
             print('image_model_weights: ' + image_model_weights)
+            # there are hyperparams that are loaded from other areas of the code,
+            # so here we remove those that don't apply to the hypertree model directly.
+            kw.pop('learning_rate', None)
+            kw.pop('batch_size', None)
+            kw.pop('feature_combo_name', None)
             # TODO(ahundt) consider making image_model_weights shared vs separate configurable
             return grasp_model.choose_hypertree_model(
                 images=images,
