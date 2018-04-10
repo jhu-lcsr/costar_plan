@@ -261,6 +261,7 @@ def run_training(
         fine_tuning=None,
         fine_tuning_epochs=None,
         loss=None,
+        checkpoint=True,
         **kwargs):
     """
 
@@ -278,6 +279,7 @@ def run_training(
     hyperparams: a dictionary of hyperparameter selections made for this training run.
        If provided these values will simply be dumped to a file and
        not utilized in any other way.
+    checkpoint: if True, checkpoints will be save, if false they will not.
     """
     if epochs is None:
         epochs = FLAGS.epochs
@@ -347,7 +349,7 @@ def run_training(
     # loss = grasp_loss.segmentation_gaussian_measurement
 
     dataset_names_str = 'cornell_grasping'
-    run_name = grasp_utilities.timeStamped(run_name + '-' + model_name + '-dataset_' + dataset_names_str + '-' + label_features[0])
+    run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
     callbacks = []
 
     loss_weights = None
@@ -380,14 +382,16 @@ def run_training(
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
 
-    checkpoint = keras.callbacks.ModelCheckpoint(
-        log_dir_run_name + '-epoch-{epoch:03d}-' +
-        monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
-        monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
-        save_best_only=True, verbose=1, monitor=monitor_metric_name)
+    if checkpoint:
+        checkpoint = keras.callbacks.ModelCheckpoint(
+            log_dir_run_name + '-epoch-{epoch:03d}-' +
+            monitor_loss_name + '-{' + monitor_loss_name + ':.3f}-' +
+            monitor_metric_name + '-{' + monitor_metric_name + ':.3f}.h5',
+            save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
-    callbacks = callbacks + [checkpoint]
-    callbacks += [SlowModelStopping(max_batch_time_seconds=0.5), InaccurateModelStopping()]
+        callbacks = callbacks + [checkpoint]
+    callbacks += [SlowModelStopping(max_batch_time_seconds=0.5),
+                  InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
     # An additional useful param is write_batch_performance:
     #  https://github.com/keras-team/keras/pull/7617
     #  write_batch_performance=True)
@@ -444,7 +448,10 @@ def run_training(
     # This lets us take advantage of tensorboard visualization
     if 'train' in pipeline:
         if 'test' in pipeline:
-            # we need this callback to be at the beginning!
+            if test_steps == 0:
+                raise ValueError('Attempting to run test data' + str(test_filenames) +
+                                 ' with an invalid number of steps: ' + str(test_steps))
+            # we need this callback to be at the beginning of the callbacks list!
             print('test_data function: ' + str(test_data) + ' steps: ' + str(test_steps) +
                   'test filenames: ' + str(test_filenames))
             callbacks = [EvaluateInputGenerator(generator=test_data,
@@ -503,12 +510,17 @@ def run_training(
                 initial_epoch=epochs)
 
     elif 'test' in pipeline:
+        if test_steps == 0:
+            raise ValueError('Attempting to run test data' + str(test_filenames) +
+                             ' with an invalid number of steps: ' + str(test_steps))
         history = model.evaluate_generator(generator=test_data, steps=test_steps)
     else:
         raise ValueError('unknown pipeline configuration ' + pipeline + ' chosen, try '
                          'train, test, train_test, or train_test_kfold')
 
-    model.save_weights(log_dir_run_name + '_model_weights.h5')
+    if checkpoint:
+        # only save the weights if we are also checkpointing
+        model.save_weights(log_dir_run_name + '_model_weights.h5')
 
     print('')
     print('')
@@ -1332,6 +1344,7 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
 
 def main(_):
 
+    # tf.enable_eager_execution()
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     if 'k_fold' in FLAGS.pipeline_stage:

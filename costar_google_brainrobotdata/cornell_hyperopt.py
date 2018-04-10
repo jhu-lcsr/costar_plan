@@ -22,7 +22,7 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
     # we can also optimize batch size.
     # This will be noticeably slower.
     batch_size = FLAGS.batch_size
-    if problem_type == 'classification':
+    if problem_type == 'classification' or problem_type == 'grasp_classification':
         FLAGS.problem_type = problem_type
         # note: this version will have some correlation with success,
         # but it will be OK to use to classify the output of regression
@@ -39,7 +39,9 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
         if param_to_optimize == 'val_acc':
             param_to_optimize = 'val_binary_accuracy'
         min_top_block_filter_multiplier = 6
-    elif problem_type == 'grasp_regression' or 'regression':
+        FLAGS.crop_height = 224
+        FLAGS.crop_width = 224
+    elif problem_type == 'grasp_regression' or problem_type == 'regression':
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
         # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
@@ -49,28 +51,31 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
         if param_to_optimize == 'val_acc':
             param_to_optimize = 'val_grasp_jaccard'
         min_top_block_filter_multiplier = 8
+        FLAGS.crop_height = 331
+        FLAGS.crop_width = 331
     return feature_combo_name, min_top_block_filter_multiplier, batch_size, param_to_optimize
 
 
 def main(_):
 
-    FLAGS.problem_type = 'grasp_regression'
+    FLAGS.problem_type = 'classification'
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
-    FLAGS.epochs = 5
+    FLAGS.epochs = 1
     FLAGS.fine_tuning_epochs = 0
-    print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
-          ' num_validation: ' + str(FLAGS.num_validation) +
-          ' num_test: ' + str(FLAGS.num_test) +
-          ' epochs: ' + str(FLAGS.epochs) +
-          ' fine_tuning_epochs: ' + str(FLAGS.fine_tuning_epochs) +
-          ' problem_type:' + str(FLAGS.problem_type))
     run_name = FLAGS.run_name
     log_dir = FLAGS.log_dir
     run_name = grasp_utilities.timeStamped(run_name)
     run_training_fn = cornell_grasp_train.run_training
     problem_type = FLAGS.problem_type
     param_to_optimize = 'val_acc'
+    seed = 6
+    initial_num_samples = 2000
+    maximum_hyperopt_steps = 10
+    # checkpoint is a special parameter to not save hdf5 files because training runs
+    # are very quick (~1min) and checkpoint files are very large (~100MB)
+    # which is forwarded to cornell_grasp_train.py run_training() function.
+    checkpoint = False
 
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc
     # continuous variables and then discrete variables
@@ -79,6 +84,14 @@ def main(_):
     # we can also optimize batch size.
     # This will be noticeably slower.
     feature_combo_name, min_top_block_filter_multiplier, batch_size, param_to_optimize = cornell_hyperoptions(problem_type, param_to_optimize)
+
+    print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
+          ' num_validation: ' + str(FLAGS.num_validation) +
+          ' num_test: ' + str(FLAGS.num_test) +
+          ' epochs: ' + str(FLAGS.epochs) +
+          ' fine_tuning_epochs: ' + str(FLAGS.fine_tuning_epochs) +
+          ' problem_type:' + str(FLAGS.problem_type) +
+          ' crop (height, width): ({}, {})'.format(FLAGS.crop_height, FLAGS.crop_width))
     hyperopt.optimize(
         run_training_fn=run_training_fn,
         feature_combo_name=feature_combo_name,
@@ -87,7 +100,11 @@ def main(_):
         log_dir=log_dir,
         min_top_block_filter_multiplier=min_top_block_filter_multiplier,
         batch_size=batch_size,
-        param_to_optimize=param_to_optimize)
+        param_to_optimize=param_to_optimize,
+        initial_num_samples=initial_num_samples,
+        maximum_hyperopt_steps=maximum_hyperopt_steps,
+        seed=seed,
+        checkpoint=checkpoint)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
