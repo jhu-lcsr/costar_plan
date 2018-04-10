@@ -187,7 +187,7 @@ flags.DEFINE_string(
 flags.DEFINE_integer('num_fold', 10, 'number of fold for K-Fold splits, default to 10')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_boolean('plot', True, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
+flags.DEFINE_boolean('plot', False, 'Plot images and grasp bounding box data in matplotlib as it is traversed')
 flags.DEFINE_boolean(
     'showTextBox', False,
     """If plotting is enabled, plot extra text boxes near each grasp box
@@ -403,6 +403,9 @@ def gripper_theta_categorical_encoding(angle, num_angle_classes=None, zero_is_ba
     Parallel plates are the same if you rotate by pi,
     so get 2*theta, wrap from -pi to pi
 
+    # Returns
+
+      Theta, an integer representing the amount of rotation experienced by the parallel plates.
     """
     if num_angle_classes is None:
         num_angle_classes = FLAGS.num_angle_classes
@@ -416,7 +419,7 @@ def gripper_theta_categorical_encoding(angle, num_angle_classes=None, zero_is_ba
     if zero_is_background:
         # 1 is the lowest possible angle value
         categorical_value += 1
-    return categorical_value
+    return int(categorical_value)
 
 
 def angle_class_text_name(angle_class, num_angle_classes=None, zero_is_background=None):
@@ -460,6 +463,7 @@ def write_angle_class_pbtxt(path=FLAGS.data_dir, tfrecord_filename_base=FLAGS.tf
                       zero_is_background=zero_is_background) +
                   '\'\n}\n\n')
 
+    print('\npbtxt defining classes for this run:\n' + result_path + '\n\n')
     if write:
         with open(result_path, 'w+') as file_object:
             file_object.write(pbtxt)
@@ -528,7 +532,7 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
                 [new_z_txt_array.append(line[i:i + 4]) for i in range(0, len(line), 4)]
             z_txt_array = new_z_txt_array
     for line in tqdm(z_txt_array, desc='Loading files and grasps'):
-        image_id, object_id, _, _ = line
+        image_id, object_id, object_name, object_db_location = line
         if image_id == last_image_id:
             continue
         else:
@@ -1255,13 +1259,15 @@ def main():
         # this is an independent group of settings for k-fold splits
         filename_base = FLAGS.tfrecord_filename_base
         if not FLAGS.include_negative_examples:
-            filename_base += '-pos'
+            filename_base += '-pos-only'
         if FLAGS.angle_classes:
             filename_base += '-angle_class'
         if FLAGS.angle_classes_zero_is_background_class:
             filename_base += '-zero_is_background'
         if FLAGS.angle_classes:
             write_angle_class_pbtxt(tfrecord_filename_base=filename_base)
+        if FLAGS.redundant:
+            filename_base += '-redundant'
         # k_fold_list is a list of lists of filenames
         k_fold_list = k_fold_split(tfrecord_filename_base=filename_base)
         k_fold_tfrecord_writer(kFold_list=k_fold_list, tfrecord_filename_base=filename_base)
