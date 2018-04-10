@@ -310,10 +310,18 @@ class DataCollector(object):
             raise RuntimeError("action not recognized: " + str(action_label))
 
         action = self.task.index(action_label)
-        self.data["label"].append(action) # integer code for high-level action
-        self.data["info"].append(self.info) # string description of current step
-        self.data["rgb_info"].append(self.rgb_info)
-        self.data["depth_info"].append(self.depth_info)
+        self.data["label"].append(action)  # integer code for high-level action
+        self.data["info"].append(self.info)  # string description of current step
+        self.data["rgb_info_D"].append(self.rgb_info.D)
+        self.data["rgb_info_K"].append(self.rgb_info.K)
+        self.data["rgb_info_R"].append(self.rgb_info.R)
+        self.data["rgb_info_P"].append(self.rgb_info.P)
+        self.data["rgb_info_distortion_model"].append(self.rgb_info.distortion_model)
+        self.data["depth_info_D"].append(self.depth_info.D)
+        self.data["depth_info_K"].append(self.depth_info.K)
+        self.data["depth_info_R"].append(self.depth_info.R)
+        self.data["depth_info_P"].append(self.depth_info.P)
+        self.data["depth_distortion_model"].append(self.depth_info.distortion_model)
         self.data["object"].append(self.object)
 
         # TODO(cpaxton): add pose of manipulated object
