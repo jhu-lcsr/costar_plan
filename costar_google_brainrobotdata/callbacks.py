@@ -4,6 +4,7 @@ from timeit import default_timer
 import numpy as np
 import keras
 
+
 class EvaluateInputTensor(keras.callbacks.Callback):
     """ Validate a model which does not expect external numpy data during training.
 
@@ -191,7 +192,7 @@ class SlowModelStopping(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs if logs is not None else {}
         self._epoch_elapsed = default_timer() - self._epoch_start
-        logs['epoch_elapsed'] = self._epoch_elapsed
+        logs['epoch_elapsed'] = np.array(self._epoch_elapsed)
         mean_batch = np.mean(self._batch_elapsed)
         logs['mean_batch_elapsed'] = mean_batch
         if mean_batch > self._max_batch_time_seconds:
@@ -207,7 +208,7 @@ class InaccurateModelStopping(keras.callbacks.Callback):
     """ Stop a model from training if it ends up on perverse solutions like always 0 or 1.
     """
 
-    def __init__(self, min_batch_patience=300, min_pred=0.1, max_pred=0.9, metric='mean_pred', verbose=0):
+    def __init__(self, min_batch_patience=300, min_pred=0.05, max_pred=0.95, metric='mean_pred', verbose=0):
         self._min_batch_patience = min_batch_patience
         self._max_pred = max_pred
         self._min_pred = min_pred
@@ -215,15 +216,21 @@ class InaccurateModelStopping(keras.callbacks.Callback):
         self.verbose = verbose
         self.stopped_epoch = 0
         self.metric = metric
+        self.metric_values = []
 
     def on_batch_end(self, batch, logs=None):
         if self.metric in logs:
             value = logs[self.metric]
+            self.metric_values += [value]
             if(self._min_batch_patience is not None and
                self._max_pred is not None and
                batch > self._min_batch_patience):
+                value = np.mean(self.metric_values)
 
                 if value > self._max_pred or value < self._min_pred:
                     raise ValueError(str(self.metric) + ' was inaccurate: ' + str(value) +
                                      ' vs allowed range [ ' + str(self._min_pred) +
                                      ', ' + str(self._max_pred) + ']')
+
+    def on_epoch_end(self, epoch, logs=None):
+        self.metric_values = []
