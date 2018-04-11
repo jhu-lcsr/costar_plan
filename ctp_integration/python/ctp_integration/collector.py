@@ -31,8 +31,8 @@ class DataCollector(object):
     - current gripper status
     '''
     js_topic = "joint_states"
-    rgb_topic = "camera/rgb/image_raw"
-    depth_topic = "camera/depth_registered/image_raw"
+    rgb_topic = "/camera/rgb/image_rect_color"
+    depth_topic = "/camera/depth_registered/hw_registered/image_rect_raw"
     ee = "endpoint"
     base_link = "base_link"
     description = "/robot_description"
@@ -99,8 +99,8 @@ class DataCollector(object):
         self.task = task
         self.reset()
 
-        self._camera_depth_info_sub = rospy.Subscriber(camera_depth_info_topic, CameraInfo, self._depthInfoCb)
-        self._camera_rgb_info_sub = rospy.Subscriber(camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
+        self._camera_depth_info_sub = rospy.Subscriber(self.camera_depth_info_topic, CameraInfo, self._depthInfoCb)
+        self._camera_rgb_info_sub = rospy.Subscriber(self.camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
         self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
         self._depth_sub = rospy.Subscriber(self.depth_topic, Image, self._depthCb)
         self._joints_sub = rospy.Subscriber(self.js_topic,
@@ -130,10 +130,10 @@ class DataCollector(object):
         self.info = msg.data
 
     def _depthInfoCb(self, msg):
-        self.depth_info = msg.data
+        self.depth_info = msg
 
     def _rgbInfoCb(self, msg):
-        self.rgb_info = msg.data
+        self.rgb_info = msg
 
     def _objectCb(self, msg):
         self.object = msg.data
@@ -159,6 +159,7 @@ class DataCollector(object):
         self.data["pose"] = []
         self.data["camera"] = []
         self.data["image"] = []
+        self.data["depth_image"] = []
         self.data["goal_idx"] = []
         self.data["gripper"] = []
         self.data["label"] = []
@@ -168,6 +169,16 @@ class DataCollector(object):
         self.data["object"] = []
         self.data["object_pose"] = []
         self.data["labels_to_name"] = list(self.task.labels)
+        self.data["rgb_info_D"] = []
+        self.data["rgb_info_K"] = []
+        self.data["rgb_info_R"] = []
+        self.data["rgb_info_P"] = []
+        self.data["rgb_info_distortion_model"] = []
+        self.data["depth_info_D"] = []
+        self.data["depth_info_K"] = []
+        self.data["depth_info_R"] = []
+        self.data["depth_info_P"] = []
+        self.data["depth_distortion_model"] = []
         #self.data["depth"] = []
 
         self.info = None
@@ -302,7 +313,7 @@ class DataCollector(object):
         #plt.imshow(self.rgb_img)
         #plt.show()
         self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
-        delf.data["depth_image"].append(GetPng(FloatArrayToRgbImage(self.depth_img)))
+        self.data["depth_image"].append(GetPng(FloatArrayToRgbImage(self.depth_img)))
         self.data["gripper"].append(self.gripper_msg.gPO / 255.)
 
         # TODO(cpaxton): verify
