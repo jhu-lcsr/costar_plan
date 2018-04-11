@@ -390,7 +390,7 @@ def run_training(
             save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
         callbacks = callbacks + [checkpoint]
-    callbacks += [SlowModelStopping(max_batch_time_seconds=0.5),
+    callbacks += [SlowModelStopping(max_batch_time_seconds=1.0),
                   InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
     # An additional useful param is write_batch_performance:
     #  https://github.com/keras-team/keras/pull/7617
