@@ -20,6 +20,7 @@ from sensor_msgs.msg import JointState
 from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import String
 from robotiq_c_model_control.msg import CModel_robot_input as GripperMsg
+from ar_track_alvar_msgs import AlvarMarkers
 
 class DataCollector(object):
     '''
@@ -52,6 +53,7 @@ class DataCollector(object):
         self.info_topic = "/costar/info"
         self.object_topic = "/costar/SmartMove/object"
         self.gripper_topic = "/CModelRobotInput"
+        self.ar_pose_topic = "/camera/ar_pose_marker"
         self.camera_depth_info_topic = "/camera/rgb/camera_info"
         self.camera_rgb_info_topic = "/camera/depth/camera_info"
         self.camera_rgb_optical_frame = "camera_rgb_optical_frame"
@@ -119,6 +121,9 @@ class DataCollector(object):
         self._gripper_sub = rospy.Subscriber(self.gripper_topic,
                 GripperMsg,
                 self._gripperCb)
+        self._ar_sub = rospy.Subscriber(self.ar_pose_topic,
+                AlvarMarkers,
+                self._arPoseCb)
 
         self.verbosity = 1
 
@@ -145,6 +150,9 @@ class DataCollector(object):
     def _gripperCb(self, msg):
         self.gripper_msg = msg
 
+    def _arPoseCb(self, msg):
+        self.ar_pose_msg = msg
+
     def _depthCb(self, msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg)
@@ -166,6 +174,7 @@ class DataCollector(object):
         self.data["depth_image"] = []
         self.data["goal_idx"] = []
         self.data["gripper"] = []
+        self.data["ar_pose"] = []
         self.data["label"] = []
         self.data["info"] = []
         self.data["depth_info"] = []
@@ -183,6 +192,8 @@ class DataCollector(object):
         self.data["depth_info_R"] = []
         self.data["depth_info_P"] = []
         self.data["depth_distortion_model"] = []
+        self.data["ar_pose_marker"] = []
+        self.data["visualization_marker"] = []
         #self.data["depth"] = []
 
         self.info = None
@@ -338,6 +349,7 @@ class DataCollector(object):
         self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
         self.data["depth_image"].append(GetPng(FloatArrayToRgbImage(self.depth_img)))
         self.data["gripper"].append(self.gripper_msg.gPO / 255.)
+        self.data["ar_pose"].append(self.ar_pose_msg)
 
         # TODO(cpaxton): verify
         if not self.task.validLabel(action_label):
