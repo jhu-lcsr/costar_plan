@@ -30,18 +30,6 @@ class DataCollector(object):
     - current joint states
     - current gripper status
     '''
-    js_topic = "joint_states"
-    rgb_topic = "/camera/rgb/image_rect_color"
-    depth_topic = "/camera/depth_registered/hw_registered/image_rect_raw"
-    ee = "endpoint"
-    base_link = "base_link"
-    description = "/robot_description"
-    data_types = ["h5f", "npz"]
-    info_topic = "/costar/info"
-    object_topic = "/costar/SmartMove/object"
-    gripper_topic = "/CModelRobotInput"
-    camera_depth_info_topic = "/camera/rgb/camera_info"
-    camera_rgb_info_topic = "/camera/depth/camera_info"
 
     def __init__(
         self, robot_config,
@@ -52,6 +40,22 @@ class DataCollector(object):
         img_shape=(128,128),
         camera_frame="camera_link",
         tf_listener=None):
+
+
+        self.js_topic = "joint_states"
+        self.rgb_topic = "/camera/rgb/image_rect_color"
+        self.depth_topic = "/camera/depth_registered/hw_registered/image_rect_raw"
+        self.ee = "endpoint"
+        self.base_link = "base_link"
+        self.description = "/robot_description"
+        self.data_types = ["h5f", "npz"]
+        self.info_topic = "/costar/info"
+        self.object_topic = "/costar/SmartMove/object"
+        self.gripper_topic = "/CModelRobotInput"
+        self.camera_depth_info_topic = "/camera/rgb/camera_info"
+        self.camera_rgb_info_topic = "/camera/depth/camera_info"
+        self.camera_rgb_optical_frame = "camera_rgb_optical_frame"
+        self.camera_depth_optical_frame = "camera_depth_optical_frame"
 
         '''
         Set up the writer (to save trials to disk) and subscribers (to process
@@ -270,6 +274,8 @@ class DataCollector(object):
                 c_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
                 ee_pose = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
                 obj_pose = self.tf_listener.lookup_transform(self.base_link, self.object, t)
+                rgb_optical_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_rgb_optical_frame, t)
+                depth_optical_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_depth_optical_frame, t)
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                 rospy.logwarn("Failed lookup: %s to %s, %s, %s" %
@@ -288,6 +294,20 @@ class DataCollector(object):
                   c_pose.transform.rotation.y,
                   c_pose.transform.rotation.z,
                   c_pose.transform.rotation.w,]
+        rgb_optical_xyz = [rgb_optical_pose.transform.translation.x,
+                           rgb_optical_pose.transform.translation.y,
+                           rgb_optical_pose.transform.translation.z,]
+        rgb_optical_quat = [rgb_optical_pose.transform.rotation.x,
+                  rgb_optical_pose.transform.rotation.y,
+                  rgb_optical_pose.transform.rotation.z,
+                  rgb_optical_pose.transform.rotation.w,]
+        depth_optical_xyz = [depth_optical_pose.transform.translation.x,
+                             depth_optical_pose.transform.translation.y,
+                             depth_optical_pose.transform.translation.z,]
+        depth_optical_quat = [depth_optical_pose.transform.rotation.x,
+                              depth_optical_pose.transform.rotation.y,
+                              depth_optical_pose.transform.rotation.z,
+                              depth_optical_pose.transform.rotation.w,]
         ee_xyz = [ee_pose.transform.translation.x,
                  ee_pose.transform.translation.y,
                  ee_pose.transform.translation.z,]
@@ -309,6 +329,9 @@ class DataCollector(object):
         self.data["dq"].append(np.copy(self.dq)) # joint velocuity
         self.data["pose"].append(ee_xyz + ee_quat) # end effector pose (6 DOF)
         self.data["camera"].append(c_xyz + c_quat) # camera pose (6 DOF)
+        self.data["object_pose"].append(obj_xyz + obj_quat)
+        self.data["camera_rgb_optical_frame_pose"].append(rgb_optical_xyz + rgb_optical_quat)
+        self.data["camera_depth_optical_frame_pose"].append(depth_optical_xyz + depth_optical_quat)
         #plt.figure()
         #plt.imshow(self.rgb_img)
         #plt.show()
@@ -337,6 +360,7 @@ class DataCollector(object):
 
         # TODO(cpaxton): add pose of manipulated object
         self.data["object_pose"].append(obj_xyz + obj_quat)
+
         #self.data["depth"].append(GetJpeg(self.depth_img))
 
         return True
