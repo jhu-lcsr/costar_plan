@@ -308,14 +308,14 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, theta
                     coordinate = tf.stack([oriented_coordinate_matrix[5], oriented_coordinate_matrix[2]])
                     theta = tf.atan2(oriented_coordinate_matrix[3], oriented_coordinate_matrix[4])
 
-            if offset is not None:
-                if isinstance(offset, list):
-                    offset = tf.constant([[offset[0]], [offset[1]]], tf.float32)
-                coordinate = coordinate - tf.cast(offset[:2], tf.float32)
-            if theta is None:
-                return coordinate
-            else:
-                return coordinate, theta
+        if offset is not None:
+            if isinstance(offset, list):
+                offset = tf.constant([[offset[0]], [offset[1]]], tf.float32)
+            coordinate = coordinate - tf.cast(offset[:2], tf.float32)
+        if theta is None:
+            return coordinate
+        else:
+            return coordinate, theta
 
 
 def resize_coordinate(coordinate, input_shape, output_shape, dtype=tf.float32, name=None):

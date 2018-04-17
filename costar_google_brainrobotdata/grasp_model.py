@@ -1084,6 +1084,8 @@ def grasp_model_levine_2016(
     with K.name_scope(name) as scope:
         if input_image_shape is None:
             input_image_shape = K.int_shape(clear_view_image_op)[1:]
+        if len(input_image_shape) == 4:
+            input_image_shape = input_image_shape[1:]
 
         if activation not in ['softmax', 'sigmoid', None]:
             raise ValueError('activation must be one of "softmax" or "sigmoid"'

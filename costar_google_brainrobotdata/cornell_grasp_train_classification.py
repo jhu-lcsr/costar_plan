@@ -41,6 +41,8 @@ def main(_):
     # feature_combo = 'image_preprocessed_sin2_cos2_height_width_4'
     # Override some default flags for this configuration
     # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
+    FLAGS.crop_height = 224
+    FLAGS.crop_width = 224
     FLAGS.problem_type = problem_type
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'center_on_gripper_grasp_box_and_rotate_upright'
@@ -50,20 +52,26 @@ def main(_):
         #                           '2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
         # About 0.95 k-fold accuracy on preprocessed_norm_sin2_cos2_w_3:
-        # FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_classification/'
-        #                           '2018-03-03-07-14-59_-vgg_dense_model-dataset_cornell_grasping-grasp_success/'
-        #                           '2018-03-03-07-14-59_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+        FLAGS.load_hyperparams = ('hyperparams/classification/2018-03-03-07-14-59_'
+                                  '-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
-        # Best result from classification hyperopt run ending 2018-03-16:
+        # (not very good) Best result from classification hyperopt run ending 2018-03-16:
         # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
         #                           '2018-03-14-00-40-09_-vgg19_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
-        # Best NON VGG result from classification hyperopt run ending 2018-03-16:
-        FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
-                                  '2018-03-16-06-15-01_-densenet_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+        # (not very good) Best NON VGG result from classification hyperopt run ending 2018-03-16:
+        # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
+        #                           '2018-03-16-06-15-01_-densenet_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
     FLAGS.epochs = 40
     FLAGS.fine_tuning_epochs = 0
+    # 8 training folds
+    FLAGS.num_train = 8
+    # 1 validation fold
+    FLAGS.num_validation = 1
+    FLAGS.num_test = 1
+    initial_num_samples = 1000
+
     # This only means that the first part of the run is not fine tuning
     # The later fine_tuning_epochs will work correctly.
     FLAGS.fine_tuning = False
