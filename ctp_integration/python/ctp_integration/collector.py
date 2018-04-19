@@ -20,7 +20,7 @@ from sensor_msgs.msg import JointState
 from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import String
 from robotiq_c_model_control.msg import CModel_robot_input as GripperMsg
-from ar_track_alvar_msgs import AlvarMarkers
+from ar_track_alvar_msgs.msg import AlvarMarkers
 
 class DataCollector(object):
     '''
@@ -194,6 +194,8 @@ class DataCollector(object):
         self.data["depth_distortion_model"] = []
         self.data["ar_pose_marker"] = []
         self.data["visualization_marker"] = []
+        self.data["camera_rgb_optical_frame_pose"] = []
+        self.data["camera_depth_optical_frame_pose"] = []
         #self.data["depth"] = []
 
         self.info = None
@@ -223,7 +225,7 @@ class DataCollector(object):
         print(self.data["goal_idx"])
 
         # for now all examples are considered a success
-        self.writer.write(self.data, seed, result, image_type="jpeg")
+        self.writer.write(self.data, seed, result, image_type="jpeg", special_dtypes=[("image", "jpeg"), ("depth_image", "png")])
         self.reset()
 
     def update(self, action_label, is_done):
