@@ -116,6 +116,7 @@ def collect_data(args):
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
     rospy.loginfo("Aggregating TF data...")
     tf_buffer = tf2.Buffer()
+    # the tf_listener fills out the buffers
     tf_listener = tf2.TransformListener(tf_buffer)
     
     rospy.loginfo("Node started, waiting for transform data...")
