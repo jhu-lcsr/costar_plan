@@ -27,6 +27,8 @@ from ctp_integration.util import GetDetectObjectsService
 from ctp_integration.stack import *
 from ctp_integration.launcher import launch_main
 
+import faulthandler
+
 def getArgs():
     '''
     Get argument parser and call it to get information from the command line.
@@ -302,6 +304,7 @@ def initialize_collection_objects(args, observe, collector, stack_task):
 
 def main():
     args = getArgs()
+    faulthandler.enable()
 
     if args.launch:
         launch_main(argv=['roslaunch', 'ctp_integration', 'bringup.launch'], 
