@@ -59,6 +59,7 @@ class Observer(object):
         # Step 1. Create args describing which objects we saw.
         args = {}
         for obj in self.msg.objects:
+            print("Observer Objects: " + str(self.msg.objects))
             name = obj.id
             obj_class = obj.object_class
     
