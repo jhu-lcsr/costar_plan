@@ -17,6 +17,9 @@ def GetPng(img):
     '''
     im = Image.fromarray(np.uint8(img))
     output = io.BytesIO()
+    # enabling optimized file size 
+    # increases saving time to ~0.4 seconds per image.
+    #im.save(output, format="PNG", optimize=True)
     im.save(output, format="PNG")
     return output.getvalue()
 
