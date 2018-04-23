@@ -1,6 +1,6 @@
 
 import rospy
-import tf
+import tf2_ros as tf2
 
 from costar_objrec_msgs.msg import DetectedObjectList
 
@@ -27,7 +27,10 @@ class Observer(object):
         if tf_listener is not None:
             self.tf_listener = tf_listener
         else:
-            self.tf_listener = tf.TransformListener()
+            self.tf_buffer = tf2.Buffer()
+            self.tf_listener = self.tf_buffer
+            # we aren't actually using tf_listeners, only buffers
+            # self.tf_listener = tf2.TransformListener(self.tf_buffer)
 
         self._detected_objects_sub = rospy.Subscriber(
                 self.detected_objects_topic, 
