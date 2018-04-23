@@ -390,7 +390,7 @@ def run_training(
             save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
         callbacks = callbacks + [checkpoint]
-    callbacks += [SlowModelStopping(max_batch_time_seconds=0.5),
+    callbacks += [SlowModelStopping(max_batch_time_seconds=1.0),
                   InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
     # An additional useful param is write_batch_performance:
     #  https://github.com/keras-team/keras/pull/7617
@@ -651,15 +651,19 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
 def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name):
     if optimizer_name == 'sgd':
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
-        callbacks = callbacks + [
-            # Reduce the learning rate if training plateaus.
-            keras.callbacks.ReduceLROnPlateau(patience=20, verbose=1, factor=0.5, monitor=monitor_loss_name)
-        ]
     elif optimizer_name == 'adam':
         optimizer = keras.optimizers.Adam()
+    elif optimizer_name == 'rmsprop':
+        optimizer = keras.optimizers.RMSprop()
     else:
         raise ValueError('Unsupported optimizer ' + str(optimizer_name) +
                          'try adam or sgd.')
+
+    if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
+        callbacks = callbacks + [
+            # Reduce the learning rate if training plateaus.
+            keras.callbacks.ReduceLROnPlateau(patience=15, verbose=1, factor=0.5, monitor=monitor_loss_name)
+        ]
     return callbacks, optimizer
 
 
