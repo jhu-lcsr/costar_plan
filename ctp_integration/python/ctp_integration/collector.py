@@ -45,6 +45,7 @@ class DataCollector(object):
         data_root=".",
         img_shape=(128,128),
         camera_frame="camera_link",
+        tf_buffer=None,
         tf_listener=None):
 
 
@@ -68,12 +69,14 @@ class DataCollector(object):
         input from ROS and store the current state).
         '''
         self.verbosity = 0
-
-        if tf_listener is not None:
-            self.tf_listener = tf_listener
-        else:
+        if tf_buffer is None:
             self.tf_buffer = tf2.Buffer()
+        else:
+            self.tf_buffer = tf_buffer
+        if tf_listener is None:
             self.tf_listener = tf2.TransformListener(self.tf_buffer)
+        else:
+            self.tf_listener = tf_listener
 
         if isinstance(rate, int) or isinstance(rate, float):
             self.rate = rospy.Rate(rate)
@@ -286,14 +289,14 @@ class DataCollector(object):
             try:
                 t = rospy.Time(0)
                 self.t = t
-                c_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
-                ee_pose = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
-                obj_pose = self.tf_listener.lookup_transform(self.base_link, self.object, t)
-                rgb_optical_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_rgb_optical_frame, t)
-                depth_optical_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_depth_optical_frame, t)
-                all_tf2_frames_as_string = self.tf_listener.all_frames_as_string()
+                c_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_frame, t)
+                ee_pose = self.tf_buffer.lookup_transform(self.base_link, self.ee_frame, t)
+                obj_pose = self.tf_buffer.lookup_transform(self.base_link, self.object, t)
+                rgb_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_rgb_optical_frame, t)
+                depth_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_depth_optical_frame, t)
+                all_tf2_frames_as_string = self.tf_buffer.all_frames_as_string()
                 # don't load the yaml because it can take up to 0.2 seconds
-                all_tf2_frames_as_yaml = self.tf_listener.all_frames_as_yaml()
+                all_tf2_frames_as_yaml = self.tf_buffer.all_frames_as_yaml()
                 self.tf2_dict = {}
                 transform_strings = all_tf2_frames_as_string.split('\n')
                 for transform_string in transform_strings:
@@ -301,7 +304,7 @@ class DataCollector(object):
                     if len(transform_tokens) > 1:
                         k = transform_tokens[1]
                         try:
-                            k_pose = self.tf_listener.lookup_transform(self.base_link, k, t)
+                            k_pose = self.tf_buffer.lookup_transform(self.base_link, k, t)
     
                             k_xyz_qxqyqzqw = [
                                     k_pose.transform.translation.x,

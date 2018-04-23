@@ -55,7 +55,7 @@ def getArgs():
     parser.add_argument("--execute",
                         type=int,
                         help="execute this many loops",
-                        default=1)
+                        default=100)
     parser.add_argument("--start",
                         type=int,
                         help="start from this index",
@@ -115,7 +115,7 @@ def collect_data(args):
     rospy.loginfo("Making world...")
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
     rospy.loginfo("Aggregating TF data...")
-    tf_buffer = tf2.Buffer()
+    tf_buffer = tf2.Buffer(rospy.Duration(120))
     # the tf_listener fills out the buffers
     tf_listener = tf2.TransformListener(tf_buffer)
     
@@ -132,7 +132,8 @@ def collect_data(args):
                 task=task,
                 detect_srv=objects,
                 topic="/costar_sp_segmenter/detected_object_list",
-                tf_listener=tf_buffer)
+                tf_buffer=tf_buffer,
+                tf_listener=tf_listener)
 
     # print out task info
     if args.verbose > 0:
@@ -147,7 +148,8 @@ def collect_data(args):
             data_type="h5f",
             robot_config=UR5_C_MODEL_CONFIG,
             camera_frame="camera_link",
-            tf_listener=tf_buffer)
+            tf_buffer=tf_buffer,
+            tf_listener=tf_listener)
     home, rate, move_to_pose, close_gripper, open_gripper = initialize_collection_objects(args, observe, collector, stack_task) # set fn to call after actions
 
     # How we verify the objet
@@ -164,7 +166,7 @@ def collect_data(args):
         for i in range(50):
             try:
                 t = rospy.Time(0)
-                pose = collector.tf_listener.lookup_transform(collector.base_link, object_name, t)
+                pose = collector.tf_buffer.lookup_transform(collector.base_link, object_name, t)
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                 rospy.sleep(0.1)
         if pose is None:
