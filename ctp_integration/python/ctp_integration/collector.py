@@ -24,6 +24,7 @@ from ar_track_alvar_msgs.msg import AlvarMarkers
 
 import six
 import json
+import sys
 
 
 class DataCollector(object):
@@ -225,7 +226,7 @@ class DataCollector(object):
         print(self.data["goal_idx"])
 
         # for now all examples are considered a success
-        self.writer.write(self.data, seed, result, image_type="jpeg", special_dtypes=[("image", "jpeg"), ("depth_image", "png")])
+        self.writer.write(self.data, seed, result, image_types=[("image", "jpeg"), ("depth_image", "png")])
         self.reset()
 
     def update(self, action_label, is_done):
@@ -377,8 +378,11 @@ class DataCollector(object):
         #plt.figure()
         #plt.imshow(self.rgb_img)
         #plt.show()
-        self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
-        self.data["depth_image"].append(GetPng(FloatArrayToRgbImage(self.depth_img)))
+        img_jpeg = GetJpeg(self.rgb_img)
+        depth_png = GetPng(FloatArrayToRgbImage(self.depth_img))
+        print("jpg size={}, png size={}".format(sys.getsizeof(img_jpeg), sys.getsizeof(depth_png)))
+        self.data["image"].append(img_jpeg) # encoded as JPEG
+        self.data["depth_image"].append(depth_png)
         self.data["gripper"].append(self.gripper_msg.gPO / 255.)
 
         # TODO(cpaxton): verify

@@ -29,22 +29,20 @@ class H5fDataset(object):
         except OSError as e:
             pass
 
-    def write(self, example, i, r, image_type=None):
+    def write(self, example, i, r, image_types=[]):
         '''
         Write an example out to disk.
         '''
-        if r > 0.:
-            status = "success"
-        else:
-            status = "failure"
+        status = "success" if r > 0. else "failure"
         filename = timeStamped("example%06d.%s.h5f"%(i,status))
         filename = os.path.join(self.name, filename)
         f = h5f.File(filename, 'w')
         for key, value in example.items():
             f.create_dataset(key, data=value)
-        if image_type is not None:
-            dt = h5f.special_dtype(vlen=bytes)
-            f.create_dataset("image_type", data=["image_type"])
+        if image_types != []:
+            #dt = h5f.special_dtype(vlen=bytes)
+            for (img_type, format) in image_types:
+                f.create_dataset("type_" + img_type, data=[format])
         f.close()
 
     def load(self,success_only=False):
