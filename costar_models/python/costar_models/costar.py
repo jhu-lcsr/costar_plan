@@ -27,14 +27,14 @@ for real robot execution.
 def MakeCostarImageClassifier(model, img_shape, trainable=True):
     img0 = Input(img_shape,name="img0_classifier_in")
     img = Input(img_shape,name="img_classifier_in")
-    bn = model.use_batchnorm
+    bn = model.use_batchnorm and False
     disc = True
     dr = model.dropout_rate
     x = img
     x0 = img0
 
     #x = AddConv2D(x, 32, [7,7], 1, 0., "same", lrelu=disc, bn=bn)
-    x = AddConv2D(x, 32, [5,5], 2, 0., "same", lrelu=disc, bn=bn)
+    x = AddConv2D(x, 32, [5,5], 2, 0., "same", lrelu=disc, bn=True)
     x = Dropout(dr)(x)
     #x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
     #x = AddConv2D(x, 32, [5,5], 1, 0., "same", lrelu=disc, bn=bn)
