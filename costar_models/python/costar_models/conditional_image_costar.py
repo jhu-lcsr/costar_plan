@@ -18,10 +18,10 @@ from matplotlib import pyplot as plt
 from .robot_multi_models import *
 from .mhp_loss import *
 from .loss import *
-from .sampler2 import *
-
 from .conditional_image import ConditionalImage
+from .multi import *
 from .costar import *
+from .callbacks import *
 
 class ConditionalImageCostar(ConditionalImage):
 

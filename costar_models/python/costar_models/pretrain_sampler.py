@@ -15,11 +15,11 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from matplotlib import pyplot as plt
 
-from .sampler2 import *
+from .multi_sampler import *
 from .multi import *
 from .data_utils import *
 
-class PretrainSampler(PredictionSampler2):
+class PretrainSampler(RobotMultiPredictionSampler):
 
     def __init__(self, taskdef, *args, **kwargs):
         super(PretrainSampler, self).__init__(taskdef, *args, **kwargs)
