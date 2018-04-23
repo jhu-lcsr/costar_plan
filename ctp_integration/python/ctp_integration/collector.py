@@ -22,6 +22,10 @@ from std_msgs.msg import String
 from robotiq_c_model_control.msg import CModel_robot_input as GripperMsg
 from ar_track_alvar_msgs.msg import AlvarMarkers
 
+import six
+import json
+
+
 class DataCollector(object):
     '''
     Manages data collection. Will consume:
@@ -53,7 +57,6 @@ class DataCollector(object):
         self.info_topic = "/costar/info"
         self.object_topic = "/costar/SmartMove/object"
         self.gripper_topic = "/CModelRobotInput"
-        self.ar_pose_topic = "/camera/ar_pose_marker"
         self.camera_depth_info_topic = "/camera/rgb/camera_info"
         self.camera_rgb_info_topic = "/camera/depth/camera_info"
         self.camera_rgb_optical_frame = "camera_rgb_optical_frame"
@@ -68,7 +71,8 @@ class DataCollector(object):
         if tf_listener is not None:
             self.tf_listener = tf_listener
         else:
-            self.tf_listener = tf.TransformListener()
+            self.tf_buffer = tf2.Buffer()
+            self.tf_listener = tf2.TransformListener(self.tf_buffer)
 
         if isinstance(rate, int) or isinstance(rate, float):
             self.rate = rospy.Rate(rate)
@@ -121,9 +125,6 @@ class DataCollector(object):
         self._gripper_sub = rospy.Subscriber(self.gripper_topic,
                 GripperMsg,
                 self._gripperCb)
-        self._ar_sub = rospy.Subscriber(self.ar_pose_topic,
-                AlvarMarkers,
-                self._arPoseCb)
 
         self.verbosity = 1
 
@@ -150,9 +151,6 @@ class DataCollector(object):
     def _gripperCb(self, msg):
         self.gripper_msg = msg
 
-    def _arPoseCb(self, msg):
-        self.ar_pose_msg = msg
-
     def _depthCb(self, msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg)
@@ -166,6 +164,8 @@ class DataCollector(object):
 
     def reset(self):
         self.data = {}
+        self.data["nsecs"] = []
+        self.data["secs"] = []
         self.data["q"] = []
         self.data["dq"] = []
         self.data["pose"] = []
@@ -174,7 +174,6 @@ class DataCollector(object):
         self.data["depth_image"] = []
         self.data["goal_idx"] = []
         self.data["gripper"] = []
-        self.data["ar_pose"] = []
         self.data["label"] = []
         self.data["info"] = []
         self.data["depth_info"] = []
@@ -192,7 +191,8 @@ class DataCollector(object):
         self.data["depth_info_R"] = []
         self.data["depth_info_P"] = []
         self.data["depth_distortion_model"] = []
-        self.data["ar_pose_marker"] = []
+        self.data["all_tf2_frames_as_yaml"] = []
+        self.data["all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json"] = []
         self.data["visualization_marker"] = []
         self.data["camera_rgb_optical_frame_pose"] = []
         self.data["camera_depth_optical_frame_pose"] = []
@@ -284,11 +284,38 @@ class DataCollector(object):
         while not have_data:
             try:
                 t = rospy.Time(0)
+                self.t = t
                 c_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_frame, t)
                 ee_pose = self.tf_listener.lookup_transform(self.base_link, self.ee_frame, t)
                 obj_pose = self.tf_listener.lookup_transform(self.base_link, self.object, t)
                 rgb_optical_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_rgb_optical_frame, t)
                 depth_optical_pose = self.tf_listener.lookup_transform(self.base_link, self.camera_depth_optical_frame, t)
+                all_tf2_frames_as_string = self.tf_listener.all_frames_as_string()
+                # don't load the yaml because it can take up to 0.2 seconds
+                all_tf2_frames_as_yaml = self.tf_listener.all_frames_as_yaml()
+                self.tf2_dict = {}
+                transform_strings = all_tf2_frames_as_string.split('\n')
+                for transform_string in transform_strings:
+                    transform_tokens = transform_string.split(' ')
+                    if len(transform_tokens) > 1:
+                        k = transform_tokens[1]
+                        try:
+                            k_pose = self.tf_listener.lookup_transform(self.base_link, k, t)
+    
+                            k_xyz_qxqyqzqw = [
+                                    k_pose.transform.translation.x,
+                                    k_pose.transform.translation.y,
+                                    k_pose.transform.translation.z,
+                                    k_pose.transform.rotation.x,
+                                    k_pose.transform.rotation.y,
+                                    k_pose.transform.rotation.z,
+                                    k_pose.transform.rotation.w,]
+                            self.tf2_dict[k] = k_xyz_qxqyqzqw
+                        except (tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+                            pass
+                
+                self.tf2_json = json.dumps(self.tf2_dict)
+
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                 rospy.logwarn("Failed lookup: %s to %s, %s, %s" %
@@ -338,6 +365,8 @@ class DataCollector(object):
 
         self.current_ee_pose = pm.fromTf((ee_xyz, ee_quat))
 
+        self.data["nsecs"].append(np.copy(self.t.nsecs)) # time
+        self.data["secs"].append(np.copy(self.t.secs)) # time
         self.data["q"].append(np.copy(self.q)) # joint position
         self.data["dq"].append(np.copy(self.dq)) # joint velocuity
         self.data["pose"].append(ee_xyz + ee_quat) # end effector pose (6 DOF)
@@ -351,7 +380,6 @@ class DataCollector(object):
         self.data["image"].append(GetJpeg(self.rgb_img)) # encoded as JPEG
         self.data["depth_image"].append(GetPng(FloatArrayToRgbImage(self.depth_img)))
         self.data["gripper"].append(self.gripper_msg.gPO / 255.)
-        self.data["ar_pose"].append(self.ar_pose_msg)
 
         # TODO(cpaxton): verify
         if not self.task.validLabel(action_label):
@@ -371,6 +399,8 @@ class DataCollector(object):
         self.data["depth_info_P"].append(self.depth_info.P)
         self.data["depth_distortion_model"].append(self.depth_info.distortion_model)
         self.data["object"].append(self.object)
+        self.data["all_tf2_frames_as_yaml"].append(all_tf2_frames_as_yaml)
+        self.data["all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json"].append(self.tf2_json)
 
         # TODO(cpaxton): add pose of manipulated object
         self.data["object_pose"].append(obj_xyz + obj_quat)
