@@ -97,6 +97,8 @@ def _makeSmartPlaceRequest(poses, name):
     req.name = name
     req.obj_class = "place"
     req.backoff = 0.05
+    req.vel = 1.0
+    req.accel = 0.75
     return req
 
 def GetMoveToPose():
@@ -104,6 +106,8 @@ def GetMoveToPose():
     servo_mode = GetServoModeService()
     def move(pose):
         req = ServoToPoseRequest()
+        req.vel = 1.0
+        req.accel = 0.75
         req.target = pm.toMsg(pose)
         move_srv(req)
     return move
@@ -251,6 +255,8 @@ def _makeSmartGraspRequest(color):
     req.obj_class = "%s_cube" % color
     req.name = "grasp_%s" % req.obj_class
     req.backoff = 0.075
+    req.vel = 1.0
+    req.accel = 0.75
     return req
 
 def _makeSmartReleaseRequest(color):
@@ -269,6 +275,8 @@ def _makeSmartReleaseRequest(color):
     req.name = "place_on_%s" % color
     req.backoff = 0.075
     req.constraints = [constraint]
+    req.vel = 1.0
+    req.accel = 0.75
     return req
 
 def MakeStackTask():
