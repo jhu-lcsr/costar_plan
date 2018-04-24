@@ -169,7 +169,7 @@ def GetUpdate(observe, collector):
 
     servo_mode = GetServoModeService()
     def update():
-        q0 = collector.q
+        q0 = collector.q   # Save original position
         servo_mode("servo")
 
         # -------
@@ -191,8 +191,7 @@ def GetUpdate(observe, collector):
             rospy.logerr(res2.ack)
             raise RuntimeError("UPDATE(): error returning to original joint pose")
             return False
-        else:
-            return True
+        return True
     return update
 
 def GetStackManager():
