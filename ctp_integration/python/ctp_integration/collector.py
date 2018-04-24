@@ -383,7 +383,7 @@ class DataCollector(object):
         #plt.show()
         img_jpeg = GetJpeg(self.rgb_img)
         depth_png = GetPng(FloatArrayToRgbImage(self.depth_img))
-        print("jpg size={}, png size={}".format(sys.getsizeof(img_jpeg), sys.getsizeof(depth_png)))
+        # print("jpg size={}, png size={}".format(sys.getsizeof(img_jpeg), sys.getsizeof(depth_png)))
         self.data["image"].append(img_jpeg) # encoded as JPEG
         self.data["depth_image"].append(depth_png)
         self.data["gripper"].append(self.gripper_msg.gPO / 255.)
