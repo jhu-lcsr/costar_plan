@@ -102,14 +102,16 @@ def _makeSmartPlaceRequest(poses, name):
     return req
 
 def GetMoveToPose():
-    move_srv = GetPlanToPoseService()
-    servo_mode = GetServoModeService()
+    class MoveToPoseScope:
+        # This is a permanently defined local scope
+        move_srv = GetPlanToPoseService()
+        servo_mode = GetServoModeService()
     def move(pose):
         req = ServoToPoseRequest()
         req.vel = 1.0
         req.accel = 0.75
         req.target = pm.toMsg(pose)
-        move_srv(req)
+        MoveToPoseScope.move_srv(req)
     return move
 
 def GetHome():
