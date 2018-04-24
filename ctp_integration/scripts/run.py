@@ -83,7 +83,7 @@ def getArgs():
 
 def fakeTaskArgs():
   '''
-  Set up a simplified set of arguments. These are for the optimization loop, 
+  Set up a simplified set of arguments. These are for the optimization loop,
   where we expect to only have one object to grasp at a time.
   '''
   args = {
@@ -120,7 +120,7 @@ def collect_data(args):
     tf_buffer = tf2.Buffer(rospy.Duration(120))
     # the tf_listener fills out the buffers
     tf_listener = tf2.TransformListener(tf_buffer)
-    
+
     rospy.loginfo("Node started, waiting for transform data...")
     rospy.sleep(0.5) # wait to cache incoming transforms
 
@@ -152,7 +152,9 @@ def collect_data(args):
             camera_frame="camera_link",
             tf_buffer=tf_buffer,
             tf_listener=tf_listener)
-    home, rate, move_to_pose, close_gripper, open_gripper = initialize_collection_objects(args, observe, collector, stack_task) # set fn to call after actions
+    # set fn to call after actions
+    home, rate, move_to_pose, close_gripper, open_gripper = \
+        initialize_collection_objects(args, observe, collector, stack_task)
 
     # How we verify the objet
     def verify(object_name):
@@ -203,8 +205,8 @@ def collect_data(args):
         while not rospy.is_shutdown():
 
             cur_pose = collector.current_ee_pose
-            
-            # Note: this will be "dummied out" for most of 
+
+            # Note: this will be "dummied out" for most of
             done = stack_task.tick()
             if not collector.update(stack_task.current, done):
                 raise RuntimeError('could not handle data collection. '
@@ -260,7 +262,7 @@ def collect_data(args):
                                    "hopefully somebody will restart it automatically! "
                                    "You can try the following bash line for auto restarts: "
                                    "while true; do ./scripts/run.py --execute 1000; done")
-                
+
             #try:
             #    input("Press Enter to continue...")
             #except SyntaxError as e:
@@ -329,8 +331,8 @@ def main():
     faulthandler.enable()
 
     if args.launch:
-        launch_main(argv=['roslaunch', 'ctp_integration', 'bringup.launch'], 
-                    real_args=args, 
+        launch_main(argv=['roslaunch', 'ctp_integration', 'bringup.launch'],
+                    real_args=args,
                     fn_to_call=collect_data)
     else:
         # assume ros was already running and start collecting data
