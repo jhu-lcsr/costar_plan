@@ -270,27 +270,49 @@ def collect_data(args):
         for drop_pose in reversed(poses):
             if drop_pose is None:
                 continue
-            grasp_pose = copy.deepcopy(drop_pose)
-            grasp_pose.p[2] -= 0.075 # should be smart release backoff distance
-            grasp_pose2 = copy.deepcopy(drop_pose)
-            grasp_pose2.p[2] += 0.025 # should be smart release backoff distance
-            x = 0.43 + (0.3 * np.random.random())
-            y = -0.08 - (0.22 * np.random.random())
-            z = 0.3
-            pose_random = kdl.Frame(drop_pose.M,
-                    kdl.Vector(x,y,z))
-            rospy.logwarn('unstack drop_pose:\n' + str(drop_pose))
-            move_to_pose(drop_pose)
-            rospy.logwarn('unstack grasp_pose:\n' + str(grasp_pose))
-            move_to_pose(grasp_pose)
-            close_gripper()
-            rospy.logwarn('unstack grasp_pose2:\n' + str(grasp_pose2))
-            move_to_pose(grasp_pose2)
-            rospy.logwarn(str(pose_random))
-            move_to_pose(pose_random)
-            open_gripper()
+            # Determine destination spot above the block
+            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper)
+        
+        if len(poses) > 1 and drop_pose is not None:
+            # one extra unstack step, try to get the block on the bottom.
+            drop_pose.p[2] += 0.025 # should be smart release backoff distance
+            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper)
 
         rospy.loginfo("Done one loop.")
+
+def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, block_width=0.025):
+    """ drop_pose is the top position of a block
+
+    This function will go above that block, open the gripper, grasp the block,
+    then place the block at a random location.
+    """
+    # Determine destination spot above the block
+    grasp_pose = copy.deepcopy(drop_pose)
+    grasp_pose.p[2] -= 0.075 # should be smart release backoff distance
+    # Determine destination spot where the gripper will be closed on the block
+    grasp_pose2 = copy.deepcopy(drop_pose)
+    grasp_pose2.p[2] += block_width # should be smart release backoff distance
+    x = 0.43 + (0.3 * np.random.random())
+    y = -0.08 - (0.22 * np.random.random())
+    z = 0.3
+    pose_random = kdl.Frame(drop_pose.M,
+            kdl.Vector(x,y,z))
+    rospy.logwarn('unstack drop_pose:\n' + str(drop_pose))
+    # go to where the object was originally dropped from 
+    move_to_pose(drop_pose)
+    rospy.logwarn('unstack grasp_pose:\n' + str(grasp_pose))
+    # move down to grasp an object
+    move_to_pose(grasp_pose)
+    close_gripper()
+    rospy.logwarn('unstack grasp_pose2:\n' + str(grasp_pose2))
+    # move up a small amount so there won't be a collision
+    move_to_pose(grasp_pose2)
+    # move to random drop location
+    rospy.logwarn(str(pose_random))
+    move_to_pose(pose_random)
+    # release the object
+    open_gripper()
+    return grasp_pose2
 
 def initialize_collection_objects(args, observe, collector, stack_task):
     rate = rospy.Rate(args.rate)
