@@ -104,10 +104,18 @@ def _makeSmartPlaceRequest(poses, name):
 def GetMoveToPose():
     class MoveToPoseScope:
         # This is a permanently defined local scope
-        move_srv = GetPlanToPoseService()
-        servo_mode = GetServoModeService()
+        move_srv = None
+        servo_mode = None
+
+    # initialize once
+    if MoveToPoseScope.move_srv is None:
+        MoveToPoseScope.move_srv = GetPlanToPoseService()
+        MoveToPoseScope.servo_mode = GetServoModeService()
+
     def move(pose):
-        req = ServoToPoseRequest()
+        req = None
+        while req is None:
+            req = ServoToPoseRequest()
         req.vel = 1.0
         req.accel = 0.75
         req.target = pm.toMsg(pose)

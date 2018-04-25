@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import argparse
+import PyKDL as kdl
 import rospy
 import roslaunch
 import tf_conversions.posemath as pm
@@ -24,7 +25,16 @@ from ctp_integration import MakeStackTask
 from ctp_integration.observer import IdentityObserver, Observer
 from ctp_integration.collector import DataCollector
 from ctp_integration.util import GetDetectObjectsService
-from ctp_integration.stack import *
+from ctp_integration.stack import GetOpenGripperService
+from ctp_integration.stack import GetCloseGripperService
+from ctp_integration.stack import GetGraspPose
+from ctp_integration.stack import GetStackPose
+from ctp_integration.stack import GetTowerPoses
+from ctp_integration.stack import GetMoveToPose
+from ctp_integration.stack import GetHome
+from ctp_integration.stack import GetUpdate
+from ctp_integration.stack import GetStackManager
+from ctp_integration.stack import MakeStackTask
 from ctp_integration.launcher import launch_main
 
 import faulthandler
@@ -224,7 +234,11 @@ def collect_data(args):
                 reward = 0.
 
             if done:
-                rospy.logwarn("DONE WITH: " + str(stack_task.ok))
+                if stack_task.ok:
+                    savestr = "WE WILL SAVE TO DISK"
+                else:
+                    savestr = "BUT THERE A PROBLEM WAS DETECTED SO WE ARE NOT SAVING TO DISK"
+                rospy.logwarn("DONE COLLECTING THIS ROUND, " + savestr)
                 if stack_task.ok:
                     # Increase count
                     i += 1
@@ -269,20 +283,22 @@ def collect_data(args):
             #    pass
 
         # Undo the stacking
-        for drop_pose in reversed(poses):
+        for count_from_top, drop_pose in enumerate(reversed(poses)):
             if drop_pose is None:
                 continue
             # Determine destination spot above the block
-            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper)
+            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
         
         if len(poses) > 1 and drop_pose is not None:
             # one extra unstack step, try to get the block on the bottom.
-            drop_pose.p[2] += 0.025 # should be smart release backoff distance
-            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper)
+            count_from_top+=1
+            # move vertically down in the z axis
+            drop_pose.p[2] -= 0.125
+            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
 
         rospy.loginfo("Done one loop.")
 
-def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, block_width=0.025):
+def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, block_width=0.025, backoff_distance=0.075, i=""):
     """ drop_pose is the top position of a block
 
     This function will go above that block, open the gripper, grasp the block,
@@ -290,23 +306,20 @@ def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, bloc
     """
     # Determine destination spot above the block
     grasp_pose = copy.deepcopy(drop_pose)
-    grasp_pose.p[2] -= 0.075 # should be smart release backoff distance
+    grasp_pose.p[2] -= backoff_distance # should be smart release backoff distance
     # Determine destination spot where the gripper will be closed on the block
     grasp_pose2 = copy.deepcopy(drop_pose)
     grasp_pose2.p[2] += block_width # should be smart release backoff distance
-    x = 0.43 + (0.3 * np.random.random())
-    y = -0.08 - (0.22 * np.random.random())
-    z = 0.3
-    pose_random = kdl.Frame(drop_pose.M,
-            kdl.Vector(x,y,z))
-    rospy.logwarn('unstack drop_pose:\n' + str(drop_pose))
+    # drop in a random spot that isn't on top of the current location
+    pose_random = random_drop_coordinate(grasp_pose, drop_pose)
+    rospy.logwarn('unstack block ' + str(i) + ' from top to bottom drop_pose:\n' + str(drop_pose))
     # go to where the object was originally dropped from 
     move_to_pose(drop_pose)
-    rospy.logwarn('unstack grasp_pose:\n' + str(grasp_pose))
+    rospy.logwarn('unstack block ' + str(i) + ' from top to bottom  grasp_pose:\n' + str(grasp_pose))
     # move down to grasp an object
     move_to_pose(grasp_pose)
     close_gripper()
-    rospy.logwarn('unstack grasp_pose2:\n' + str(grasp_pose2))
+    rospy.logwarn('unstack block ' + str(i) + ' from top to bottom  grasp_pose2:\n' + str(grasp_pose2))
     # move up a small amount so there won't be a collision
     move_to_pose(grasp_pose2)
     # move to random drop location
@@ -315,6 +328,26 @@ def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, bloc
     # release the object
     open_gripper()
     return grasp_pose2
+
+def random_drop_coordinate(grasp_pose, drop_pose, z=0.3):
+    """ Determine a random drop coordinate that isn't on top of the current object location
+    axis_range: range of allowable coordinates in meters
+    """
+    x_random = random_drop_axis_coordinate(grasp_pose, axis_idx=0, axis_corner=0.43, axis_range=0.3)
+    y_random = random_drop_axis_coordinate(grasp_pose, axis_idx=1, axis_corner=-0.08, axis_range=-0.22)
+    pose_random = kdl.Frame(drop_pose.M,
+            kdl.Vector(x_random,y_random,z))
+    return pose_random
+
+def random_drop_axis_coordinate(grasp_pose, axis_idx, axis_corner, axis_range, min_diff_from_current=0.025):
+    """ Determine a random drop coordinate axis value that isn't on top of the current object location
+
+    min_diff_from_current: how far must the new random coordinate be from the current one
+    """
+    x_random = grasp_pose.p[axis_idx]
+    while np.abs(x_random - grasp_pose.p[axis_idx]) < min_diff_from_current:
+        x_random = axis_corner + np.random.random() * axis_range
+    return x_random
 
 def initialize_collection_objects(args, observe, collector, stack_task):
     rate = rospy.Rate(args.rate)
