@@ -12,6 +12,7 @@ from costar_robot_msgs.srv import ServoToPoseRequest
 from costar_robot_msgs.msg import Constraint
 from std_srvs.srv import EmptyRequest
 from std_srvs.srv import Empty as EmptySrv
+import six
 from costar_task_plan.abstract.task import *
 
 from .stack_manager import *
@@ -377,3 +378,56 @@ def _checkBlocks1And2(block1,block2,**kwargs):
     block2: second unique block name, e.g. "blue_block"
     '''
     return not block1 == block2
+
+def pairwise(iterable):
+    """ Loop list elements pairwise
+    
+    s -> (s0,s1), (s1,s2), (s2, s3), ...
+    """
+    a, b = six.itertools.tee(iterable)
+    next(b, None)
+    return six.itertools.izip(a, b)
+
+def verify_stack_success(
+    pose_dict, 
+    pose_z=None, 
+    min_absolute_stack_z=0.095, 
+    min_stack_height=3, 
+    block_width=0.05,
+    x_idx=0,
+    y_idx=1,
+    z_idx=2):
+    # x y z qw qx qy qz order
+    z_axis_index = 2
+    dict_value_index = 1
+    dict_key_index = 0
+    # Get all objects sorted from highest z to lowest z
+    block_pose_pairs = filter(lambda kvpair: '_cube_' in kvpair[dict_key_index] and 'seg/' not in kvpair[dict_key_index], 
+                                six.iteritems(pose_dict))
+    z_ordered_object_pose_pairs = sorted(block_pose_pairs, key=lambda kvpair: kvpair[dict_value_index][z_axis_index], reverse=True)
+    print("z_ordered_object_pose_pairs", z_ordered_object_pose_pairs)
+    # individual blocks are already 1 high
+    stack_height = 1
+    # Check if one block is over the other
+    for first_block, second_block in pairwise(z_ordered_object_pose_pairs):
+        # each block is a (string, pose_vector) pair
+        # x y z qw qx qy qz order
+        first_pose = first_block[1]
+        second_pose = second_block[1]
+        x_diff = np.abs(first_pose[0] - second_pose[0])
+        y_diff = np.abs(first_pose[1] - second_pose[1])
+        z_diff = np.abs(first_pose[2] - second_pose[2])
+        print("xyz diff: ", x_diff, y_diff, z_diff)
+        if(x_diff < block_width * 1.0 and 
+           y_diff < block_width * 1.0 and
+           z_diff > block_width * 0.75):
+            stack_height += 1
+
+    stack_success = False
+    if pose_z is not None:
+        stack_success =  pose_z > min_absolute_stack_z
+    print("stack_height: " + str(stack_height))
+    
+    stack_success = stack_success or stack_height >= min_stack_height
+
+    return stack_success

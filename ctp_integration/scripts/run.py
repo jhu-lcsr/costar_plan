@@ -13,6 +13,7 @@ import rospy
 import roslaunch
 import tf_conversions.posemath as pm
 import tf2_ros as tf2
+import six
 
 from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.mcts import OptionsExecutionManager
@@ -35,6 +36,7 @@ from ctp_integration.stack import GetHome
 from ctp_integration.stack import GetUpdate
 from ctp_integration.stack import GetStackManager
 from ctp_integration.stack import MakeStackTask
+from ctp_integration.stack import verify_stack_success
 from ctp_integration.launcher import launch_main
 
 import faulthandler
@@ -167,8 +169,10 @@ def collect_data(args):
         initialize_collection_objects(args, observe, collector, stack_task)
 
     # How we verify the objet
-    def verify(object_name):
+    def verify(object_name, min_absolute_stack_z=0.095, min_stack_height=3):
         '''
+        Check if the stack was completed correctly.
+
         Simple verify functor. This is designed to work if we have one object
         of each color, and is not guaranteed to work otherwise.
 
@@ -177,17 +181,27 @@ def collect_data(args):
         object_name: name of the object being manipulated
         '''
         pose = None
+        stack_success = False
+        # a block is 5cm wide
+        block_width = 0.05
         for i in range(50):
             try:
                 t = rospy.Time(0)
                 pose = collector.tf_buffer.lookup_transform(collector.base_link, object_name, t)
+                pose_dict = collector.get_all_tf2_transforms(t)
+                pose_z = pose.transform.translation.z
+                # x y z qw qx qy qz order
+                stack_success = verify_stack_success(
+                    pose_dict, block_width=block_width, pose_z=pose_z, 
+                    min_absolute_stack_z=min_absolute_stack_z, min_stack_height=min_stack_height)
+
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                rospy.sleep(0.1)
+                rospy.sleep(0.01)
         if pose is None:
             rospy.logwarn("Failed lookup: %s to %s"%(collector.base_link, object_name))
             return False
         print("object name and pose: ", object_name, pose)
-        return pose.transform.translation.z > 0.095
+        return stack_success
 
     consecutive_bad_rounds = 0
     max_consecutive_bad_rounds = 5

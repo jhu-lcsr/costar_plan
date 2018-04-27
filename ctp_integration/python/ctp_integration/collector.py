@@ -294,30 +294,9 @@ class DataCollector(object):
                 obj_pose = self.tf_buffer.lookup_transform(self.base_link, self.object, t)
                 rgb_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_rgb_optical_frame, t)
                 depth_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_depth_optical_frame, t)
-                all_tf2_frames_as_string = self.tf_buffer.all_frames_as_string()
                 # don't load the yaml because it can take up to 0.2 seconds
                 all_tf2_frames_as_yaml = self.tf_buffer.all_frames_as_yaml()
-                self.tf2_dict = {}
-                transform_strings = all_tf2_frames_as_string.split('\n')
-                for transform_string in transform_strings:
-                    transform_tokens = transform_string.split(' ')
-                    if len(transform_tokens) > 1:
-                        k = transform_tokens[1]
-                        try:
-                            k_pose = self.tf_buffer.lookup_transform(self.base_link, k, t)
-    
-                            k_xyz_qxqyqzqw = [
-                                    k_pose.transform.translation.x,
-                                    k_pose.transform.translation.y,
-                                    k_pose.transform.translation.z,
-                                    k_pose.transform.rotation.x,
-                                    k_pose.transform.rotation.y,
-                                    k_pose.transform.rotation.z,
-                                    k_pose.transform.rotation.w,]
-                            self.tf2_dict[k] = k_xyz_qxqyqzqw
-                        except (tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                            pass
-                
+                self.tf2_dict = self.get_all_tf2_transforms(t)
                 self.tf2_json = json.dumps(self.tf2_dict)
 
                 have_data = True
@@ -415,6 +394,30 @@ class DataCollector(object):
         #self.data["depth"].append(GetJpeg(self.depth_img))
 
         return True
+
+    def get_all_tf2_transforms(self, t):
+        all_tf2_frames_as_string = self.tf_buffer.all_frames_as_string()
+        tf2_dict = {}
+        transform_strings = all_tf2_frames_as_string.split('\n')
+        for transform_string in transform_strings:
+            transform_tokens = transform_string.split(' ')
+            if len(transform_tokens) > 1:
+                k = transform_tokens[1]
+                try:
+                    k_pose = self.tf_buffer.lookup_transform(self.base_link, k, t)
+
+                    k_xyz_qxqyqzqw = [
+                            k_pose.transform.translation.x,
+                            k_pose.transform.translation.y,
+                            k_pose.transform.translation.z,
+                            k_pose.transform.rotation.x,
+                            k_pose.transform.rotation.y,
+                            k_pose.transform.rotation.z,
+                            k_pose.transform.rotation.w,]
+                    tf2_dict[k] = k_xyz_qxqyqzqw
+                except (tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+                    pass
+        return tf2_dict
 
 if __name__ == '__main__':
     pass
