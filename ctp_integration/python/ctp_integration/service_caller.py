@@ -1,9 +1,12 @@
 import rospy
 from threading import Thread
+import traceback
 
 class ServiceCaller(object):
     '''
-    Simple helper class built around calling a ROS service
+    Simple helper class built around calling a ROS service.
+    Typically this will handle executing an action and receiving
+    the reply, such as a SmartGrasp or SmartRelease request.
     '''
     def __init__(self, *args, **kwargs):
         self.thread = None
@@ -15,13 +18,19 @@ class ServiceCaller(object):
 
     def _service_call(self):
         if self.proxy is None:
-            raise RuntimeError('no proxy specified')
+            raise RuntimeError('service_caller.py ServiceCaller no proxy specified')
         elif self.req is None:
-            raise RuntimeError('no request specified')
+            raise RuntimeError('service_caller.py ServiceCaller no request specified')
         self.result = self.proxy(self.req)
         self.ok = self.result is not None and "success" in self.result.ack.lower()
 
     def __call__(self, proxy, req):
+        """ Run the service call, i.e. execute the chosen action
+        """
+        if req is None:
+            rospy.logerr('service_caller.py ServiceCaller received a request'
+                         ' with the invalid python value None:\n'
+                         ''.join(traceback.format_stack()))
         if self.thread is not None and self.thread.is_alive():
             rospy.logwarn("already running: " + str(self.proxy) + ", " + str(type(req)))
             return False

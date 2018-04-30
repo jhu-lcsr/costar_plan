@@ -97,15 +97,29 @@ def _makeSmartPlaceRequest(poses, name):
     req.name = name
     req.obj_class = "place"
     req.backoff = 0.05
+    req.vel = 1.0
+    req.accel = 0.75
     return req
 
 def GetMoveToPose():
-    move_srv = GetPlanToPoseService()
-    servo_mode = GetServoModeService()
+    class MoveToPoseScope:
+        # This is a permanently defined local scope
+        move_srv = None
+        servo_mode = None
+
+    # initialize once
+    if MoveToPoseScope.move_srv is None:
+        MoveToPoseScope.move_srv = GetPlanToPoseService()
+        MoveToPoseScope.servo_mode = GetServoModeService()
+
     def move(pose):
-        req = ServoToPoseRequest()
+        req = None
+        while req is None:
+            req = ServoToPoseRequest()
+        req.vel = 1.0
+        req.accel = 0.75
         req.target = pm.toMsg(pose)
-        move_srv(req)
+        MoveToPoseScope.move_srv(req)
     return move
 
 def GetHome():
@@ -165,7 +179,7 @@ def GetUpdate(observe, collector):
 
     servo_mode = GetServoModeService()
     def update():
-        q0 = collector.q
+        q0 = collector.q   # Save original position
         servo_mode("servo")
 
         # -------
@@ -187,8 +201,7 @@ def GetUpdate(observe, collector):
             rospy.logerr(res2.ack)
             raise RuntimeError("UPDATE(): error returning to original joint pose")
             return False
-        else:
-            return True
+        return True
     return update
 
 def GetStackManager():
@@ -251,6 +264,8 @@ def _makeSmartGraspRequest(color):
     req.obj_class = "%s_cube" % color
     req.name = "grasp_%s" % req.obj_class
     req.backoff = 0.075
+    req.vel = 1.0
+    req.accel = 0.75
     return req
 
 def _makeSmartReleaseRequest(color):
@@ -269,6 +284,8 @@ def _makeSmartReleaseRequest(color):
     req.name = "place_on_%s" % color
     req.backoff = 0.075
     req.constraints = [constraint]
+    req.vel = 1.0
+    req.accel = 0.75
     return req
 
 def MakeStackTask():

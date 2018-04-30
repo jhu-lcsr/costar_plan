@@ -1,6 +1,6 @@
 
 import rospy
-import tf
+import tf2_ros as tf2
 
 from costar_objrec_msgs.msg import DetectedObjectList
 
@@ -14,7 +14,9 @@ class IdentityObserver(object):
 
 class Observer(object):
 
-    def __init__(self, world, task, detect_srv, topic, tf_listener=None):
+    def __init__(self, world, task, detect_srv, topic,
+                 tf_buffer=None,
+                 tf_listener=None):
         '''
         Create an observer. This will take a world and other information and
         use it to provide updated worlds.
@@ -24,10 +26,14 @@ class Observer(object):
         self.detect_srv = detect_srv
         self.detected_objects_topic = topic
         self.msg = None
-        if tf_listener is not None:
-            self.tf_listener = tf_listener
+        if tf_buffer is None:
+            self.tf_buffer = tf2.Buffer()
         else:
-            self.tf_listener = tf.TransformListener()
+            self.tf_buffer = tf_buffer
+        if tf_listener is None:
+            self.tf_listener = tf2.TransformListener(self.tf_buffer)
+        else:
+            self.tf_listener = tf_listener
 
         self._detected_objects_sub = rospy.Subscriber(
                 self.detected_objects_topic, 
@@ -56,6 +62,7 @@ class Observer(object):
         # Step 1. Create args describing which objects we saw.
         args = {}
         for obj in self.msg.objects:
+            print("Observer Objects: " + str(self.msg.objects))
             name = obj.id
             obj_class = obj.object_class
     

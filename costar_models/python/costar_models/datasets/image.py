@@ -38,15 +38,39 @@ def GetJpeg(img):
     im.save(output, format="JPEG", quality=80)
     return output.getvalue()
 
+def GetPng(img):
+    '''
+    Save a numpy array as a Jpeg, then get it out as a binary blob
+    '''
+    im = Image.fromarray(np.uint8(img))
+    output = io.BytesIO()
+    # enabling optimized file size 
+    # increases saving time to ~0.4 seconds per image.
+    #im.save(output, format="PNG", optimize=True)
+    im.save(output, format="PNG")
+    return output.getvalue()
+
 def JpegToNumpy(jpeg):
     stream = io.BytesIO(jpeg)
     im = Image.open(stream)
     return np.asarray(im, dtype=np.uint8)
 
-def ConvertJpegListToNumpy(data):
+def ConvertJpegListToNumpy(data, format='numpy', data_format='NHWC'):
+    """ Convert a list of binary jpeg files to numpy format.
+
+    # Arguments
+
+    data: a list of binary jpeg images to convert
+    format: default 'numpy' returns a 4d numpy array, 
+        'list' returns a list of 3d numpy arrays
+    """
     length = len(data)
     imgs = []
     for raw in data:
-        imgs.append(JpegToNumpy(raw))
-    arr = np.array(imgs)
-    return arr
+        img = JpegToNumpy(raw)
+        if data_format == 'NCHW':
+            img = np.transpose(img, [2, 0, 1])
+        imgs.append(img)
+    if format == 'numpy':
+        imgs = np.array(imgs)
+    return imgs

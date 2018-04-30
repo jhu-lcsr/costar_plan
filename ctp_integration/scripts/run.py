@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import argparse
+import PyKDL as kdl
 import rospy
 import roslaunch
 import tf_conversions.posemath as pm
@@ -24,8 +25,19 @@ from ctp_integration import MakeStackTask
 from ctp_integration.observer import IdentityObserver, Observer
 from ctp_integration.collector import DataCollector
 from ctp_integration.util import GetDetectObjectsService
-from ctp_integration.stack import *
+from ctp_integration.stack import GetOpenGripperService
+from ctp_integration.stack import GetCloseGripperService
+from ctp_integration.stack import GetGraspPose
+from ctp_integration.stack import GetStackPose
+from ctp_integration.stack import GetTowerPoses
+from ctp_integration.stack import GetMoveToPose
+from ctp_integration.stack import GetHome
+from ctp_integration.stack import GetUpdate
+from ctp_integration.stack import GetStackManager
+from ctp_integration.stack import MakeStackTask
 from ctp_integration.launcher import launch_main
+
+import faulthandler
 
 def getArgs():
     '''
@@ -55,7 +67,7 @@ def getArgs():
     parser.add_argument("--execute",
                         type=int,
                         help="execute this many loops",
-                        default=1)
+                        default=100)
     parser.add_argument("--start",
                         type=int,
                         help="start from this index",
@@ -81,7 +93,7 @@ def getArgs():
 
 def fakeTaskArgs():
   '''
-  Set up a simplified set of arguments. These are for the optimization loop, 
+  Set up a simplified set of arguments. These are for the optimization loop,
   where we expect to only have one object to grasp at a time.
   '''
   args = {
@@ -115,9 +127,10 @@ def collect_data(args):
     rospy.loginfo("Making world...")
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
     rospy.loginfo("Aggregating TF data...")
-    tf_buffer = tf2.Buffer()
+    tf_buffer = tf2.Buffer(rospy.Duration(120))
+    # the tf_listener fills out the buffers
     tf_listener = tf2.TransformListener(tf_buffer)
-    
+
     rospy.loginfo("Node started, waiting for transform data...")
     rospy.sleep(0.5) # wait to cache incoming transforms
 
@@ -131,7 +144,8 @@ def collect_data(args):
                 task=task,
                 detect_srv=objects,
                 topic="/costar_sp_segmenter/detected_object_list",
-                tf_listener=tf_buffer)
+                tf_buffer=tf_buffer,
+                tf_listener=tf_listener)
 
     # print out task info
     if args.verbose > 0:
@@ -146,8 +160,11 @@ def collect_data(args):
             data_type="h5f",
             robot_config=UR5_C_MODEL_CONFIG,
             camera_frame="camera_link",
-            tf_listener=tf_buffer)
-    home, rate, move_to_pose, close_gripper, open_gripper = initialize_collection_objects(args, observe, collector, stack_task) # set fn to call after actions
+            tf_buffer=tf_buffer,
+            tf_listener=tf_listener)
+    # set fn to call after actions
+    home, rate, move_to_pose, close_gripper, open_gripper = \
+        initialize_collection_objects(args, observe, collector, stack_task)
 
     # How we verify the objet
     def verify(object_name):
@@ -163,7 +180,7 @@ def collect_data(args):
         for i in range(50):
             try:
                 t = rospy.Time(0)
-                pose = collector.tf_listener.lookup_transform(collector.base_link, object_name, t)
+                pose = collector.tf_buffer.lookup_transform(collector.base_link, object_name, t)
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                 rospy.sleep(0.1)
         if pose is None:
@@ -198,8 +215,8 @@ def collect_data(args):
         while not rospy.is_shutdown():
 
             cur_pose = collector.current_ee_pose
-            
-            # Note: this will be "dummied out" for most of 
+
+            # Note: this will be "dummied out" for most of
             done = stack_task.tick()
             if not collector.update(stack_task.current, done):
                 raise RuntimeError('could not handle data collection. '
@@ -217,7 +234,11 @@ def collect_data(args):
                 reward = 0.
 
             if done:
-                rospy.logwarn("DONE WITH: " + str(stack_task.ok))
+                if stack_task.ok:
+                    savestr = "WE WILL SAVE TO DISK"
+                else:
+                    savestr = "BUT THERE A PROBLEM WAS DETECTED SO WE ARE NOT SAVING TO DISK"
+                rospy.logwarn("DONE COLLECTING THIS ROUND, " + savestr)
                 if stack_task.ok:
                     # Increase count
                     i += 1
@@ -255,37 +276,78 @@ def collect_data(args):
                                    "hopefully somebody will restart it automatically! "
                                    "You can try the following bash line for auto restarts: "
                                    "while true; do ./scripts/run.py --execute 1000; done")
-                
+
             #try:
             #    input("Press Enter to continue...")
             #except SyntaxError as e:
             #    pass
 
         # Undo the stacking
-        for drop_pose in reversed(poses):
+        for count_from_top, drop_pose in enumerate(reversed(poses)):
             if drop_pose is None:
                 continue
-            grasp_pose = copy.deepcopy(drop_pose)
-            grasp_pose.p[2] -= 0.075 # should be smart release backoff distance
-            grasp_pose2 = copy.deepcopy(drop_pose)
-            grasp_pose2.p[2] += 0.025 # should be smart release backoff distance
-            x = 0.43 + (0.3 * np.random.random())
-            y = -0.08 - (0.22 * np.random.random())
-            z = 0.3
-            pose_random = kdl.Frame(drop_pose.M,
-                    kdl.Vector(x,y,z))
-            rospy.logwarn('unstack drop_pose:\n' + str(drop_pose))
-            move_to_pose(drop_pose)
-            rospy.logwarn('unstack grasp_pose:\n' + str(grasp_pose))
-            move_to_pose(grasp_pose)
-            close_gripper()
-            rospy.logwarn('unstack grasp_pose2:\n' + str(grasp_pose2))
-            move_to_pose(grasp_pose2)
-            rospy.logwarn(str(pose_random))
-            move_to_pose(pose_random)
-            open_gripper()
+            # Determine destination spot above the block
+            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
+        
+        if len(poses) > 1 and drop_pose is not None:
+            # one extra unstack step, try to get the block on the bottom.
+            count_from_top+=1
+            # move vertically down in the z axis
+            drop_pose.p[2] -= 0.125
+            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
 
         rospy.loginfo("Done one loop.")
+
+def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, block_width=0.025, backoff_distance=0.075, i=""):
+    """ drop_pose is the top position of a block
+
+    This function will go above that block, open the gripper, grasp the block,
+    then place the block at a random location.
+    """
+    # Determine destination spot above the block
+    grasp_pose = copy.deepcopy(drop_pose)
+    grasp_pose.p[2] -= backoff_distance # should be smart release backoff distance
+    # Determine destination spot where the gripper will be closed on the block
+    grasp_pose2 = copy.deepcopy(drop_pose)
+    grasp_pose2.p[2] += block_width # should be smart release backoff distance
+    # drop in a random spot that isn't on top of the current location
+    pose_random = random_drop_coordinate(grasp_pose, drop_pose)
+    rospy.logwarn('unstack block ' + str(i) + ' from top to bottom drop_pose:\n' + str(drop_pose))
+    # go to where the object was originally dropped from 
+    move_to_pose(drop_pose)
+    rospy.logwarn('unstack block ' + str(i) + ' from top to bottom  grasp_pose:\n' + str(grasp_pose))
+    # move down to grasp an object
+    move_to_pose(grasp_pose)
+    close_gripper()
+    rospy.logwarn('unstack block ' + str(i) + ' from top to bottom  grasp_pose2:\n' + str(grasp_pose2))
+    # move up a small amount so there won't be a collision
+    move_to_pose(grasp_pose2)
+    # move to random drop location
+    rospy.logwarn(str(pose_random))
+    move_to_pose(pose_random)
+    # release the object
+    open_gripper()
+    return grasp_pose2
+
+def random_drop_coordinate(grasp_pose, drop_pose, z=0.3):
+    """ Determine a random drop coordinate that isn't on top of the current object location
+    axis_range: range of allowable coordinates in meters
+    """
+    x_random = random_drop_axis_coordinate(grasp_pose, axis_idx=0, axis_corner=0.43, axis_range=0.3)
+    y_random = random_drop_axis_coordinate(grasp_pose, axis_idx=1, axis_corner=-0.08, axis_range=-0.22)
+    pose_random = kdl.Frame(drop_pose.M,
+            kdl.Vector(x_random,y_random,z))
+    return pose_random
+
+def random_drop_axis_coordinate(grasp_pose, axis_idx, axis_corner, axis_range, min_diff_from_current=0.025):
+    """ Determine a random drop coordinate axis value that isn't on top of the current object location
+
+    min_diff_from_current: how far must the new random coordinate be from the current one
+    """
+    x_random = grasp_pose.p[axis_idx]
+    while np.abs(x_random - grasp_pose.p[axis_idx]) < min_diff_from_current:
+        x_random = axis_corner + np.random.random() * axis_range
+    return x_random
 
 def initialize_collection_objects(args, observe, collector, stack_task):
     rate = rospy.Rate(args.rate)
@@ -299,10 +361,11 @@ def initialize_collection_objects(args, observe, collector, stack_task):
 
 def main():
     args = getArgs()
+    faulthandler.enable()
 
     if args.launch:
-        launch_main(argv=['roslaunch', 'ctp_integration', 'bringup.launch'], 
-                    real_args=args, 
+        launch_main(argv=['roslaunch', 'ctp_integration', 'bringup.launch'],
+                    real_args=args,
                     fn_to_call=collect_data)
     else:
         # assume ros was already running and start collecting data
