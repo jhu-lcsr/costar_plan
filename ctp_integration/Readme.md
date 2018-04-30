@@ -14,6 +14,14 @@ Quick start with logging and restarting upon crashes:
 while true; do ./scripts/run.py --execute 1000 2>&1 | tee -a ctp_integration_run_log.txt; done
 ```
 
+# About collected datasets
+
+Dataset files are saved to `~/.costar/data`. To view video from a dataset example use the following command:
+
+```
+python scripts/view_convert_dataset.py --preview True --path ~/.costar/data/2018-04-26-15-22-11_example000014.failure.h5f
+```
+
 ## Guidelines
 
   - python: contain specific source code
