@@ -289,7 +289,7 @@ def collect_data(args):
             #except SyntaxError as e:
             #    pass
 
-        print('Attempting to unstack the blocks')
+        rospy.loginfo('Attempting to unstack the blocks')
         #try:
         #poses = poses[:-1] if stack_task.ok else poses # if we succeeded, we also moved home already
         for count_from_top, drop_pose in enumerate(reversed(poses)):
