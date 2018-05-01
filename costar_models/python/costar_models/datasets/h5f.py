@@ -11,11 +11,12 @@ class H5fDataset(object):
     for easy access and data aggregation.
     '''
 
-    def __init__(self, name):
+    def __init__(self, name, verbose=0):
         '''
         Create a folder to hold different archives in
         '''
         self.name = os.path.expanduser(name)
+        self.verbose = verbose
         try:
             os.mkdir(self.name)
         except OSError as e:
@@ -30,7 +31,8 @@ class H5fDataset(object):
         filename = os.path.join(self.name, filename)
         f = h5f.File(filename, 'w')
         for key, value in example.items():
-            print('writing key: ' + str(key))
+            if self.verbose > 0:
+                print('H5fDataset writing key: ' + str(key))
             f.create_dataset(key, data=value)
         if image_types != []:
             #dt = h5f.special_dtype(vlen=bytes)
