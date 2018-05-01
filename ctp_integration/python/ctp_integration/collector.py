@@ -116,6 +116,7 @@ class DataCollector(object):
         self.T_world_camera = None
         self.camera_frame = camera_frame
         self.ee_frame = robot_config['end_link']
+        self.rgb_time = None
 
         self.q = None
         self.dq = None
@@ -151,6 +152,7 @@ class DataCollector(object):
         if msg is None:
             rospy.loginfo("_rgbCb: msg is None !!!!!!!!!")            
         try:
+            self.rgb_time = msg.header.stamp
             cv_image = self._bridge.imgmsg_to_cv2(msg, "rgb8")
             self.rgb_img = np.asarray(cv_image)
             #print(self.rgb_img)
@@ -316,13 +318,23 @@ class DataCollector(object):
                     ", obj = " + str(self.object) +
                     ", prev = " + str(self.prev_objects))
 
+        # get the time for this data sample
+        if self.rgb_time is not None:
+            t = self.rgb_time
+        else:
+            t = rospy.Time(0)
+        self.t = t
+        # make sure we keep the right rgb and depth
+        img_jpeg = self.rgb_img
+        depth_png = self.depth_img
+        # decode the data, this will take some time
+        img_jpeg = GetJpeg(img_jpeg)
+        depth_png = GetPng(FloatArrayToRgbImage(depth_png))
         have_data = False
         attempts = 0
-        max_attempts = 10
+        max_attempts = 20
         while not have_data:
             try:
-                t = rospy.Time(0)
-                self.t = t
                 c_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_frame, t)
                 ee_pose = self.tf_buffer.lookup_transform(self.base_link, self.ee_frame, t)
                 if self.object:
@@ -359,8 +371,10 @@ class DataCollector(object):
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                 rospy.logwarn("Failed lookup: %s to %s, %s, %s" %
                         (self.base_link, self.camera_frame, self.ee_frame, str(self.object)))
+                
                 have_data = False
                 attempts += 1
+                rospy.sleep(0.0)
                 if attempts > max_attempts:
                     # Could not look up one of the transforms -- either could
                     # not look up camera, endpoint, or object.
@@ -427,8 +441,6 @@ class DataCollector(object):
         #plt.figure()
         #plt.imshow(self.rgb_img)
         #plt.show()
-        img_jpeg = GetJpeg(self.rgb_img)
-        depth_png = GetPng(FloatArrayToRgbImage(self.depth_img))
         # print("jpg size={}, png size={}".format(sys.getsizeof(img_jpeg), sys.getsizeof(depth_png)))
         self.data["image"].append(img_jpeg) # encoded as JPEG
         self.data["depth_image"].append(depth_png)
