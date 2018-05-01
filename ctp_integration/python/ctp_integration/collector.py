@@ -318,11 +318,13 @@ class DataCollector(object):
                     ", obj = " + str(self.object) +
                     ", prev = " + str(self.prev_objects))
 
+        backup_t = rospy.Time(0)
         # get the time for this data sample
         if self.rgb_time is not None:
             t = self.rgb_time
         else:
-            t = rospy.Time(0)
+            t = backup_t
+            
         self.t = t
         # make sure we keep the right rgb and depth
         img_jpeg = self.rgb_img
@@ -369,12 +371,18 @@ class DataCollector(object):
 
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                rospy.logwarn("Failed lookup: %s to %s, %s, %s" %
+                rospy.logwarn("Collector Failed transform lookup: %s to %s, %s, %s" %
                         (self.base_link, self.camera_frame, self.ee_frame, str(self.object)))
                 
                 have_data = False
                 attempts += 1
                 rospy.sleep(0.0)
+                if attempts > max_attempts - 1:
+                    rospy.logwarn('Collector failed to use the image '
+                                  'rosmsg timestep, trying local ros timestamp as backup.')
+                    # try the backup timestep
+                    # even though it will be less accurate
+                    t = backup_t
                 if attempts > max_attempts:
                     # Could not look up one of the transforms -- either could
                     # not look up camera, endpoint, or object.
