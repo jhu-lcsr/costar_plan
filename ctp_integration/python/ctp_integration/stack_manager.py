@@ -39,6 +39,7 @@ class StackManager(object):
         self.children = {}
         self.labels = set()
         self.update = self._update()
+        self.prev_current = None
 
     def _update(self):
         pass
@@ -99,7 +100,11 @@ class StackManager(object):
         if not self.ok:
             self.done = True
 
-        rospy.logwarn("current = " + str(self.current))
+        # print a status update for debugging purposes
+        if self.prev_current is None or self.current != self.prev_current:
+            rospy.loginfo("current = " + str(self.current))
+            self.prev_current = self.current
+
         if self.current is not None:
             # Return status or continue
             if self.done:

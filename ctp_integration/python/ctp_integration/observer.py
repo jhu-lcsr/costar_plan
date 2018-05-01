@@ -13,10 +13,13 @@ class IdentityObserver(object):
         return self.world, self.task
 
 class Observer(object):
+    """ Runs the object detection algorithm and assembles the list of detected objects.
+    """
 
     def __init__(self, world, task, detect_srv, topic,
                  tf_buffer=None,
-                 tf_listener=None):
+                 tf_listener=None,
+                 verbose=0):
         '''
         Create an observer. This will take a world and other information and
         use it to provide updated worlds.
@@ -39,6 +42,7 @@ class Observer(object):
                 self.detected_objects_topic, 
                 DetectedObjectList,
                 self._detected_objects_cb)
+        self.verbose = verbose
 
     def _detected_objects_cb(self, msg):
         # Save detected objects message
@@ -71,7 +75,9 @@ class Observer(object):
             if not obj_class in args:
                 args[obj_class] = set()
             args[obj_class].add(name)
-        rospy.loginfo("Detected objects: " + str(args))
+        
+        if self.verbose:
+            rospy.loginfo("Detected objects: " + str(args))
 
         # Step 2. Compile the plan.
         #self.world.addObjects(args)

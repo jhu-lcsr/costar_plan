@@ -38,7 +38,9 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 
 class DataCollector(object):
     '''
-    Manages data collection. Will consume:
+    Buffers data from an example then writes it to disk. 
+    
+    Data received includes:
     - images from camera
     - depth data (optional)
     - current end effector pose
@@ -56,7 +58,8 @@ class DataCollector(object):
         camera_frame="camera_link",
         tf_buffer=None,
         tf_listener=None,
-        action_labels_to_always_log=None):
+        action_labels_to_always_log=None,
+        verbose=0):
 
 
         self.js_topic = "joint_states"
@@ -73,6 +76,7 @@ class DataCollector(object):
         self.camera_rgb_info_topic = "/camera/depth/camera_info"
         self.camera_rgb_optical_frame = "camera_rgb_optical_frame"
         self.camera_depth_optical_frame = "camera_depth_optical_frame"
+        self.verbose = verbose
         if action_labels_to_always_log is None:
             self.action_labels_to_always_log = ['move_to_home']
         else:
@@ -82,7 +86,6 @@ class DataCollector(object):
         Set up the writer (to save trials to disk) and subscribers (to process
         input from ROS and store the current state).
         '''
-        self.verbosity = 0
         if tf_buffer is None:
             self.tf_buffer = tf2.Buffer()
         else:
@@ -143,8 +146,6 @@ class DataCollector(object):
         self._gripper_sub = rospy.Subscriber(self.gripper_topic,
                 GripperMsg,
                 self._gripperCb)
-
-        self.verbosity = 1
 
     def _rgbCb(self, msg):
         if msg is None:
@@ -231,7 +232,7 @@ class DataCollector(object):
     def _jointsCb(self, msg):
         self.q = msg.position
         self.dq = msg.velocity
-        if self.verbosity > 3:
+        if self.verbose > 3:
             rospy.loginfo(self.q, self.dq)
 
     def save(self, seed, result):
@@ -306,12 +307,14 @@ class DataCollector(object):
         if not should_log_this_timestep:
             # here we check if a smartmove object is defined to determine
             # if we should be logging at this time.
-            rospy.logwarn("passing -- has not yet started executing motion")
+            if self.verbose:
+                rospy.logwarn("passing -- has not yet started executing motion")
             return True
 
-        rospy.loginfo("Logging: " + str(self.action) +
-                ", obj = " + str(self.object) +
-                ", prev = " + str(self.prev_objects))
+        if self.verbose:
+            rospy.loginfo("Logging: " + str(self.action) +
+                    ", obj = " + str(self.object) +
+                    ", prev = " + str(self.prev_objects))
 
         have_data = False
         attempts = 0
