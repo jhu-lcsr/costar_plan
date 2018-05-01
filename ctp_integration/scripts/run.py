@@ -236,7 +236,7 @@ def collect_data(args):
                 if stack_task.ok:
                     savestr = "WE WILL SAVE TO DISK"
                 else:
-                    savestr = "BUT THERE A PROBLEM WAS DETECTED SO WE ARE NOT SAVING TO DISK"
+                    savestr = "BUT THERE A PROBLEM WAS DETECTED SO WE ARE SAVING TO DISK AS AN ERROR + FAILURE"
                 rospy.logwarn("DONE COLLECTING THIS ROUND, " + savestr)
                 if stack_task.ok:
                     # Increase count
