@@ -221,16 +221,16 @@ def collect_data(args):
                                    'Alternately, run this program in a debugger '
                                    'to try and diagnose the issue.')
             rate.sleep()
+    
+            if stack_task.finished_action:
 
-            if (done or (stack_task.finished_action and
-                collector.prev_action is not None and
-                "place" in collector.prev_action)):
-
-                # We finished one step in the task,
-                # save the most recent pose update
-                rospy.loginfo("Remembering " + str(collector.prev_action))
-                poses.append(cur_pose)
-                reward = 0.
+                object_was_placed = (collector.prev_action is not None and
+                                    "place" in collector.prev_action.split(':')[-1])
+                if object_was_placed:
+                    # We finished one step in the task,
+                    # save the most recent pose update
+                    rospy.loginfo("Remembering " + str(collector.prev_action))
+                    poses.append(cur_pose)
 
             if done:
                 if stack_task.ok:
