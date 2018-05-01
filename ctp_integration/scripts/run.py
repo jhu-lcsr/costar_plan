@@ -106,7 +106,7 @@ def fakeTaskArgs():
 
 def collect_data(args):
     if args.launch:
-        time.sleep(10)
+        time.sleep(1)
     # Create node and read options from command line
     rospy.init_node("ctp_data_collection_runner")
 
