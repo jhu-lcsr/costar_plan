@@ -244,7 +244,7 @@ def GetUpdate(observe, collector, return_to_original_position=True):
         #res = move(req)
     
         # -------
-        # Move to joint position    
+        # Move to home joint position    
         res = go_to_js(req)
 
         if res is None or "failure" in res.ack.lower():
@@ -281,7 +281,7 @@ def GetStackManager():
     colors = GetColors()
 
     for color in colors:
-        # add first object grasp step
+        # stack is: bottom -> color2 -> color -> color3 -> top
         name = "1:grab_%s"%color
         req = _makeSmartGraspRequest(color)
         sm.addRequest(None, name, grasp, req)

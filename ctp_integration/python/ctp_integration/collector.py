@@ -147,6 +147,8 @@ class DataCollector(object):
         self.verbosity = 1
 
     def _rgbCb(self, msg):
+        if msg is None:
+            rospy.loginfo("_rgbCb: msg is None !!!!!!!!!")            
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "rgb8")
             self.rgb_img = np.asarray(cv_image)
