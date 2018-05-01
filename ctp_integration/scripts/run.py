@@ -20,21 +20,18 @@ from costar_task_plan.robotics.core import RosTaskParser
 from costar_task_plan.robotics.core import CostarWorld
 from costar_task_plan.robotics.workshop import UR5_C_MODEL_CONFIG
 from sensor_msgs.msg import JointState
-
-from ctp_integration import MakeStackTask
 from ctp_integration.observer import IdentityObserver, Observer
 from ctp_integration.collector import DataCollector
 from ctp_integration.util import GetDetectObjectsService
-from ctp_integration.stack import GetOpenGripperService
-from ctp_integration.stack import GetCloseGripperService
+from ctp_integration.util import GetOpenGripperService
+from ctp_integration.util import GetCloseGripperService
 from ctp_integration.stack import GetGraspPose
 from ctp_integration.stack import GetStackPose
-from ctp_integration.stack import GetTowerPoses
 from ctp_integration.stack import GetMoveToPose
 from ctp_integration.stack import GetHome
 from ctp_integration.stack import GetUpdate
 from ctp_integration.stack import GetStackManager
-from ctp_integration.stack import MakeStackTask
+from ctp_integration.constants import GetHomeJointSpace
 from ctp_integration.launcher import launch_main
 
 import faulthandler
@@ -115,15 +112,9 @@ def collect_data(args):
 
     # Default joints for the motion planner when it needs to go to the home
     # position - this will take us out of the way of the camera.
-    try:
-        q0 = rospy.get_param('/costar/robot/home')
-    except KeyError as e:
-        rospy.logwarn("CoSTAR home position not set, using default.")
-        q0 = [0.30, -1.33, -1.80, -0.27, 1.50, 1.60]
-
+    q0 = GetHomeJointSpace()
     # Create the task model, world, and other tools
-    rospy.loginfo("Making stack task...")
-    task = MakeStackTask()
+    # task = MakeStackTask()
     rospy.loginfo("Making world...")
     world = CostarWorld(robot_config=UR5_C_MODEL_CONFIG)
     rospy.loginfo("Aggregating TF data...")
@@ -134,25 +125,27 @@ def collect_data(args):
     rospy.loginfo("Node started, waiting for transform data...")
     rospy.sleep(0.5) # wait to cache incoming transforms
 
+    rospy.loginfo("Making stack manager...")
+    stack_task = GetStackManager()
     if args.fake:
         world.addObjects(fakeTaskArgs())
-        filled_args = task.compile(fakeTaskArgs())
-        observe = IdentityObserver(world, task)
+        filled_args = stack_task.compile(fakeTaskArgs())
+        observe = IdentityObserver(world, stack_task)
     else:
         objects = GetDetectObjectsService()
         observe = Observer(world=world,
-                task=task,
+                task=stack_task,
                 detect_srv=objects,
                 topic="/costar_sp_segmenter/detected_object_list",
                 tf_buffer=tf_buffer,
                 tf_listener=tf_listener)
 
     # print out task info
-    if args.verbose > 0:
-        print(task.nodeSummary())
-        print(task.children['ROOT()'])
+    # TODO(ahundt) re-enable summary for this task 
+    # if args.verbose > 0:
+    #     print(task.nodeSummary())
+    #     print(task.children['ROOT()'])
 
-    stack_task = GetStackManager()
     collector = DataCollector(
             task=stack_task,
             data_root="~/.costar/data",
@@ -195,6 +188,9 @@ def collect_data(args):
     i = start
     while i < args.execute:
         home()
+        t = rospy.Time(0)
+        home_pose = collector.tf_buffer.lookup_transform(collector.base_link, 'ee_link', t)
+        print("home_pose: " + str(home_pose))
         rospy.sleep(0.5) # Make sure nothing weird happens with timing
         idx = i + 1
         rospy.loginfo("Executing trial %d" % (idx))
@@ -229,6 +225,9 @@ def collect_data(args):
             if (done or (stack_task.finished_action and
                 collector.prev_action is not None and
                 "place" in collector.prev_action)):
+
+                # We finished one step in the task,
+                # save the most recent pose update
                 rospy.loginfo("Remembering " + str(collector.prev_action))
                 poses.append(cur_pose)
                 reward = 0.
@@ -244,9 +243,12 @@ def collect_data(args):
                     i += 1
 
                     # We should actually check results here
-                    home(); observe()
-                    rospy.sleep(0.5)
-                    if verify(collector.prev_object):
+                    # home and observe are now built into the actions
+                    # home(); observe()
+                    # rospy.sleep(0.5)
+                    # Get the second to last object,
+                    # since the final one is none.
+                    if verify(collector.prev_objects[-2]):
                         reward = 1.
                     else:
                         reward = 0.
@@ -264,6 +266,11 @@ def collect_data(args):
             print("")
             consecutive_bad_rounds = 0
         else:
+            # Both an error and a failure!
+            # We are saving the failure info now because
+            # some of the most interesting failure cases
+            # lead to errors.
+            collector.save(idx, "error.failure")
             print("------------------------------------------------------------")
             print("Bad data collection round, " + str(consecutive_bad_rounds) + " consecutive. Attempting to automatically reset.")
             print("If this happens repeatedly try restarting the program or loading in a debugger.")

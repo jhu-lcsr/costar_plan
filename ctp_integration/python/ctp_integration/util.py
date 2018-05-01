@@ -61,6 +61,6 @@ def GetServoModeService():
 def MakeServoToJointStateRequest(position):
     req = ServoToJointStateRequest()
     req.target.position = position
-    req.vel = 0.75
+    req.vel = 1.0
     req.accel = 0.75
     return req

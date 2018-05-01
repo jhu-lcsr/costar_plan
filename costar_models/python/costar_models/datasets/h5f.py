@@ -5,14 +5,6 @@ import numpy as np
 import os
 import datetime
 
-# TODO(ahundt) move to a utilities location
-def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
-    """ Apply a timestamp to the front of a filename description.
-
-    see: http://stackoverflow.com/a/5215012/99379
-    """
-    return datetime.datetime.now().strftime(fmt).format(fname=fname)
-
 class H5fDataset(object):
     '''
     Write out h5f datasets one file at a time, with information in filenames
@@ -29,20 +21,21 @@ class H5fDataset(object):
         except OSError as e:
             pass
 
-    def write(self, example, i, r, image_types=[]):
+    def write(self, example, filename, image_types=[]):
         '''
         Write an example out to disk.
+
+        status: success, failure or error.failure
         '''
-        status = "success" if r > 0. else "failure"
-        filename = timeStamped("example%06d.%s.h5f"%(i,status))
         filename = os.path.join(self.name, filename)
         f = h5f.File(filename, 'w')
         for key, value in example.items():
+            print('writing key: ' + str(key))
             f.create_dataset(key, data=value)
         if image_types != []:
             #dt = h5f.special_dtype(vlen=bytes)
-            for (img_type, format) in image_types:
-                f.create_dataset("type_" + img_type, data=[format])
+            for (img_type_str, img_format_str) in image_types:
+                f.create_dataset("type_" + img_type_str, data=[img_format_str])
         f.close()
 
     def load(self,success_only=False):

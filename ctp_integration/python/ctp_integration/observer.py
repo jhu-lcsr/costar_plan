@@ -47,7 +47,8 @@ class Observer(object):
     def __call__(self):
 
         # Empty out the current version of the task to get a new task model
-        self.task.clear()
+        # TODO(ahundt) figure out why this was here.
+        # self.task.clear()
 
         # Call the detect objects service and wait for response
         #world = self.world.fork()
@@ -79,6 +80,6 @@ class Observer(object):
 
         # Env is the wrapper that interfaces with the world and consumes
         # our commands
-        env = None # TODO: add this
+        # env = None # TODO: add this
         return self.task, self.world
         

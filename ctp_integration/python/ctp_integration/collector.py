@@ -20,11 +20,20 @@ from sensor_msgs.msg import JointState
 from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import String
 from robotiq_c_model_control.msg import CModel_robot_input as GripperMsg
-from ar_track_alvar_msgs.msg import AlvarMarkers
 
 import six
 import json
 import sys
+import datetime
+from constants import GetHomeJointSpace
+from constants import GetHomePose
+
+def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
+    """ Apply a timestamp to the front of a filename description.
+
+    see: http://stackoverflow.com/a/5215012/99379
+    """
+    return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
 class DataCollector(object):
@@ -46,7 +55,8 @@ class DataCollector(object):
         img_shape=(128,128),
         camera_frame="camera_link",
         tf_buffer=None,
-        tf_listener=None):
+        tf_listener=None,
+        action_labels_to_always_log=None):
 
 
         self.js_topic = "joint_states"
@@ -63,6 +73,10 @@ class DataCollector(object):
         self.camera_rgb_info_topic = "/camera/depth/camera_info"
         self.camera_rgb_optical_frame = "camera_rgb_optical_frame"
         self.camera_depth_optical_frame = "camera_depth_optical_frame"
+        if action_labels_to_always_log is None:
+            self.action_labels_to_always_log = ['move_to_home']
+        else:
+            self.action_labels_to_always_log = action_labels_to_always_log
 
         '''
         Set up the writer (to save trials to disk) and subscribers (to process
@@ -204,12 +218,13 @@ class DataCollector(object):
 
         self.info = None
         self.object = None
-        self.prev_object = None
+        self.prev_objects = []
         self.action = None
         self.prev_action = None
         self.current_ee_pose = None
         self.last_goal = 0
         self.prev_last_goal = 0
+        self.home_xyz_quat = GetHomePose()
 
     def _jointsCb(self, msg):
         self.q = msg.position
@@ -220,6 +235,8 @@ class DataCollector(object):
     def save(self, seed, result):
         '''
         Save function that wraps data set access.
+
+        result: options are 'success' 'failure' or 'error.failure'
         '''
         for k, v in self.data.items():
             print(k, np.array(v).shape)
@@ -228,8 +245,12 @@ class DataCollector(object):
         print(self.data["label"])
         print(self.data["goal_idx"])
 
+        if isinstance(result, int) or isinstance(result, float):
+            result = "success" if result > 0. else "failure"
+
+        filename = timeStamped("example%06d.%s.h5f" % (seed, result))
         # for now all examples are considered a success
-        self.writer.write(self.data, seed, result, image_types=[("image", "jpeg"), ("depth_image", "png")])
+        self.writer.write(self.data, filename, image_types=[("image", "jpeg"), ("depth_image", "png")])
         self.reset()
 
     def update(self, action_label, is_done):
@@ -248,7 +269,7 @@ class DataCollector(object):
                 switched = True
             self.prev_action = self.action
             self.action = action_label
-            self.prev_object = self.object
+            self.prev_objects.append(self.object)
             self.object = None
         if switched or is_done:
             self.prev_last_goal = self.last_goal
@@ -274,13 +295,21 @@ class DataCollector(object):
             if not len_idx  == len_label:
                 rospy.logerr("lens = " + str(len_idx) + ", " + str(len_label))
                 raise RuntimeError("incorrectly set goal idx")
-        if self.object is None:
+
+        # action text to check will be the string contents after the colon
+        label_to_check = action_label.split(':')[-1]
+
+        should_log_this_timestep = (self.object is not None or 
+                                    label_to_check in self.action_labels_to_always_log)
+        if not should_log_this_timestep:
+            # here we check if a smartmove object is defined to determine
+            # if we should be logging at this time.
             rospy.logwarn("passing -- has not yet started executing motion")
             return True
 
         rospy.loginfo("Logging: " + str(self.action) +
                 ", obj = " + str(self.object) +
-                ", prev = " + str(self.prev_object))
+                ", prev = " + str(self.prev_objects))
 
         have_data = False
         attempts = 0
@@ -291,7 +320,8 @@ class DataCollector(object):
                 self.t = t
                 c_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_frame, t)
                 ee_pose = self.tf_buffer.lookup_transform(self.base_link, self.ee_frame, t)
-                obj_pose = self.tf_buffer.lookup_transform(self.base_link, self.object, t)
+                if self.object:
+                    obj_pose = self.tf_buffer.lookup_transform(self.base_link, self.object, t)
                 rgb_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_rgb_optical_frame, t)
                 depth_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_depth_optical_frame, t)
                 all_tf2_frames_as_string = self.tf_buffer.all_frames_as_string()
@@ -359,13 +389,14 @@ class DataCollector(object):
                   ee_pose.transform.rotation.y,
                   ee_pose.transform.rotation.z,
                   ee_pose.transform.rotation.w,]
-        obj_xyz = [obj_pose.transform.translation.x,
-                 obj_pose.transform.translation.y,
-                 obj_pose.transform.translation.z,]
-        obj_quat = [obj_pose.transform.rotation.x,
-                  obj_pose.transform.rotation.y,
-                  obj_pose.transform.rotation.z,
-                  obj_pose.transform.rotation.w,]
+        if self.object:
+            obj_xyz = [obj_pose.transform.translation.x,
+                    obj_pose.transform.translation.y,
+                    obj_pose.transform.translation.z,]
+            obj_quat = [obj_pose.transform.rotation.x,
+                    obj_pose.transform.rotation.y,
+                    obj_pose.transform.rotation.z,
+                    obj_pose.transform.rotation.w,]
 
         self.current_ee_pose = pm.fromTf((ee_xyz, ee_quat))
 
@@ -375,7 +406,17 @@ class DataCollector(object):
         self.data["dq"].append(np.copy(self.dq)) # joint velocuity
         self.data["pose"].append(ee_xyz + ee_quat) # end effector pose (6 DOF)
         self.data["camera"].append(c_xyz + c_quat) # camera pose (6 DOF)
-        self.data["object_pose"].append(obj_xyz + obj_quat)
+
+        if self.object:
+            self.data["object_pose"].append(obj_xyz + obj_quat)
+        elif 'move_to_home' in label_to_check:
+            self.data["object_pose"].append(self.home_xyz_quat)
+            # TODO(ahundt) should object pose be all 0 when ther eis no object?
+            # self.data["object_pose"].append([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        else:
+            raise ValueError("Attempted to log unsupported "
+                             "object pose data for action_label " + 
+                             str(action_label))
         self.data["camera_rgb_optical_frame_pose"].append(rgb_optical_xyz + rgb_optical_quat)
         self.data["camera_depth_optical_frame_pose"].append(depth_optical_xyz + depth_optical_quat)
         #plt.figure()
@@ -405,14 +446,12 @@ class DataCollector(object):
         self.data["depth_info_R"].append(self.depth_info.R)
         self.data["depth_info_P"].append(self.depth_info.P)
         self.data["depth_distortion_model"].append(self.depth_info.distortion_model)
-        self.data["object"].append(self.object)
+        if self.object:
+            self.data["object"].append(self.object)
+        else:
+            self.data["object"].append('none')
         self.data["all_tf2_frames_as_yaml"].append(all_tf2_frames_as_yaml)
         self.data["all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json"].append(self.tf2_json)
-
-        # TODO(cpaxton): add pose of manipulated object
-        self.data["object_pose"].append(obj_xyz + obj_quat)
-
-        #self.data["depth"].append(GetJpeg(self.depth_img))
 
         return True
 
