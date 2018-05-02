@@ -376,16 +376,18 @@ class DataCollector(object):
 
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                rospy.logwarn("Collector Failed transform lookup: %s to %s, %s, %s" %
-                        (self.base_link, self.camera_frame, self.ee_frame, str(self.object)))
+                rospy.logwarn_throttle("Collector transform lookup Failed: %s to %s, %s, %s'
+                                       ' at image time %s and local time %s" %
+                                       (self.base_link, self.camera_frame, self.ee_frame, 
+                                       str(self.object), str(t), str(backup_t))
                 
                 have_data = False
                 attempts += 1
                 rospy.sleep(0.0)
                 if attempts > max_attempts - backup_timestamp_attempts:
-                    rospy.logwarn('Collector failed to use the image '
+                    rospy.logwarn_throttle('Collector failed to use the image '
                                   'rosmsg timestep, trying local ros timestamp as backup.')
-                    # try the backup timestep
+                    # try the backup timestamp
                     # even though it will be less accurate
                     t = backup_t
                 if attempts > max_attempts:
