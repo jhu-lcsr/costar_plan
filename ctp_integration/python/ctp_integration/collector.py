@@ -332,6 +332,7 @@ class DataCollector(object):
         img_jpeg = self.rgb_img
         depth_png = self.depth_img
         # decode the data, this will take some time
+        # TODO(ahundt) should img_jpeg and depth_png be protected by a mutex?
         img_jpeg = GetJpeg(img_jpeg)
         depth_png = GetPng(FloatArrayToRgbImage(depth_png))
         have_data = False
@@ -377,7 +378,7 @@ class DataCollector(object):
 
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                rospy.logwarn_throttle('Collector transform lookup Failed: %s to %s, %s, %s'
+                rospy.logwarn_throttle(0.1, 'Collector transform lookup Failed: %s to %s, %s, %s'
                                        ' at image time %s and local time %s' %
                                        (self.base_link, self.camera_frame, self.ee_frame, 
                                        str(self.object), str(t), str(backup_t)))
@@ -386,7 +387,7 @@ class DataCollector(object):
                 attempts += 1
                 rospy.sleep(0.0)
                 if attempts > max_attempts - backup_timestamp_attempts:
-                    rospy.logwarn_throttle('Collector failed to use the image '
+                    rospy.logwarn_throttle(0.1, 'Collector failed to use the image '
                                   'rosmsg timestep, trying local ros timestamp as backup.')
                     # try the backup timestamp
                     # even though it will be less accurate
