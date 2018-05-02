@@ -243,12 +243,13 @@ class DataCollector(object):
 
         result: options are 'success' 'failure' or 'error.failure'
         '''
-        for k, v in self.data.items():
-            print(k, np.array(v).shape)
-        print(self.data["labels_to_name"])
-        print("Labels and goals:")
-        print(self.data["label"])
-        print(self.data["goal_idx"])
+        if self.verbose:
+            for k, v in self.data.items():
+                print(k, np.array(v).shape)
+            print(self.data["labels_to_name"])
+            print("Labels and goals:")
+            print(self.data["label"])
+            print(self.data["goal_idx"])
 
         if isinstance(result, int) or isinstance(result, float):
             result = "success" if result > 0. else "failure"
