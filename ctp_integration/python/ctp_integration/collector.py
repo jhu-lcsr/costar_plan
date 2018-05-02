@@ -377,10 +377,10 @@ class DataCollector(object):
 
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                rospy.logwarn_throttle("Collector transform lookup Failed: %s to %s, %s, %s'
-                                       ' at image time %s and local time %s" %
+                rospy.logwarn_throttle('Collector transform lookup Failed: %s to %s, %s, %s'
+                                       ' at image time %s and local time %s' %
                                        (self.base_link, self.camera_frame, self.ee_frame, 
-                                       str(self.object), str(t), str(backup_t))
+                                       str(self.object), str(t), str(backup_t)))
                 
                 have_data = False
                 attempts += 1
