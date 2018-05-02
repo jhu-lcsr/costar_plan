@@ -255,6 +255,7 @@ class DataCollector(object):
             result = "success" if result > 0. else "failure"
 
         filename = timeStamped("example%06d.%s.h5f" % (seed, result))
+        rospy.loginfo('Saving dataset example with filename: ' + filename)
         # for now all examples are considered a success
         self.writer.write(self.data, filename, image_types=[("image", "jpeg"), ("depth_image", "png")])
         self.reset()
