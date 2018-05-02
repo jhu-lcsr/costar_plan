@@ -106,7 +106,7 @@ def fakeTaskArgs():
 
 def collect_data(args):
     if args.launch:
-        time.sleep(1)
+        time.sleep(5)
     # Create node and read options from command line
     rospy.init_node("ctp_data_collection_runner")
 
@@ -195,9 +195,9 @@ def collect_data(args):
         # initialize duration remaining time counter
         rate.sleep()
         t = rospy.Time(0)
-        home_pose = collector.tf_buffer.lookup_transform(collector.base_link, 'ee_link', t)
-        print("home_pose: " + str(home_pose))
-        rospy.sleep(0.5) # Make sure nothing weird happens with timing
+        # home_pose = collector.tf_buffer.lookup_transform(collector.base_link, 'ee_link', t)
+        # print("home_pose: " + str(home_pose))
+        # rospy.sleep(0.5) # Make sure nothing weird happens with timing
         idx = i + 1
         rospy.loginfo("Executing trial %d" % (idx))
         _, world = observe()
@@ -219,17 +219,25 @@ def collect_data(args):
             cur_pose = collector.current_ee_pose
 
             # Note: this will be "dummied out" for most of
+            start_time = time.clock()
             done = stack_task.tick()
+            tick_time = time.clock()
             if not collector.update(stack_task.current, done):
                 raise RuntimeError('could not handle data collection. '
                                    'There may be an inconsistency in the system state '
                                    'so try shutting all of ROS down and starting up again. '
                                    'Alternately, run this program in a debugger '
                                    'to try and diagnose the issue.')
+            update_time = time.clock()
+
+            # figure out where the time has gone
+            time_str = ('Total tick + log time: ' + str(update_time - start_time) +
+                        ' Robot Tick: ' + str(tick_time - start_time) + 
+                        ' Data Logging: ' + str(update_time - tick_time))
             
             # Check if this script is running quickly enough, 
             # and print a warning if it isn't
-            verify_update_rate(update_time_remaining=rate.remaining(), update_rate=args.rate)
+            verify_update_rate(update_time_remaining=rate.remaining(), update_rate=args.rate, info=time_str)
             rate.sleep()
     
             if stack_task.finished_action:
@@ -317,7 +325,7 @@ def collect_data(args):
 
         rospy.loginfo("Done one loop.")
 
-def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rate_fraction_allowed=0.1):
+def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rate_fraction_allowed=0.1, info=''):
     """
     make sure at least 10% of time is remaining when updates are performed.
     we are converting to nanoseconds here since
@@ -330,8 +338,9 @@ def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rat
     if update_time_remaining < min_remaining_duration:
         rospy.logwarn_throttle(1.0, 'Not maintaining requested update rate!\n'
                                '    Update rate is: ' + str(update_rate) + 'Hz, Duration is '+ str(update_duration_sec) +' sec\n' +
-                               '    Minimum time allowed time remaining is: ' + str(minimum_allowed_remaining_time) + ' sec \n'  +
-                               '    Actual remaining on this update was: ' + str(float(str(update_time_remaining))/1.0e9) + ' sec')
+                               '    Minimum time allowed time remaining is: ' + str(minimum_allowed_remaining_time) + ' sec\n'  +
+                               '    Actual remaining on this update was: ' + str(float(str(update_time_remaining))/1.0e9) + ' sec\n' +
+                               '    ' + info)
 
 def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper,
                       block_width=0.025, backoff_distance=0.075, i="", verbose=0):
