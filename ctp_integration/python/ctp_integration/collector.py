@@ -27,6 +27,7 @@ import sys
 import datetime
 from constants import GetHomeJointSpace
 from constants import GetHomePose
+from threading import Lock
 
 def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     """ Apply a timestamp to the front of a filename description.
@@ -77,6 +78,7 @@ class DataCollector(object):
         self.camera_rgb_optical_frame = "camera_rgb_optical_frame"
         self.camera_depth_optical_frame = "camera_depth_optical_frame"
         self.verbose = verbose
+        self.mutex = Lock()
         if action_labels_to_always_log is None:
             self.action_labels_to_always_log = ['move_to_home']
         else:
@@ -152,9 +154,13 @@ class DataCollector(object):
         if msg is None:
             rospy.loginfo("_rgbCb: msg is None !!!!!!!!!")            
         try:
-            self.rgb_time = msg.header.stamp
             cv_image = self._bridge.imgmsg_to_cv2(msg, "rgb8")
-            self.rgb_img = np.asarray(cv_image)
+            rgb_img = np.asarray(cv_image)
+
+            self.mutex.acquire()
+            self.rgb_time = msg.header.stamp
+            self.rgb_img = rgb_img
+            self.mutex.release()
             #print(self.rgb_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
@@ -177,7 +183,11 @@ class DataCollector(object):
     def _depthCb(self, msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg)
-            self.depth_img = np.asarray(cv_image)
+            depth_img = np.asarray(cv_image)
+
+            self.mutex.acquire()
+            self.depth_img = depth_img
+            self.mutex.release()
             #print (self.depth_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
@@ -294,8 +304,11 @@ class DataCollector(object):
             rospy.loginfo("Starting new action: "
                     + str(action_label)
                     + ", prev was from "
-                    + str(self.prev_last_goal)
-                    + " to " + str(self.last_goal))
+                    + str(self.prev_last_goal) 
+                    # + ' ' + (str(self.data["label"][self.prev_last_goal]) if self.prev_last_goal else "")
+                    + " to " + str(self.last_goal) 
+                    # + ' ' + (str(self.data["label"][self.last_goal]) if self.last_goal else "")
+                    )
             self.data["goal_idx"] += (self.last_goal - self.prev_last_goal + extra) * [self.last_goal]
 
             len_idx = len(self.data["goal_idx"])
@@ -320,12 +333,14 @@ class DataCollector(object):
                     ", obj = " + str(self.object) +
                     ", prev = " + str(self.prev_objects))
 
-        backup_t = rospy.Time(0)
+        local_t = rospy.Time(0)
+        ##### BEGIN MUTEX
+        self.mutex.acquire()
         # get the time for this data sample
         if self.rgb_time is not None:
             t = self.rgb_time
         else:
-            t = backup_t
+            t = local_t
             
         self.t = t
         # make sure we keep the right rgb and depth
@@ -335,6 +350,9 @@ class DataCollector(object):
         # TODO(ahundt) should img_jpeg and depth_png be protected by a mutex?
         img_jpeg = GetJpeg(img_jpeg)
         depth_png = GetPng(FloatArrayToRgbImage(depth_png))
+        self.mutex.release()
+        ##### END MUTEX
+
         have_data = False
         # how many times have we tried to get the transforms
         attempts = 0
@@ -381,7 +399,7 @@ class DataCollector(object):
                 rospy.logwarn_throttle(0.1, 'Collector transform lookup Failed: %s to %s, %s, %s'
                                        ' at image time %s and local time %s' %
                                        (self.base_link, self.camera_frame, self.ee_frame, 
-                                       str(self.object), str(t), str(backup_t)))
+                                       str(self.object), str(t), str(local_t)))
                 
                 have_data = False
                 attempts += 1
@@ -391,7 +409,7 @@ class DataCollector(object):
                                   'rosmsg timestep, trying local ros timestamp as backup.')
                     # try the backup timestamp
                     # even though it will be less accurate
-                    t = backup_t
+                    t = local_t
                 if attempts > max_attempts:
                     # Could not look up one of the transforms -- either could
                     # not look up camera, endpoint, or object.

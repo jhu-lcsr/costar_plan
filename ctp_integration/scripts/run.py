@@ -84,7 +84,7 @@ def getArgs():
     parser.add_argument("--rate", "-r",
                         default=10,
                         type=int,
-                        help="rate at which data will be collected")
+                        help="rate at which data will be collected in hertz")
 
     return parser.parse_args()
 
@@ -186,8 +186,14 @@ def collect_data(args):
     max_consecutive_bad_rounds = 5
     start = max(0, args.start-1)
     i = start
+
+    # start main execution loop, should run at specified rate
     while i < args.execute:
         home()
+
+        # perform initial rate sleep to 
+        # initialize duration remaining time counter
+        rate.sleep()
         t = rospy.Time(0)
         home_pose = collector.tf_buffer.lookup_transform(collector.base_link, 'ee_link', t)
         print("home_pose: " + str(home_pose))
@@ -220,6 +226,10 @@ def collect_data(args):
                                    'so try shutting all of ROS down and starting up again. '
                                    'Alternately, run this program in a debugger '
                                    'to try and diagnose the issue.')
+            
+            # Check if this script is running quickly enough, 
+            # and print a warning if it isn't
+            verify_update_rate(update_time_remaining=rate.remaining(), update_rate=args.rate)
             rate.sleep()
     
             if stack_task.finished_action:
@@ -307,6 +317,22 @@ def collect_data(args):
 
         rospy.loginfo("Done one loop.")
 
+def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rate_fraction_allowed=0.1):
+    """
+    make sure at least 10% of time is remaining when updates are performed.
+    we are converting to nanoseconds here since
+    that is the unit in which all reasonable
+    rates are expected to be measured
+    """
+    update_duration_sec = 1.0 / update_rate
+    minimum_allowed_remaining_time = update_duration_sec * minimum_update_rate_fraction_allowed
+    min_remaining_duration = rospy.Duration(minimum_allowed_remaining_time)
+    if update_time_remaining < min_remaining_duration:
+        rospy.logwarn_throttle(1.0, 'Not maintaining requested update rate!\n'
+                               '    Update rate is: ' + str(update_rate) + 'Hz, Duration is '+ str(update_duration_sec) +' sec\n' +
+                               '    Minimum time allowed time remaining is: ' + str(minimum_allowed_remaining_time) + ' sec \n'  +
+                               '    Actual remaining on this update was: ' + str(float(str(update_time_remaining))/1.0e9) + ' sec')
+
 def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper,
                       block_width=0.025, backoff_distance=0.075, i="", verbose=0):
     """ drop_pose is the top position of a block
@@ -314,6 +340,8 @@ def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper,
     This function will go above that block, open the gripper, grasp the block,
     then place the block at a random location.
     """
+    if drop_pose is None:
+        return
     # Determine destination spot above the block
     grasp_pose = copy.deepcopy(drop_pose)
     grasp_pose.p[2] -= backoff_distance # should be smart release backoff distance
@@ -324,20 +352,32 @@ def unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper,
     pose_random = random_drop_coordinate(grasp_pose, drop_pose)
     if verbose:
         rospy.loginfo('unstack block ' + str(i) + ' from top to bottom drop_pose:\n' + str(drop_pose))
-    # go to where the object was originally dropped from 
+    # go to where the object was originally dropped from
     move_to_pose(drop_pose)
     if verbose:
         rospy.loginfo('unstack block ' + str(i) + ' from top to bottom  grasp_pose:\n' + str(grasp_pose))
     # move down to grasp an object
-    move_to_pose(grasp_pose)
+    if grasp_pose is not None:
+        move_to_pose(grasp_pose)
+    else:
+        rospy.logwarn('unstack_one_block() grasp_pose was None! this needs to be debugged')
     close_gripper()
     if verbose:
-        rospy.loginfo('unstack block ' + str(i) + ' from top to bottom  grasp_pose2:\n' + str(grasp_pose2))
+        rospy.loginfo('unstack_one_block() ' + str(i) + ' from top to bottom  grasp_pose2:\n' + str(grasp_pose2))
     # move up a small amount so there won't be a collision
-    move_to_pose(grasp_pose2)
+    if grasp_pose2 is not None:
+        move_to_pose(grasp_pose2)
+    else:
+        rospy.logwarn('unstack_one_block() grasp_pose2 was None! this needs to be debugged')
+
     # move to random drop location
-    rospy.logwarn(str(pose_random))
-    move_to_pose(pose_random)
+    if verbose:
+        rospy.loginfo('unstack_one_block() random drop pose: \n' + str(pose_random))
+    if grasp_pose2 is not None:
+        move_to_pose(pose_random)
+    else:
+        rospy.logwarn('unstack_one_block() pose_random was None! this needs to be debugged')
+    
     # release the object
     open_gripper()
     return grasp_pose2
