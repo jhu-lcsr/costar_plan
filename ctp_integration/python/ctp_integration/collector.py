@@ -334,8 +334,12 @@ class DataCollector(object):
         img_jpeg = GetJpeg(img_jpeg)
         depth_png = GetPng(FloatArrayToRgbImage(depth_png))
         have_data = False
+        # how many times have we tried to get the transforms
         attempts = 0
         max_attempts = 10
+        # the number attempts that should
+        # use the backup timestamps
+        backup_timestamp_attempts = 4
         while not have_data:
             try:
                 c_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_frame, t)
@@ -378,7 +382,7 @@ class DataCollector(object):
                 have_data = False
                 attempts += 1
                 rospy.sleep(0.0)
-                if attempts > max_attempts - 2:
+                if attempts > max_attempts - backup_timestamp_attempts:
                     rospy.logwarn('Collector failed to use the image '
                                   'rosmsg timestep, trying local ros timestamp as backup.')
                     # try the backup timestep
