@@ -231,9 +231,9 @@ def collect_data(args):
             update_time = time.clock()
 
             # figure out where the time has gone
-            time_str = ('Total tick + log time: ' + str(update_time - start_time) +
-                        ' Robot Tick: ' + str(tick_time - start_time) + 
-                        ' Data Logging: ' + str(update_time - tick_time))
+            time_str = ('Total tick + log time: {:04} sec, '
+                        'Robot Tick: {:04} sec, '
+                        'Data Logging: {:04} sec'.format(update_time - start_time, tick_time - start_time, update_time - tick_time))
             
             # Check if this script is running quickly enough, 
             # and print a warning if it isn't
