@@ -393,42 +393,12 @@ class DataCollector(object):
                     # not look up camera, endpoint, or object.
                     raise e
 
-        c_xyz = [c_pose.transform.translation.x,
-                 c_pose.transform.translation.y,
-                 c_pose.transform.translation.z,]
-        c_quat = [c_pose.transform.rotation.x,
-                  c_pose.transform.rotation.y,
-                  c_pose.transform.rotation.z,
-                  c_pose.transform.rotation.w,]
-        rgb_optical_xyz = [rgb_optical_pose.transform.translation.x,
-                           rgb_optical_pose.transform.translation.y,
-                           rgb_optical_pose.transform.translation.z,]
-        rgb_optical_quat = [rgb_optical_pose.transform.rotation.x,
-                  rgb_optical_pose.transform.rotation.y,
-                  rgb_optical_pose.transform.rotation.z,
-                  rgb_optical_pose.transform.rotation.w,]
-        depth_optical_xyz = [depth_optical_pose.transform.translation.x,
-                             depth_optical_pose.transform.translation.y,
-                             depth_optical_pose.transform.translation.z,]
-        depth_optical_quat = [depth_optical_pose.transform.rotation.x,
-                              depth_optical_pose.transform.rotation.y,
-                              depth_optical_pose.transform.rotation.z,
-                              depth_optical_pose.transform.rotation.w,]
-        ee_xyz = [ee_pose.transform.translation.x,
-                 ee_pose.transform.translation.y,
-                 ee_pose.transform.translation.z,]
-        ee_quat = [ee_pose.transform.rotation.x,
-                  ee_pose.transform.rotation.y,
-                  ee_pose.transform.rotation.z,
-                  ee_pose.transform.rotation.w,]
+        c_xyz_quat = self.pose_to_vec_quat_list(c_pose)
+        rgb_optical_xyz_quat = self.pose_to_vec_quat_list(rgb_optical_pose)
+        depth_optical_xyz_quat = self.pose_to_vec_quat_list(depth_optical_pose)
+        ee_xyz_quat = self.pose_to_vec_quat_list(ee_pose)
         if self.object:
-            obj_xyz = [obj_pose.transform.translation.x,
-                    obj_pose.transform.translation.y,
-                    obj_pose.transform.translation.z,]
-            obj_quat = [obj_pose.transform.rotation.x,
-                    obj_pose.transform.rotation.y,
-                    obj_pose.transform.rotation.z,
-                    obj_pose.transform.rotation.w,]
+            obj_xyz_quat = self.pose_to_vec_quat_list(obj_pose)
 
         self.current_ee_pose = pm.fromTf((ee_xyz, ee_quat))
 
@@ -436,11 +406,11 @@ class DataCollector(object):
         self.data["secs"].append(np.copy(self.t.secs)) # time
         self.data["q"].append(np.copy(self.q)) # joint position
         self.data["dq"].append(np.copy(self.dq)) # joint velocuity
-        self.data["pose"].append(ee_xyz + ee_quat) # end effector pose (6 DOF)
-        self.data["camera"].append(c_xyz + c_quat) # camera pose (6 DOF)
+        self.data["pose"].append(ee_xyz_quat) # end effector pose (6 DOF)
+        self.data["camera"].append(c_xyz_quat) # camera pose (6 DOF)
 
         if self.object:
-            self.data["object_pose"].append(obj_xyz + obj_quat)
+            self.data["object_pose"].append(obj_xyz_quat)
         elif 'move_to_home' in label_to_check:
             self.data["object_pose"].append(self.home_xyz_quat)
             # TODO(ahundt) should object pose be all 0 when ther eis no object?
@@ -449,8 +419,8 @@ class DataCollector(object):
             raise ValueError("Attempted to log unsupported "
                              "object pose data for action_label " + 
                              str(action_label))
-        self.data["camera_rgb_optical_frame_pose"].append(rgb_optical_xyz + rgb_optical_quat)
-        self.data["camera_depth_optical_frame_pose"].append(depth_optical_xyz + depth_optical_quat)
+        self.data["camera_rgb_optical_frame_pose"].append(rgb_optical_xyz_quat)
+        self.data["camera_depth_optical_frame_pose"].append(depth_optical_xyz_quat)
         #plt.figure()
         #plt.imshow(self.rgb_img)
         #plt.show()
@@ -484,6 +454,16 @@ class DataCollector(object):
         self.data["all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json"].append(self.tf2_json)
 
         return True
+
+    def pose_to_vec_quat_list(self, c_pose):
+        c_xyz = [c_pose.transform.translation.x,
+                 c_pose.transform.translation.y,
+                 c_pose.transform.translation.z,]
+        c_quat = [c_pose.transform.rotation.x,
+                  c_pose.transform.rotation.y,
+                  c_pose.transform.rotation.z,
+                  c_pose.transform.rotation.w,]
+        return c_xyz + c_quat
 
 if __name__ == '__main__':
     pass
