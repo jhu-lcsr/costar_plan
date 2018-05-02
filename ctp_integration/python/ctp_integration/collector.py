@@ -336,7 +336,7 @@ class DataCollector(object):
                     ", obj = " + str(self.object) +
                     ", prev = " + str(self.prev_objects))
 
-        local_time = rospy.time.now()
+        local_time = rospy.Time.now()
         # this will get the latest available time
         latest_available_time_lookup = rospy.Time(0)
         ##### BEGIN MUTEX
@@ -366,17 +366,47 @@ class DataCollector(object):
                 c_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_frame, t)
                 ee_pose = self.tf_buffer.lookup_transform(self.base_link, self.ee_frame, t)
                 if self.object:
-                    obj_pose = self.tf_buffer.lookup_transform(self.base_link, self.object, t)
+                    lookup_object = False
+                    # Check for the detected object at the current time.
+                    try:
+                        obj_pose = self.tf_buffer.lookup_transform(self.base_link, self.object, t)
+                        lookup_object = True
+                    except (tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+                        pass
+                    if not lookup_object:
+                        # If we can't get the current time for the object, 
+                        # get the latest available. This particular case will be common.
+                        # This is because the object detection srcipt can only run when the 
+                        # arm is out of the way.
+                        obj_pose = self.tf_buffer.lookup_transform(self.base_link, self.object, latest_available_time_lookup)
+
                 rgb_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_rgb_optical_frame, t)
                 depth_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_depth_optical_frame, t)
                 all_tf2_frames_as_string = self.tf_buffer.all_frames_as_string()
                 self.tf2_dict = {}
                 transform_strings = all_tf2_frames_as_string.split('\n')
+                # get all of the other tf2 transforms
+                # using the latest available frame as a fallback 
+                # if the current timestep frame isn't available
                 for transform_string in transform_strings:
                     transform_tokens = transform_string.split(' ')
                     if len(transform_tokens) > 1:
                         k = transform_tokens[1]
                         try:
+
+                            lookup_object = False
+                            # Check for the detected object at the current time.
+                            try:
+                                k_pose = self.tf_buffer.lookup_transform(self.base_link, k, t)
+                                lookup_object = True
+                            except (tf2.ExtrapolationException, tf2.ConnectivityException) as e:
+                                pass
+                            if not lookup_object:
+                                # If we can't get the current time for the object, 
+                                # get the latest available. This particular case will be common.
+                                # This is because the object detection srcipt can only run when the 
+                                # arm is out of the way.
+                                k_pose = self.tf_buffer.lookup_transform(self.base_link, k, latest_available_time_lookup)
                             k_pose = self.tf_buffer.lookup_transform(self.base_link, k, t)
     
                             k_xyz_qxqyqzqw = [
@@ -398,8 +428,8 @@ class DataCollector(object):
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                 rospy.logwarn_throttle(1.0, 'Collector transform lookup Failed: %s to %s, %s, %s'
-                                       ' at image time %s and local time %s'
-                                       'Note: This message may print less often than the problem occurrs.' %
+                                       ' at image time: %s and local time: %s '
+                                       '\nNote: This message may print less often than the problem occurs.' %
                                        (self.base_link, self.camera_frame, self.ee_frame, 
                                        str(self.object), str(t), str(latest_available_time_lookup)))
                 
@@ -410,7 +440,7 @@ class DataCollector(object):
                     rospy.logwarn_throttle(1.0, 
                                           'Collector failed to use the rgb image rosmsg timestamp, '
                                           'trying latest available time as backup. '
-                                          'Note: This message may print less often than the problem occurrs.')
+                                          'Note: This message may print less often than the problem occurs.')
                     # try the backup timestamp even though it will be less accurate
                     t = latest_available_time_lookup
                 if attempts > max_attempts:
@@ -419,8 +449,13 @@ class DataCollector(object):
                     raise e
 
         if t == latest_available_time_lookup:
-            # use the local timestamp even though it will be less accurate
-            t = local_time
+            # Use either the latest available timestamp or 
+            # the local timestamp as backup,
+            # even though it will be less accurate
+            if self.rgb_time is not None:
+                t = self.rgb_time
+            else:
+                t = local_time
         c_xyz_quat = pose_to_vec_quat_list(c_pose)
         rgb_optical_xyz_quat = pose_to_vec_quat_list(rgb_optical_pose)
         depth_optical_xyz_quat = pose_to_vec_quat_list(depth_optical_pose)
