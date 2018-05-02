@@ -393,24 +393,24 @@ class DataCollector(object):
                     # not look up camera, endpoint, or object.
                     raise e
 
-        c_xyz_quat = self.pose_to_vec_quat_list(c_pose)
-        rgb_optical_xyz_quat = self.pose_to_vec_quat_list(rgb_optical_pose)
-        depth_optical_xyz_quat = self.pose_to_vec_quat_list(depth_optical_pose)
-        ee_xyz_quat = self.pose_to_vec_quat_list(ee_pose)
+        c_xyz_quat = pose_to_vec_quat_list(c_pose)
+        rgb_optical_xyz_quat = pose_to_vec_quat_list(rgb_optical_pose)
+        depth_optical_xyz_quat = pose_to_vec_quat_list(depth_optical_pose)
+        ee_xyz_quat = pose_to_vec_quat_list(ee_pose)
         if self.object:
-            obj_xyz_quat = self.pose_to_vec_quat_list(obj_pose)
+            obj_xyz_quat = pose_to_vec_quat_list(obj_pose)
 
-        self.current_ee_pose = pm.fromTf((ee_xyz, ee_quat))
+        self.current_ee_pose = pm.fromTf(pose_to_vec_quat_pair(ee_pose))
 
         self.data["nsecs"].append(np.copy(self.t.nsecs)) # time
         self.data["secs"].append(np.copy(self.t.secs)) # time
         self.data["q"].append(np.copy(self.q)) # joint position
         self.data["dq"].append(np.copy(self.dq)) # joint velocuity
-        self.data["pose"].append(ee_xyz_quat) # end effector pose (6 DOF)
-        self.data["camera"].append(c_xyz_quat) # camera pose (6 DOF)
+        self.data["pose"].append(np.copy(ee_xyz_quat)) # end effector pose (6 DOF)
+        self.data["camera"].append(np.copy(c_xyz_quat)) # camera pose (6 DOF)
 
         if self.object:
-            self.data["object_pose"].append(obj_xyz_quat)
+            self.data["object_pose"].append(np.copy(obj_xyz_quat))
         elif 'move_to_home' in label_to_check:
             self.data["object_pose"].append(self.home_xyz_quat)
             # TODO(ahundt) should object pose be all 0 when ther eis no object?
@@ -435,7 +435,7 @@ class DataCollector(object):
 
         action = self.task.index(action_label)
         self.data["label"].append(action)  # integer code for high-level action
-        self.data["info"].append(self.info)  # string description of current step
+        self.data["info"].append(np.copy(self.info))  # string description of current step
         self.data["rgb_info_D"].append(self.rgb_info.D)
         self.data["rgb_info_K"].append(self.rgb_info.K)
         self.data["rgb_info_R"].append(self.rgb_info.R)
@@ -447,7 +447,7 @@ class DataCollector(object):
         self.data["depth_info_P"].append(self.depth_info.P)
         self.data["depth_distortion_model"].append(self.depth_info.distortion_model)
         if self.object:
-            self.data["object"].append(self.object)
+            self.data["object"].append(np.copy(self.object))
         else:
             self.data["object"].append('none')
         self.data["all_tf2_frames_as_yaml"].append(all_tf2_frames_as_yaml)
@@ -455,15 +455,19 @@ class DataCollector(object):
 
         return True
 
-    def pose_to_vec_quat_list(self, c_pose):
-        c_xyz = [c_pose.transform.translation.x,
-                 c_pose.transform.translation.y,
-                 c_pose.transform.translation.z,]
-        c_quat = [c_pose.transform.rotation.x,
-                  c_pose.transform.rotation.y,
-                  c_pose.transform.rotation.z,
-                  c_pose.transform.rotation.w,]
-        return c_xyz + c_quat
+def pose_to_vec_quat_pair(c_pose):
+    c_xyz = [c_pose.transform.translation.x,
+                c_pose.transform.translation.y,
+                c_pose.transform.translation.z,]
+    c_quat = [c_pose.transform.rotation.x,
+                c_pose.transform.rotation.y,
+                c_pose.transform.rotation.z,
+                c_pose.transform.rotation.w,]
+    return c_xyz, c_quat
+
+def pose_to_vec_quat_list(c_pose):
+    c_xyz, c_quat = pose_to_vec_quat_pair(c_pose)
+    return c_xyz + c_quat
 
 if __name__ == '__main__':
     pass
