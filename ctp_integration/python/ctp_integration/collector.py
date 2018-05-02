@@ -155,7 +155,8 @@ class DataCollector(object):
             rospy.loginfo("_rgbCb: msg is None !!!!!!!!!")            
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg, "rgb8")
-            rgb_img = np.asarray(cv_image)
+            # decode the data, this will take some time
+            rgb_img = GetJpeg(np.asarray(cv_image))
 
             self.mutex.acquire()
             self.rgb_time = msg.header.stamp
@@ -183,9 +184,11 @@ class DataCollector(object):
     def _depthCb(self, msg):
         try:
             cv_image = self._bridge.imgmsg_to_cv2(msg)
-            depth_img = np.asarray(cv_image)
+            # decode the data, this will take some time
+            depth_img = GetPng(FloatArrayToRgbImage(np.asarray(cv_image)))
 
             self.mutex.acquire()
+            self.depth_img_time = msg.header.stamp
             self.depth_img = depth_img
             self.mutex.release()
             #print (self.depth_img)
@@ -333,23 +336,21 @@ class DataCollector(object):
                     ", obj = " + str(self.object) +
                     ", prev = " + str(self.prev_objects))
 
-        local_t = rospy.Time(0)
+        local_time = rospy.time.now()
+        # this will get the latest available time
+        latest_available_time_lookup = rospy.Time(0)
         ##### BEGIN MUTEX
         self.mutex.acquire()
         # get the time for this data sample
         if self.rgb_time is not None:
             t = self.rgb_time
         else:
-            t = local_t
+            t = local_time
             
         self.t = t
         # make sure we keep the right rgb and depth
         img_jpeg = self.rgb_img
         depth_png = self.depth_img
-        # decode the data, this will take some time
-        # TODO(ahundt) should img_jpeg and depth_png be protected by a mutex?
-        img_jpeg = GetJpeg(img_jpeg)
-        depth_png = GetPng(FloatArrayToRgbImage(depth_png))
         self.mutex.release()
         ##### END MUTEX
 
@@ -369,8 +370,6 @@ class DataCollector(object):
                 rgb_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_rgb_optical_frame, t)
                 depth_optical_pose = self.tf_buffer.lookup_transform(self.base_link, self.camera_depth_optical_frame, t)
                 all_tf2_frames_as_string = self.tf_buffer.all_frames_as_string()
-                # don't load the yaml because it can take up to 0.2 seconds
-                all_tf2_frames_as_yaml = self.tf_buffer.all_frames_as_yaml()
                 self.tf2_dict = {}
                 transform_strings = all_tf2_frames_as_string.split('\n')
                 for transform_string in transform_strings:
@@ -392,29 +391,36 @@ class DataCollector(object):
                         except (tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                             pass
                 
+                # don't load the yaml because it can take up to 0.2 seconds
+                all_tf2_frames_as_yaml = self.tf_buffer.all_frames_as_yaml()
                 self.tf2_json = json.dumps(self.tf2_dict)
 
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                rospy.logwarn_throttle(0.1, 'Collector transform lookup Failed: %s to %s, %s, %s'
-                                       ' at image time %s and local time %s' %
+                rospy.logwarn_throttle(1.0, 'Collector transform lookup Failed: %s to %s, %s, %s'
+                                       ' at image time %s and local time %s'
+                                       'Note: This message may print less often than the problem occurrs.' %
                                        (self.base_link, self.camera_frame, self.ee_frame, 
-                                       str(self.object), str(t), str(local_t)))
+                                       str(self.object), str(t), str(latest_available_time_lookup)))
                 
                 have_data = False
                 attempts += 1
-                rospy.sleep(0.0)
+                # rospy.sleep(0.0)
                 if attempts > max_attempts - backup_timestamp_attempts:
-                    rospy.logwarn_throttle(0.1, 'Collector failed to use the image '
-                                  'rosmsg timestep, trying local ros timestamp as backup.')
-                    # try the backup timestamp
-                    # even though it will be less accurate
-                    t = local_t
+                    rospy.logwarn_throttle(1.0, 
+                                          'Collector failed to use the rgb image rosmsg timestamp, '
+                                          'trying latest available time as backup. '
+                                          'Note: This message may print less often than the problem occurrs.')
+                    # try the backup timestamp even though it will be less accurate
+                    t = latest_available_time_lookup
                 if attempts > max_attempts:
                     # Could not look up one of the transforms -- either could
                     # not look up camera, endpoint, or object.
                     raise e
 
+        if t == latest_available_time_lookup:
+            # use the local timestamp even though it will be less accurate
+            t = local_time
         c_xyz_quat = pose_to_vec_quat_list(c_pose)
         rgb_optical_xyz_quat = pose_to_vec_quat_list(rgb_optical_pose)
         depth_optical_xyz_quat = pose_to_vec_quat_list(depth_optical_pose)
@@ -478,18 +484,18 @@ class DataCollector(object):
         return True
 
 def pose_to_vec_quat_pair(c_pose):
-    c_xyz = [c_pose.transform.translation.x,
+    c_xyz = np.array([c_pose.transform.translation.x,
                 c_pose.transform.translation.y,
-                c_pose.transform.translation.z,]
-    c_quat = [c_pose.transform.rotation.x,
+                c_pose.transform.translation.z,])
+    c_quat = np.array([c_pose.transform.rotation.x,
                 c_pose.transform.rotation.y,
                 c_pose.transform.rotation.z,
-                c_pose.transform.rotation.w,]
+                c_pose.transform.rotation.w,])
     return c_xyz, c_quat
 
 def pose_to_vec_quat_list(c_pose):
     c_xyz, c_quat = pose_to_vec_quat_pair(c_pose)
-    return c_xyz + c_quat
+    return np.concatenate([c_xyz, c_quat])
 
 if __name__ == '__main__':
     pass
