@@ -322,10 +322,13 @@ def collect_data(args):
             # move vertically down in the z axis
             drop_pose.p[2] -= 0.125
             result = None
-            max_tries = 3
+            max_tries = 1
             tries = 0
             # sometimes this tries to go below the floor,
-            # so go up a bit on errors.
+            # so go up a bit on errors, then just give
+            # up and move on if it still doesn't work
+            # because the block will likely already
+            # be in a reasonable position.
             while tries < max_tries and result is None:
                 try:
                     result = unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)

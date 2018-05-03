@@ -30,7 +30,7 @@ except ImportError:
         return kwargs.get('iterable', None)
 
 from costar_models.datasets.image import JpegToNumpy
-from costar_models.datasets.image import ConvertJpegListToNumpy
+from costar_models.datasets.image import ConvertImageListToNumpy
 import pygame
 
 
@@ -64,6 +64,7 @@ def _parse_args():
     parser.add_argument("--ignore_failure", type=bool, default=False, help='skip grasp failure cases')
     parser.add_argument("--ignore_success", type=bool, default=False, help='skip grasp success cases')
     parser.add_argument("--preview", type=bool, default=False, help='pop open a preview window to view the video data')
+    parser.add_argument("--depth", type=bool, default=False, help='process depth data instead of rgb data')
     return vars(parser.parse_args())
 
 def main(args,root="root"):
@@ -92,10 +93,14 @@ def main(args,root="root"):
         progress_bar.set_description("Processing %s" % example_filename)
 
         data = h5py.File(example_filename,'r')
-        images = list(data['image'])
-        # images = ConvertJpegListToNumpy(np.squeeze(images), format='list', data_format='NCHW')
-        images = ConvertJpegListToNumpy(np.squeeze(images), format='list')
-        # images = ConvertJpegListToNumpy(images)
+
+        image_identifier = 'image'
+        if args['depth']:
+            image_identifier = 'depth_image'
+        images = list(data[image_identifier])
+        # images = ConvertImageListToNumpy(np.squeeze(images), format='list', data_format='NCHW')
+        images = ConvertImageListToNumpy(np.squeeze(images), format='list')
+        # images = ConvertImageListToNumpy(images)
         # progress_bar.write('numpy gif data shape: ' + str(images.shape))
 
 

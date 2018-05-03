@@ -55,7 +55,7 @@ def JpegToNumpy(jpeg):
     im = Image.open(stream)
     return np.asarray(im, dtype=np.uint8)
 
-def ConvertJpegListToNumpy(data, format='numpy', data_format='NHWC'):
+def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
     """ Convert a list of binary jpeg files to numpy format.
 
     # Arguments
