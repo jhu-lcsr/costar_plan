@@ -33,3 +33,17 @@ rosservice info
 ```
 
 There is always a mapping from the ros messages to the code needed to fill out the messages.
+
+
+## Running training on real data in an h5f
+```
+ahundt [5:27 PM]
+@cpaxton do you have the command/config you used to train that first example of future prediction on real data?
+cpaxton [5:34 PM]
+is it not in the example?
+ctp_model_tool --model conditional_image --features costar
+probably a lot more flags but i dont remember them
+that should be enough to get you started
+oh
+--data_file ./robot.h5f (edited)
+``
