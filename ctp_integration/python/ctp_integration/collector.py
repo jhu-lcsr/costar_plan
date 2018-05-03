@@ -158,28 +158,32 @@ class DataCollector(object):
             # decode the data, this will take some time
             rgb_img = GetJpeg(np.asarray(cv_image))
 
-            self.mutex.acquire()
-            self.rgb_time = msg.header.stamp
-            self.rgb_img = rgb_img
-            self.mutex.release()
+            with self.mutex:
+                self.rgb_time = msg.header.stamp
+                self.rgb_img = rgb_img
             #print(self.rgb_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
     def _infoCb(self, msg):
-        self.info = msg.data
+        with self.mutex:
+            self.info = msg.data
 
     def _depthInfoCb(self, msg):
-        self.depth_info = msg
+        with self.mutex:
+            self.depth_info = msg
 
     def _rgbInfoCb(self, msg):
-        self.rgb_info = msg
+        with self.mutex:
+            self.rgb_info = msg
 
     def _objectCb(self, msg):
-        self.object = msg.data
+        with self.mutex:
+            self.object = msg.data
 
     def _gripperCb(self, msg):
-        self.gripper_msg = msg
+        with self.mutex:
+            self.gripper_msg = msg
 
     def _depthCb(self, msg):
         try:
@@ -187,10 +191,9 @@ class DataCollector(object):
             # decode the data, this will take some time
             depth_img = GetPng(FloatArrayToRgbImage(np.asarray(cv_image)))
 
-            self.mutex.acquire()
-            self.depth_img_time = msg.header.stamp
-            self.depth_img = depth_img
-            self.mutex.release()
+            with self.mutex:
+                self.depth_img_time = msg.header.stamp
+                self.depth_img = depth_img
             #print (self.depth_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
@@ -245,8 +248,9 @@ class DataCollector(object):
         self.home_xyz_quat = GetHomePose()
 
     def _jointsCb(self, msg):
-        self.q = msg.position
-        self.dq = msg.velocity
+        with self.mutex:
+            self.q = msg.position
+            self.dq = msg.velocity
         if self.verbose > 3:
             rospy.loginfo(self.q, self.dq)
 
@@ -339,20 +343,19 @@ class DataCollector(object):
         local_time = rospy.Time.now()
         # this will get the latest available time
         latest_available_time_lookup = rospy.Time(0)
+
         ##### BEGIN MUTEX
-        self.mutex.acquire()
-        # get the time for this data sample
-        if self.rgb_time is not None:
-            t = self.rgb_time
-        else:
-            t = local_time
-            
-        self.t = t
-        # make sure we keep the right rgb and depth
-        img_jpeg = self.rgb_img
-        depth_png = self.depth_img
-        self.mutex.release()
-        ##### END MUTEX
+        with self.mutex:
+            # get the time for this data sample
+            if self.rgb_time is not None:
+                t = self.rgb_time
+            else:
+                t = local_time
+                
+            self.t = t
+            # make sure we keep the right rgb and depth
+            img_jpeg = self.rgb_img
+            depth_png = self.depth_img
 
         have_data = False
         # how many times have we tried to get the transforms
@@ -467,8 +470,6 @@ class DataCollector(object):
 
         self.data["nsecs"].append(np.copy(self.t.nsecs)) # time
         self.data["secs"].append(np.copy(self.t.secs)) # time
-        self.data["q"].append(np.copy(self.q)) # joint position
-        self.data["dq"].append(np.copy(self.dq)) # joint velocuity
         self.data["pose"].append(np.copy(ee_xyz_quat)) # end effector pose (6 DOF)
         self.data["camera"].append(np.copy(c_xyz_quat)) # camera pose (6 DOF)
 
@@ -498,21 +499,27 @@ class DataCollector(object):
 
         action = self.task.index(action_label)
         self.data["label"].append(action)  # integer code for high-level action
-        self.data["info"].append(np.copy(self.info))  # string description of current step
-        self.data["rgb_info_D"].append(self.rgb_info.D)
-        self.data["rgb_info_K"].append(self.rgb_info.K)
-        self.data["rgb_info_R"].append(self.rgb_info.R)
-        self.data["rgb_info_P"].append(self.rgb_info.P)
-        self.data["rgb_info_distortion_model"].append(self.rgb_info.distortion_model)
-        self.data["depth_info_D"].append(self.depth_info.D)
-        self.data["depth_info_K"].append(self.depth_info.K)
-        self.data["depth_info_R"].append(self.depth_info.R)
-        self.data["depth_info_P"].append(self.depth_info.P)
-        self.data["depth_distortion_model"].append(self.depth_info.distortion_model)
-        if self.object:
-            self.data["object"].append(np.copy(self.object))
-        else:
-            self.data["object"].append('none')
+
+        # Take Mutex ---
+        with self.mutex:
+            self.data["q"].append(np.copy(self.q)) # joint position
+            self.data["dq"].append(np.copy(self.dq)) # joint velocuity
+            self.data["info"].append(np.copy(self.info))  # string description of current step
+            self.data["rgb_info_D"].append(self.rgb_info.D)
+            self.data["rgb_info_K"].append(self.rgb_info.K)
+            self.data["rgb_info_R"].append(self.rgb_info.R)
+            self.data["rgb_info_P"].append(self.rgb_info.P)
+            self.data["rgb_info_distortion_model"].append(self.rgb_info.distortion_model)
+            self.data["depth_info_D"].append(self.depth_info.D)
+            self.data["depth_info_K"].append(self.depth_info.K)
+            self.data["depth_info_R"].append(self.depth_info.R)
+            self.data["depth_info_P"].append(self.depth_info.P)
+            self.data["depth_distortion_model"].append(self.depth_info.distortion_model)
+            if self.object:
+                self.data["object"].append(np.copy(self.object))
+            else:
+                self.data["object"].append('none')
+
         self.data["all_tf2_frames_as_yaml"].append(all_tf2_frames_as_yaml)
         self.data["all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json"].append(self.tf2_json)
 
