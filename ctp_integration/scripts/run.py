@@ -321,7 +321,17 @@ def collect_data(args):
             count_from_top+=1
             # move vertically down in the z axis
             drop_pose.p[2] -= 0.125
-            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
+            result = None
+            max_tries = 3
+            tries = 0
+            # sometimes this tries to go below the floor,
+            # so go up a bit on errors.
+            while tries < max_tries and result is None:
+                try:
+                    result = unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
+                except RuntimeError as e:
+                    drop_pose.p[2] += 0.025
+                    tries +=1
 
         rospy.loginfo("Done one loop.")
 
