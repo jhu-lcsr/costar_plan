@@ -219,7 +219,16 @@ def GetMoveToPose():
         req.vel = 1.0
         req.accel = 0.75
         req.target = pm.toMsg(pose)
-        MoveToPoseScope.move_srv(req)
+        max_tries = 10
+        tries = 0
+        res = None
+        while tries < max_tries and (res is None or "failure" in res.ack.lower()):
+            res = MoveToPoseScope.move_srv(req)
+            tries += 1
+        if res is None or "failure" in res.ack.lower():
+            rospy.logerr("GetMoveToPose::move() failed:" + str(res.ack))
+            raise RuntimeError("GetMoveToPose::move(): error moving to pose " + str(res.ack))
+        
     return move
 
 def GetUpdate(observe, collector, return_to_original_position=True):
