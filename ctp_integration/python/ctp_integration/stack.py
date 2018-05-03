@@ -91,15 +91,25 @@ def GetHomeFunctorViaPose():
         rospy.loginfo("HOME: open gripper to drop anything")
         open_gripper()
         rospy.loginfo("HOME: move to config home")
-        res1 = js_home(ServoToPoseRequest())
+        max_tries = 10
+        tries = 0
+        res1 = None
+        while tries < max_tries and (res1 is None or "failure" in res1.ack.lower()):
+            res1 = js_home(ServoToPoseRequest())
+            tries += 1
         if res1 is None or "failure" in res1.ack.lower():
             rospy.logerr(res1.ack)
-            raise RuntimeError("HOME(): error moving to home1")
+            raise RuntimeError("HOME(): error moving to home1: " + str(res1.ack))
         rospy.loginfo("HOME: move to pose over objects")
-        res2 = move(req)
+
+        res2 = None
+        tries = 0
+        while tries < max_tries and (res2 is None or "failure" in res2.ack.lower()):
+            res2 = move(req)
+            tries += 1
         if res2 is None or "failure" in res2.ack.lower():
             rospy.logerr("move failed:" + str(res2.ack))
-            raise RuntimeError("HOME(): error moving to pose over workspace")
+            raise RuntimeError("HOME(): error moving to pose over workspace" + str(res2.ack))
         rospy.loginfo("HOME: done")
     return home
 
