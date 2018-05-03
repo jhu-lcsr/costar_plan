@@ -336,7 +336,7 @@ def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rat
     minimum_allowed_remaining_time = update_duration_sec * minimum_update_rate_fraction_allowed
     min_remaining_duration = rospy.Duration(minimum_allowed_remaining_time)
     if update_time_remaining < min_remaining_duration:
-        rospy.logwarn_throttle(1.0, 'Not maintaining requested update rate!\n'
+        rospy.logwarn_throttle(1.0, 'Not maintaining requested update rate, there may be gaps in the data log!\n'
                                '    Update rate is: ' + str(update_rate) + 'Hz, Duration is '+ str(update_duration_sec) +' sec\n' +
                                '    Minimum time allowed time remaining is: ' + str(minimum_allowed_remaining_time) + ' sec\n'  +
                                '    Actual remaining on this update was: ' + str(float(str(update_time_remaining))/1.0e9) + ' sec\n' +
