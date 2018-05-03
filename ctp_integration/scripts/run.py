@@ -174,6 +174,7 @@ def collect_data(args):
             try:
                 t = rospy.Time(0)
                 pose = collector.tf_buffer.lookup_transform(collector.base_link, object_name, t)
+                break
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                 rospy.sleep(0.1)
         if pose is None:
