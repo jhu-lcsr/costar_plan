@@ -192,7 +192,9 @@ def _makeSmartPlaceRequest(poses, name):
     '''
     Helper function for making the place call
     '''
-    req = SmartMoveRequest()
+    req = None
+    while req is None:
+        req = SmartMoveRequest()
     req.pose = pm.toMsg(poses[name])
     req.name = name
     req.obj_class = "place"
@@ -209,8 +211,10 @@ def GetMoveToPose():
 
     # initialize once
     if MoveToPoseScope.move_srv is None:
-        MoveToPoseScope.move_srv = GetPlanToPoseService()
-        MoveToPoseScope.servo_mode = GetServoModeService()
+        while MoveToPoseScope.move_srv is None:
+            MoveToPoseScope.move_srv = GetPlanToPoseService()
+        while MoveToPoseScope.servo_mode is None:
+            MoveToPoseScope.servo_mode = GetServoModeService()
 
     def move(pose):
         req = None
