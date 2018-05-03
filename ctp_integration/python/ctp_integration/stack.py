@@ -217,6 +217,8 @@ def GetMoveToPose():
             MoveToPoseScope.servo_mode = GetServoModeService()
 
     def move(pose):
+        if pose is None:
+            raise RuntimeError("GetMoveToPose::move() pose parameter was invalid: None")
         req = None
         while req is None:
             req = ServoToPoseRequest()
