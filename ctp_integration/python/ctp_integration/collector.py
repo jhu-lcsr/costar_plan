@@ -427,9 +427,9 @@ class DataCollector(object):
 
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
-                rospy.logwarn_throttle(1.0, 'Collector transform lookup Failed: %s to %s, %s, %s'
+                rospy.logwarn_throttle(10.0, 'Collector transform lookup Failed: %s to %s, %s, %s'
                                        ' at image time: %s and local time: %s '
-                                       '\nNote: This message may print less often than the problem occurs.' %
+                                       '\nNote: This message may print >1000x less often than the problem occurs.' %
                                        (self.base_link, self.camera_frame, self.ee_frame, 
                                        str(self.object), str(t), str(latest_available_time_lookup)))
                 
@@ -437,10 +437,10 @@ class DataCollector(object):
                 attempts += 1
                 # rospy.sleep(0.0)
                 if attempts > max_attempts - backup_timestamp_attempts:
-                    rospy.logwarn_throttle(1.0, 
+                    rospy.logwarn_throttle(10.0, 
                                           'Collector failed to use the rgb image rosmsg timestamp, '
                                           'trying latest available time as backup. '
-                                          'Note: This message may print less often than the problem occurs.')
+                                          'Note: This message may print >1000x less often than the problem occurs.')
                     # try the backup timestamp even though it will be less accurate
                     t = latest_available_time_lookup
                 if attempts > max_attempts:
