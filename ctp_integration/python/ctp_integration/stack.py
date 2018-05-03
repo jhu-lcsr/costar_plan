@@ -270,7 +270,11 @@ def GetUpdate(observe, collector, return_to_original_position=True):
     
         # -------
         # Move to home joint position    
-        res = go_to_js(req)
+        max_tries = 10
+        tries = 0
+        res = None
+        while tries < max_tries and (res is None or "failure" in res.ack.lower()):
+            res = go_to_js(req)
 
         if res is None or "failure" in res.ack.lower():
             rospy.logerr(res.ack)
@@ -278,7 +282,15 @@ def GetUpdate(observe, collector, return_to_original_position=True):
             # return False
         observe()
         if return_to_original_position:
-            res2 = go_to_js(MakeServoToJointStateRequest(q0))
+            if q0 is not None:
+
+                max_tries = 10
+                tries = 0
+                res2 = None
+                while tries < max_tries and (res2 is None or "failure" in res2.ack.lower()):
+                    res2 = go_to_js(MakeServoToJointStateRequest(q0))
+            else:
+                raise RuntimeError("GetUpdate::update(): collector had joint position stored at None")
         else:
             # add a dummy motion to take a little more
             # time so logging can get an update after the
@@ -286,7 +298,7 @@ def GetUpdate(observe, collector, return_to_original_position=True):
             res2 = go_to_js(req)
         if res2 is None or "failure" in res2.ack.lower():
             rospy.logerr(res2.ack)
-            raise RuntimeError("UPDATE(): error returning to original joint pose")
+            raise RuntimeError("GetUpdate::UPDATE(): error returning to original joint pose")
             # return False
         return True
     return update
