@@ -6,6 +6,7 @@ import rospy
 import tf2_ros as tf2
 import tf_conversions.posemath as pm
 import io
+import message_filters
 
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
@@ -64,7 +65,8 @@ class DataCollector(object):
         tf_buffer=None,
         tf_listener=None,
         action_labels_to_always_log=None,
-        verbose=0):
+        verbose=0,
+        synchronize=False):
 
 
         self.js_topic = "joint_states"
@@ -142,10 +144,29 @@ class DataCollector(object):
         self.task = task
         self.reset()
 
-        self._camera_depth_info_sub = rospy.Subscriber(self.camera_depth_info_topic, CameraInfo, self._depthInfoCb)
-        self._camera_rgb_info_sub = rospy.Subscriber(self.camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
-        self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
-        self._depth_sub = rospy.Subscriber(self.depth_topic, Image, self._depthCb)
+        if synchronize:
+            # TODO(ahundt) synchronize image time stamps, consider including joint info too
+            # http://docs.ros.org/kinetic/api/message_filters/html/python/
+            # http://library.isr.ist.utl.pt/docs/roswiki/message_filters.html
+            # may want to consider approx:
+            # http://wiki.ros.org/message_filters/ApproximateTime
+            # self._camera_depth_info_sub = rospy.Subscriber(self.camera_depth_info_topic, CameraInfo)
+            # self._camera_rgb_info_sub = rospy.Subscriber(self.camera_rgb_info_topic, CameraInfo)
+            # ensure synced data has headers: https://answers.ros.org/question/206650/subcribe-to-multiple-topics-with-message_filters/
+            # example code: 
+            # https://github.com/gt-ros-pkg/hrl/blob/df47c6fc4fbd32df44df0060643e94cdf5741ff3/hai_sandbox/src/hai_sandbox/kinect_fpfh.py
+            # https://github.com/b2256/catkin_ws/blob/fef8bc05f34262083f02e06b1585f2170d6de5a3/src/bag2orb/src/afl_sync_node_16.py
+            self._rgb_sub = message_filters.Subscriber(self.rgb_topic, Image)
+            self._depth_sub = message_filters.Subscriber(self.depth_topic, Image)
+            self._time_sync_rgbd_sub = message_filters.TimeSynchronizer(
+                [self._rgb_sub, self._depth_sub], 30)
+            self._time_sync_rgbd_sub.registerCallback(self._rgbdCb)
+        else:
+            # just take the data as it comes rather than synchronizing
+            self._camera_depth_info_sub = rospy.Subscriber(self.camera_depth_info_topic, CameraInfo, self._depthInfoCb)
+            self._camera_rgb_info_sub = rospy.Subscriber(self.camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
+            self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
+            self._depth_sub = rospy.Subscriber(self.depth_topic, Image, self._depthCb)
         self._joints_sub = rospy.Subscriber(self.js_topic,
                 JointState,
                 self._jointsCb)
@@ -158,6 +179,40 @@ class DataCollector(object):
         self._gripper_sub = rospy.Subscriber(self.gripper_topic,
                 GripperMsg,
                 self._gripperCb)
+
+    def _rgbdCb(self, rgb_msg, depth_msg):
+        if rgb_msg is None:
+            rospy.logwarn("_rgbdCb: rgb_msg is None !!!!!!!!!")            
+        try:
+            # max out at 10 hz assuming 30hz data source
+            # TODO(ahundt) make mod value configurable
+            if rgb_msg.header.seq % 3 == 0:
+                cv_image = self._bridge.imgmsg_to_cv2(rgb_msg, "rgb8")
+
+                # decode the data, this will take some time
+
+                rospy.loginfo('rgb color cv_image shape: ' + str(cv_image.shape) + ' depth sequence number: ' + str(msg.header.seq))
+                # print('rgb color cv_image shape: ' + str(cv_image.shape))
+                cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+                rgb_img = cv2.imencode('.jpg', cv_image)[1].tobytes()
+                # rgb_img = GetJpeg(np.asarray(cv_image))
+
+                cv_depth_image = self._bridge.imgmsg_to_cv2(depth_msg, desired_encoding="passthrough")
+                depth_encoded_as_rgb_numpy = encode_depth_numpy(cv_depth_image)
+                bytevalues = cv2.imencode('.png', depth_encoded_as_rgb_numpy)[1].tobytes()
+
+                with self.mutex:
+                    self.rgb_time = msg.header.stamp
+                    self.rgb_img = rgb_img
+                    # self.depth_info = depth_camera_info
+                    # self.rgb_info = rgb_camera_info
+                    self.depth_img_time = msg.header.stamp
+                    # self.depth_img = np_image
+                    # self.depth_img = img_str
+                    self.depth_img = bytevalues
+            #print(self.rgb_img)
+        except CvBridgeError as e:
+            rospy.logwarn(str(e))
 
     def _rgbCb(self, msg):
         if msg is None:
@@ -349,6 +404,7 @@ class DataCollector(object):
         # dt = h5py.special_dtype(vlen=bytes)
         # self.data['depth_image'] = np.asarray(self.data['depth_image'], dtype=dt)
         self.data['depth_image'] = np.asarray(self.data['depth_image'])
+        self.data['image'] = np.asarray(self.data['image'])
 
         if isinstance(result, int) or isinstance(result, float):
             result = "success" if result > 0. else "failure"
