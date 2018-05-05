@@ -13,7 +13,6 @@ from costar_models.datasets.image import GetJpeg
 from costar_models.datasets.image import GetPng
 from costar_models.datasets.image import JpegToNumpy
 from costar_models.datasets.image import ConvertImageListToNumpy
-from costar_models.datasets.image import IntArrayToRgbImage
 from costar_models.datasets.depth_image_encoding import FloatArrayToRgbImage
 
 from cv_bridge import CvBridge, CvBridgeError
