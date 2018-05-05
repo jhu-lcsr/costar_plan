@@ -67,6 +67,16 @@ class DataCollector(object):
         action_labels_to_always_log=None,
         verbose=0,
         synchronize=False):
+        """ Initialize a data collector object for writing ros topic information and data collection state to disk
+
+        img_shape: currently ignored
+        camera_frame: ros tf rigid body transform frame to use as the base of the camera coodinate systems 
+        tf_buffer: temp store for 3d rigid body transforms, used during logging
+        tf_listener: integrates with tf_buffer
+        action_labels_to_always_log: 'move_to_home' is always logged by default, others can be added. This option may not work yet.
+        verbose: print lots of extra info, useful for debuggging
+        synchronize: will attempt to synchronize image data by timestamp. Not yet working as of 2018-05-05.
+        """
 
 
         self.js_topic = "joint_states"
