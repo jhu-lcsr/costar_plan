@@ -240,6 +240,10 @@ def collect_data(args):
             # and print a warning if it isn't
             verify_update_rate(update_time_remaining=rate.remaining(), update_rate=args.rate, info=time_str)
             rate.sleep()
+            # if len(collector.data['image']) > 5:
+            #     collector.save(idx, reward)
+            #     exit()
+            frame_count += 1
     
             if stack_task.finished_action:
 
