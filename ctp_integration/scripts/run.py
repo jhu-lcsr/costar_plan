@@ -214,6 +214,7 @@ def collect_data(args):
 
         poses = []
         cur_pose = None
+        frame_count = 0
         # Update the plan and the collector in synchrony.
         while not rospy.is_shutdown():
 
