@@ -5,6 +5,7 @@ import PyKDL as kdl
 import rospy
 import tf2_ros as tf2
 import tf_conversions.posemath as pm
+import io
 
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
@@ -12,6 +13,7 @@ from costar_models.datasets.image import GetJpeg
 from costar_models.datasets.image import GetPng
 from costar_models.datasets.image import JpegToNumpy
 from costar_models.datasets.image import ConvertImageListToNumpy
+from costar_models.datasets.image import IntArrayToRgbImage
 from costar_models.datasets.depth_image_encoding import FloatArrayToRgbImage
 
 from cv_bridge import CvBridge, CvBridgeError
@@ -20,6 +22,7 @@ from sensor_msgs.msg import JointState
 from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import String
 from robotiq_c_model_control.msg import CModel_robot_input as GripperMsg
+import cv2
 
 import six
 import json
@@ -28,6 +31,8 @@ import datetime
 from constants import GetHomeJointSpace
 from constants import GetHomePose
 from threading import Lock
+import h5py
+import PIL
 
 def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     """ Apply a timestamp to the front of a filename description.
@@ -64,8 +69,13 @@ class DataCollector(object):
 
 
         self.js_topic = "joint_states"
+        # http://wiki.ros.org/depth_image_proc
+        # http://www.ros.org/reps/rep-0118.html
+        # http://wiki.ros.org/rgbd_launch
+        # we will be getting 16 bit integer values in milimeters
         self.rgb_topic = "/camera/rgb/image_rect_color"
-        self.depth_topic = "/camera/depth_registered/hw_registered/image_rect_raw"
+        # raw means it is in the format provided by the openi drivers, 16 bit int
+        self.depth_topic = "/camera/depth_registered/hw_registered/image_rect"
         self.ee = "endpoint"
         self.base_link = "base_link"
         self.description = "/robot_description"
@@ -74,7 +84,7 @@ class DataCollector(object):
         self.object_topic = "/costar/SmartMove/object"
         self.gripper_topic = "/CModelRobotInput"
         self.camera_depth_info_topic = "/camera/rgb/camera_info"
-        self.camera_rgb_info_topic = "/camera/depth/camera_info"
+        self.camera_rgb_info_topic = "/camera/depth_registered/camera_info"
         self.camera_rgb_optical_frame = "camera_rgb_optical_frame"
         self.camera_depth_optical_frame = "camera_depth_optical_frame"
         self.verbose = verbose
@@ -152,15 +162,22 @@ class DataCollector(object):
 
     def _rgbCb(self, msg):
         if msg is None:
-            rospy.loginfo("_rgbCb: msg is None !!!!!!!!!")            
+            rospy.logwarn("_rgbCb: msg is None !!!!!!!!!")            
         try:
-            cv_image = self._bridge.imgmsg_to_cv2(msg, "rgb8")
-            # decode the data, this will take some time
-            rgb_img = GetJpeg(np.asarray(cv_image))
+            # max out at 10 hz assuming 30hz data source
+            if msg.header.seq % 3 == 0:
+                cv_image = self._bridge.imgmsg_to_cv2(msg, "rgb8")
+                # decode the data, this will take some time
 
-            with self.mutex:
-                self.rgb_time = msg.header.stamp
-                self.rgb_img = rgb_img
+                # rospy.loginfo('rgb color cv_image shape: ' + str(cv_image.shape) + ' depth sequence number: ' + str(msg.header.seq))
+                # print('rgb color cv_image shape: ' + str(cv_image.shape))
+                cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+                rgb_img = cv2.imencode('.jpg', cv_image)[1].tobytes()
+                # rgb_img = GetJpeg(np.asarray(cv_image))
+
+                with self.mutex:
+                    self.rgb_time = msg.header.stamp
+                    self.rgb_img = rgb_img
             #print(self.rgb_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
@@ -187,14 +204,75 @@ class DataCollector(object):
 
     def _depthCb(self, msg):
         try:
-            cv_image = self._bridge.imgmsg_to_cv2(msg)
-            # decode the data, this will take some time
-            depth_img = GetPng(FloatArrayToRgbImage(np.asarray(cv_image)))
+            if msg.header.seq % 3 == 0:
+                cv_image = self._bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
 
-            with self.mutex:
-                self.depth_img_time = msg.header.stamp
-                self.depth_img = depth_img
-            #print (self.depth_img)
+                # ref: https://stackoverflow.com/a/25592959
+                # also: https://stackoverflow.com/a/17970817
+                # kinda works, but only 8 bit image....
+                
+                # img_str = cv2.imencode('.png', cv_image, cv2.CV_16U)[1].tobytes()
+                # img_str = np.frombuffer(cv2.imencode('.png', cv_image)[1].tobytes(), np.uint8)
+                # doesn't work
+                # img_str = np.string_(cv2.imencode('.png', cv_image)[1].tostring())
+                # img_str = io.BytesIO(img_str).getvalue()
+                # doesn't work
+                # img_str = io.BytesIO(cv2.imencode('.png', cv_image)[1].tobytes().getvalue())
+                # These values are in mm according to:
+                # https://github.com/ros-perception/depthimage_to_laserscan/blob/indigo-devel/include/depthimage_to_laserscan/depth_traits.h#L49
+                # np_image = np.asarray(cv_image, dtype=np.uint16)
+
+                # depth_image = PIL.Image.fromarray(np_image)
+
+                # if depth_image.mode == 'I;16':
+                #     # https://github.com/python-pillow/Pillow/issues/1099
+                #     # https://github.com/arve0/leicaexperiment/blob/master/leicaexperiment/experiment.py#L560
+                #     depth_image = depth_image.convert(mode='I')
+                # max_val = np.max(np_image)
+                # min_val = np.min(np_image)
+                # print('max val: ' + str(max_val) + ' min val: ' + str(min_val))
+                # decode the data, this will take some time
+                # output = io.BytesIO()
+                # depth_image.save(output, format="PNG")
+
+                # begin 32 bit float code (too slow)
+                # cv_image = self._bridge.imgmsg_to_cv2(msg, "32FC1")
+                # # These values are in mm according to:
+                # # https://github.com/ros-perception/depthimage_to_laserscan/blob/indigo-devel/include/depthimage_to_laserscan/depth_traits.h#L49
+                # np_image = np.asarray(cv_image, dtype=np.float32) * 1000.0
+                # # max_val = np.max(np_image)
+                # # min_val = np.min(np_image)
+                # # print('max val: ' + str(max_val) + ' min val: ' + str(min_val))
+                # # decode the data, this will take some time
+                # depth_image = FloatArrayToRgbImage(np_image)
+                # output = io.BytesIO()
+                # depth_image.save(output, format="PNG")
+                # end 32 bit float code (too slow)
+
+                # convert to meters from milimeters
+                # plt.imshow(cv_image, cmap='nipy_spectral')
+                # plt.pause(.01)
+                # plt.draw()
+                # print('np_image shape: ' + str(np_image.shape))
+
+                # split into three channels
+                # np_image = np.asarray(cv_image, dtype=np.uint32) * 1000
+                # r = np.array(np.divide(np_image, 256*256), dtype=np.uint8)
+                # g = np.array(np.mod(np.divide(np_image, 256), 256), dtype=np.uint8)
+                # b = np.array(np.mod(np_image, 256), dtype=np.uint8)
+
+                # split into two channels with a third zero channel
+
+                # bytevalues = uint16_depth_image_to_png_numpy(cv_image)
+                depth_encoded_as_rgb_numpy = encode_depth_numpy(cv_image)
+                bytevalues = cv2.imencode('.png', depth_encoded_as_rgb_numpy)[1].tobytes()
+
+                with self.mutex:
+                    self.depth_img_time = msg.header.stamp
+                    # self.depth_img = np_image
+                    # self.depth_img = img_str
+                    self.depth_img = bytevalues
+                #print (self.depth_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 
@@ -267,6 +345,11 @@ class DataCollector(object):
             print("Labels and goals:")
             print(self.data["label"])
             print(self.data["goal_idx"])
+
+        # TODO(ahundt) make nonspecific to hdf5
+        # dt = h5py.special_dtype(vlen=bytes)
+        # self.data['depth_image'] = np.asarray(self.data['depth_image'], dtype=dt)
+        self.data['depth_image'] = np.asarray(self.data['depth_image'])
 
         if isinstance(result, int) or isinstance(result, float):
             result = "success" if result > 0. else "failure"
@@ -538,6 +621,47 @@ def pose_to_vec_quat_pair(c_pose):
 def pose_to_vec_quat_list(c_pose):
     c_xyz, c_quat = pose_to_vec_quat_pair(c_pose)
     return np.concatenate([c_xyz, c_quat])
+
+
+def uint16_depth_image_to_png_numpy(cv_image):
+    # split into two channels with a third zero channel
+    rgb_np_image = encode_depth_numpy(cv_image)
+    # plt.imshow(cv_image, cmap='nipy_spectral')
+    # plt.imshow(rgb_np_image)
+    # plt.pause(.01)
+    # plt.draw()
+    bytevalues = rgb_as_png_binary_bytes(rgb_np_image)
+    return bytevalues
+
+def rgb_as_png_binary_bytes(rgb_np_image):
+    pil_image = PIL.Image.fromarray(rgb_np_image, mode='RGB')
+    output = io.BytesIO()
+    pil_image.save(output, format="PNG")
+    bytevalues = output.getvalue()
+    return bytevalues
+
+def encode_depth_numpy(cv_image, order='bgr'):
+    # split into two channels with a third zero channel
+    r = np.array(np.divide(cv_image, 256), dtype=np.uint8)
+    g = np.array(np.mod(cv_image, 256), dtype=np.uint8)
+    b = np.zeros(cv_image.shape, dtype=np.uint8)
+    # If we are using opencv to encode we want to use bgr for
+    # the encoding step to ensure the color order is correct
+    # when it is decoded
+    if order == 'rgb':
+        rgb_np_image = np.stack([r, g, b], axis=-1)
+    elif order == 'bgr':
+        rgb_np_image = np.stack([b, g, r], axis=-1)
+    else:
+        raise ValueError('encode_depth_numpy unsupported encoding' + str(order))
+
+    # rospy.loginfo('rgb_np_image shape: ' + str(rgb_np_image.shape) + ' depth sequence number: ' + str(msg.header.seq))
+    # plt.imshow(cv_image, cmap='nipy_spectral')
+    # plt.imshow(rgb_np_image)
+    # plt.pause(.01)
+    # plt.draw()
+    return rgb_np_image
+
 
 if __name__ == '__main__':
     pass
