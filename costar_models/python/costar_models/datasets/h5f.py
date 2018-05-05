@@ -30,14 +30,14 @@ class H5fDataset(object):
         '''
         filename = os.path.join(self.name, filename)
         f = h5f.File(filename, 'w')
+        if image_types != []:
+            dt = h5f.special_dtype(vlen=bytes)
+            for (img_type_str, img_format_str) in image_types:
+                f.create_dataset("type_" + img_type_str, data=[img_format_str])
         for key, value in example.items():
             if self.verbose > 0:
                 print('H5fDataset writing key: ' + str(key))
             f.create_dataset(key, data=value)
-        if image_types != []:
-            #dt = h5f.special_dtype(vlen=bytes)
-            for (img_type_str, img_format_str) in image_types:
-                f.create_dataset("type_" + img_type_str, data=[img_format_str])
         f.close()
 
     def load(self,success_only=False):
