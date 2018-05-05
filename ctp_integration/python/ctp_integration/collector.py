@@ -156,6 +156,9 @@ class DataCollector(object):
             # example code: 
             # https://github.com/gt-ros-pkg/hrl/blob/df47c6fc4fbd32df44df0060643e94cdf5741ff3/hai_sandbox/src/hai_sandbox/kinect_fpfh.py
             # https://github.com/b2256/catkin_ws/blob/fef8bc05f34262083f02e06b1585f2170d6de5a3/src/bag2orb/src/afl_sync_node_16.py
+            rospy.loginfo('synchronizing data for logging')
+            self._camera_depth_info_sub = rospy.Subscriber(self.camera_depth_info_topic, CameraInfo, self._depthInfoCb)
+            self._camera_rgb_info_sub = rospy.Subscriber(self.camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
             self._rgb_sub = message_filters.Subscriber(self.rgb_topic, Image)
             self._depth_sub = message_filters.Subscriber(self.depth_topic, Image)
             self._time_sync_rgbd_sub = message_filters.TimeSynchronizer(
