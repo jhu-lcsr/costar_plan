@@ -628,7 +628,7 @@ class DataCollector(object):
             self.data["object_pose"].append(np.copy(obj_xyz_quat))
         elif 'move_to_home' in label_to_check:
             self.data["object_pose"].append(self.home_xyz_quat)
-            # TODO(ahundt) should object pose be all 0 when ther eis no object?
+            # TODO(ahundt) should object pose be all 0 or NaN when there is no object?
             # self.data["object_pose"].append([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         else:
             raise ValueError("Attempted to log unsupported "

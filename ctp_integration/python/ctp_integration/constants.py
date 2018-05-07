@@ -1,3 +1,4 @@
+import numpy as np
 try:
     import rospy
 except ImportError as e:
@@ -12,6 +13,8 @@ def GetHomeJointSpace():
     """ Default home joint angle pose for the ur5 robot
     """
     Q_HOME = [-0.202, -0.980, -1.800, -0.278, 1.460, 1.613]
+    # TODO(ahundt) define and generate random valid home positions
+    # Q_HOME[-1] += np.random.uniform(-np.pi, np.pi)
     # Q_HOME was formerly: 
     # Q_HOME = [0.3, -1.33, -1.8, -0.27, 1.5, 1.6]
     if rospy is not None:
