@@ -326,7 +326,7 @@ def collect_data(args):
             # one extra unstack step, try to get the block on the bottom.
             count_from_top+=1
             # move vertically down in the z axis
-            drop_pose.p[2] -= 0.125
+            drop_pose.p[2] -= 0.05
             result = None
             max_tries = 1
             tries = 0
