@@ -69,6 +69,7 @@ def _parse_args():
                         help='format to convert images to. Default empty string is no conversion, options are gif and mp4.')
     parser.add_argument("--ignore_failure", type=bool, default=False, help='skip grasp failure cases')
     parser.add_argument("--ignore_success", type=bool, default=False, help='skip grasp success cases')
+    parser.add_argument("--ignore_error", type=bool, default=False, help='skip grasp attempts that are both failures and contain errors')
     parser.add_argument("--preview", type=bool, default=False, help='pop open a preview window to view the video data')
     parser.add_argument("--depth", type=bool, default=True, help='process depth data')
     parser.add_argument("--rgb", type=bool, default=True, help='process rgb data')
@@ -93,15 +94,18 @@ def main(args,root="root"):
     # Read data
     progress_bar = tqdm(filenames)
     for filename in progress_bar: 
+        print('ignore error: ' + str(args['ignore_error']))
         if filename.startswith('.') or '.h5' not in filename:
             continue
-        if 'error' in filename:
-            progress_bar.write('Skipping example containing errors')
+        if args['ignore_error'] and 'error' in filename:
+            progress_bar.write('Skipping example containing errors: ' + filename)
             continue
         if args['ignore_failure'] and 'failure' in filename:
-                continue
+            progress_bar.write('Skipping example containing failure: ' + filename)
+            continue
         if args['ignore_success'] and 'success' in filename:
-                continue
+            progress_bar.write('Skipping example containing success: ' + filename)
+            continue
 
         if args['path'] not in filename:
             # prepend the path if it isn't already present
