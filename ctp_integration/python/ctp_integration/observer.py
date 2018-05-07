@@ -19,10 +19,13 @@ class Observer(object):
     def __init__(self, world, task, detect_srv, topic,
                  tf_buffer=None,
                  tf_listener=None,
-                 verbose=0):
+                 verbose=0,
+                 update_rate=10):
         '''
         Create an observer. This will take a world and other information and
         use it to provide updated worlds.
+
+        update_rate: data update rate in hz
         '''
         self.world = world
         self.task = task
@@ -43,6 +46,7 @@ class Observer(object):
                 DetectedObjectList,
                 self._detected_objects_cb)
         self.verbose = verbose
+        self.update_rate = rospy.Rate(update_rate)
 
     def _detected_objects_cb(self, msg):
         # Save detected objects message
@@ -59,9 +63,8 @@ class Observer(object):
         self.detect_srv()
 
         # Spin
-        rate = rospy.Rate(10)
         while self.msg == None and not rospy.is_shutdown():
-            rate.sleep()
+            self.update_rate.sleep()
 
         # Generate a task plan from a message
         # Step 1. Create args describing which objects we saw.
