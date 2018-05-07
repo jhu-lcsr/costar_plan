@@ -17,6 +17,9 @@
     <arg name="fake_table_frame" value="true"/>
     <!-- Create center of the table to describe left and right -->
     <arg name="table_center" value="0.422 -0.135 -0.023 0.030 -0.004 -0.157 0.987"/>
+    <!-- center of the "cart" on which the robot is sitting; table center is
+         directly in front of this, as opposed to the robot base link, because
+         the robot is slightly rotated.-->
     <arg name="cart_base_link" value="cart_base_link"/>
   </include>
 
