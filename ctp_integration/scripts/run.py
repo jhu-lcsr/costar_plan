@@ -328,8 +328,10 @@ def collect_data(args):
         if len(poses) > 1 and drop_pose is not None:
             # one extra unstack step, try to get the block on the bottom.
             count_from_top+=1
-            # move vertically down in the z axis
-            drop_pose.p[2] -= 0.025
+            # move vertically down in the z axis, 
+            # but by slightly less than a 
+            # whole block length which is 0.05 meters
+            drop_pose.p[2] -= 0.035
             result = None
             max_tries = 1
             tries = 0
