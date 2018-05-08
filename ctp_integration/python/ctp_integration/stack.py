@@ -18,12 +18,16 @@ from ctp_integration.util import GetSmartReleaseService
 from ctp_integration.util import GetPlanToJointStateService
 from ctp_integration.util import GetPlanToHomeService
 from ctp_integration.util import MakeServoToJointStateRequest
+from ctp_integration.util import MakeForwardKinematicsRequest
 from ctp_integration.util import GetOpenGripperService
 from ctp_integration.util import GetServoModeService
 from ctp_integration.util import GetPlanToPoseService
-from constants import GetColors
-from constants import GetHomeJointSpace
-from constants import GetHomePose
+from ctp_integration.util import GetForwardKinematicsService
+from ctp_integration.constants import GetColors
+from ctp_integration.constants import GetHomeJointSpace
+from ctp_integration.constants import GetHomePose
+from ctp_integration.ros_geometry import pose_to_vec_quat_pair
+from ctp_integration.ros_geometry import pose_to_vec_quat_list
 
 from .stack_manager import StackManager
 
@@ -73,6 +77,82 @@ def GetHome():
         #     raise RuntimeError("HOME(): error moving to pose over workspace")
         rospy.loginfo("HOME: done")
     return home
+
+
+def GetRandomHome():
+    """ Returns a function that will move the robot a random home position when called.
+
+    The final joint will move to a random angle for this home position.
+    This makes it possible for the gripper to occasionally choose vertically
+    oriented grasps in addition to horizontally oriented grasps.
+    
+    """
+    go_to_js = GetPlanToJointStateService()
+    req = GetHomeRequest()
+    print('req home: ' + str(req))
+    open_gripper = GetOpenGripperService()
+    move = GetPlanToPoseService()
+    servo_mode = GetServoModeService()
+    forward_kinematics = GetForwardKinematicsService()
+
+    def pose_response_to_vec_quat_pair(c_pose):
+        c_xyz = np.array([c_pose.pose.position.x,
+                    c_pose.pose.position.y,
+                    c_pose.pose.position.z,])
+        c_quat = np.array([c_pose.pose.orientation.x,
+                    c_pose.pose.orientation.y,
+                    c_pose.pose.orientation.z,
+                    c_pose.pose.orientation.w,])
+        return c_xyz, c_quat
+
+    def pose_response_to_vec_quat_list(c_pose):
+        """ Turn a forward kinematics pose into a vec quat in xyz qx qy qz qw
+        """
+        c_xyz, c_quat = pose_response_to_vec_quat_pair(c_pose)
+        return np.concatenate([c_xyz, c_quat])
+
+    def random_home():
+
+        Q_RANDOM_HOME = [-0.202, -0.980, -1.800, -0.278, 1.460, 1.613]
+        # Amount to change the angle of the final gripper joint for home
+        delta_theta = 3 * np.pi / 2
+        Q_RANDOM_HOME[-1] += np.random.uniform(-delta_theta, delta_theta)
+        req = MakeServoToJointStateRequest(Q_RANDOM_HOME)
+        fk_req = MakeForwardKinematicsRequest(Q_RANDOM_HOME)
+        rospy.loginfo("GetRandomHome::random_home(): get forward kinematics")
+
+        # this will be a ForwardKinematicsResponse
+        fk_response = None
+        while fk_response is None:
+            fk_response = forward_kinematics(fk_req)
+        pose = pose_response_to_vec_quat_list(fk_response)
+        rospy.loginfo("GetRandomHome::random_home(): set servo mode")
+        servo_mode("servo")
+        rospy.loginfo("GetRandomHome::random_home(): open gripper to drop anything")
+        open_gripper()
+        rospy.loginfo("GetRandomHome::random_home(): move to config home")
+        max_tries = 10
+        tries = 0
+        res1 = None
+        while tries < max_tries and (res1 is None or "failure" in res1.ack.lower()):
+            res1 = go_to_js(req)
+            tries += 1
+        if res1 is None or "failure" in res1.ack.lower():
+            rospy.logerr(res1.ack)
+            raise RuntimeError("GetRandomHome::random_home(): error moving to home: " + str(res1.ack))
+        rospy.loginfo("HOME: move to pose over objects")
+        
+        if res1 is None or "failure" in res1.ack.lower():
+            rospy.logerr(res1.ack)
+            raise RuntimeError("GetRandomHome::home()(): error moving to home1")
+        # rospy.loginfo("HOME: move to pose over objects")
+        # res2 = move(req)
+        # if res2 is None or "failure" in res2.ack.lower():
+        #     rospy.logerr("move failed:" + str(res2.ack))
+        #     raise RuntimeError("HOME(): error moving to pose over workspace")
+        rospy.loginfo("GetRandomHome::home(): done")
+        return Q_RANDOM_HOME, pose
+    return random_home
 
 def GetHomeFunctorViaPose():
     """ Deprecated. 
@@ -238,7 +318,13 @@ def GetMoveToPose():
     return move
 
 def GetUpdate(observe, collector, return_to_original_position=True):
-    '''
+    ''' Figure out where all the objects are.
+    
+    Save the current ur5 position,
+    UR5 goes to the home position, 
+    use vision to find the objects, 
+    return back to prev position
+
     Parameters:
     -----------
     observe: callable functor that will call object detection

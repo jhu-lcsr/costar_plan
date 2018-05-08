@@ -45,6 +45,11 @@ class StackManager(object):
         pass
 
     def setUpdate(self, update_fn):
+        ''' Set the function to call after each action is completed.
+
+          Currently this sets the function that 
+          goes home and gets all the object poses after the action.
+        '''
         self.update = update_fn
 
     def reset(self):
@@ -133,6 +138,7 @@ class StackManager(object):
             next_action = children[idx]
             rospy.logwarn("next action = " + str(next_action))
             srv, req = self.reqs[next_action]
+            # Go home and use vision to update all the object poses.
             self.update()
             if not self.service(srv, req):
                 raise RuntimeError('could not start service: ' + next_action)

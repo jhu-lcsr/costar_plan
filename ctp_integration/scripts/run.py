@@ -29,6 +29,7 @@ from ctp_integration.stack import GetGraspPose
 from ctp_integration.stack import GetStackPose
 from ctp_integration.stack import GetMoveToPose
 from ctp_integration.stack import GetHome
+from ctp_integration.stack import GetRandomHome
 from ctp_integration.stack import GetUpdate
 from ctp_integration.stack import GetStackManager
 from ctp_integration.constants import GetHomeJointSpace
@@ -190,14 +191,16 @@ def collect_data(args):
 
     # start main execution loop, should run at specified rate
     while i < args.execute:
-        home()
+        # home()
+        home_q, home_pose = home()
+        collector.set_home_pose(home_pose)
 
         # perform initial rate sleep to 
         # initialize duration remaining time counter
         rate.sleep()
         t = rospy.Time(0)
-        # home_pose = collector.tf_buffer.lookup_transform(collector.base_link, 'ee_link', t)
-        # print("home_pose: " + str(home_pose))
+        home_pose = collector.tf_buffer.lookup_transform(collector.base_link, 'ee_link', t)
+        print("home_pose: " + str(home_pose))
         # rospy.sleep(0.5) # Make sure nothing weird happens with timing
         idx = i + 1
         rospy.loginfo("Executing trial %d" % (idx))
@@ -432,12 +435,17 @@ def random_drop_axis_coordinate(grasp_pose, axis_idx, axis_corner, axis_range, m
 
 def initialize_collection_objects(args, observe, collector, stack_task):
     rate = rospy.Rate(args.rate)
-    home = GetHome()
+    home = GetRandomHome()
+    # home = GetHome()
     move_to_pose = GetMoveToPose()
     open_gripper = GetOpenGripperService()
     close_gripper = GetCloseGripperService()
     update = GetUpdate(observe, collector) # uses collector because it listens for js
-    stack_task.setUpdate(update) # set fn to call after actions
+
+    # Set the function which sends the robot to home and
+    # gets an update of all the object poses.
+    # set fn to call after each action
+    stack_task.setUpdate(update) 
     return home, rate, move_to_pose, close_gripper, open_gripper
 
 def main():

@@ -32,7 +32,8 @@ from constants import GetHomeJointSpace
 from constants import GetHomePose
 from threading import Lock
 import h5py
-import PIL
+from ctp_integration.ros_geometry import pose_to_vec_quat_pair
+from ctp_integration.ros_geometry import pose_to_vec_quat_list
 
 def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     """ Apply a timestamp to the front of a filename description.
@@ -427,6 +428,9 @@ class DataCollector(object):
         # for now all examples are considered a success
         self.writer.write(self.data, filename, image_types=[("image", "jpeg"), ("depth_image", "png")])
         self.reset()
+    
+    def set_home_pose(self, pose):
+        self.home_xyz_quat = pose
 
     def update(self, action_label, is_done):
         '''
@@ -675,20 +679,6 @@ class DataCollector(object):
         self.data["all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json"].append(self.tf2_json)
 
         return True
-
-def pose_to_vec_quat_pair(c_pose):
-    c_xyz = np.array([c_pose.transform.translation.x,
-                c_pose.transform.translation.y,
-                c_pose.transform.translation.z,])
-    c_quat = np.array([c_pose.transform.rotation.x,
-                c_pose.transform.rotation.y,
-                c_pose.transform.rotation.z,
-                c_pose.transform.rotation.w,])
-    return c_xyz, c_quat
-
-def pose_to_vec_quat_list(c_pose):
-    c_xyz, c_quat = pose_to_vec_quat_pair(c_pose)
-    return np.concatenate([c_xyz, c_quat])
 
 
 def uint16_depth_image_to_png_numpy(cv_image):

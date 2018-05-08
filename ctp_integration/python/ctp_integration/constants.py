@@ -12,6 +12,8 @@ def GetColors():
 def GetHomeJointSpace():
     """ Default home joint angle pose for the ur5 robot
     """
+    # To change this also change ur5.launch in costar_stack
+    # and update the hardcoded value below in GetHomePose()
     Q_HOME = [-0.202, -0.980, -1.800, -0.278, 1.460, 1.613]
     # TODO(ahundt) define and generate random valid home positions
     # Q_HOME[-1] += np.random.uniform(-np.pi, np.pi)
