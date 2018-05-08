@@ -325,7 +325,7 @@ def collect_data(args):
             # Determine destination spot above the block
             unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
         
-        if len(poses) > 1 and drop_pose is not None:
+        if len(poses) > 0 and drop_pose is not None:
             # one extra unstack step, try to get the block on the bottom.
             count_from_top+=1
             # move vertically down in the z axis, 
