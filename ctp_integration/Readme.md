@@ -20,6 +20,7 @@ while true; do ./scripts/run.py --execute 1000 2>&1 | tee -a ctp_integration_run
   - nodes: ROS nodes
   - launch: contains launch files
 
+
 ### Coding Guidelines
 
 Not sure what ROS messages are or what fields are being set?
@@ -35,7 +36,17 @@ rosservice info
 There is always a mapping from the ros messages to the code needed to fill out the messages.
 
 
-## Running training on real data in an h5f
+## HowTo
+
+### Run RVIZ visualization separately
+
+To launch rviz separately, which helps with performance problems:
+
+Open `costar_plan/ctp_integration/launch/bringup.launch` and set `rviz` to `false`.
+
+To launch rviz manually run `roslaunch costar_bringup rviz.launch`.
+
+### Running training on real data in an h5f
 ```
 ahundt [5:27 PM]
 @cpaxton do you have the command/config you used to train that first example of future prediction on real data?
