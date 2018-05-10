@@ -31,6 +31,7 @@ import datetime
 from constants import GetHomeJointSpace
 from constants import GetHomePose
 from threading import Lock
+# TODO(ahundt) move all direct h5py code back to H5fDataset class
 import h5py
 from ctp_integration.ros_geometry import pose_to_vec_quat_pair
 from ctp_integration.ros_geometry import pose_to_vec_quat_list
