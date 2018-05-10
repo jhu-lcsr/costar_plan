@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import copy
 import time
 from threading import Thread
@@ -351,11 +352,15 @@ def collect_data(args):
                         tries +=1
         rospy.loginfo("Done one loop.")
     except RuntimeError as ex:
+        ex_type, ex2, tb = sys.exc_info()
         # save the current data if we can
         message = ('error.failure due to RuntimeError:\n' + 
-                    ''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+                    ''.join(traceback.format_exception(etype=type(ex), value=ex, tb=tb)))
         rospy.logerr(message)
         collector.save(idx, 'error.failure', log=message)
+        # deletion must be explicit to prevent leaks
+        # https://stackoverflow.com/a/16946886/99379
+        del tb
         # re-raise the caught exception https://stackoverflow.com/a/4825279/99379
         raise
     except KeyboardInterrupt as ex:
