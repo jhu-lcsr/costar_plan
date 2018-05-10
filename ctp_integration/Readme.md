@@ -14,6 +14,12 @@ Quick start with logging and restarting upon crashes:
 while true; do ./scripts/run.py --execute 1000 2>&1 | tee -a ctp_integration_run_log.txt; done
 ```
 
+To view the costar_stack user interface:
+
+```
+roslaunch instructor_core instructor.launch
+```
+
 ## Guidelines
 
   - python: contain specific source code
