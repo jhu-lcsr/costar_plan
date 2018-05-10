@@ -191,10 +191,13 @@ def collect_data(args):
     start = max(0, args.start-1)
     i = start
     idx = i + 1
+    # go home on startup outside of try block so program 
+    # won't save files if ROS is not active and ready
+    home()
+    # start collecting data
     try:
         # start main execution loop, should run at specified rate
         while i < args.execute:
-            # home()
             home_q, home_pose = home()
             collector.set_home_pose(home_pose)
     
