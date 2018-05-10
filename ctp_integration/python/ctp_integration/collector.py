@@ -401,11 +401,31 @@ class DataCollector(object):
         if self.verbose > 3:
             rospy.loginfo(self.q, self.dq)
 
-    def save(self, seed, result):
+    def save(self, seed, result, log=None):
         '''
-        Save function that wraps data set access.
+        Save function that wraps dataset access, dumping the data
+        which is currently buffered in memory to disk.
 
-        result: options are 'success' 'failure' or 'error.failure'
+        seed: An integer identifer that should go in the filename.
+        result: Options are 'success' 'failure' or 'error.failure'
+            error.failure should indicate a failure due to factors
+            outside the purposes for which you are collecting data.
+            For example, if there is a network communication error
+            and you are collecting data for a robot motion control
+            problem, that can be considered an error based failure,
+            since the goal task may essentially already be complete.
+            You may also pass a numerical reward value, for numerical
+            reward values, 0 will name the output file 'failure', and
+            anything > 0 will name the output file 'success'.
+        log: A string containing any log data you want to save,
+            For example, if you want to store information about errors
+            that were encounterd to help figure out if the problem
+            is one that is worth including in the dataset even if it
+            is an error.failure case. For example, if the robot
+            was given a motion command that caused it to crash into the
+            floor and hit a safety stop, this could be valuable training 
+            data and the error string will make it easier to determine
+            what happened after the fact.
         '''
         if self.verbose:
             for k, v in self.data.items():
@@ -420,6 +440,10 @@ class DataCollector(object):
         # self.data['depth_image'] = np.asarray(self.data['depth_image'], dtype=dt)
         self.data['depth_image'] = np.asarray(self.data['depth_image'])
         self.data['image'] = np.asarray(self.data['image'])
+        if log is None:
+            # save an empty string in the log if nothing is specified
+            log = ''
+        self.data['log'] = np.asarray(log)
 
         if isinstance(result, int) or isinstance(result, float):
             result = "success" if result > 0. else "failure"

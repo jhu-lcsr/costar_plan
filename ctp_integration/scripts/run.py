@@ -13,6 +13,7 @@ import rospy
 import roslaunch
 import tf_conversions.posemath as pm
 import tf2_ros as tf2
+import traceback
 
 from costar_task_plan.mcts import PlanExecutionManager, DefaultExecute
 from costar_task_plan.mcts import OptionsExecutionManager
@@ -188,166 +189,184 @@ def collect_data(args):
     max_consecutive_bad_rounds = 5
     start = max(0, args.start-1)
     i = start
-
-    # start main execution loop, should run at specified rate
-    while i < args.execute:
-        # home()
-        home_q, home_pose = home()
-        collector.set_home_pose(home_pose)
-
-        # perform initial rate sleep to 
-        # initialize duration remaining time counter
-        rate.sleep()
-        t = rospy.Time(0)
-        home_pose = collector.tf_buffer.lookup_transform(collector.base_link, 'ee_link', t)
-        print("home_pose: " + str(home_pose))
-        # rospy.sleep(0.5) # Make sure nothing weird happens with timing
-        idx = i + 1
-        rospy.loginfo("Executing trial %d" % (idx))
-        _, world = observe()
-        # NOTE: not using CTP task execution framework right now
-        # It's just overkill
-        #names, options = task.sampleSequence()
-        #plan = OptionsExecutionManager(options)
-
-        # Reset the task manager
-        reward = 0.
-        stack_task.reset()
-        rospy.loginfo("Starting loop...")
-
-        poses = []
-        cur_pose = None
-        frame_count = 0
-        # Update the plan and the collector in synchrony.
-        while not rospy.is_shutdown():
-
-            cur_pose = collector.current_ee_pose
-
-            # Note: this will be "dummied out" for most of
-            start_time = time.clock()
-            done = stack_task.tick()
-            tick_time = time.clock()
-            if not collector.update(stack_task.current, done):
-                raise RuntimeError('could not handle data collection. '
-                                   'There may be an inconsistency in the system state '
-                                   'so try shutting all of ROS down and starting up again. '
-                                   'Alternately, run this program in a debugger '
-                                   'to try and diagnose the issue.')
-            update_time = time.clock()
-
-            # figure out where the time has gone
-            time_str = ('Total tick + log time: {:04} sec, '
-                        'Robot Tick: {:04} sec, '
-                        'Data Logging: {:04} sec'.format(update_time - start_time, tick_time - start_time, update_time - tick_time))
-            
-            # Check if this script is running quickly enough, 
-            # and print a warning if it isn't
-            verify_update_rate(update_time_remaining=rate.remaining(), update_rate=args.rate, info=time_str)
-            rate.sleep()
-            # if len(collector.data['image']) > 5:
-            #     collector.save(idx, reward)
-            #     exit()
-            frame_count += 1
+    idx = i + 1
+    try:
+        # start main execution loop, should run at specified rate
+        while i < args.execute:
+            # home()
+            home_q, home_pose = home()
+            collector.set_home_pose(home_pose)
     
-            if stack_task.finished_action:
-
-                object_was_placed = (collector.prev_action is not None and
-                                    "place" in collector.prev_action.split(':')[-1])
-                if object_was_placed:
-                    # We finished one step in the task,
-                    # save the most recent pose update
-                    rospy.loginfo("Remembering " + str(collector.prev_action))
-                    poses.append(cur_pose)
-
-            if done:
-                if stack_task.ok:
-                    savestr = "WE WILL SAVE TO DISK"
-                else:
-                    savestr = "BUT THERE A PROBLEM WAS DETECTED SO WE ARE SAVING TO DISK AS AN ERROR + FAILURE"
-                rospy.logwarn("DONE COLLECTING THIS ROUND, " + savestr)
-                if stack_task.ok:
-                    # Increase count
-                    i += 1
-
-                    # We should actually check results here
-                    # home and observe are now built into the actions
-                    # home(); observe()
-                    # rospy.sleep(0.5)
-                    # Get the second to last object,
-                    # since the final one is none.
-                    if verify(collector.prev_objects[-2]):
-                        reward = 1.
-                    else:
-                        reward = 0.
-                    rospy.loginfo("reward = " + str(reward))
-                break
-
-        if stack_task.ok:
-            collector.save(idx, reward)
-            print("------------------------------------------------------------")
-            print("Finished one round of data collection. Attempting to automatically ")
-            print("reset the test environment to continue.")
-            print("")
-            print("Example number:", idx, "/", args.execute)
-            print("Success:", reward)
-            print("")
-            consecutive_bad_rounds = 0
-        else:
-            # Both an error and a failure!
-            # We are saving the failure info now because
-            # some of the most interesting failure cases
-            # lead to errors.
-            collector.save(idx, "error.failure")
-            print("------------------------------------------------------------")
-            print("Bad data collection round, " + str(consecutive_bad_rounds) + " consecutive. Attempting to automatically reset.")
-            print("If this happens repeatedly try restarting the program or loading in a debugger.")
-            collector.reset()
+            # perform initial rate sleep to 
+            # initialize duration remaining time counter
+            rate.sleep()
+            t = rospy.Time(0)
+            home_pose = collector.tf_buffer.lookup_transform(collector.base_link, 'ee_link', t)
+            print("home_pose: " + str(home_pose))
+            # rospy.sleep(0.5) # Make sure nothing weird happens with timing
+            idx = i + 1
+            rospy.loginfo("Executing trial %d" % (idx))
+            _, world = observe()
+            # NOTE: not using CTP task execution framework right now
+            # It's just overkill
+            #names, options = task.sampleSequence()
+            #plan = OptionsExecutionManager(options)
+    
+            # Reset the task manager
+            reward = 0.
             stack_task.reset()
-            consecutive_bad_rounds += 1
-            if consecutive_bad_rounds > 5:
-                print("Hit limit of " + str(max_consecutive_bad_rounds) + "max consecutive bad rounds. ")
-                raise RuntimeError("Killing the program... you may want to debug this or "
-                                   "hopefully somebody will restart it automatically! "
-                                   "You can try the following bash line for auto restarts: "
-                                   "while true; do ./scripts/run.py --execute 1000; done")
-
-            #try:
-            #    input("Press Enter to continue...")
-            #except SyntaxError as e:
-            #    pass
-
-        rospy.loginfo('Attempting to unstack the blocks')
-        #try:
-        #poses = poses[:-1] if stack_task.ok else poses # if we succeeded, we also moved home already
-        for count_from_top, drop_pose in enumerate(reversed(poses)):
-            if drop_pose is None:
-                continue
-            # Determine destination spot above the block
-            unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
+            rospy.loginfo("Starting loop...")
+    
+            poses = []
+            cur_pose = None
+            frame_count = 0
+            # Update the plan and the collector in synchrony.
+            # This loop is exited upon completion with a break statement.
+            while not rospy.is_shutdown():
+    
+                cur_pose = collector.current_ee_pose
+    
+                # Note: this will be "dummied out" for most of
+                start_time = time.clock()
+                done = stack_task.tick()
+                tick_time = time.clock()
+                if not collector.update(stack_task.current, done):
+                    raise RuntimeError('could not handle data collection. '
+                                       'There may be an inconsistency in the system state '
+                                       'so try shutting all of ROS down and starting up again. '
+                                       'Alternately, run this program in a debugger '
+                                       'to try and diagnose the issue.')
+                update_time = time.clock()
+    
+                # figure out where the time has gone
+                time_str = ('Total tick + log time: {:04} sec, '
+                            'Robot Tick: {:04} sec, '
+                            'Data Logging: {:04} sec'.format(update_time - start_time, tick_time - start_time, update_time - tick_time))
+                
+                # Check if this script is running quickly enough, 
+                # and print a warning if it isn't
+                verify_update_rate(update_time_remaining=rate.remaining(), update_rate=args.rate, info=time_str)
+                rate.sleep()
+                # if len(collector.data['image']) > 5:
+                #     collector.save(idx, reward)
+                #     exit()
+                frame_count += 1
         
-        if len(poses) > 0 and drop_pose is not None:
-            # one extra unstack step, try to get the block on the bottom.
-            count_from_top+=1
-            # move vertically down in the z axis, 
-            # but by slightly less than a 
-            # whole block length which is 0.05 meters
-            drop_pose.p[2] -= 0.035
-            result = None
-            max_tries = 1
-            tries = 0
-            # sometimes this tries to go below the floor,
-            # so go up a bit on errors, then just give
-            # up and move on if it still doesn't work
-            # because the block will likely already
-            # be in a reasonable position.
-            while tries < max_tries and result is None:
-                try:
-                    result = unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
-                except RuntimeError as e:
-                    drop_pose.p[2] += 0.025
-                    tries +=1
-
+                if stack_task.finished_action:
+    
+                    object_was_placed = (collector.prev_action is not None and
+                                        "place" in collector.prev_action.split(':')[-1])
+                    if object_was_placed:
+                        # We finished one step in the task,
+                        # save the most recent pose update
+                        rospy.loginfo("Remembering " + str(collector.prev_action))
+                        poses.append(cur_pose)
+    
+                if done:
+                    if stack_task.ok:
+                        savestr = "WE WILL SAVE TO DISK"
+                    else:
+                        savestr = "BUT THERE A PROBLEM WAS DETECTED SO WE ARE SAVING TO DISK AS AN ERROR + FAILURE"
+                    rospy.logwarn("DONE COLLECTING THIS ROUND, " + savestr)
+                    if stack_task.ok:
+                        # Increase count
+                        i += 1
+    
+                        # We should actually check results here
+                        # home and observe are now built into the actions
+                        # home(); observe()
+                        # rospy.sleep(0.5)
+                        # Get the second to last object,
+                        # since the final one is none.
+                        if verify(collector.prev_objects[-2]):
+                            reward = 1.
+                        else:
+                            reward = 0.
+                        rospy.loginfo("reward = " + str(reward))
+                    break
+    
+            if stack_task.ok:
+                collector.save(idx, reward)
+                print("------------------------------------------------------------")
+                print("Finished one round of data collection. Attempting to automatically ")
+                print("reset the test environment to continue.")
+                print("")
+                print("Example number:", idx, "/", args.execute)
+                print("Success:", reward)
+                print("")
+                consecutive_bad_rounds = 0
+            else:
+                # Both an error and a failure!
+                # We are saving the failure info now because
+                # some of the most interesting failure cases
+                # lead to errors.
+                collector.save(idx, "error.failure")
+                print("------------------------------------------------------------")
+                print("Bad data collection round, " + str(consecutive_bad_rounds) + " consecutive. Attempting to automatically reset.")
+                print("If this happens repeatedly try restarting the program or loading in a debugger.")
+                collector.reset()
+                stack_task.reset()
+                consecutive_bad_rounds += 1
+                if consecutive_bad_rounds > 5:
+                    print("Hit limit of " + str(max_consecutive_bad_rounds) + "max consecutive bad rounds. ")
+                    raise RuntimeError("Killing the program... you may want to debug this or "
+                                       "hopefully somebody will restart it automatically! "
+                                       "You can try the following bash line for auto restarts: "
+                                       "while true; do ./scripts/run.py --execute 1000; done")
+    
+                #try:
+                #    input("Press Enter to continue...")
+                #except SyntaxError as e:
+                #    pass
+    
+            rospy.loginfo('Attempting to unstack the blocks')
+            #try:
+            #poses = poses[:-1] if stack_task.ok else poses # if we succeeded, we also moved home already
+            for count_from_top, drop_pose in enumerate(reversed(poses)):
+                if drop_pose is None:
+                    continue
+                # Determine destination spot above the block
+                unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
+            
+            if len(poses) > 0 and drop_pose is not None:
+                # one extra unstack step, try to get the block on the bottom.
+                count_from_top+=1
+                # move vertically down in the z axis, 
+                # but by slightly less than a 
+                # whole block length which is 0.05 meters
+                drop_pose.p[2] -= 0.035
+                result = None
+                max_tries = 1
+                tries = 0
+                # sometimes this tries to go below the floor,
+                # so go up a bit on errors, then just give
+                # up and move on if it still doesn't work
+                # because the block will likely already
+                # be in a reasonable position.
+                while tries < max_tries and result is None:
+                    try:
+                        result = unstack_one_block(drop_pose, move_to_pose, close_gripper, open_gripper, i=count_from_top)
+                    except RuntimeError as e:
+                        drop_pose.p[2] += 0.025
+                        tries +=1
         rospy.loginfo("Done one loop.")
+    except RuntimeError as ex:
+        # save the current data if we can
+        message = ('error.failure due to RuntimeError:\n' + 
+                    ''.join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+        rospy.logerr(message)
+        collector.save(idx, 'error.failure', log=message)
+        # re-raise the caught exception https://stackoverflow.com/a/4825279/99379
+        raise
+    except KeyboardInterrupt as ex:
+        # save the current data if we can
+        message = ('error.failure due to KeyboardInterrupt, '
+                    'collection canceled based on a user request.')
+        rospy.logerr(message)
+        collector.save(idx, 'error.failure', log=message)
+        # re-raise the caught exception https://stackoverflow.com/a/4825279/99379
+        raise
+        
 
 def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rate_fraction_allowed=0.1, info=''):
     """
@@ -420,7 +439,7 @@ def random_drop_coordinate(grasp_pose, drop_pose, z=0.3):
     axis_range: range of allowable coordinates in meters
     """
     x_random = random_drop_axis_coordinate(grasp_pose, axis_idx=0, axis_corner=0.43, axis_range=0.3)
-    y_random = random_drop_axis_coordinate(grasp_pose, axis_idx=1, axis_corner=-0.08, axis_range=-0.22)
+    y_random = random_drop_axis_coordinate(grasp_pose, axis_idx=1, axis_corner=-0.00, axis_range=-0.22)
     pose_random = kdl.Frame(drop_pose.M,
             kdl.Vector(x_random,y_random,z))
     return pose_random
