@@ -318,14 +318,8 @@ def collect_data(args):
                                        "You can try the following bash line for auto restarts: "
                                        "while true; do ./scripts/run.py --execute 1000; done")
     
-                #try:
-                #    input("Press Enter to continue...")
-                #except SyntaxError as e:
-                #    pass
-    
             rospy.loginfo('Attempting to unstack the blocks')
-            #try:
-            #poses = poses[:-1] if stack_task.ok else poses # if we succeeded, we also moved home already
+
             for count_from_top, drop_pose in enumerate(reversed(poses)):
                 if drop_pose is None:
                     continue
