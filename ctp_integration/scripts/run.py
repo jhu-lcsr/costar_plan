@@ -234,7 +234,7 @@ def collect_data(args):
                 start_time = time.clock()
                 done = stack_task.tick()
                 tick_time = time.clock()
-                if not collector.update(stack_task.current, done):
+                if not collector.update(stack_task.current_action, done):
                     raise RuntimeError('could not handle data collection. '
                                        'There may be an inconsistency in the system state '
                                        'so try shutting all of ROS down and starting up again. '
