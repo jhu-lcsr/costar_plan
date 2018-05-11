@@ -39,7 +39,7 @@ class StackManager(object):
         self.children = {}
         self.labels = set()
         self.update = self._update()
-        self.prev_current = None
+        self.previous_action = None
 
     def _update(self):
         pass
@@ -54,7 +54,7 @@ class StackManager(object):
 
     def reset(self):
         self.done = False
-        self.current = None
+        self.current_action = None
         self.ok = True
         self.finished_action = False
         self.service.reset()
@@ -106,18 +106,18 @@ class StackManager(object):
             self.done = True
 
         # print a status update for debugging purposes
-        if self.prev_current is None or self.current != self.prev_current:
-            rospy.loginfo("current = " + str(self.current))
-            self.prev_current = self.current
+        if self.previous_action is None or self.current_action != self.previous_action:
+            rospy.loginfo("current = " + str(self.current_action))
+            self.previous_action = self.current_action
 
-        if self.current is not None:
+        if self.current_action is not None:
             # Return status or continue
             if self.done:
                 return self.ok
             elif self.service.update():
                 self.done = False
                 return
-            elif self.current in self.children:
+            elif self.current_action in self.children:
                 # This one has a child to execute
                 self.done = False
             else:
@@ -132,7 +132,7 @@ class StackManager(object):
 
         if not self.done:
             self.finished_action = True
-            children = self.children[self.current]
+            children = self.children[self.current_action]
             # choose which action to take out of the set of possible actions
             idx = np.random.randint(len(children))
             next_action = children[idx]
@@ -142,5 +142,5 @@ class StackManager(object):
             self.update()
             if not self.service(srv, req):
                 raise RuntimeError('could not start service: ' + next_action)
-            self.current = next_action
+            self.current_action = next_action
         return self.done
