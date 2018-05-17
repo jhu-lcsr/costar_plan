@@ -14,6 +14,10 @@ To run deep learning examples, you will need TensorFlow and Keras, plus a number
 
 *About this repository:* CTP is a _single-repository_ project. As such, all the custom code you need should be in one place: here. There are exceptions, such as the [CoSTAR Stack](https://github.com/cpaxton/costar_stack/) for real robot execution, but these are generally not necessary. The minimal installation of CTP is just to install the `costar_models` package as a normal [python package](https://github.com/cpaxton/costar_plan/tree/master/costar_models/python) ignoring everything else.
 
+Datasets:
+  - [PyBullet Block Stacking](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz)
+  - [Sample Husky Data](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/husky_data.tar.gz)
+
 Contents:
   - [0. Introduction](docs/introduction.md)
   - [1. Installation Guide](docs/install.md)
