@@ -35,6 +35,10 @@ So, what do these arguments mean?
   - `--agent task` says we want an "expert" task model to generate data rather than a human or RL algorithm
   - `-i 10` says we want to run for 10 iterations, i.e. on 10 different random environments
   - `--seed 1` tells us to initialize the `numpy` random number generator at each iteration, in order to generate a consistent set of examples. Randomizer is initialized to `(seed+iteration_num)` before environment setup.
+  - `--no_ssm` disable spatial softmax algorithm in the model 
+      - the network performs similarly when enabling and disabling spatial softmax, with a very small quantitative difference on a pixel-to-pixel level and very little qualitative difference.
+
+ Examples of preconfigured training commands can be found in [costar_plan/commands](https://github.com/cpaxton/costar_plan/tree/master/commands).
 
 ### Learning a Policy with Behavioral Cloning
 
