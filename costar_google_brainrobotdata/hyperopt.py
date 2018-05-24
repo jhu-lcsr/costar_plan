@@ -1,4 +1,10 @@
+#!/usr/local/bin/python
+"""
+Manage hyperparameter optimization.
 
+Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
+
+"""
 
 import os
 import sys
@@ -11,6 +17,7 @@ import numpy as np
 import tensorflow as tf
 import traceback
 import keras
+import grasp_utilities
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -26,7 +33,7 @@ except ImportError:
 
 class HyperparameterOptions(object):
 
-    def __init__(self, verbose=1):
+    def __init__(self, verbose=0):
         self.index_dict = {}
         self.search_space = []
         self.verbose = verbose
@@ -51,25 +58,25 @@ class HyperparameterOptions(object):
         if 'current_index' not in self.index_dict:
             self.index_dict['current_index'] = 0
 
-        if enable:
+        if enable or required:
             param_index = self.index_dict['current_index']
             numerical_domain = domain
             needs_reverse_lookup = False
-            lookup_as = float
+            lookup_as = 'float'
             # convert string domains to a domain of integer indexes
             if domain_type == 'discrete':
                 if isinstance(domain, list) and isinstance(domain[0], str):
                     numerical_domain = [i for i in range(len(domain))]
-                    lookup_as = str
+                    lookup_as = 'str'
                     needs_reverse_lookup = True
                 elif isinstance(domain, list) and isinstance(domain[0], bool):
                     numerical_domain = [i for i in range(len(domain))]
-                    lookup_as = bool
+                    lookup_as = 'bool'
                     needs_reverse_lookup = True
                 elif isinstance(domain, list) and isinstance(domain[0], float):
-                    lookup_as = float
+                    lookup_as = 'float'
                 else:
-                    lookup_as = int
+                    lookup_as = 'int'
 
             opt_dict = {
                 'name': name,
@@ -87,11 +94,12 @@ class HyperparameterOptions(object):
             opt_dict['enable'] = enable
             opt_dict['required'] = required
             opt_dict['default'] = default
-            opt_dict['index'] = param_index
             opt_dict['domain'] = domain
             opt_dict['needs_reverse_lookup'] = needs_reverse_lookup
             self.index_dict[name] = opt_dict
-            self.index_dict['current_index'] += 1
+            if enable:
+                opt_dict['index'] = param_index
+                self.index_dict['current_index'] += 1
 
     def params_to_args(self, x):
         """ Convert GPyOpt Bayesian Optimizer params back into function call arguments
@@ -104,8 +112,25 @@ class HyperparameterOptions(object):
         if len(x.shape) == 1:
             # if we get a 1d array convert it to 2d so we are consistent
             x = np.expand_dims(x, axis=0)
+
+        def lookup_as(name, value):
+            """ How to lookup internally stored values.
+            """
+            if name == 'float':
+                return float(value)
+            elif name == 'int':
+                return int(value)
+            elif name == 'str':
+                return str(value)
+            elif name == 'bool':
+                return bool(value)
+            else:
+                raise ValueError('Trying to lookup unsupported type: ' + str(name))
+
         # x is a funky 2d numpy array, so we convert it back to normal parameters
         kwargs = {}
+        if self.verbose > 0:
+            print('INDEX DICT: ' + str(self.index_dict))
         for key, opt_dict in six.iteritems(self.index_dict):
             if key == 'current_index':
                 continue
@@ -124,16 +149,18 @@ class HyperparameterOptions(object):
                     if opt_dict['needs_reverse_lookup']:
                         domain_index = int(param_value)
                         domain_value = opt_dict['domain'][domain_index]
-                        value = opt_dict['lookup_as'](domain_value)
+                        value = lookup_as(opt_dict['lookup_as'], domain_value)
                     else:
-                        value = opt_dict['lookup_as'](param_value)
+                        value = lookup_as(opt_dict['lookup_as'], param_value)
 
                 else:
                     # the value is a param to use directly
-                    value = opt_dict['lookup_as'](param_value)
+                    value = lookup_as(opt_dict['lookup_as'], param_value)
 
                 kwargs[arg_name] = value
             elif opt_dict['required']:
+                if self.verbose > 0:
+                    print('REQUIRED NAME: ' + str(opt_dict['name']) + ' DEFAULT: ' + str(opt_dict['default']))
                 kwargs[opt_dict['name']] = opt_dict['default']
         return kwargs
 
@@ -142,13 +169,22 @@ class HyperparameterOptions(object):
         """
         return self.search_space
 
+    def save(self, filename):
+        """ Save the HyperParameterOptions search space and argument index dictionary to a json file.
+        """
+        data = {}
+        data['search_space'] = self.search_space
+        data['index_dict'] = self.index_dict
+        with open(filename, 'w') as fp:
+            json.dump(data, fp)
+
 
 def optimize(
         run_training_fn,
         feature_combo_name,
         seed=1,
         verbose=1,
-        initial_num_samples=200,
+        initial_num_samples=300,
         maximum_hyperopt_steps=100,
         num_cores=15,
         baysean_batch_size=1,
@@ -161,11 +197,16 @@ def optimize(
         learning_rate_enabled=False,
         min_top_block_filter_multiplier=6,
         batch_size=2,
-        hyperoptions=None):
+        hyperoptions=None,
+        **kwargs):
     """ Run hyperparameter optimization
 
     hyperoptions: an instance of thee hyperopt.HyperparameterOptions class,
         default of None will create one automatically
+
+    kwargs: these are passed to the run_training_fn but *not* saved as hyperparameters.
+        The current example use case is to disable model checkpointing if it takes too much space
+        with the parameter checkpoint=False (assuming the run_training_fn accepts that parameter).
     """
     np.random.seed(seed)
 
@@ -197,7 +238,7 @@ def optimize(
         hyperoptions.add_param('trainable', (0.0, 1.0), 'continuous',
                                enable=True, required=True, default=0.0)
     else:
-        # The trainable flag referrs to the imagenet pretrained network being trainable or not trainable.
+        # The trainable flag refers to the imagenet pretrained network being trainable or not trainable.
         # We are defaulting to a reasonable learning rate found by prior searches and disabling trainability so that
         # we can restrict the search to more model improvements due to the outsized effects of these changes on performance
         # during the random search phase. We plan to run a separate search on enabling trainable models on one of the best models
@@ -210,7 +251,7 @@ def optimize(
     # with a base of 0.9.
     # Therefore the value 50 is 0.9^50 == 0.005 (approx).
     hyperoptions.add_param('learning_rate', (0.0, 100.0), 'continuous',
-                           enable=learning_rate_enabled, required=True, default=0.01)
+                           enable=learning_rate_enabled, required=True, default=0.02)
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
     # TODO(ahundt) run a separate search for the best dropout rate after finding a good model
     hyperoptions.add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75],
@@ -234,7 +275,7 @@ def optimize(
     # leaving out nasnet_large for now because it needs different input dimensions.
     # other supported options: 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'
     hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'],
-                           enable=False, required=True, default='vgg')
+                           enable=True, required=True, default='vgg')
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
     hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 12)])
@@ -249,7 +290,7 @@ def optimize(
     # The appropriate preprocessing mode must be chosen for each model.
     # This should now be done correctly in cornell_grasp_train.py.
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
-                           enable=False, required=False, default='tf')
+                           enable=True, required=False, default='tf')
 
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
@@ -263,26 +304,31 @@ def optimize(
 
     def train_callback(x):
         # x is a funky 2d numpy array, so we convert it back to normal parameters
-        kwargs = hyperoptions.params_to_args(x)
+        training_arguments = hyperoptions.params_to_args(x)
 
         if learning_rate_enabled:
             # Learning rates are exponential so we take a uniform random
             # input and map it from 1 to 3e-5 on an exponential scale.
-            kwargs['learning_rate'] = 0.9 ** kwargs['learning_rate']
+            training_arguments['learning_rate'] = 0.9 ** training_arguments['learning_rate']
 
         if verbose:
             # update counts by 1 each step
             ProgUpdate.progbar.update()
-            ProgUpdate.progbar.write('Training with hyperparams: \n' + str(kwargs))
+            ProgUpdate.progbar.write('Training with hyperparams: \n' + str(training_arguments))
         ProgUpdate.hyperopt_current_update += 1
 
         history = None
 
+        # hyperparams need to be kept separate from some extra training arguments
+        # not relevant to hyperparameter optimization
+        hyper_params = training_arguments
+        training_arguments.update(kwargs)
+
         try:
             # call the function that performs actual training and returns a history object
             history = run_training_fn(
-                hyperparams=kwargs,
-                **kwargs)
+                hyperparams=hyper_params,
+                **training_arguments)
         except tf.errors.ResourceExhaustedError as exception:
             print('Hyperparams caused algorithm to run out of resources, '
                   'will continue to next stage and return infinity loss for now.'
@@ -352,14 +398,23 @@ def optimize(
         return loss
 
     log_run_prefix = os.path.join(log_dir, run_name)
+    grasp_utilities.mkdir_p(log_run_prefix)
+    print('Hyperopt log run results prefix directory: ' + str(log_run_prefix))
+    hyperoptions.save(log_run_prefix + '_hyperoptions.json')
+
+    # model_type chosen based on https://github.com/SheffieldML/GPyOpt/issues/152
+    # also see https://github.com/SheffieldML/GPyOpt/issues/107
+    # Previous choice before 2018-04-06 was as follows, but became too slow past 300 samples:
+    # model_type='GP_MCMC',
+    # acquisition_type='EI_MCMC',  # EI
 
     bayesian_optimization = GPyOpt.methods.BayesianOptimization(
         f=train_callback,  # function to optimize
         domain=hyperoptions.get_domain(),  # where are we going to search
         initial_design_numdata=initial_num_samples,
-        model_type='GP_MCMC',
-        acquisition_type='EI_MCMC',  # EI
-        evaluator_type="predictive",  # Expected Improvement
+        model_type='sparseGP',
+        acquisition_type='EI',  # Expected Improvement
+        evaluator_type="predictive",
         batch_size=baysean_batch_size,
         num_cores=num_cores,
         exact_feval=algorithm_gives_exact_results,
@@ -378,6 +433,7 @@ def optimize(
         json.dump(best_hyperparams, fp)
     print('Hyperparameter Optimization final best result:\n' + str(best_hyperparams))
     print('Optimized ' + param_to_optimize + ': {0}'.format(bayesian_optimization.fx_opt))
+    print('Hyperopt log run results prefix directory: ' + str(log_run_prefix))
 
-    bayesian_optimization.plot_convergence()
-    bayesian_optimization.plot_acquisition()
+    bayesian_optimization.plot_convergence(log_run_prefix + '_bayesian_optimization_convergence_plot.png')
+    bayesian_optimization.plot_acquisition(log_run_prefix + '_bayesian_optimization_acquisition_plot.png')

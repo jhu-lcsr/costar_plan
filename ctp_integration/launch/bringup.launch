@@ -1,7 +1,17 @@
 <launch>
+  <!-- To change the position of the table center crop box used for object segmentation, modify
 
+  -->
   <arg name="rviz" default="true"/>
   <arg name="use_scene_parsing_pose" default="false" doc="Use the stable pose generated from the scene parsing algorithm"/>
+  <!-- Note some of the actual segmenter configuration should be in:
+        costar_plan/ctp_integration/perception.launch
+  
+    If use_external_segmenter is true, color_nn_segmenter will be used and some configuration should be in:
+        costar_stack/costar_perception/color_nn_segmenter/launch/costar_segmenter.launch 
+    If use_external_segmenter is false, sp_segmenter will be used and other configuration files should be in:
+        costar_stack/costar_perception/sp_segmenter/launch/colored_block.launch
+    -->
   <arg name="use_external_segmenter" default="true" doc="Use external point cloud segmentation false for sp_segmenter, true for something else e.g. color_nn_segmenter (k means color segmentation)"/>
   <!-- <arg name="auto_start_collection" default="true" doc="Automatically run run.py in the scripts folder"> -->
 

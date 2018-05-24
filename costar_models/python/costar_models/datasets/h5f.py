@@ -5,46 +5,39 @@ import numpy as np
 import os
 import datetime
 
-# TODO(ahundt) move to a utilities location
-def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
-    """ Apply a timestamp to the front of a filename description.
-
-    see: http://stackoverflow.com/a/5215012/99379
-    """
-    return datetime.datetime.now().strftime(fmt).format(fname=fname)
-
 class H5fDataset(object):
     '''
     Write out h5f datasets one file at a time, with information in filenames
     for easy access and data aggregation.
     '''
 
-    def __init__(self, name):
+    def __init__(self, name, verbose=0):
         '''
         Create a folder to hold different archives in
         '''
         self.name = os.path.expanduser(name)
+        self.verbose = verbose
         try:
             os.mkdir(self.name)
         except OSError as e:
             pass
 
-    def write(self, example, i, r, image_type=None):
+    def write(self, example, filename, image_types=[]):
         '''
         Write an example out to disk.
+
+        status: success, failure or error.failure
         '''
-        if r > 0.:
-            status = "success"
-        else:
-            status = "failure"
-        filename = timeStamped("example%06d.%s.h5f"%(i,status))
         filename = os.path.join(self.name, filename)
         f = h5f.File(filename, 'w')
-        for key, value in example.items():
-            f.create_dataset(key, data=value)
-        if image_type is not None:
+        if image_types != []:
             dt = h5f.special_dtype(vlen=bytes)
-            f.create_dataset("image_type", data=["image_type"])
+            for (img_type_str, img_format_str) in image_types:
+                f.create_dataset("type_" + img_type_str, data=[img_format_str])
+        for key, value in example.items():
+            if self.verbose > 0:
+                print('H5fDataset writing key: ' + str(key))
+            f.create_dataset(key, data=value)
         f.close()
 
     def load(self,success_only=False):

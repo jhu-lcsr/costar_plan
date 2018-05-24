@@ -53,7 +53,7 @@ class NpzGeneratorDataset(object):
                 for key, value in fsample.items():
 
                     if self.load_jpeg and key in ["image", "goal_image"]:
-                        value = ConvertJpegListToNumpy(value)
+                        value = ConvertImageListToNumpy(value)
 
                     if value.shape[0] == 0:
                         sample = {}

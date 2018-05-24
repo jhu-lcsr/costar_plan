@@ -13,7 +13,7 @@
     <arg name="save_directory" value="$(arg save_directory)"/>
     <arg name="above_table_min" value="0.0025"/>
     <arg name="plane_seg_viewer" value="false"/>
-    <arg name="auto_capture" value="false"/>
+    <arg name="auto_capture" value="false" doc="Ask the user to collect segmentation data, or simply run periodically."/>
   </include>
 
 </launch>

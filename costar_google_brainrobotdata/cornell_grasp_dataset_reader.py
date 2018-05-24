@@ -558,7 +558,7 @@ def projective_image_augmentation(
     # configure the image transform based on the training mode
     if crop_to == 'resize_height_and_resize_width':
         # Note: this option only works well if the crop size is similar to the input size
-        if is_training and random_rotation or random_translation:
+        if is_training and (random_rotation or random_translation):
             transform, random_features = rcp.random_projection_transform(
                 K.shape(image), crop_shape, scale=False, rotation=random_rotation, translation=random_translation)
         else:
@@ -609,6 +609,7 @@ def projective_image_augmentation(
             crop_to_gripper_theta, crop_shape,
             random_translation_max_pixels=translation_in_box,
             random_rotation=random_rotation)
+    # verbose = 1
 
     if verbose > 0:
         image = tf.Print(
@@ -940,8 +941,11 @@ def main(argv):
     is_training = True
     validation_file = FLAGS.evaluate_filename
     crop_to = 'image_contains_grasp_box_center'
+    # crop_to = 'resize_height_and_resize_width'
     success_only = True
     shuffle = False
+    # FLAGS.random_translation = False
+    # FLAGS.random_rotation = False
 
     for example_dict in tqdm(yield_record(
             validation_file, is_training=is_training,

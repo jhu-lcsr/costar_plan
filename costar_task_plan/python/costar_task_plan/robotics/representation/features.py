@@ -512,7 +512,10 @@ class RobotFeatures:
             else:
 
                 # we care about this world object...
-                obj_frame = world[obj][idx]
+                if isinstance(world[obj], list):
+                    obj_frame = world[obj][idx]
+                else:
+                    obj_frame = world[obj]
 
                 # ... so get object offset to end effector ...
                 #offset = (obj_frame*PyKDL.Frame(PyKDL.Rotation.RotY(np.pi/2))).Inverse() * (ee_frame)
