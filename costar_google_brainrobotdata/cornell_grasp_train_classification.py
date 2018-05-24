@@ -63,7 +63,14 @@ def main(_):
         # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
         #                           '2018-03-16-06-15-01_-densenet_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
-        FLAGS.load_hyperparams = ('hyperparams/classification/2018-04-08-21-04-19__optimized_hyperparams.json')
+        # Quite good kfold, best hyperparams from 2018-04 2000 model hyperopt run TODO(ahundt) add details from kfold run
+        # FLAGS.load_hyperparams = ('hyperparams/classification/2018-04-08-21-04-19__optimized_hyperparams.json')
+        # about to run: best hyperparams with trainable set to False from 2018-04 2000 model hyperopt run
+        # FLAGS.load_hyperparams = ('hyperparams/classification/2018-04-07-15-31-34_vgg_classifier_model-_img_vgg_vec_dense_block_trunk_dense_block-dataset_cornell_grasping-grasp_success_hyperparams.json')
+
+        # One of best results from hyperopt run ending 2018-05-08
+        FLAGS.load_hyperparams = ('hyperparams/classification/2018-05-03-17-02-01_inception_resnet_v2_classifier_model-'
+                                  '_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_cornell_grasping-grasp_success_hyperparams.json')
     FLAGS.epochs = 40
     FLAGS.fine_tuning_epochs = 0
     # 8 training folds

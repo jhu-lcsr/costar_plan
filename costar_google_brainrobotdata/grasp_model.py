@@ -463,7 +463,8 @@ def choose_hypertree_model(
         trunk_model_name='dense',
         vector_branch_num_layers=3,
         image_model_weights='shared',
-        use_auxiliary_branch=True):
+        use_auxiliary_branch=True,
+        weights='imagenet'):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
@@ -595,14 +596,14 @@ def choose_hypertree_model(
                 if image_model_weights == 'shared':
                     image_model = keras.applications.vgg16.VGG16(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.vgg16.VGG16
             elif image_model_name == 'vgg19':
                 if image_model_weights == 'shared':
                     image_model = keras.applications.vgg19.VGG19(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.vgg19.VGG19
             elif image_model_name == 'nasnet_large':
@@ -613,18 +614,19 @@ def choose_hypertree_model(
                 # TODO(ahundt) just max pooling in NASNetLarge for now, but need to figure out pooling for the segmentation case.
                 image_model = keras_contrib.applications.nasnet.NASNetLarge(
                     input_shape=image_input_shape, include_top=False, pooling=None,
-                    classes=classes, use_auxiliary_branch=use_auxiliary_branch
+                    classes=classes, use_auxiliary_branch=use_auxiliary_branch,
+                    weights=weights
                 )
             elif image_model_name == 'nasnet_mobile':
                 image_model = keras.applications.nasnet.NASNetMobile(
                     input_shape=image_input_shape, include_top=False,
-                    classes=classes, pooling=False
+                    classes=classes, pooling=False, weights=weights
                 )
             elif image_model_name == 'inception_resnet_v2':
                 if image_model_weights == 'shared':
                     image_model = keras.applications.inception_resnet_v2.InceptionResNetV2(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.inception_resnet_v2.InceptionResNetV2
                 else:
@@ -635,7 +637,7 @@ def choose_hypertree_model(
                 if image_model_weights == 'shared':
                     resnet_model = keras.applications.resnet50.ResNet50(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.resnet50.ResNet50
                 if not trainable:
@@ -647,9 +649,27 @@ def choose_hypertree_model(
                 if image_model_weights == 'shared':
                     image_model = keras.applications.densenet.DenseNet169(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.densenet.DenseNet169
+                else:
+                    raise ValueError('Unsupported image_model_name')
+            elif image_model_name is None or image_model_name == 'none':
+                if image_model_weights == 'shared':
+                    x = Input(shape=image_input_shape)
+                    image_model = Model(x, x)
+                elif image_model_weights == 'separate':
+                    def identity_model(input_shape=(224,224,3), weights=None, classes=None,
+                                       input_tensor=None):
+                        """ Identity Model is an empty model that returns the input.
+                        """
+                        if input_tensor is None:
+                            x = Input(shape=input_shape)
+                        else:
+                            x = Input(tensor=input_tensor)
+                        return Model(x, x)
+
+                    image_model = identity_model
                 else:
                     raise ValueError('Unsupported image_model_name')
             else:

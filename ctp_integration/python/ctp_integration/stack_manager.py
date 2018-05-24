@@ -39,16 +39,22 @@ class StackManager(object):
         self.children = {}
         self.labels = set()
         self.update = self._update()
+        self.previous_action = None
 
     def _update(self):
         pass
 
     def setUpdate(self, update_fn):
+        ''' Set the function to call after each action is completed.
+
+          Currently this sets the function that 
+          goes home and gets all the object poses after the action.
+        '''
         self.update = update_fn
 
     def reset(self):
         self.done = False
-        self.current = None
+        self.current_action = None
         self.ok = True
         self.finished_action = False
         self.service.reset()
@@ -99,15 +105,19 @@ class StackManager(object):
         if not self.ok:
             self.done = True
 
-        rospy.logwarn("current = " + str(self.current))
-        if self.current is not None:
+        # print a status update for debugging purposes
+        if self.previous_action is None or self.current_action != self.previous_action:
+            rospy.loginfo("current = " + str(self.current_action))
+            self.previous_action = self.current_action
+
+        if self.current_action is not None:
             # Return status or continue
             if self.done:
                 return self.ok
             elif self.service.update():
                 self.done = False
                 return
-            elif self.current in self.children:
+            elif self.current_action in self.children:
                 # This one has a child to execute
                 self.done = False
             else:
@@ -122,14 +132,15 @@ class StackManager(object):
 
         if not self.done:
             self.finished_action = True
-            children = self.children[self.current]
+            children = self.children[self.current_action]
             # choose which action to take out of the set of possible actions
             idx = np.random.randint(len(children))
             next_action = children[idx]
             rospy.logwarn("next action = " + str(next_action))
             srv, req = self.reqs[next_action]
+            # Go home and use vision to update all the object poses.
             self.update()
             if not self.service(srv, req):
                 raise RuntimeError('could not start service: ' + next_action)
-            self.current = next_action
+            self.current_action = next_action
         return self.done

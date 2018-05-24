@@ -275,7 +275,7 @@ def optimize(
     # leaving out nasnet_large for now because it needs different input dimensions.
     # other supported options: 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'
     hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'],
-                           enable=False, required=True, default='vgg')
+                           enable=True, required=True, default='vgg')
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
     hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 12)])
@@ -290,7 +290,7 @@ def optimize(
     # The appropriate preprocessing mode must be chosen for each model.
     # This should now be done correctly in cornell_grasp_train.py.
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
-                           enable=False, required=False, default='tf')
+                           enable=True, required=False, default='tf')
 
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False

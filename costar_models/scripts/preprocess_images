@@ -29,7 +29,7 @@ from costar_models.datasets.image import GetJpeg, JpegToNumpy
 def convertJpegToImages(features):
     for i, f in enumerate(features):
         if str(f.dtype)[:2] == "|S":
-            f = ConvertJpegListToNumpy(np.squeeze(f))
+            f = ConvertImageListToNumpy(np.squeeze(f))
             features[i] = f
     return features
 
@@ -79,7 +79,7 @@ def main(args):
             if not k == "image":
                 newdata[k] = v
             else:
-                f = ConvertJpegListToNumpy(np.squeeze(v))
+                f = ConvertImageListToNumpy(np.squeeze(v))
                 images = []
                 for i in range(f.shape[0]):
                     frame = f[i]

@@ -7,7 +7,10 @@ from std_srvs.srv import Empty as EmptySrv
 from costar_robot_msgs.srv import SmartMove
 from costar_robot_msgs.srv import ServoToJointState
 from costar_robot_msgs.srv import ServoToJointStateRequest
-from costar_robot_msgs.srv import ServoToPose, SetServoMode
+from costar_robot_msgs.srv import ForwardKinematicsRequest
+from costar_robot_msgs.srv import ForwardKinematics
+from costar_robot_msgs.srv import ServoToPose
+from costar_robot_msgs.srv import SetServoMode
 
 import rospy
 
@@ -49,6 +52,9 @@ def GetPlanToJointStateService():
 def GetPlanToPoseService():
     return GetService("/costar/PlanToPose", ServoToPose)
 
+def GetForwardKinematicsService():
+    return GetService("/costar/ForwardKinematics", ForwardKinematics)
+
 def GetPlanToHomeService():
     return GetService("/costar/PlanToHome", ServoToPose)
 
@@ -59,8 +65,17 @@ def GetServoModeService():
     return GetService("/costar/SetServoMode", SetServoMode)
 
 def MakeServoToJointStateRequest(position):
-    req = ServoToJointStateRequest()
+    req = None
+    while req is None:
+        req = ServoToJointStateRequest()
     req.target.position = position
-    req.vel = 0.75
+    req.vel = 1.0
     req.accel = 0.75
+    return req
+
+def MakeForwardKinematicsRequest(position):
+    req = None
+    while req is None:
+        req = ForwardKinematicsRequest()
+    req.joint_state.position = position
     return req
