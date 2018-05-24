@@ -312,6 +312,20 @@ def run_training(
         FLAGS.crop_width = 331
         FLAGS.resize_height = 331
         FLAGS.resize_width = 331
+        print('Note: special overrides have been applied '
+              'to support nasnet_large.'
+              ' crop + resize width/height have been set to 331.')
+        #   ' Loss is repeated, and '
+    if image_model_name == 'inception_resnet_v2':
+        # set special dimensions for inception resnet v2
+        # https://github.com/keras-team/keras/blob/master/keras/applications/inception_resnet_v2.py#L194
+        FLAGS.crop_height = 299
+        FLAGS.crop_width = 299
+        FLAGS.resize_height = 299
+        FLAGS.resize_width = 299
+        print('Note: special overrides have been applied '
+              'to support inception_resnet_v2.'
+              ' crop + resize width/height have been set to 299.')
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -353,15 +367,13 @@ def run_training(
     callbacks = []
 
     loss_weights = None
-    if image_model_name == 'nasnet_large':
-        # nasnet_large has an auxilliary network,
-        # so we apply the loss on both
-        loss = [loss, loss]
-        loss_weights = [1.0, 0.4]
-        label_features += label_features
-        print('Note: special overrides have been applied '
-              'to support nasnet_large. Loss is repeated, and '
-              ' crop + resize width/height have been set to 331.')
+    # if image_model_name == 'nasnet_large':
+    #     # TODO(ahundt) switch to keras_contrib NASNet model and enable aux network below when keras_contrib is updated with correct weights https://github.com/keras-team/keras/pull/10209.
+    #     # nasnet_large has an auxilliary network,
+    #     # so we apply the loss on both
+    #     loss = [loss, loss]
+    #     loss_weights = [1.0, 0.4]
+    #     label_features += label_features
 
     callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
 
