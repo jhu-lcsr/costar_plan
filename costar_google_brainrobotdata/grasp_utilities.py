@@ -4,6 +4,7 @@ import numpy as np
 import os
 import json
 import datetime
+import errno
 
 
 def rotate(data, shift=1):
