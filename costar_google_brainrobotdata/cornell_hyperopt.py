@@ -92,7 +92,7 @@ def main(_):
           ' fine_tuning_epochs: ' + str(FLAGS.fine_tuning_epochs) +
           ' problem_type:' + str(FLAGS.problem_type) +
           ' crop (height, width): ({}, {})'.format(FLAGS.crop_height, FLAGS.crop_width))
-    hyperopt.optimize(
+    best_hyperparams = hyperopt.optimize(
         run_training_fn=run_training_fn,
         feature_combo_name=feature_combo_name,
         problem_type=FLAGS.problem_type,

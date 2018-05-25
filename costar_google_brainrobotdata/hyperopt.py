@@ -437,3 +437,4 @@ def optimize(
 
     bayesian_optimization.plot_convergence(log_run_prefix + '_bayesian_optimization_convergence_plot.png')
     bayesian_optimization.plot_acquisition(log_run_prefix + '_bayesian_optimization_acquisition_plot.png')
+    return best_hyperparams
