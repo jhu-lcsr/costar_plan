@@ -52,8 +52,8 @@ def main(_):
         #                           '2018-02-23-09-35-21_-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
         # About 0.95 k-fold accuracy on preprocessed_norm_sin2_cos2_w_3:
-        FLAGS.load_hyperparams = ('hyperparams/classification/2018-03-03-07-14-59_'
-                                  '-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
+        # FLAGS.load_hyperparams = ('hyperparams/classification/2018-03-03-07-14-59_'
+        #                           '-vgg_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
         # (not very good) Best result from classification hyperopt run ending 2018-03-16:
         # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
@@ -63,6 +63,14 @@ def main(_):
         # FLAGS.load_hyperparams = ('/home/ahundt/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/hyperparams/classification/'
         #                           '2018-03-16-06-15-01_-densenet_dense_model-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
+        # Quite good kfold, best hyperparams from 2018-04 2000 model hyperopt run TODO(ahundt) add details from kfold run
+        # FLAGS.load_hyperparams = ('hyperparams/classification/2018-04-08-21-04-19__optimized_hyperparams.json')
+        # about to run: best hyperparams with trainable set to False from 2018-04 2000 model hyperopt run
+        # FLAGS.load_hyperparams = ('hyperparams/classification/2018-04-07-15-31-34_vgg_classifier_model-_img_vgg_vec_dense_block_trunk_dense_block-dataset_cornell_grasping-grasp_success_hyperparams.json')
+
+        # One of best results from hyperopt run ending 2018-05-08
+        FLAGS.load_hyperparams = ('hyperparams/classification/2018-05-03-17-02-01_inception_resnet_v2_classifier_model-'
+                                  '_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_cornell_grasping-grasp_success_hyperparams.json')
     FLAGS.epochs = 40
     FLAGS.fine_tuning_epochs = 0
     # 8 training folds
@@ -84,23 +92,29 @@ def main(_):
         learning_rate=FLAGS.learning_rate,
         feature_combo_name=feature_combo)
 
+    # keep feature_combo_name from causing errors if it is present or not present
+    if feature_combo not in hyperparams:
+        hyperparams['feature_combo_name'] = feature_combo
+
     if 'k_fold' in FLAGS.pipeline_stage:
+        FLAGS.num_validation = 2
+        FLAGS.num_test = 0
         cornell_grasp_train.train_k_fold(
             problem_name=problem_type,
-            feature_combo_name=feature_combo,
+            # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='objectwise',
             **hyperparams)
         cornell_grasp_train.train_k_fold(
             problem_name=problem_type,
-            feature_combo_name=feature_combo,
+            # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='imagewise',
             **hyperparams)
     else:
         cornell_grasp_train.run_training(
             problem_name=problem_type,
-            feature_combo_name=feature_combo,
+            # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             **hyperparams)
 

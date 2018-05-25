@@ -33,4 +33,49 @@ Color augmentation is also available:
 4. vrep should load and start the simulation
 5. make sure the folder holding `vrep_grasp.py` is on your PYTHONPATH
 6. cd to `~/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/`, or wherever you put the repository
-7. run `python2 vrep_grasp.py`
+7. run `export CUDA_VISIBLE_DEVICES="" && python2 vrep_grasp.py`
+
+## Hyperparameter search
+
+
+### Google Brain Grasping Dataset
+
+To run the search execute the following command
+
+```
+export CUDA_VISIBLE_DEVICES="0" && python2 google_grasp_hyperopt.py --run_name single_prediction_all_transforms
+```
+
+Generating a hyperparameter search results summary for google brain grasping dataset classification:
+
+```
+python hyperopt_rank.py --log_dir hyperopt_logs_google_brain_classification --sort_by val_acc
+```
+
+### Cornell Dataset
+
+#### Regression
+```
+
+```
+
+The following commands will generate a hyperopt summary.
+
+Generating a hyperparameter search results summary for cornell regression
+
+```
+python hyperopt_rank.py --log_dir hyperopt_logs_cornell_regression --sort_by val_grasp_jaccard
+```
+
+#### Classification
+
+```
+export CUDA_VISIBLE_DEVICES="0" && python cornell_hyperopt.py --log_dir hyperopt_logs_cornell_classification
+```
+
+
+Generating a hyperparameter search results summary for cornell classification
+
+```
+python hyperopt_rank.py --log_dir hyperopt_logs_cornell_classification --sort_by val_binary_accuracy
+```

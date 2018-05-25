@@ -273,14 +273,13 @@ def optimize(
     hyperoptions.add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
                            enable=False, required=True, default=feature_combo_name)
     # leaving out nasnet_large for now because it needs different input dimensions.
-    # other supported options: 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'
-    hyperoptions.add_param('image_model_name', ['vgg', 'vgg19', 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2'],
-                           enable=False, required=True, default='vgg')
+    # other supported options: 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2', 'mobilenet_v2', 'nasnet_large', 'vgg19',
+    hyperoptions.add_param('image_model_name', ['vgg', 'densenet', 'nasnet_mobile', 'inception_resnet_v2', 'nasnet_large', 'mobilenet_v2'],
+                           enable=True, required=True, default='vgg')
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
     hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 12)])
-    # TODO(ahundt) Enable 'nasnet_normal_a_cell' the option is disabled for now due to a tensor dimension conflict
-    hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'resnet_conv_identity_block'],
+    hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'resnet_conv_identity_block', 'nasnet_normal_a_cell'],
                            default='dense_block', enable=True, required=True)
     hyperoptions.add_param('top_block_filters', [2**x for x in range(min_top_block_filter_multiplier, 12)])
     # number of dense layers before the final dense layer that performs classification in the top block
@@ -290,7 +289,7 @@ def optimize(
     # The appropriate preprocessing mode must be chosen for each model.
     # This should now be done correctly in cornell_grasp_train.py.
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
-                           enable=False, required=False, default='tf')
+                           enable=True, required=False, default='tf')
 
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False

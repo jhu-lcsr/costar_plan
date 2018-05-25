@@ -312,6 +312,20 @@ def run_training(
         FLAGS.crop_width = 331
         FLAGS.resize_height = 331
         FLAGS.resize_width = 331
+        print('Note: special overrides have been applied '
+              'to support nasnet_large.'
+              ' crop + resize width/height have been set to 331.')
+        #   ' Loss is repeated, and '
+    if image_model_name == 'inception_resnet_v2':
+        # set special dimensions for inception resnet v2
+        # https://github.com/keras-team/keras/blob/master/keras/applications/inception_resnet_v2.py#L194
+        FLAGS.crop_height = 299
+        FLAGS.crop_width = 299
+        FLAGS.resize_height = 299
+        FLAGS.resize_width = 299
+        print('Note: special overrides have been applied '
+              'to support inception_resnet_v2.'
+              ' crop + resize width/height have been set to 299.')
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -353,15 +367,13 @@ def run_training(
     callbacks = []
 
     loss_weights = None
-    if image_model_name == 'nasnet_large':
-        # nasnet_large has an auxilliary network,
-        # so we apply the loss on both
-        loss = [loss, loss]
-        loss_weights = [1.0, 0.4]
-        label_features += label_features
-        print('Note: special overrides have been applied '
-              'to support nasnet_large. Loss is repeated, and '
-              ' crop + resize width/height have been set to 331.')
+    # if image_model_name == 'nasnet_large':
+    #     # TODO(ahundt) switch to keras_contrib NASNet model and enable aux network below when keras_contrib is updated with correct weights https://github.com/keras-team/keras/pull/10209.
+    #     # nasnet_large has an auxilliary network,
+    #     # so we apply the loss on both
+    #     loss = [loss, loss]
+    #     loss_weights = [1.0, 0.4]
+    #     label_features += label_features
 
     callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
 
@@ -390,7 +402,7 @@ def run_training(
             save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
         callbacks = callbacks + [checkpoint]
-    callbacks += [SlowModelStopping(max_batch_time_seconds=0.5),
+    callbacks += [SlowModelStopping(max_batch_time_seconds=1.0),
                   InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
     # An additional useful param is write_batch_performance:
     #  https://github.com/keras-team/keras/pull/7617
@@ -651,15 +663,19 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
 def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name):
     if optimizer_name == 'sgd':
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
-        callbacks = callbacks + [
-            # Reduce the learning rate if training plateaus.
-            keras.callbacks.ReduceLROnPlateau(patience=20, verbose=1, factor=0.5, monitor=monitor_loss_name)
-        ]
     elif optimizer_name == 'adam':
         optimizer = keras.optimizers.Adam()
+    elif optimizer_name == 'rmsprop':
+        optimizer = keras.optimizers.RMSprop()
     else:
         raise ValueError('Unsupported optimizer ' + str(optimizer_name) +
                          'try adam or sgd.')
+
+    if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
+        callbacks = callbacks + [
+            # Reduce the learning rate if training plateaus.
+            keras.callbacks.ReduceLROnPlateau(patience=15, verbose=1, factor=0.5, monitor=monitor_loss_name)
+        ]
     return callbacks, optimizer
 
 

@@ -336,13 +336,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         skip = x
 
         if self.use_noise:
-            y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False, bn=bn)
+            y = AddDense(z, 32, self.activation_fn, 0., constraint=None, output=False, bn=bn)
             x = TileOnto(x, y, 32, h_dim)
             x = AddConv2D(x, 32, [5,5], 1, 0., **kwargs)
 
         # Add convolution to incorporate action info -- 2 + 1 + 1 = 4
-        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False,
-                bn=bn, perm_drop=True)
+        y = AddDense(option, 64, self.activation_fn, 0., constraint=None, output=False,
+                bn=bn, perm_drop=False)
         x = TileOnto(x, y, 64, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
 

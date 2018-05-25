@@ -14,7 +14,6 @@ import h5py
 
 from costar_models import *
 from costar_models.planner import GetOrderedList, PrintTopQ
-from costar_models.sampler2 import PredictionSampler2
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.h5f import H5fDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset

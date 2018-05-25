@@ -6,6 +6,7 @@ import keras
 from keras.applications.nasnet import NASNetLarge
 from keras.applications.resnet50 import ResNet50
 from keras.applications.nasnet import NASNetMobile
+from keras.applications.mobilenetv2 import MobileNetV2
 from keras.applications.inception_resnet_v2 import InceptionResNetV2
 from keras import backend as K
 from keras.layers import Dense
@@ -463,7 +464,8 @@ def choose_hypertree_model(
         trunk_model_name='dense',
         vector_branch_num_layers=3,
         image_model_weights='shared',
-        use_auxiliary_branch=True):
+        use_auxiliary_branch=True,
+        weights='imagenet'):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
@@ -595,38 +597,59 @@ def choose_hypertree_model(
                 if image_model_weights == 'shared':
                     image_model = keras.applications.vgg16.VGG16(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.vgg16.VGG16
             elif image_model_name == 'vgg19':
                 if image_model_weights == 'shared':
                     image_model = keras.applications.vgg19.VGG19(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.vgg19.VGG19
             elif image_model_name == 'nasnet_large':
+                if image_model_weights == 'shared':
+                    image_model = NASNetLarge(
+                        input_shape=image_input_shape, include_top=False, pooling=None,
+                        classes=classes, weights=weights
+                    )
+                elif image_model_weights == 'separate':
+                    image_model = NASNetLarge
+                else:
+                    raise ValueError('Unsupported image_model_name')
+
+                # TODO(ahundt) switch to keras_contrib model below when keras_contrib is updated with correct weights https://github.com/keras-team/keras/pull/10209.
                 # please note that with nasnet_large, no pooling,
                 # and an aux network the two outputs will be different
                 # dimensions! Therefore, we need to add our own pooling
                 # for the aux network.
                 # TODO(ahundt) just max pooling in NASNetLarge for now, but need to figure out pooling for the segmentation case.
-                image_model = keras_contrib.applications.nasnet.NASNetLarge(
-                    input_shape=image_input_shape, include_top=False, pooling=None,
-                    classes=classes, use_auxiliary_branch=use_auxiliary_branch
-                )
+                # image_model = keras_contrib.applications.nasnet.NASNetLarge(
+                #     input_shape=image_input_shape, include_top=False, pooling=None,
+                #     classes=classes, use_auxiliary_branch=use_auxiliary_branch,
+                #     weights=weights
+                # )
             elif image_model_name == 'nasnet_mobile':
                 image_model = keras.applications.nasnet.NASNetMobile(
                     input_shape=image_input_shape, include_top=False,
-                    classes=classes, pooling=False
+                    classes=classes, pooling=False, weights=weights
                 )
             elif image_model_name == 'inception_resnet_v2':
                 if image_model_weights == 'shared':
                     image_model = keras.applications.inception_resnet_v2.InceptionResNetV2(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.inception_resnet_v2.InceptionResNetV2
+                else:
+                    raise ValueError('Unsupported image_model_name')
+            elif image_model_name == 'mobilenet_v2':
+                if image_model_weights == 'shared':
+                    image_model = MobileNetV2(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes, weights=weights)
+                elif image_model_weights == 'separate':
+                    image_model = MobileNetV2
                 else:
                     raise ValueError('Unsupported image_model_name')
             elif image_model_name == 'resnet':
@@ -635,7 +658,7 @@ def choose_hypertree_model(
                 if image_model_weights == 'shared':
                     resnet_model = keras.applications.resnet50.ResNet50(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.resnet50.ResNet50
                 if not trainable:
@@ -647,9 +670,27 @@ def choose_hypertree_model(
                 if image_model_weights == 'shared':
                     image_model = keras.applications.densenet.DenseNet169(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.densenet.DenseNet169
+                else:
+                    raise ValueError('Unsupported image_model_name')
+            elif image_model_name is None or image_model_name == 'none':
+                if image_model_weights == 'shared':
+                    x = Input(shape=image_input_shape)
+                    image_model = Model(x, x)
+                elif image_model_weights == 'separate':
+                    def identity_model(input_shape=(224,224,3), weights=None, classes=None,
+                                       input_tensor=None):
+                        """ Identity Model is an empty model that returns the input.
+                        """
+                        if input_tensor is None:
+                            x = Input(shape=input_shape)
+                        else:
+                            x = Input(tensor=input_tensor)
+                        return Model(x, x)
+
+                    image_model = identity_model
                 else:
                     raise ValueError('Unsupported image_model_name')
             else:
@@ -769,11 +810,10 @@ def choose_hypertree_model(
                         x = Conv2D(filters, (3, 3), activation='relu', padding='same',
                                    name=name + 'block6_conv%d' % l, kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
                 elif trunk_model_name == 'nasnet_normal_a_cell':
-                    filter_multiplier = 2
-                    p = None
+                    p = x
                     for l in range(num_layers):
-                        x, p = keras.applications.nasnet._normal_a_cell(x, p, filters, block_id='trunk_%d' % l)
-                        filters *= filter_multiplier
+                        block_id = 'trunk_' + str(l)
+                        x, p = keras.applications.nasnet._normal_a_cell(x, p, filters, block_id=block_id)
                 else:
                     raise ValueError('Unsupported trunk_model_name ' + str(trunk_model_name) +
                                      ' options are dense, resnet, vgg, nasnet')
@@ -810,7 +850,7 @@ def set_trainable_layers(trainable, image_model):
     image_model: The model to configure
     """
     if ((not isinstance(trainable, bool) or not trainable)
-        and getattr(image_model, 'layers', None) is not None):
+            and getattr(image_model, 'layers', None) is not None):
         # enable portion of network depending on the depth
         if not trainable:
             for layer in image_model.layers:

@@ -26,12 +26,12 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
         FLAGS.problem_type = problem_type
         # note: this version will have some correlation with success,
         # but it will be OK to use to classify the output of regression
-        feature_combo_name = 'image_preprocessed_norm_sin2_cos2_height_width_4'
+        # feature_combo_name = 'image_preprocessed_norm_sin2_cos2_height_width_4'
 
         # recommended for
         # - pixelwise classification
         # - classification of images centered and rotated to grasp proposals
-        # feature_combo = 'image_preprocessed_norm_sin2_cos2_width_3'
+        feature_combo_name = 'image_preprocessed_norm_sin2_cos2_width_3'
 
         # Another simpler option with less input data:
         # feature_combo_name = 'image_preprocessed_width_1'
@@ -70,7 +70,7 @@ def main(_):
     problem_type = FLAGS.problem_type
     param_to_optimize = 'val_acc'
     seed = 6
-    initial_num_samples = 2000
+    initial_num_samples = 4000
     maximum_hyperopt_steps = 10
     # checkpoint is a special parameter to not save hdf5 files because training runs
     # are very quick (~1min) and checkpoint files are very large (~100MB)
