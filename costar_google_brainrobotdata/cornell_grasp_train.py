@@ -834,7 +834,7 @@ def train_k_fold(split_type=None,
     return run_histories
 
 
-def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_acc'):
+def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_acc', verbose=1):
     """ Find the k_fold average of the best model weights on each fold, and save the results.
 
     Please note that currently this should only be utilized with classification models,
@@ -860,6 +860,9 @@ def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val
             best_metric_scores += [best_score]
         k_fold_average = np.mean(best_metric_scores)
         results['k_fold_average_' + metric] = k_fold_average
+
+    if verbose:
+        print('k_fold_results:\n ' + str(results))
 
     if save_filename is not None:
         with open(save_filename, 'w') as fp:
