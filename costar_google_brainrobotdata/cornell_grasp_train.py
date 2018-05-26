@@ -1016,8 +1016,20 @@ def load_dataset(
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 
-def model_predict_k_fold(kfold_params=None, verbose=0):
+def model_predict_k_fold(
+        kfold_params=None,
+        verbose=0,
+        data_features=None,
+        prediction_name='norm_sin2_cos2_hw_yx_6',
+        metric_name='grasp_jaccard',
+        unique_score_category='image/filename',
+        metric_fn=grasp_metrics.grasp_jaccard_batch):
     """ Load past runs and make predictions with the model and data.
+
+    Currently only supports evaluating jaccard scores.
+
+    # Arguments
+
         model: compiled model instance.
         input_data: generator instance.
         kfold_params: a path to a json file containing parameters from a previous k_fold cross validation run
@@ -1034,9 +1046,11 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
 
     print(""" Predicting on kfold results.
     Double check that you've actually got the best model checkpoint.
-    We currently take the last checkpoint file in the folder
-    using whatever ordering your OS provides.
+    We currently take the checkpoint based on the highest val_acc score
+    in the .h5 filename
     """)
+    if data_features is None:
+        data_features = ['image/preprocessed']
     kfold_params_dir = None
 
     if kfold_params is not None and isinstance(kfold_params, str):
@@ -1052,11 +1066,6 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
 
     # TODO(ahundt) low priority: automatically choose feature and metric strings
     # choose_features_and_metrics(feature_combo_name, problem_name)
-    prediction_name = 'norm_sin2_cos2_hw_yx_6'
-    metric_name = 'grasp_jaccard'
-    unique_score_category = 'image/filename'
-    data_features = ['image/preprocessed']
-    metric_fn = grasp_metrics.grasp_jaccard_batch
 
     metric_fold_averages = np.zeros((num_fold))
     loss_fold_averages = np.zeros((num_fold))
@@ -1145,7 +1154,7 @@ def evaluate(
         model, example_generator=None, val_filenames=None, data_features=None, prediction_name='norm_sin2_cos2_hw_yx_6',
         metric_fn=grasp_metrics.grasp_jaccard_batch,
         progbar_folds=sys.stdout, unique_score_category='image/filename', metric_name='grasp_jaccard',
-        steps=None, visualize=True,
+        steps=None, visualize=False,
         preprocessing_mode='tf', apply_filter=True, loss_fn=None, loss_name='loss',
         should_initialize=False, load_weights=None, fold_num=None, fold_name='', verbose=0):
     """ This is specialized for running grasp regression right now,
@@ -1193,8 +1202,9 @@ def evaluate(
             # todo get
             predict_input = [example_dict[feature_name] for feature_name in data_features]
             ground_truth = example_dict[prediction_name]
-            import matplotlib
-            matplotlib.pyplot.imshow((np.squeeze(predict_input) / 2.0) + 0.5)
+            if visualize:
+                import matplotlib
+                matplotlib.pyplot.imshow((np.squeeze(predict_input) / 2.0) + 0.5)
             result = model.predict_on_batch(predict_input)
             if verbose > 0:
                 progbar_folds.write('\nground_truth: ' + str(ground_truth))
@@ -1260,7 +1270,7 @@ def evaluate(
     result = [(metric_name, fold_average)]
     progbar_folds.write('---------------------------------------------')
     progbar_folds.write('Completed fold ' + str(fold_num) + ' name ' + str(fold_name) +
-                        ' with average jaccard metric score: ' + str(fold_average))
+                        ' with average ' + str(metric_name) + ' metric score: ' + str(fold_average))
     if loss_fn is not None:
         progbar_folds.write(' average loss: ' + str(loss_average))
         result += [(loss_name, loss_average)]
@@ -1270,7 +1280,7 @@ def evaluate(
 
 def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_type=None,
                  csv_path='-k-fold-stat.csv', data_dir=None, tfrecord_filename_base=None):
-    """ Determine the number of steps to train, validate, and test
+    """ Determine the number of steps to train, validate, and test each fold during k-fold training.
     TODO(ahundt) rename this function, it is pretty nonsensical
 
     Please be aware that the number of train and validation steps changes every time the dataset is converted.
