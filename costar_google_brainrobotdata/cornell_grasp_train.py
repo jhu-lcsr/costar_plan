@@ -721,6 +721,7 @@ def train_k_fold(split_type=None,
     if num_test != 0:
         raise ValueError('k_fold training does not support test data. '
                          'Check the command line flags and set --num_test 0')
+    # We will extract the number of training steps from the csv files
     cur_csv_path = os.path.join(FLAGS.data_dir, tfrecord_filename_base + '-' + split_type + csv_path)
     csv_reader = csv.DictReader(open(cur_csv_path, mode='r'))
     unique_image_num = []
@@ -806,22 +807,65 @@ def train_k_fold(split_type=None,
         # save out all kfold params so they can be reloaded in the future
         json.dump(kfold_param_dicts, fp)
 
-    # json_histories_path = os.path.join(log_dir, kfold_run_name + '_histories.json')
+    json_histories_path = os.path.join(log_dir, kfold_run_name + '_histories.json')
     run_histories = {}
+    history_dicts = {}
     progbar_fold_name_list = tqdm(fold_name_list, desc='Training k_fold')
     for i, (params, fold_name) in enumerate(zip(kfold_run_train_param_list, progbar_fold_name_list)):
         progbar_fold_name_list.write('\n------------------------------------------\n'
                                      'Training fold ' + str(i) + ' of ' + str(len(fold_name_list)) + '\n'
                                      '\n------------------------------------------\n')
+        # this is a history object, which contains
+        # a .history member and a .epochs member
         history = run_training(**params)
         run_histories[fold_name] = history
+        history_dicts[fold_name] = history.history
         progbar_fold_name_list.update()
-        # TODO(ahundt) save histories in some nice way
-        # with open(json_histories_path, 'w') as fp:
-        #     # save out all kfold params so they can be reloaded in the future
-        #     json.dump(run_histories, fp)
+        # save the histories so far, overwriting past updates
+        with open(json_histories_path, 'w') as fp:
+            # save out all kfold params so they can be reloaded in the future
+            json.dump(history_dicts, fp)
+
+    # find the k-fold average and save it out to a json file
+    # Warning: this file will massively underestimate scores for jaccard distance metrics!
+    json_summary_path = os.path.join(log_dir, kfold_run_name + '_summary.json')
+    k_fold_run_histories_average(run_histories, json_summary_path)
 
     return run_histories
+
+
+def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_acc'):
+    """ Find the k_fold average of the best model weights on each fold, and save the results.
+
+    Please note that currently this should only be utilized with classification models,
+    it will not calculated grasp_jaccard regression models' scores correctly.
+
+    # Returns
+
+    results disctionary including the max value of metric for each fold,
+    plus the average of all folds in a dictionary.
+    """
+    if isinstance(metrics, str):
+        metrics = [metrics]
+    results = {}
+    for metric in metrics:
+        best_metric_scores = []
+        for i, history_obj in enumerate(run_histories):
+            if 'loss' in metric:
+                best_score = np.min(history_obj.history[metric])
+                results['fold_' + str(i) + '_min_' + metric] = best_score
+            else:
+                best_score = np.max(history_obj.history[metric])
+                results['fold_' + str(i) + '_max_' + metric] = best_score
+            best_metric_scores += [best_score]
+        k_fold_average = np.mean(best_metric_scores)
+        results['k_fold_average_' + metric] = k_fold_average
+
+    if save_filename is not None:
+        with open(save_filename, 'w') as fp:
+            # save out all kfold params so they can be reloaded in the future
+            json.dump(results, fp)
+    return results
 
 
 def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=None, loss=None):
