@@ -44,6 +44,7 @@ slurm-*.out
 */logs/*
 */logs_cornell/*
 */logs_google_brain/*
+*/hyperopt_logs*/*
 *.tfrecord*
 *.nbi
 *.nbc
