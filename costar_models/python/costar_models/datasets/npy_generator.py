@@ -7,7 +7,7 @@ from .image import *
 
 class NpzGeneratorDataset(object):
     '''
-    Get the list of objects from a folder full of NP arrays. 
+    Get the list of objects from a folder full of NP arrays.
     '''
 
     def __init__(self, name, split=0.1, preload=False):
@@ -20,7 +20,7 @@ class NpzGeneratorDataset(object):
         split: portion of the data files reserved for testing/validation
         preload: load all files into memory when starting up
         '''
-        self.name = name 
+        self.name = name
         self.split = split
         self.train = []
         self.test = []
@@ -45,7 +45,7 @@ class NpzGeneratorDataset(object):
             if f[0] == '.':
                 continue
 
-            if success_only and f.split('.')[1] == 'failure':
+            if success_only and 'success' not in f:
                 continue
 
             if i < 1:
@@ -64,7 +64,7 @@ class NpzGeneratorDataset(object):
                     else:
                         # Note: do not collect multiple samples anymore; this
                         # hould never be reached
-                        sample[key] = np.concatenate([sample[key],value],axis=0)
+                        sample[key] = np.concatenate([sample[key], value], axis=0)
             i += 1
             acceptable_files.append(f)
 
@@ -73,7 +73,7 @@ class NpzGeneratorDataset(object):
         print("---------------------------------------------")
         print("Loaded data.")
         print("# Total examples:", len(acceptable_files))
-        print("# Validation examples:",length)
+        print("# Validation examples:", length)
         print("---------------------------------------------")
         self.test = [acceptable_files[i] for i in idx[:length]]
         self.train = [acceptable_files[i] for i in idx[length:]]
