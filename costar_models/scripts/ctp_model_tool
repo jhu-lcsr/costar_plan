@@ -20,26 +20,29 @@ external features.
 def main(args):
     ConfigureGPU(args)
 
-    data_file_info = args['data_file'].split('.')
+    # this data file parameter should use the glob syntax
+    data_file = args['data_file']
+    data_file_info = data_file.split('.')
     data_type = data_file_info[-1]
     root = ""
     for i, tok in enumerate(data_file_info[:-1]):
         if i < len(data_file_info)-1 and i > 0:
             root += '.'
         root += tok
-    if data_type == "npz":
-        dataset = NpzGeneratorDataset(root, preload=args['preload'])
-        data = dataset.load(success_only = args['success_only'])
-    elif data_type == "h5f":
-        dataset = H5fGeneratorDataset(root, preload=args['preload'])
-        data = dataset.load(success_only = args['success_only'])
+    print('Loading dataset from root directory: \n' + str(data_file))
+    if ".npz" in data_file:
+        dataset = NpzGeneratorDataset(data_file, preload=args['preload'])
+        data = dataset.load(success_only=args['success_only'])
+    elif ".h5f" in data_file:
+        dataset = H5fGeneratorDataset(data_file, preload=args['preload'])
+        data = dataset.load(success_only=args['success_only'])
     else:
-        raise NotImplementedError('data type not implemented: %s'%data_type)
+        raise NotImplementedError('data type not implemented: %s' % data_type)
 
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
         if 'load_model' in args and args['load_model']:
-            model.load(world=None,**data)
+            model.load(world=None, **data)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
         interrupt=False
