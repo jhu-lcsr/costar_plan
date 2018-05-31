@@ -17,6 +17,7 @@ To run deep learning examples, you will need TensorFlow and Keras, plus a number
 Datasets:
   - [PyBullet Block Stacking](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz)
   - [Sample Husky Data](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/husky_data.tar.gz)
+  - [CoSTAR Real Robot Data](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/sample_real_ur5_robot_data.tar.gz)
 
 Contents:
   - [0. Introduction](docs/introduction.md)
