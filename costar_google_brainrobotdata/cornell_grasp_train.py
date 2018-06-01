@@ -410,10 +410,10 @@ def run_training(
         #  https://github.com/keras-team/keras/pull/7617
         #  write_batch_performance=True)
         progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
-                                    write_grads=False, write_images=False,
-                                    histogram_freq=0, batch_size=batch_size)
-                                    # histogram_freq=0, batch_size=batch_size,
-                                    # write_batch_performance=True)
+                                       write_grads=False, write_images=False,
+                                       histogram_freq=0, batch_size=batch_size)
+                                       # histogram_freq=0, batch_size=batch_size,
+                                       # write_batch_performance=True)
         callbacks = callbacks + [progress_tracker]
 
     # make sure the TQDM callback is always the final one
