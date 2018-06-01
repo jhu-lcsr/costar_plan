@@ -69,7 +69,7 @@ def main(_):
     run_training_fn = cornell_grasp_train.run_training
     problem_type = FLAGS.problem_type
     param_to_optimize = 'val_acc'
-    seed = 9
+    seed = 10
     initial_num_samples = 4000
     maximum_hyperopt_steps = 10
     # checkpoint is a special parameter to not save hdf5 files because training runs
