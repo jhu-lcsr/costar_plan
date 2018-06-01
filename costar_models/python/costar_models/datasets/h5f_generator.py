@@ -18,12 +18,14 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
     '''
     def __init__(self, *args, **kwargs):
         super(H5fGeneratorDataset, self).__init__(*args, **kwargs)
+        self.file_extension = 'h5'
 
     def _load(self, filename):
         '''
         Helper to load the file
         '''
         data = {}
+        print('filename: ' + str(filename))
         with h5f.File(filename, 'r') as f:
             if "image" in f and "image_type" in f:
                 s = f['image_type'][0]

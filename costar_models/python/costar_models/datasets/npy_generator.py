@@ -2,12 +2,13 @@ from __future__ import print_function
 
 import numpy as np
 import os
+import glob
 
 from .image import *
 
 class NpzGeneratorDataset(object):
     '''
-    Get the list of objects from a folder full of NP arrays. 
+    Get the list of objects from a folder full of NP arrays.
     '''
 
     def __init__(self, name, split=0.1, preload=False):
@@ -20,13 +21,14 @@ class NpzGeneratorDataset(object):
         split: portion of the data files reserved for testing/validation
         preload: load all files into memory when starting up
         '''
-        self.name = name 
+        self.name = name
         self.split = split
         self.train = []
         self.test = []
         self.preload = preload
         self.preload_cache = {}
         self.load_jpeg = False
+        self.file_extension = 'npz'
 
     def write(self, *args, **kwargs):
         raise NotImplementedError('this dataset does not save things')
@@ -36,16 +38,18 @@ class NpzGeneratorDataset(object):
         Read the file; get the list of acceptable entries; split into train and
         test sets.
         '''
-        files = os.listdir(self.name)
+
+        files = glob.glob(os.path.expanduser(self.name))
         files.sort()
         sample = {}
         i = 0
         acceptable_files = []
+        # print('files: ' + str(files))
         for f in files:
-            if f[0] == '.':
+            if self.file_extension not in f or f[0] == '.':
                 continue
 
-            if success_only and f.split('.')[1] == 'failure':
+            if success_only and 'success' not in f:
                 continue
 
             if i < 1:
@@ -64,23 +68,23 @@ class NpzGeneratorDataset(object):
                     else:
                         # Note: do not collect multiple samples anymore; this
                         # hould never be reached
-                        sample[key] = np.concatenate([sample[key],value],axis=0)
+                        sample[key] = np.concatenate([sample[key], value], axis=0)
             i += 1
             acceptable_files.append(f)
 
         idx = np.array(range(len(acceptable_files)))
-        length = max(1, int(self.split*len(acceptable_files)))
+        length = max(1, int(self.split * len(acceptable_files)))
         print("---------------------------------------------")
         print("Loaded data.")
         print("# Total examples:", len(acceptable_files))
-        print("# Validation examples:",length)
+        print("# Validation examples:", length)
         print("---------------------------------------------")
         self.test = [acceptable_files[i] for i in idx[:length]]
         self.train = [acceptable_files[i] for i in idx[length:]]
         for i, filename in enumerate(self.test):
             #print("%d:"%(i+1), filename)
             if filename in self.train:
-                raise RuntimeError('error with test/train setup! ' + \
+                raise RuntimeError('error with test/train setup! ' +
                                    filename + ' in training!')
         np.random.shuffle(self.test)
         np.random.shuffle(self.train)
@@ -112,7 +116,7 @@ class NpzGeneratorDataset(object):
 
     def loadTest(self, i):
         if i > len(self.test):
-            raise RuntimeError('index %d greater than number of files'%i)
+            raise RuntimeError('index %d greater than number of files' % i)
         filename = self.test[i]
         success = 'success' in filename
         nm = os.path.join(self.name, filename)
@@ -129,8 +133,8 @@ class NpzGeneratorDataset(object):
             try:
                 sample = self._load(filename)
             except Exception as e:
-                raise RuntimeError("Could not load file " + filename + ": "
-                        + str(e))
+                raise RuntimeError("Could not load file " + filename +
+                                   ": " + str(e))
         return sample, filename
 
     def sampleTest(self):
@@ -141,8 +145,8 @@ class NpzGeneratorDataset(object):
             try:
                 sample = self._load(filename)
             except Exception as e:
-                raise RuntimeError("Could not load file " + filename + ": "
-                        + str(e))
+                raise RuntimeError("Could not load file " + filename + ": " +
+                        str(e))
         return sample, filename
 
     def _load(self, filename):
