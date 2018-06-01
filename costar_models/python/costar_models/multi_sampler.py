@@ -550,7 +550,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             else:
                 return features, [tt, o1_1h, v]
 
-    def trainFromGenerators(self, train_generator, test_generator, data=None):
+    def trainFromGenerators(self, train_generator, test_generator, data=None, verbose=1):
         '''
         Train tool from generator
 
@@ -560,6 +560,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         test_generator: produces test examples
         data: some extra data used for debugging (should be validation data)
         '''
+        if verbose > 0:
+            # print('num keys: ' + str(len(six.iteritems(data))))
+            debug_str = 'multi_sampler.py::RobotMultiPredictionSampler.trainFromGenerators keys: '
+            for i, (key, value) in enumerate(six.iteritems(data)):
+                print(str(i) + ' ' + str(key))
+                debug_str = debug_str + str(key) + ', '
+            print(debug_str)
+        # print('data:\n' + str(data))
 
         # ===================================================================
         # Use sample data to compile the model and set everything else up.

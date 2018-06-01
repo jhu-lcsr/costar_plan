@@ -10,6 +10,7 @@ from costar_models import *
 from costar_models.datasets.npz import NpzDataset
 from costar_models.datasets.npy_generator import NpzGeneratorDataset
 from costar_models.datasets.h5f_generator import H5fGeneratorDataset
+import six
 
 '''
 Tool for running model training without the rest of the simulation/planning/ROS
@@ -19,6 +20,7 @@ external features.
 
 def main(args):
     ConfigureGPU(args)
+    verbose = 1
 
     # this data file parameter should use the glob syntax
     data_file = args['data_file']
@@ -29,7 +31,7 @@ def main(args):
         if i < len(data_file_info)-1 and i > 0:
             root += '.'
         root += tok
-    print('Loading dataset from root directory: \n' + str(data_file))
+    print('Loading dataset from globbed directory: \n' + str(data_file))
     if ".npz" in data_file:
         dataset = NpzGeneratorDataset(data_file, preload=args['preload'])
         data = dataset.load(success_only=args['success_only'])
@@ -38,6 +40,13 @@ def main(args):
         data = dataset.load(success_only=args['success_only'])
     else:
         raise NotImplementedError('data type not implemented: %s' % data_type)
+    if verbose > 0:
+        # print('num keys: ' + str(len(six.iteritems(data))))
+        debug_str = 'ctp_model_tool::main data.keys: '
+        for i, (key, value) in enumerate(six.iteritems(data)):
+            print(str(i) + ' ' + str(key))
+            debug_str = debug_str + str(key) + ', '
+        print(debug_str)
 
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
