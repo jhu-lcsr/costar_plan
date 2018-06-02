@@ -26,11 +26,6 @@ def main(args):
     data_file = args['data_file']
     data_file_info = data_file.split('.')
     data_type = data_file_info[-1]
-    root = ""
-    for i, tok in enumerate(data_file_info[:-1]):
-        if i < len(data_file_info)-1 and i > 0:
-            root += '.'
-        root += tok
     print('Loading dataset from globbed directory: \n' + str(data_file))
     if ".npz" in data_file:
         dataset = NpzGeneratorDataset(data_file, preload=args['preload'])
