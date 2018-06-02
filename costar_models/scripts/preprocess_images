@@ -50,12 +50,16 @@ def main(args):
     data_type = data_file_info[-1]
     # TODO(ahundt) rename new data file variable, use out_directory
     new_data_file = new_dataset_description + "_" + data_file_info[0]
-    output_directory = args['out_directory']
-    if output_directory is None:
+    if 'out_directory' in args:
+        # user specified output directory
+        output_directory = args['out_directory']
+        output_directory = os.path.expanduser(output_directory)
+    else:
+        # default output directory
         output_directory = os.path.dirname(os.path.abspath(os.path.expanduser(data_file)))
         output_directory = os.path.join(output_directory, new_dataset_description)
+    print('Writing preprocessed dataset to output directory: ' + output_directory)
 
-    output_directory = os.path.expanduser(output_directory)
     try:
         os.mkdir(output_directory)
     except OSError as e:
