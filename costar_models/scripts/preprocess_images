@@ -121,12 +121,21 @@ def main(args):
             print("Skipping " + filename + " due to empty data for key %s" % k)
             continue
 
-        ok = len(newdata['image']) == len(newdata['goal_idx'])
+        if 'goal_idx' in newdata and 'image' in newdata:
+            ok = len(newdata['image']) == len(newdata['goal_idx'])
+        else:
+            ok = False
         if not ok:
-            print("Skipping ", filename, "because data type shapes do"
-                  " not match.")
-            print("num goals =", len(data["goal_idx"]))
-            print("num images =", len(data["image"]))
+            error_message = "Skipping " + filename,  + " because data type shapes do not match. "
+            if 'goal_idx' in newdata:
+                error_message += "num goals = " + str(len(data["goal_idx"]))
+            else:
+                error_message += 'goal_idx key is not present!'
+            if 'image' in newdata:
+                error_message += "num images =" + str(len(data["image"]))
+            else:
+                error_message += 'image key is not present!'
+            print(error_message)
         else:
             # 2018-06-02 commented for the purpose of retaining the existing base filenames
             # Might be useful to lexicograpically reorder the data,
