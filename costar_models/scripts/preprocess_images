@@ -61,7 +61,6 @@ def main(args):
     data_file = args['data_file']
     data_file_info = data_file.split('.')
     data_type = data_file_info[-1]
-    # TODO(ahundt) rename new data file variable, use out_directory
     new_data_file = new_dataset_description + "_" + data_file_info[0]
     if 'out_directory' in args:
         # user specified output directory
@@ -140,13 +139,13 @@ def main(args):
         if not ok:
             error_message = "Skipping " + filename + " because data type shapes do not match. "
             if 'goal_idx' in newdata:
-                error_message += "num goals = " + str(len(data["goal_idx"]))
+                error_message += " num goals = " + str(len(data["goal_idx"]))
             else:
-                error_message += 'goal_idx key is not present!'
+                error_message += ' Error: goal_idx key is not present!'
             if 'image' in newdata:
-                error_message += "num images =" + str(len(data["image"]))
+                error_message += " num images = " + str(len(data["image"]))
             else:
-                error_message += 'image key is not present!'
+                error_message += ' Error: image key is not present!'
             progress_bar.write(error_message)
         else:
             # 2018-06-02 commented for the purpose of retaining the existing base filenames
