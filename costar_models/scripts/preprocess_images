@@ -44,6 +44,8 @@ def main(args):
     np.random.seed(0)
     # description string for the newly preprocessed dataset
     new_dataset_description = "small"
+    # these keys are allowed to be empty in the key/value pairs
+    empty_keys = ["visualization_marker", "rgb_info_K"]
     # this data file parameter should use the glob syntax
     data_file = args['data_file']
     data_file_info = data_file.split('.')
@@ -91,7 +93,9 @@ def main(args):
         data = dataset.loadFile(filename)
         for k, v in data.items():
             if v.shape[0] == 0:
-                ok = False
+                print("Warning: " + filename + " has empty data for key: %s" % k)
+                if k not in empty_keys:
+                    ok = False
                 break
 
             if not k == "image":
