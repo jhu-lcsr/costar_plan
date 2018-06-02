@@ -126,7 +126,7 @@ def main(args):
         else:
             ok = False
         if not ok:
-            error_message = "Skipping " + filename,  + " because data type shapes do not match. "
+            error_message = "Skipping " + filename + " because data type shapes do not match. "
             if 'goal_idx' in newdata:
                 error_message += "num goals = " + str(len(data["goal_idx"]))
             else:
