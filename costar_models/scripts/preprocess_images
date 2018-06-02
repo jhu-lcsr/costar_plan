@@ -42,30 +42,41 @@ def main(args):
     ConfigureGPU(args)
 
     np.random.seed(0)
-    data_file_info = args['data_file'].split('.')
+    # description string for the newly preprocessed dataset
+    new_dataset_description = "small"
+    # this data file parameter should use the glob syntax
+    data_file = args['data_file']
+    data_file_info = data_file.split('.')
     data_type = data_file_info[-1]
-    new_data_file = "small_" + data_file_info[0]
+    # TODO(ahundt) rename new data file variable, use out_directory
+    new_data_file = new_dataset_description + "_" + data_file_info[0]
+    output_directory = args['out_directory']
+    if output_directory is None:
+        output_directory = os.path.dirname(os.path.abspath(os.path.expanduser(data_file)))
+        output_directory = os.path.join(output_directory, new_dataset_description)
+
+    output_directory = os.path.expanduser(output_directory)
     try:
-        os.mkdir(new_data_file)
+        os.mkdir(output_directory)
     except OSError as e:
         pass
-    root = ""
-    for i, tok in enumerate(data_file_info[:-1]):
-        if i < len(data_file_info)-1 and i > 0:
-            root += '.'
-        root += tok
-    if data_type == "npz":
-        dataset = NpzGeneratorDataset(root)
-        data = dataset.load(success_only = args['success_only'])
-    elif data_type == "h5f":
-        dataset = H5fGeneratorDataset(root)
-        data = dataset.load(success_only = args['success_only'])
+    print('Loading dataset from globbed directory: \n' + str(data_file))
+    if ".npz" in data_file:
+        dataset = NpzGeneratorDataset(data_file, preload=args['preload'])
+        data = dataset.load(success_only=args['success_only'])
+        extension = ".npz"
+    elif ".h5f" in data_file:
+        dataset = H5fGeneratorDataset(data_file, preload=args['preload'])
+        data = dataset.load(success_only=args['success_only'])
+        extension = ".h5f"
     else:
-        raise NotImplementedError('data type not implemented: %s'%data_type)
+        raise NotImplementedError('data type not implemented: %s' % data_type)
 
-    if 'features' not in args or args['features'] is None:
-        raise RuntimeError('Must provide features specification')
-    features_arg = args['features']
+    # 2018-06-02 commented because the following lines do not appear to do anything,
+    # remove if it has been a while and the lines are not needed.
+    # if 'features' not in args or args['features'] is None:
+    #     raise RuntimeError('Must provide features specification')
+    # features_arg = args['features']
 
     all_files = dataset.test + dataset.train
     idxs = range(len(all_files))
@@ -109,13 +120,18 @@ def main(args):
             print("num goals =", len(data["goal_idx"]))
             print("num images =", len(data["image"]))
         else:
-            toks = filename.split('.')
-            filename = toks[0]
-            success = toks[1]
-            ext = toks[2]
-            toks = filename.split('_')
-            new_filename = ("example%06d" % (idxs[fnum])) + "." + success + "." + ext
-            print(fnum, "Loaded", filename, "and saved to", new_filename)
+            # 2018-06-02 commented for the purpose of retaining the existing base filenames
+            # Might be useful to lexicograpically reorder the data,
+            # but if that code is added elsewhere, or it has been a while and
+            # they are not needed, delete the following lines
+            # toks = filename.split('.')
+            # filename = toks[0]
+            # success = toks[1]
+            # ext = toks[2]
+            # toks = filename.split('_')
+            # new_filename = ("example%06d" % (idxs[fnum])) + "." + success + "." + ext
+            new_filename = os.path.join(output_directory, os.path.basename(filename) + "_" + new_dataset_description + extension)
+            print(fnum, " Loaded ", filename, "and saved to", new_filename)
             write(new_data_file, new_filename, newdata)
 
 def write(directory, filename, data):
@@ -127,7 +143,7 @@ def write(directory, filename, data):
 
 
 info = """
-This script will preprocess images collected from the real robot (with the 
+This script will preprocess images collected from the real robot (with the
 CoSTAR setup), shrink them, crop slightly, and save as a new set of h5f files.
 When specifying the data set, the name "small_" will be appended to the
 beginning. Example usage:\n
