@@ -114,7 +114,7 @@ def main(args):
         #print("- total number of options =", data['labels_to_name'].shape)
 
         if not ok:
-            print("Skipping because empty data for key %s" % k)
+            print("Skipping " + filename + " due to empty data for key %s" % k)
             continue
 
         ok = len(newdata['image']) == len(newdata['goal_idx'])
