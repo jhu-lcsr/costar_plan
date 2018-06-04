@@ -7,13 +7,13 @@ show a video from an h5f file:
 
 Convert video from an h5f file into a gif:
 
-python plot_graph --path 'data/' 
+python plot_graph --path 'data/'
     python view_convert_dataset --path <path/to/data/folder/or/file> --preview --convert gif
 '''
 import argparse
 import os
 import numpy as np
-import h5py 
+import h5py
 import matplotlib.pyplot as plt
 # https://github.com/tanyaschlusser/array2gif
 # from array2gif import write_gif
@@ -43,7 +43,7 @@ import moviepy.editor as mpye
 
 def npy_to_video(npy, filename, fps=10, preview=True, convert='gif'):
     """Convert a numpy array into a gif file at the location specified by filename.
-        
+
         # Arguments
 
         convert: Default empty string is no conversion, options are gif and mp4.
@@ -74,7 +74,7 @@ def _parse_args():
     parser.add_argument("--depth", type=bool, default=True, help='process depth data')
     parser.add_argument("--rgb", type=bool, default=True, help='process rgb data')
     parser.add_argument("--fps", type=int, default=10, help='framerate to process images in frames per second')
-    parser.add_argument("--matplotlib", type=bool, default=False, 
+    parser.add_argument("--matplotlib", type=bool, default=False,
                         help='preview data with matplotlib, slower but you can do pixel lookups')
     return vars(parser.parse_args())
 
@@ -93,8 +93,7 @@ def main(args,root="root"):
 
     # Read data
     progress_bar = tqdm(filenames)
-    for filename in progress_bar: 
-        print('ignore error: ' + str(args['ignore_error']))
+    for filename in progress_bar:
         if filename.startswith('.') or '.h5' not in filename:
             continue
         if args['ignore_error'] and 'error' in filename:
@@ -117,9 +116,9 @@ def main(args,root="root"):
         progress_bar.set_description(description)
         pygame.display.set_caption(description)
 
-        data = h5py.File(example_filename,'r')
+        data = h5py.File(example_filename, 'r')
 
-        fps=args['fps']
+        fps = args['fps']
         # check if the data is there to load
         load_depth = args['depth'] and 'depth_image' in data and len(data['depth_image']) > 0
         load_rgb = args['rgb'] and 'image' in data and len(data['depth_image']) > 0
@@ -139,20 +138,20 @@ def main(args,root="root"):
                     draw_matplotlib(rgb_images, fps)
                 rgb_clip = mpye.ImageSequenceClip(rgb_images, fps=fps)
                 clip = rgb_clip
-            
+
             if load_depth and load_rgb:
                 clip = mpye.clips_array([[rgb_clip, depth_clip]])
-            
+
             if args['preview']:
                 clip.preview()
 
-            save_filename = example_filename.replace('.h5f','.' + args['convert'])
+            save_filename = example_filename.replace('.h5f', '.' + args['convert'])
             if 'gif' in args['convert']:
                 clip.write_gif(save_filename)
             elif args['convert']:
                 clip.write_videofile(filename)
         except Exception as ex:
-            print('Exception encountered while processing ' + example_filename + 
+            print('Exception encountered while processing ' + example_filename +
                   ' please edit the code to debug the specifics: ' + str(ex))
 
 if __name__ == "__main__":
