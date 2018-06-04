@@ -43,7 +43,8 @@ out: an output tensor
 MOMENTUM=0.9
 RENORM=False
 
-def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
+def AddConv2D(
+        x, filters, kernel, stride, dropout_rate, padding="same",
         lrelu=False, bn=True, momentum=MOMENTUM, name=None, constraint=None,
         kr=0., ar=0., activation=None, perm_drop=False):
     '''
@@ -63,7 +64,7 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     '''
     kwargs = {}
     if name is not None:
-        kwargs['name'] = "%s_conv"%name
+        kwargs['name'] = "%s_conv" % name
     if constraint is not None:
         kwargs['kernel_constraint'] = maxnorm(constraint)
 
@@ -86,15 +87,16 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     if kr is not None:
         kwargs['kernel_regularizer'] = kr
 
-    x = Conv2D(filters,
-            kernel_size=kernel,
-            strides=(stride,stride),
-            padding=padding, **kwargs)(x)
+    x = Conv2D(
+        filters,
+        kernel_size=kernel,
+        strides=(stride, stride),
+        padding=padding, **kwargs)(x)
 
     if bn:
         kwargs = {}
         if name is not None:
-            kwargs['name'] = "%s_bn"%name
+            kwargs['name'] = "%s_bn" % name
         if RENORM:
             x = BatchRenormalization(momentum=momentum, axis=-1, mode=0, **kwargs)(x)
         else:
@@ -104,27 +106,28 @@ def AddConv2D(x, filters, kernel, stride, dropout_rate, padding="same",
     kwargs = {}
     if lrelu or activation == "lrelu":
         if name is not None:
-            kwargs['name'] = "%s_lrelu"%name
+            kwargs['name'] = "%s_lrelu" % name
         x = LeakyReLU(alpha=0.2, **kwargs)(x)
     elif activation is not None:
         if name is not None:
-            kwargs['name'] = "%s_%s"%(name,activation)
+            kwargs['name'] = "%s_%s" % (name, activation)
         x = Activation(activation, **kwargs)(x)
     else:
         if name is not None:
-            kwargs['name'] = "%s_relu"%name
+            kwargs['name'] = "%s_relu" % name
         x = Activation("relu", **kwargs)(x)
 
     if dropout_rate > 0:
         if name is not None:
-            kwargs['name'] = "%s_dropout%f"%(name, dropout_rate)
+            kwargs['name'] = "%s_dropout%f" % (name, dropout_rate)
         if perm_drop:
             x = PermanentDropout(dropout_rate, **kwargs)(x)
         else:
             x = Dropout(dropout_rate, **kwargs)(x)
     return x
 
-def AddConv2DTranspose(x, filters, kernel, stride, dropout_rate,
+def AddConv2DTranspose(
+        x, filters, kernel, stride, dropout_rate,
         padding="same", momentum=MOMENTUM, bn=True,
         activation="relu",
         discriminator=False,
