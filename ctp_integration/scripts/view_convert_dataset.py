@@ -116,7 +116,13 @@ def main(args,root="root"):
         progress_bar.set_description(description)
         pygame.display.set_caption(description)
 
-        data = h5py.File(example_filename, 'r')
+        try:
+            data = h5py.File(example_filename, 'r')
+        except IOError as ex:
+            progress_bar.write(
+                'Error: Skipping file due to IO error when opening ' +
+                example_filename + ': ' + str(ex))
+            continue
 
         fps = args['fps']
         # check if the data is there to load
