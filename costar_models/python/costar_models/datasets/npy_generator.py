@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import os
 import glob
+import six
 
 from .image import *
 
@@ -27,13 +28,16 @@ class NpzGeneratorDataset(object):
         self.test = []
         self.preload = preload
         self.preload_cache = {}
-        self.load_jpeg = False
+        # list of keys which contain lists of jpeg files
+        self.load_jpeg = []
+        # list of keys which contain lists of png files
+        self.load_png = []
         self.file_extension = 'npz'
 
     def write(self, *args, **kwargs):
         raise NotImplementedError('this dataset does not save things')
 
-    def load(self, success_only=False):
+    def load(self, success_only=False, verbose=0):
         '''
         Read the file; get the list of acceptable entries; split into train and
         test sets.
@@ -44,33 +48,42 @@ class NpzGeneratorDataset(object):
         sample = {}
         i = 0
         acceptable_files = []
-        # print('files: ' + str(files))
-        for f in files:
-            if self.file_extension not in f or f[0] == '.':
+        # if verbose > 0:
+        #     print('files: ' + str(files))
+        for i, filename in enumerate(files):
+            if self.file_extension not in filename or filename[0] == '.':
                 continue
 
-            if success_only and 'success' not in f:
+            if success_only and 'success' not in filename:
                 continue
 
             if i < 1:
-                fsample = self._load(os.path.join(self.name, f))
-                for key, value in fsample.items():
+                # load the first file to determine the structure of data
+                # contained within. Note, this assumes the first is
+                # a good example to start with!
+                print('Extracting dataset structure from file: ' + str(filename))
+                fsample = self._load(filename)
+                for key, value in six.iteritems(fsample):
 
-                    if self.load_jpeg and key in ["image", "goal_image"]:
+                    if key in self.load_jpeg or key in self.load_png:
                         value = ConvertImageListToNumpy(value)
 
                     if value.shape[0] == 0:
-                        sample = {}
+                        print('key ' + str(key) + ' had 0 entries, skipping sample')
+                        # sample = {}
                         continue
 
                     if key not in sample:
+                        print('adding key to sample: ' + str(key))
                         sample[key] = value
                     else:
                         # Note: do not collect multiple samples anymore; this
                         # hould never be reached
                         sample[key] = np.concatenate([sample[key], value], axis=0)
             i += 1
-            acceptable_files.append(f)
+            acceptable_files.append(filename)
+        if verbose > 0:
+            print('files that will be used in dataset: \n' + str(acceptable_files))
 
         idx = np.array(range(len(acceptable_files)))
         length = max(1, int(self.split * len(acceptable_files)))

@@ -30,6 +30,7 @@ from keras.models import Model
 from keras.layers import Lambda
 from keras.layers import Reshape
 from keras.applications.imagenet_utils import _obtain_input_shape
+import keras_applications
 
 import keras_contrib
 from keras_contrib.applications.densenet import DenseNetFCN
@@ -813,7 +814,9 @@ def choose_hypertree_model(
                     p = x
                     for l in range(num_layers):
                         block_id = 'trunk_' + str(l)
-                        x, p = keras.applications.nasnet._normal_a_cell(x, p, filters, block_id=block_id)
+                        # _normal_a_cell call changed due to creation of keras-applications repository
+                        # https://github.com/keras-team/keras-applications/blob/master/keras_applications/nasnet.py
+                        x, p = keras_applications.nasnet._normal_a_cell(x, p, filters, block_id=block_id)
                 else:
                     raise ValueError('Unsupported trunk_model_name ' + str(trunk_model_name) +
                                      ' options are dense, resnet, vgg, nasnet')

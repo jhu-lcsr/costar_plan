@@ -394,6 +394,9 @@ def run_training(
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
 
+    callbacks += [SlowModelStopping(max_batch_time_seconds=1.0),
+                  InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
+
     if checkpoint:
         checkpoint = keras.callbacks.ModelCheckpoint(
             log_dir_run_name + '-epoch-{epoch:03d}-' +
@@ -402,17 +405,16 @@ def run_training(
             save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
         callbacks = callbacks + [checkpoint]
-    callbacks += [SlowModelStopping(max_batch_time_seconds=1.0),
-                  InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
-    # An additional useful param is write_batch_performance:
-    #  https://github.com/keras-team/keras/pull/7617
-    #  write_batch_performance=True)
-    progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
-                                   write_grads=False, write_images=False,
-                                   histogram_freq=0, batch_size=batch_size)
-                                   # histogram_freq=0, batch_size=batch_size,
-                                   # write_batch_performance=True)
-    callbacks = callbacks + [progress_tracker]
+
+        # An additional useful param is write_batch_performance:
+        #  https://github.com/keras-team/keras/pull/7617
+        #  write_batch_performance=True)
+        progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
+                                       write_grads=False, write_images=False,
+                                       histogram_freq=0, batch_size=batch_size)
+                                       # histogram_freq=0, batch_size=batch_size,
+                                       # write_batch_performance=True)
+        callbacks = callbacks + [progress_tracker]
 
     # make sure the TQDM callback is always the final one
     callbacks += [keras_tqdm.TQDMCallback()]

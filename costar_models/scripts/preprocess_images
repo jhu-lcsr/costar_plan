@@ -11,6 +11,18 @@ import numpy as np
 import os
 import sys
 import h5py
+import six
+
+# progress bars https://github.com/tqdm/tqdm
+# import tqdm without enforcing it as a dependency
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(*args, **kwargs):
+        if args:
+            return args[0]
+        return kwargs.get('iterable', None)
 
 from costar_models import *
 from costar_models.planner import GetOrderedList, PrintTopQ
@@ -42,51 +54,80 @@ def main(args):
     ConfigureGPU(args)
 
     np.random.seed(0)
-    data_file_info = args['data_file'].split('.')
+    # description string for the newly preprocessed dataset
+    new_dataset_description = "small"
+    verbose = 0
+    # these keys are allowed to be empty in the key/value pairs
+    empty_keys = ["visualization_marker", "rgb_info_K", "rgb_info", "depth_info"]
+    # this data file parameter should use the glob syntax
+    data_file = args['data_file']
+    data_file_info = data_file.split('.')
     data_type = data_file_info[-1]
-    new_data_file = "small_" + data_file_info[0]
+    new_data_file = new_dataset_description + "_" + data_file_info[0]
+    if 'out_directory' in args:
+        # user specified output directory
+        output_directory = args['out_directory']
+        output_directory = os.path.expanduser(output_directory)
+    else:
+        # default output directory
+        output_directory = os.path.dirname(os.path.abspath(os.path.expanduser(data_file)))
+        output_directory = os.path.join(output_directory, new_dataset_description)
+    print('Writing preprocessed dataset to output directory: ' + output_directory)
+
     try:
-        os.mkdir(new_data_file)
+        os.mkdir(output_directory)
     except OSError as e:
         pass
-    root = ""
-    for i, tok in enumerate(data_file_info[:-1]):
-        if i < len(data_file_info)-1 and i > 0:
-            root += '.'
-        root += tok
-    if data_type == "npz":
-        dataset = NpzGeneratorDataset(root)
-        data = dataset.load(success_only = args['success_only'])
-    elif data_type == "h5f":
-        dataset = H5fGeneratorDataset(root)
-        data = dataset.load(success_only = args['success_only'])
+    print('Loading dataset from globbed directory: \n' + str(data_file))
+    if ".npz" in data_file:
+        dataset = NpzGeneratorDataset(data_file, preload=args['preload'])
+        data = dataset.load(success_only=args['success_only'])
+        extension = ".npz"
+    elif ".h5f" in data_file:
+        dataset = H5fGeneratorDataset(data_file, preload=args['preload'])
+        data = dataset.load(success_only=args['success_only'])
+        extension = ".h5f"
     else:
-        raise NotImplementedError('data type not implemented: %s'%data_type)
+        raise NotImplementedError('data type not implemented: %s' % data_type)
 
-    if 'features' not in args or args['features'] is None:
-        raise RuntimeError('Must provide features specification')
-    features_arg = args['features']
+    # 2018-06-02 commented because the following lines do not appear to do anything,
+    # remove if it has been a while and the lines are not needed.
+    # if 'features' not in args or args['features'] is None:
+    #     raise RuntimeError('Must provide features specification')
+    # features_arg = args['features']
 
     all_files = dataset.test + dataset.train
     idxs = range(len(all_files))
     np.random.shuffle(idxs)
-    for fnum, filename in enumerate(all_files):
+    progress_bar = tqdm(all_files)
+    for fnum, filename in enumerate(progress_bar):
         newdata = {}
         ok = True
+        if 'error' in filename:
+            progress_bar.write('Preprocessing data with errors is not yet supported. Skipping: ' + str(filename))
+            continue
         data = dataset.loadFile(filename)
-        for k, v in data.items():
-            if v.shape[0] == 0:
-                ok = False
-                break
 
-            if not k == "image":
+        if verbose > 1:
+            for k, v in six.iteritems(data):
+                progress_bar.write('list_all_keys: ' + str(k))
+            progress_bar.write('----------------------------------------------')
+        for k, v in six.iteritems(data):
+            # remember: 'log' entry isn't a numpy array!
+            if getattr(v, 'shape') and len(v.shape) > 0 and v.shape[0] == 0:
+                progress_bar.write("Warning: " + filename + " has empty data for key: " + str(k) + " with shape: " + str(v.shape))
+                if k not in empty_keys:
+                    ok = False
+                    break
+
+            if k not in ["image", "depth_image"]:
                 newdata[k] = v
             else:
                 f = ConvertImageListToNumpy(np.squeeze(v))
                 images = []
                 for i in range(f.shape[0]):
                     frame = f[i]
-                    #print(frame.shape)
+                    #progress_bar.write(frame.shape)
                     dim = min(frame.shape[0], frame.shape[1]) - 80
                     crop = frame[80:(dim+80), 10:(dim+10), :]
                     image = imresize(crop, (96, 96))
@@ -96,26 +137,49 @@ def main(args):
                     #plt.show()
                     images.append(GetJpeg(image))
                 newdata[k] = np.array(images)
-        #print("- total number of options =", data['labels_to_name'].shape)
+        #progress_bar.write("- total number of options =", data['labels_to_name'].shape)
 
         if not ok:
-            print("Skipping because empty data for key %s" % k)
+            progress_bar.write("Skipping " + filename + " due to empty data for key %s" % k)
             continue
 
-        ok = len(newdata['image']) == len(newdata['goal_idx'])
-        if not ok:
-            print("Skipping ", filename, "because data type shapes do"
-                  " not match.")
-            print("num goals =", len(data["goal_idx"]))
-            print("num images =", len(data["image"]))
+        if 'goal_idx' in newdata and 'image' in newdata:
+            ok = len(newdata['image']) == len(newdata['goal_idx'])
         else:
-            toks = filename.split('.')
-            filename = toks[0]
-            success = toks[1]
-            ext = toks[2]
-            toks = filename.split('_')
-            new_filename = ("example%06d" % (idxs[fnum])) + "." + success + "." + ext
-            print(fnum, "Loaded", filename, "and saved to", new_filename)
+            ok = False
+        if not ok:
+            error_message = "Skipping " + filename + " because data type shapes do not match. "
+            if 'goal_idx' in newdata:
+                error_message += " num goals = " + str(len(data["goal_idx"]))
+            else:
+                error_message += ' Error: goal_idx key is not present!'
+            if 'image' in newdata:
+                error_message += " num images = " + str(len(data["image"]))
+            else:
+                error_message += ' Error: image key is not present!'
+            if 'label' in newdata:
+                error_message += " num label = " + str(len(data["label"]))
+            else:
+                error_message += ' Error: label key is not present!'
+
+            progress_bar.write(error_message)
+        else:
+            progress_bar.write(filename + str(" OK!"))
+            # 2018-06-02 commented for the purpose of retaining the existing base filenames
+            # Might be useful to lexicograpically reorder the data,
+            # but if that code is added elsewhere, or it has been a while and
+            # they are not needed, delete the following lines
+            # toks = filename.split('.')
+            # filename = toks[0]
+            # success = toks[1]
+            # ext = toks[2]
+            # toks = filename.split('_')
+            # new_filename = ("example%06d" % (idxs[fnum])) + "." + success + "." + ext
+            new_filename = os.path.join(output_directory, os.path.basename(filename) + "." + new_dataset_description)
+            # remove any old extension from the dataset
+            new_filename.replace(extension, '')
+            new_filename += extension
+            progress_bar.write(str(fnum) + " preprocessed: " + str(filename) + " to: " + str(new_filename))
             write(new_data_file, new_filename, newdata)
 
 def write(directory, filename, data):
@@ -127,7 +191,7 @@ def write(directory, filename, data):
 
 
 info = """
-This script will preprocess images collected from the real robot (with the 
+This script will preprocess images collected from the real robot (with the
 CoSTAR setup), shrink them, crop slightly, and save as a new set of h5f files.
 When specifying the data set, the name "small_" will be appended to the
 beginning. Example usage:\n

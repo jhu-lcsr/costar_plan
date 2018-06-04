@@ -71,7 +71,26 @@ that should be enough to get you started
 oh 
 --data_file ./robot.h5f (edited) 
 ``` 
- 
+
+## Change robot behavior with obstacle avoidance
+
+Add or remove files with the appropriate names to:
+
+```/home/cpaxton/data/mesh/collision_mesh/```
+
+In particular:
+
+```
+blue_cube.stl
+green_cube.stl
+red_cube.stl
+wood_cube.stl
+yellow_cube.stl
+```
+
+With these files collisions are avoided and planed paths differ
+in ways that will be useful and interesting.
+
 ## Troubleshooting 
  
 
