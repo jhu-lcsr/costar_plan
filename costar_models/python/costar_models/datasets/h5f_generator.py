@@ -55,7 +55,8 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
                     load_jpeg = ["image"]
                 if k == "depth_image" and len(data[k].shape) < 3:
                     load_png = ["depth_image"]
-            self.load_jpeg += [load_jpeg]
+            self.load_jpeg += load_jpeg
+            self.load_png += load_png
             if verbose > 0:
                 print(debug_str)
         return data

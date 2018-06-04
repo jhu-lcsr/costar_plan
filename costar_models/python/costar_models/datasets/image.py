@@ -44,7 +44,7 @@ def GetPng(img):
     '''
     im = Image.fromarray(img)
     output = io.BytesIO()
-    # enabling optimized file size 
+    # enabling optimized file size
     # increases saving time to ~0.4 seconds per image.
     #im.save(output, format="PNG", optimize=True)
     im.save(output, format="PNG")
@@ -56,12 +56,12 @@ def JpegToNumpy(jpeg):
     return np.asarray(im, dtype=np.uint8)
 
 def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
-    """ Convert a list of binary jpeg files to numpy format.
+    """ Convert a list of binary jpeg or png files to numpy format.
 
     # Arguments
 
     data: a list of binary jpeg images to convert
-    format: default 'numpy' returns a 4d numpy array, 
+    format: default 'numpy' returns a 4d numpy array,
         'list' returns a list of 3d numpy arrays
     """
     length = len(data)
