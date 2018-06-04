@@ -104,9 +104,18 @@ def main(args):
         newdata = {}
         ok = True
         if 'error' in filename:
-            progress_bar.write('Preprocessing data with errors is not yet supported. Skipping: ' + str(filename))
+            progress_bar.write(
+                'Preprocessing data with errors is not yet supported. Skipping: ' +
+                str(filename))
             continue
-        data = dataset.loadFile(filename)
+
+        try:
+            data = dataset.loadFile(filename)
+        except IOError as ex:
+            progress_bar.write(
+                'Error: Skipping file due to IO error when opening ' +
+                filename + ': ' + str(ex))
+            continue
 
         if verbose > 1:
             for k, v in six.iteritems(data):
