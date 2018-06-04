@@ -46,12 +46,16 @@ class H5fGeneratorDataset(NpzGeneratorDataset):
                         debug_str += ' skipped\n'
                     continue
                 data[k] = np.array(v)
+                # for debugging missing data, remove if it has been working:
+                # if k in ['goal_idx', 'label']:
+                #     print(str(k) + ': ' + str(data[k]))
                 if verbose > 0:
                     debug_str += ' added\n'
                 if k == "image" and len(data[k].shape) < 3:
-                    load_jpeg = True
-            self.load_jpeg = load_jpeg
+                    load_jpeg = ["image"]
+                if k == "depth_image" and len(data[k].shape) < 3:
+                    load_png = ["depth_image"]
+            self.load_jpeg += [load_jpeg]
             if verbose > 0:
                 print(debug_str)
         return data
-

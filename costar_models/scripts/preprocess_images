@@ -11,6 +11,7 @@ import numpy as np
 import os
 import sys
 import h5py
+import six
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -55,8 +56,9 @@ def main(args):
     np.random.seed(0)
     # description string for the newly preprocessed dataset
     new_dataset_description = "small"
+    verbose = 0
     # these keys are allowed to be empty in the key/value pairs
-    empty_keys = ["visualization_marker", "rgb_info_K"]
+    empty_keys = ["visualization_marker", "rgb_info_K", "rgb_info", "depth_info"]
     # this data file parameter should use the glob syntax
     data_file = args['data_file']
     data_file_info = data_file.split('.')
@@ -101,15 +103,24 @@ def main(args):
     for fnum, filename in enumerate(progress_bar):
         newdata = {}
         ok = True
+        if 'error' in filename:
+            progress_bar.write('Preprocessing data with errors is not yet supported. Skipping: ' + str(filename))
+            continue
         data = dataset.loadFile(filename)
-        for k, v in data.items():
-            if v.shape[0] == 0:
-                progress_bar.write("Warning: " + filename + " has empty data for key: %s" % k)
+
+        if verbose > 1:
+            for k, v in six.iteritems(data):
+                progress_bar.write('list_all_keys: ' + str(k))
+            progress_bar.write('----------------------------------------------')
+        for k, v in six.iteritems(data):
+            # remember: 'log' entry isn't a numpy array!
+            if getattr(v, 'shape') and len(v.shape) > 0 and v.shape[0] == 0:
+                progress_bar.write("Warning: " + filename + " has empty data for key: " + str(k) + " with shape: " + str(v.shape))
                 if k not in empty_keys:
                     ok = False
-                break
+                    break
 
-            if not k == "image":
+            if k not in ["image", "depth_image"]:
                 newdata[k] = v
             else:
                 f = ConvertImageListToNumpy(np.squeeze(v))
@@ -146,8 +157,14 @@ def main(args):
                 error_message += " num images = " + str(len(data["image"]))
             else:
                 error_message += ' Error: image key is not present!'
+            if 'label' in newdata:
+                error_message += " num label = " + str(len(data["label"]))
+            else:
+                error_message += ' Error: label key is not present!'
+
             progress_bar.write(error_message)
         else:
+            progress_bar.write(filename + str(" OK!"))
             # 2018-06-02 commented for the purpose of retaining the existing base filenames
             # Might be useful to lexicograpically reorder the data,
             # but if that code is added elsewhere, or it has been a while and
@@ -158,8 +175,11 @@ def main(args):
             # ext = toks[2]
             # toks = filename.split('_')
             # new_filename = ("example%06d" % (idxs[fnum])) + "." + success + "." + ext
-            new_filename = os.path.join(output_directory, os.path.basename(filename) + "_" + new_dataset_description + extension)
-            progress_bar.write(fnum, " Loaded ", filename, "and saved to", new_filename)
+            new_filename = os.path.join(output_directory, os.path.basename(filename) + "." + new_dataset_description)
+            # remove any old extension from the dataset
+            new_filename.replace(extension, '')
+            new_filename += extension
+            progress_bar.write(str(fnum) + " preprocessed: " + str(filename) + " to: " + str(new_filename))
             write(new_data_file, new_filename, newdata)
 
 def write(directory, filename, data):

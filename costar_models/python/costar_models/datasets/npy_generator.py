@@ -28,7 +28,10 @@ class NpzGeneratorDataset(object):
         self.test = []
         self.preload = preload
         self.preload_cache = {}
-        self.load_jpeg = False
+        # list of keys which contain lists of jpeg files
+        self.load_jpeg = []
+        # list of keys which contain lists of png files
+        self.load_png = []
         self.file_extension = 'npz'
 
     def write(self, *args, **kwargs):
@@ -62,7 +65,7 @@ class NpzGeneratorDataset(object):
                 fsample = self._load(filename)
                 for key, value in six.iteritems(fsample):
 
-                    if self.load_jpeg and key in ["image", "goal_image"]:
+                    if key in self.load_jpeg or key in self.load_png:
                         value = ConvertImageListToNumpy(value)
 
                     if value.shape[0] == 0:
