@@ -160,7 +160,7 @@ def GetActorModel(x, num_options, arm_size, gripper_size,
 def MakeMultiPolicy(model, encoder, features, arm, gripper,
         arm_cmd, gripper_cmd, option):
     '''
-    Create a single policy corresponding to option 
+    Create a single policy corresponding to option
 
     Parameters:
     -----------
@@ -213,13 +213,13 @@ def MakeMultiPolicy(model, encoder, features, arm, gripper,
 def MakeImageEncoder(model, img_shape, perm_drop=False):
     '''
     create image-only decoder to extract keypoints from the scene.
-    
+
     Params:
     -------
     img_shape: shape of the image to encode
     '''
-    img0 = Input(img_shape,name="img0_encoder_in")
-    img = Input(img_shape,name="img_encoder_in")
+    img0 = Input(img_shape, name="img0_encoder_in")
+    img = Input(img_shape, name="img_encoder_in")
     bn = model.use_batchnorm
     dr = model.dropout_rate
     use_lrelu = True
@@ -288,7 +288,7 @@ def MakeImageDecoder(model, hidden_shape, img_shape=None, copy=False, perm_drop=
     x = rep
     dr = model.decoder_dropout_rate if model.hypothesis_dropout else 0
     bn = model.use_batchnorm
-    
+
     if model.encode_spatial_softmax:
         model.steps_up = 3
         hidden_dim = int(img_shape[0]/(2**model.steps_up))

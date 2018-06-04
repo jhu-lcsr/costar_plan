@@ -119,7 +119,7 @@ class ConditionalImageCostar(ConditionalImage):
                     loss_weights=[img_loss_wt, img_loss_wt, disc_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         train_predictor.summary()
-       
+
         # Set variables
         self.predictor = None
         self.model = train_predictor
