@@ -97,6 +97,7 @@ def main(args, root="root"):
     # Read data
     progress_bar = tqdm(filenames)
     for filename in progress_bar:
+        # skip certain files based on command line parameters
         if filename.startswith('.') or '.h5' not in filename:
             continue
         if args['ignore_error'] and 'error' in filename:
@@ -119,6 +120,7 @@ def main(args, root="root"):
         progress_bar.set_description(description)
         pygame.display.set_caption(description)
 
+        # open the file
         try:
             data = h5py.File(example_filename, 'r')
         except IOError as ex:
@@ -137,10 +139,13 @@ def main(args, root="root"):
             progress_bar.write(filename + ': ' + str(list(data['gripper'])))
 
         if args['print']:
+            # comma separated keys from which to create a list and
+            # print string values from the h5f file
             data_to_print = args['print'].split(',')
             for data_str in data_to_print:
                 progress_bar.write(filename + ' ' + data_str + ': ' + str(list(data[data_str])))
 
+        # Video display/output
         try:
             if load_depth:
                 depth_images = list(data['depth_image'])
