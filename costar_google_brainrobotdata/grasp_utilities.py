@@ -5,6 +5,27 @@ import os
 import json
 import datetime
 import errno
+import json
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """ json encoder for numpy types
+
+    source: https://stackoverflow.com/a/49677241/99379
+    """
+    def default(self, obj):
+        if isinstance(obj,
+            (np.int_, np.intc, np.intp, np.int8,
+             np.int16, np.int32, np.int64, np.uint8,
+             np.uint16, np.uint32, np.uint64)):
+            return int(obj)
+        elif isinstance(obj,
+           (np.float_, np.float16, np.float32,
+            np.float64)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 
 def rotate(data, shift=1):

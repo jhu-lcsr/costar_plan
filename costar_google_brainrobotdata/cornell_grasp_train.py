@@ -826,7 +826,7 @@ def train_k_fold(split_type=None,
         # save the histories so far, overwriting past updates
         with open(json_histories_path, 'w') as fp:
             # save out all kfold params so they can be reloaded in the future
-            json.dump(history_dicts, fp)
+            json.dump(history_dicts, fp, cls=grasp_utilities.NumpyEncoder)
 
     # find the k-fold average and save it out to a json file
     # Warning: this file will massively underestimate scores for jaccard distance metrics!
