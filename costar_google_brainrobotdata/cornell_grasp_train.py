@@ -682,7 +682,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
     if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
         callbacks = callbacks + [
             # Reduce the learning rate if training plateaus.
-            keras.callbacks.ReduceLROnPlateau(patience=10, verbose=1, factor=0.5, monitor=monitor_loss_name)
+            keras.callbacks.ReduceLROnPlateau(patience=13, verbose=1, factor=0.5, monitor=monitor_loss_name)
         ]
     return callbacks, optimizer
 
