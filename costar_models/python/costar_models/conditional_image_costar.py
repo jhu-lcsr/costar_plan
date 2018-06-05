@@ -144,7 +144,12 @@ class ConditionalImageCostar(ConditionalImage):
             raise ValueError('labels_to_name must match the number of values in self.null_option. '
                              'self.null_option: ' + str(self.null_option) + ' ' +
                              'labels_to_name len: ' + str(len(labels_to_name)) + ' ' +
-                             'labels_to_name values: ' + str(labels_to_name))
+                             'labels_to_name values: ' + str(labels_to_name) + ' ' +
+                             'If this is expected because you collected a dataset with new actions '
+                             'or are using an old dataset, go to  '
+                             'costar_models/python/costar_models/util.py '
+                             'and change model_instance.null_option and model_instance.num_options '
+                             'accordingly in the "costar" features case.')
         self.null_option = len(labels_to_name)
         # Total number of options incl. null
         self.num_options = len(labels_to_name) + 1
