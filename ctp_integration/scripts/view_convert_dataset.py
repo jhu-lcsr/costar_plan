@@ -38,9 +38,6 @@ import moviepy
 import moviepy.editor as mpye
 # import skimage
 
-
-
-
 def npy_to_video(npy, filename, fps=10, preview=True, convert='gif'):
     """Convert a numpy array into a gif file at the location specified by filename.
 
@@ -84,7 +81,7 @@ def draw_matplotlib(depth_images, fps):
         plt.pause(1.0 / fps)
         plt.draw()
 
-def main(args,root="root"):
+def main(args, root="root"):
 
     if '.h5f' in args['path']:
         filenames = [args['path']]
@@ -153,12 +150,16 @@ def main(args,root="root"):
 
             save_filename = example_filename.replace('.h5f', '.' + args['convert'])
             if 'gif' in args['convert']:
-                clip.write_gif(save_filename)
+                clip.write_gif(save_filename, fps=fps)
             elif args['convert']:
-                clip.write_videofile(filename)
+                clip.write_videofile(filename, fps=fps)
+        except KeyboardInterrupt as ex:
+            progress_bar.write('Keyboard interrupt detected. Exiting')
+            break
         except Exception as ex:
-            print('Exception encountered while processing ' + example_filename +
-                  ' please edit the code to debug the specifics: ' + str(ex))
+            progress_bar.write(
+                'Warning: Skipping File. Exception encountered while processing ' + example_filename +
+                ' please edit the code to debug the specifics: ' + str(ex))
 
 if __name__ == "__main__":
     args = _parse_args()
