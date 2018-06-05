@@ -394,7 +394,13 @@ def run_training(
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
 
-    callbacks += [SlowModelStopping(max_batch_time_seconds=1.0),
+    # Stop when models are extremely slow
+    max_batch_time_seconds = 1.0
+    if epochs > 10:
+        # give extra time if it is a long run because
+        # it was probably manually configured
+        max_batch_time_seconds *= 2
+    callbacks += [SlowModelStopping(max_batch_time_seconds=max_batch_time_seconds),
                   InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
 
     if checkpoint:
