@@ -68,6 +68,7 @@ def _parse_args():
     parser.add_argument("--ignore_success", type=bool, default=False, help='skip grasp success cases')
     parser.add_argument("--ignore_error", type=bool, default=False, help='skip grasp attempts that are both failures and contain errors')
     parser.add_argument("--preview", type=bool, default=False, help='pop open a preview window to view the video data')
+    parser.add_argument("--gripper", type=bool, default=False, help='print gripper data channel')
     parser.add_argument("--depth", type=bool, default=True, help='process depth data')
     parser.add_argument("--rgb", type=bool, default=True, help='process rgb data')
     parser.add_argument("--fps", type=int, default=10, help='framerate to process images in frames per second')
@@ -125,6 +126,10 @@ def main(args, root="root"):
         # check if the data is there to load
         load_depth = args['depth'] and 'depth_image' in data and len(data['depth_image']) > 0
         load_rgb = args['rgb'] and 'image' in data and len(data['depth_image']) > 0
+
+        if args['gripper']:
+            # print the gripper data channel
+            progress_bar.write(filename + ': ' + str(list(data['gripper'])))
 
         try:
             if load_depth:
