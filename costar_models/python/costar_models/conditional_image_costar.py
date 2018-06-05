@@ -40,8 +40,8 @@ class ConditionalImageCostar(ConditionalImage):
 
         # =====================================================================
         # Load the image decoders
-        img_in = Input(img_shape,name="predictor_img_in")
-        img0_in = Input(img_shape,name="predictor_img0_in")
+        img_in = Input(img_shape, name="predictor_img_in")
+        img0_in = Input(img_shape, name="predictor_img0_in")
         #arm_in = Input((arm_size,))
         #gripper_in = Input((gripper_size,))
         #arm_gripper = Concatenate()([arm_in, gripper_in])
@@ -140,7 +140,11 @@ class ConditionalImageCostar(ConditionalImage):
         # Null option to be set as the first option
         # Verify this to make sure we aren't loading things with different
         # numbers of available options/high-level actions
-        assert(len(labels_to_name) == self.null_option)
+        if len(labels_to_name) != self.null_option:
+            raise ValueError('labels_to_name must match the number of values in self.null_option. '
+                             'self.null_option: ' + str(self.null_option) + ' ' +
+                             'labels_to_name len: ' + str(len(labels_to_name)) + ' ' +
+                             'labels_to_name values: ' + str(labels_to_name))
         self.null_option = len(labels_to_name)
         # Total number of options incl. null
         self.num_options = len(labels_to_name) + 1
@@ -150,7 +154,7 @@ class ConditionalImageCostar(ConditionalImage):
         prev_label[1:] = label[:(length-1)]
         prev_label[0] = self.null_option
 
-        goal_idx = np.min((goal_idx, np.ones_like(goal_idx)*(length-1)),axis=0)
+        goal_idx = np.min((goal_idx, np.ones_like(goal_idx)*(length-1)), axis=0)
 
         if not (image.shape[0] == goal_idx.shape[0]):
             print("Image shape:", image.shape)
