@@ -74,6 +74,11 @@ def _parse_args():
     parser.add_argument("--fps", type=int, default=10, help='framerate to process images in frames per second')
     parser.add_argument("--matplotlib", type=bool, default=False,
                         help='preview data with matplotlib, slower but you can do pixel lookups')
+    parser.add_argument("--print", type=str, default='',
+                        help=('Comma separated list of data channels to convert to a list and print as a string.'
+                              'Options include: label, gripper, pose, nsecs, secs, q, dq, labels_to_name, all_tf2_frames_as_yaml, '
+                              'and more. See collector.py for details.'))
+
     return vars(parser.parse_args())
 
 def draw_matplotlib(depth_images, fps):
@@ -130,6 +135,11 @@ def main(args, root="root"):
         if args['gripper']:
             # print the gripper data channel
             progress_bar.write(filename + ': ' + str(list(data['gripper'])))
+
+        if args['print']:
+            data_to_print = args['print'].split(',')
+            for data_str in data_to_print:
+                progress_bar.write(filename + ' ' + data_str + ': ' + str(list(data[data_str])))
 
         try:
             if load_depth:
