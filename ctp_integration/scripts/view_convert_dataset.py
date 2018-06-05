@@ -145,7 +145,7 @@ def main(args, root="root"):
             for data_str in data_to_print:
                 progress_bar.write(filename + ' ' + data_str + ': ' + str(list(data[data_str])))
 
-        # Video display/output
+        # Video display and conversion
         try:
             if load_depth:
                 depth_images = list(data['depth_image'])
