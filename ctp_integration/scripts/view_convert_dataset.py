@@ -77,7 +77,7 @@ def _parse_args():
     parser.add_argument("--print", type=str, default='',
                         help=('Comma separated list of data channels to convert to a list and print as a string.'
                               'Options include: label, gripper, pose, nsecs, secs, q, dq, labels_to_name, all_tf2_frames_as_yaml, '
-                              'and more. See collector.py for details.'))
+                              'all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json, and more. See collector.py for more key strings.'))
 
     return vars(parser.parse_args())
 
