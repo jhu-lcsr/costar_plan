@@ -14,6 +14,7 @@ import holoviews as hv
 import os
 
 import h5py
+import bokeh
 from bokeh.io import curdoc
 from bokeh.layouts import layout
 from bokeh.models import Slider, Button
@@ -71,22 +72,49 @@ def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
 
 renderer = hv.renderer('bokeh')
 
-example_filename = os.path.expanduser('~/datasets/costar_task_planning_stacking_dataset_v0.1/2018-05-23-19-08-41_example000008.success.h5f')
+example_filename = os.path.expanduser('~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1/2018-05-23-20-47-55_example000002.success.h5f')
 
 data = h5py.File(example_filename, 'r')
 print('dataset open')
 rgb_images = list(data['image'])
+frame_indices = np.arange(len(rgb_images))
+gripper_status = list(data['gripper'])
 
 rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='list')
 print('images loaded')
 # Declare the HoloViews object
 start = 0
 end = len(rgb_images)
-hmap = hv.HoloMap({i: hv.RGB(image) for i, image in enumerate(rgb_images)})
+# TODO(ahundt) resize image, all of this size code had no effect
+width = int(640*1.5)
+height = int(480*1.5)
+if end > 0:
+    width = rgb_images[0].shape[0]
+    height = rgb_images[0].shape[1]
 
-print('hmap loaded')
+# hv.opts(plot_width=width, plot_height=height)
+
+frame_map = {}
+for i, image in enumerate(rgb_images):
+    hv_rgb = hv.RGB(image)
+    shape = image.shape
+    hv_rgb.opts(plot=dict(width=width, height=height))
+    frame_map[i] = hv_rgb
+
+holomap = hv.HoloMap(frame_map, plot_width=width, plot_height=height)
+
 # Convert the HoloViews object into a plot
-plot = renderer.get_plot(hmap)
+plot = renderer.get_plot(holomap)
+# bokeh.plotting.curplot().plot_width=800
+# plot.plot_width=width
+
+print('holomap loaded')
+
+# load the gripper data
+gripper_data = hv.Table({'Gripper': gripper_status, 'Frame': frame_indices},
+                        ['Gripper', 'Frame'])
+gripper_curves = gripper_data.to.curve('Frame', 'Gripper')
+gripper_plot = renderer.get_plot(gripper_curves)
 
 def animate_update():
     year = slider.value + 1
@@ -97,25 +125,36 @@ def animate_update():
 def slider_update(attrname, old, new):
     plot.update(slider.value)
 
-slider = Slider(start=start, end=end, value=0, step=1, title="Year")
+slider = Slider(start=start, end=end, value=0, step=1, title="Frame")
 slider.on_change('value', slider_update)
 
 def animate():
     if button.label == '► Play':
         button.label = '❚❚ Pause'
-        curdoc().add_periodic_callback(animate_update, 200)
+        curdoc().add_periodic_callback(animate_update, 10)
     else:
         button.label = '► Play'
         curdoc().remove_periodic_callback(animate_update)
 
 button = Button(label='► Play', width=60)
 button.on_click(animate)
-# dir = TextInput(label=example_filename)
+
+# https://bokeh.pydata.org/en/latest/docs/reference/models/widgets.inputs.html
+# TODO(ahundt) switch to AutocompleteInput with list of files
+file_textbox = TextInput(value=example_filename)
+
+# TODO(ahundt) load another file when it changes
+# def textbox_update(attrname, old, new):
+#     plot.update(slider.value)
+
+# file_textbox.on_change(textbox_update)
 
 # Combine the bokeh plot on plot.state with the widgets
 layout = layout([
     [plot.state],
+    [gripper_plot.state],
     [slider, button],
+    [file_textbox]
 ], sizing_mode='fixed')
 
 curdoc().add_root(layout)
