@@ -17,7 +17,8 @@ import h5py
 import bokeh
 from bokeh.io import curdoc
 from bokeh.layouts import layout
-from bokeh.models import Slider, Button
+from bokeh.models import Slider
+from bokeh.models import Button
 from bokeh.models.widgets import TextInput
 import numpy as np
 import io
@@ -89,8 +90,8 @@ end = len(rgb_images)
 width = int(640*1.5)
 height = int(480*1.5)
 if end > 0:
-    width = rgb_images[0].shape[0]
-    height = rgb_images[0].shape[1]
+    height = rgb_images[0].shape[0]
+    width = rgb_images[0].shape[1]
 
 # hv.opts(plot_width=width, plot_height=height)
 
@@ -98,10 +99,10 @@ frame_map = {}
 for i, image in enumerate(rgb_images):
     hv_rgb = hv.RGB(image)
     shape = image.shape
-    hv_rgb.opts(plot=dict(width=width, height=height))
     frame_map[i] = hv_rgb
 
-holomap = hv.HoloMap(frame_map, plot_width=width, plot_height=height)
+holomap = hv.HoloMap(frame_map)
+holomap = holomap.options(width=width, height=height)
 
 # Convert the HoloViews object into a plot
 plot = renderer.get_plot(holomap)
@@ -114,6 +115,7 @@ print('holomap loaded')
 gripper_data = hv.Table({'Gripper': gripper_status, 'Frame': frame_indices},
                         ['Gripper', 'Frame'])
 gripper_curves = gripper_data.to.curve('Frame', 'Gripper')
+gripper_curves = gripper_curves.options(width=width, height=height//4)
 gripper_plot = renderer.get_plot(gripper_curves)
 
 def animate_update():
@@ -125,7 +127,7 @@ def animate_update():
 def slider_update(attrname, old, new):
     plot.update(slider.value)
 
-slider = Slider(start=start, end=end, value=0, step=1, title="Frame")
+slider = Slider(start=start, end=end, value=0, step=1, title="Frame", width=width)
 slider.on_change('value', slider_update)
 
 def animate():
@@ -141,7 +143,7 @@ button.on_click(animate)
 
 # https://bokeh.pydata.org/en/latest/docs/reference/models/widgets.inputs.html
 # TODO(ahundt) switch to AutocompleteInput with list of files
-file_textbox = TextInput(value=example_filename)
+file_textbox = TextInput(value=example_filename, width=width)
 
 # TODO(ahundt) load another file when it changes
 # def textbox_update(attrname, old, new):
