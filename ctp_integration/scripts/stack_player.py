@@ -80,6 +80,7 @@ print('dataset open')
 rgb_images = list(data['image'])
 frame_indices = np.arange(len(rgb_images))
 gripper_status = list(data['gripper'])
+action_status = list(data['label'])
 
 rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='list')
 print('images loaded')
@@ -118,6 +119,13 @@ gripper_curves = gripper_data.to.curve('Frame', 'Gripper')
 gripper_curves = gripper_curves.options(width=width, height=height//4)
 gripper_plot = renderer.get_plot(gripper_curves)
 
+# load the action data
+action_data = hv.Table({'Action': action_status, 'Frame': frame_indices},
+                       ['Action', 'Frame'])
+action_curves = action_data.to.curve('Frame', 'Action')
+action_curves = action_curves.options(width=width, height=height//4)
+action_plot = renderer.get_plot(action_curves)
+
 def animate_update():
     year = slider.value + 1
     if year > end:
@@ -155,6 +163,7 @@ file_textbox = TextInput(value=example_filename, width=width)
 layout = layout([
     [plot.state],
     [gripper_plot.state],
+    [action_plot.state],
     [slider, button],
     [file_textbox]
 ], sizing_mode='fixed')
