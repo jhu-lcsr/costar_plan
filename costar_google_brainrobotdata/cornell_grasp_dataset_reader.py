@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.lines as lines
 import random
+import glob
 
 import tensorflow as tf
 from tensorflow.python.platform import flags
@@ -29,6 +30,7 @@ import keras_contrib
 from grasp_loss import gaussian_kernel_2D
 from inception_preprocessing import preprocess_image
 import random_crop as rcp
+import grasp_visualization
 
 flags.DEFINE_string('data_dir',
                     os.path.join(os.path.expanduser("~"),
@@ -38,9 +40,17 @@ flags.DEFINE_string('data_dir',
 flags.DEFINE_string('grasp_dataset', 'all', 'TODO(ahundt): integrate with brainrobotdata or allow subsets to be specified')
 flags.DEFINE_boolean('grasp_download', False,
                      """Download the grasp_dataset to data_dir if it is not already present.""")
-flags.DEFINE_string('train_filename', 'cornell-grasping-dataset-train.tfrecord', 'filename used for the training dataset')
-flags.DEFINE_string('evaluate_filename', 'cornell-grasping-dataset-evaluate.tfrecord', 'filename used for the evaluation dataset')
-flags.DEFINE_string('test_filename', 'cornell-grasping-dataset-test.tfrecord', 'filename used for the evaluation dataset')
+flags.DEFINE_string(
+    'tfrecord_filename_base', 'cornell-grasping-dataset',
+    """base of the filename used for the dataset tfrecords and csv files
+
+    Works best with options: cornell-grasping-dataset-multigrasp, cornell-grasping-dataset-singlegrasp.
+
+    The tfrecord file names will contain the text multigrasp if there are not redundant images
+    and singlegrasp to indicate if there are redundant images.
+
+    Older versions of the tfrecord files may need: cornell-grasping-dataset.
+    """)
 flags.DEFINE_integer('image_size', 224,
                      """DEPRECATED - this doesn't do anything right now. Provide square images of this size.""")
 flags.DEFINE_integer('num_preprocess_threads', 12,
@@ -54,12 +64,17 @@ flags.DEFINE_integer('input_queue_memory_factor', 12,
                      """4, 2 or 1, if host memory is constrained. See """
                      """comments in code for more details.""")
 flags.DEFINE_boolean(
-    'redundant', True,
+    'redundant_images', True,
     """Duplicate images for every bounding box so dataset is easier to traverse.
-       Please note that this does not substantially affect file size because
-       protobuf is the underlying TFRecord data type and it
-       has optimizations eliminating repeated identical data entries.
-       See cornell_grasp_dataset_writer.py for more details.
+       Please note that this substantially affects the output file size,
+       but the dataset parsing code becomes much easier to write.
+       The downside of the above is you can't only compare against the nearest
+       grasp label, since there can be multiple successful grasp poses in a single image.
+       If redundant_images is false there will be multiple bounding boxes per image,
+       so you'll need to traverse each grasp label, which vary in number on every image.
+
+       The tfrecord file names will contain the text multigrasp if there are not redundant images
+       and singlegrasp to indicate if there are redundant images.
     """)
 flags.DEFINE_boolean('showTextBox', True,
                      """Display textBox with bbox info on image.
@@ -151,16 +166,33 @@ def parse_example_proto(examples_serialized, have_image_id=False):
         'image/filename': tf.FixedLenFeature([], dtype=tf.string,
                                              default_value=''),
         'image/height': tf.FixedLenFeature([], dtype=tf.int64),
-        'image/width': tf.FixedLenFeature([], dtype=tf.int64)
+        'image/width': tf.FixedLenFeature([], dtype=tf.int64),
+        # if there is an error on bbox/count here,
+        # regenerate the dataset and make sure you are parsing
+        # single image multi grasp box example data and not
+        # redundant single image single grasp box example data
+        'bbox/count': tf.FixedLenFeature([], dtype=tf.int64)
     }
 
     # TODO(ahundt) remove boolean once we are set up with k-fold cross validation of images and objects
     if have_image_id:
         feature_map['object/id'] = tf.FixedLenFeature([], dtype=tf.int64)
-
+    variable_length_keys = [
+        'bbox/cy',
+        'bbox/cx',
+        'bbox/tan',
+        'bbox/theta',
+        'bbox/sin_theta',
+        'bbox/cos_theta',
+        'bbox/width',
+        'bbox/height',
+        'bbox/grasp_success'
+    ]
     for i in range(4):
         y_key = 'bbox/y' + str(i)
         x_key = 'bbox/x' + str(i)
+        variable_length_keys += [y_key]
+        variable_length_keys += [x_key]
         feature_map[y_key] = tf.VarLenFeature(dtype=tf.float32)
         feature_map[x_key] = tf.VarLenFeature(dtype=tf.float32)
     feature_map['bbox/cy'] = tf.VarLenFeature(dtype=tf.float32)
@@ -177,13 +209,23 @@ def parse_example_proto(examples_serialized, have_image_id=False):
 
     features = tf.parse_single_example(examples_serialized, feature_map)
 
+    features['bbox/count'] = tf.Print(features['bbox/count'], [features['bbox/count']], 'bbox/count')
+    bbox_feature_shape = tf.stack([features['bbox/count'], tf.cast(1, tf.int64)])
+    # set the length of all the keys based on bbox/count
+    # source: https://stackoverflow.com/a/42603692/99379
+    for key in variable_length_keys:
+        # convert the feature to dense and set the shape as defined in bbox/count
+        val = features[key]
+        val = tf.sparse_tensor_to_dense(val, default_value=0)
+        val = tf.reshape(val, bbox_feature_shape)
+        features[key] = val
     return features
 
 
-def parse_example_proto_redundant(examples_serialized, have_image_id=False):
+def parse_example_proto_redundant_images(examples_serialized, have_image_id=False):
     """ Parse data from the tfrecord
 
-    See also: _create_examples_redundant()
+    See also: _create_examples_redundant_images()
     """
     feature_map = {
         'image/filename': tf.FixedLenFeature([], dtype=tf.string,
@@ -191,7 +233,8 @@ def parse_example_proto_redundant(examples_serialized, have_image_id=False):
         'image/encoded': tf.FixedLenFeature([], dtype=tf.string,
                                             default_value=''),
         'image/height': tf.FixedLenFeature([], dtype=tf.int64),
-        'image/width': tf.FixedLenFeature([], dtype=tf.int64)
+        'image/width': tf.FixedLenFeature([], dtype=tf.int64),
+        'bbox/count': tf.FixedLenFeature([], dtype=tf.int64, default_value=1)
     }
 
     # TODO(ahundt) remove boolean once we are set up with k-fold cross validation of images and objects
@@ -250,7 +293,7 @@ def sin2_cos2_height_width_4(height=None, width=None, sin_theta=None, cos_theta=
         sin_cos_height_width = [features['bbox/sin_theta'], features['bbox/cos_theta'],
                                 features['bbox/height'], features['bbox/width']]
     else:
-        con_cos_height_width = [sin_theta, cos_theta, height, width]
+        sin_cos_height_width = [sin_theta, cos_theta, height, width]
     return K.concatenate(sin_cos_height_width)
 
 
@@ -329,7 +372,7 @@ def crop_to_gripper_transform(
     transform = tf.contrib.image.compose_transforms(*transforms)
     # TODO(ahundt) rename features random_* to a more general name, and make the same change in random_crop.py
     features = {
-        # TODO(ahundt) should these be positive or negative?
+        # TODO(ahundt) validate negative theta vs negative theta for grasp pose consistency
         'random_rotation': -grasp_center_rotation_theta,
         'random_translation_offset': crop_offset,
         'random_projection_transform': transform
@@ -387,8 +430,8 @@ def parse_and_preprocess(
     if output_shape is None:
         output_shape = (FLAGS.resize_height, FLAGS.resize_width)
         output_shape = K.constant(output_shape, 'int32')
-    if FLAGS.redundant:
-        feature = parse_example_proto_redundant(examples_serialized)
+    if FLAGS.redundant_images:
+        feature = parse_example_proto_redundant_images(examples_serialized)
     else:
         feature = parse_example_proto(examples_serialized)
 
@@ -478,7 +521,7 @@ def parse_and_preprocess(
     feature['bbox/preprocessed/logarithm_height_width_2'] = K.concatenate(
         [K.log(feature['bbox/preprocessed/height'] + K.epsilon()),
          K.log(feature['bbox/preprocessed/width'] + K.epsilon())])
-    # TODO(ahundt) difference between "redundant" and regular proto parsing, figure out how to deal with grasp_success rename properly
+    # TODO(ahundt) difference between "redundant_images" and regular proto parsing, figure out how to deal with grasp_success rename properly
     feature['grasp_success'] = feature['bbox/grasp_success']
     grasp_success_coordinate_label = K.concatenate(
         [tf.cast(feature['bbox/grasp_success'], tf.float32), grasp_center_coordinate])
@@ -536,7 +579,7 @@ def parse_and_preprocess(
 def projective_image_augmentation(
         image, is_training, crop_to, crop_shape, random_translation_box,
         grasp_center_coordinate, grasp_center_rotation_theta, output_shape,
-        random_rotation=None, random_translation=None, verbose=0):
+        random_rotation=None, random_translation=None, verbose=1):
     """ perform image augmentation with projective transforms
     """
     # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
@@ -614,8 +657,8 @@ def projective_image_augmentation(
     if verbose > 0:
         image = tf.Print(
             image,
-            [grasp_center_coordinate],
-            'grasp_center_coordinate before:')
+            [grasp_center_coordinate, transform],
+            'grasp_center_coordinate before, and transform:')
     image, preprocessed_grasp_center_coordinate = rcp.transform_crop_and_resize_image(
         image, crop_shape=crop_shape, resize_shape=output_shape, central_crop=central_crop,
         transform=transform, coordinate=grasp_center_coordinate)
@@ -659,7 +702,8 @@ def yield_record(
         parse_example_proto_fn=parse_and_preprocess, batch_size=32,
         device='/cpu:0', steps=None, buffer_size=int(1e6),
         shuffle=True, shuffle_buffer_size=100, num_parallel_calls=None,
-        apply_filter=False, filter_fn=filter_grasp_success_only, **kwargs):
+        apply_filter=False, filter_fn=filter_grasp_success_only,
+        dynamic_pad=False, **kwargs):
     """ TFRecord data python generator.
 
     # Arguments
@@ -685,6 +729,9 @@ def yield_record(
         filter_fn: A function which takes the feature tensor dict as input and returns
             a tensor boolean. Used to filter out examples that should be skipped.
             See `filter_grasp_success_only()` for an example.
+        dynamic_pad: dynamically pad data which is of variable length, for example
+            when one image has a variable number of grasp labels.
+            see https://www.tensorflow.org/api_docs/python/tf/train/batch
         kwargs: Any additional parameters you specify will be passed directly to
             the parse_example_proto_fn.
     """
@@ -729,7 +776,10 @@ def yield_record(
             dataset = dataset.map(
                 map_func=get_simplified_features,
                 num_parallel_calls=num_parallel_calls)
-        dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
+        if dynamic_pad:
+            dataset = dataset.padded_batch(batch_size=batch_size)
+        else:
+            dataset = dataset.batch(batch_size=batch_size)  # Parse the record into tensors.
         dataset = dataset.prefetch(batch_size * 5)
         # tensor_iterator = dataset.make_initializable_iterator()
         tensor_iterator = dataset.make_one_shot_iterator()
@@ -794,164 +844,41 @@ def print_feature(feature_map, feature_name):
     print(feature_name + ': ' + str(feature_map[feature_name]))
 
 
-def visualize_redundant_example(features_dicts, showTextBox=None):
-    """ Visualize numpy dictionary containing a grasp example.
-    """
-    # TODO(ahundt) remove me once version in grasp_visualization.py is working
-    if showTextBox is None:
-        showTextBox = FLAGS.showTextBox
-    # TODO(ahundt) don't duplicate this in cornell_grasp_dataset_writer
-    if not isinstance(features_dicts, list):
-        features_dicts = [features_dicts]
-    width = 3
-
-    preprocessed_examples = []
-    for example in features_dicts:
-        print('original example bbox/theta: ' + str(example['bbox/theta']))
-        if ('bbox/preprocessed/cy_cx_normalized_2' in example):
-            print_feature(example, 'bbox/preprocessed/cy_cx_normalized_2')
-            print_feature(example, 'bbox/preprocessed/cy')
-            print_feature(example, 'bbox/preprocessed/cx')
-            print_feature(example, 'bbox/preprocessed/width')
-            print_feature(example, 'bbox/preprocessed/height')
-            print_feature(example, 'grasp_success_norm_sin2_cos2_hw_yx_7')
-            # Reverse the preprocessing so we can visually compare correctness
-            decoded_example = copy.deepcopy(example)
-            sin_cos_2 = np.squeeze(example['bbox/preprocessed/sin_cos_2'])
-            # y, x ordering.
-            recovered_theta = np.arctan2(sin_cos_2[0], sin_cos_2[1])
-            if 'random_rotation' in example:
-                recovered_theta += example['random_rotation']
-            cy_cx_normalized_2 = np.squeeze(example['bbox/preprocessed/cy_cx_normalized_2'])
-            cy_cx_normalized_2[0] *= np.squeeze(example['image/preprocessed/height'])
-            cy_cx_normalized_2[1] *= np.squeeze(example['image/preprocessed/width'])
-            if 'random_translation_offset' in example:
-                offset = example['random_translation_offset']
-                print('offset: ' + str(offset))
-            # if np.allclose(np.array(example['bbox/theta']), recovered_theta):
-            #     print('WARNING: bbox/theta: ' + str(example['bbox/theta']) +
-            #           ' feature does not match bbox/preprocessed/sin_cos_2: '
-            #           )
-            # # change to preprocessed
-            # assert np.allclose(cy_cx_normalized_2[0] + offset[0], example['bbox/cy'])
-            # assert np.allclose(cy_cx_normalized_2[1] + offset[1], example['bbox/cx'])
-            decoded_example['bbox/theta'] = example['bbox/preprocessed/theta']
-            decoded_example['image/decoded'] = example['image/preprocessed']
-            decoded_example['bbox/width'] = example['bbox/preprocessed/width']
-            decoded_example['bbox/height'] = example['bbox/preprocessed/height']
-            decoded_example['bbox/cy'] = example['bbox/preprocessed/cy']
-            decoded_example['bbox/cx'] = example['bbox/preprocessed/cx']
-            if 'random_projection_transform' in example:
-                print('random_projection_transform:' + str(example['random_projection_transform']))
-                if 'random_rotation' in example:
-                    print('random_rotation: ' + str(example['random_rotation']))
-                print('bbox/preprocessed/theta: ' + str(example['bbox/preprocessed/theta']))
-            preprocessed_examples.append(decoded_example)
-
-    img = np.squeeze(example['image/decoded'])
-    center_x_list = [example['bbox/cx'] for example in features_dicts]
-    center_y_list = [example['bbox/cy'] for example in features_dicts]
-    grasp_success = [example['bbox/grasp_success'] for example in features_dicts]
-    gt_plot_height = int(np.ceil(float(len(center_x_list)) / 2))
-    fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=(15, 15))
-    print('max: ' + str(np.max(img)) + ' min: ' + str(np.min(img)))
-    axs[0, 0].imshow(np.squeeze(img), zorder=0)
-    # for i in range(4):
-    #     feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
-    #     feature['bbox/x' + str(i)] = _floats_feature(dict_bbox_lists['bbox/x' + str(i)])
-    # axs[0, 0].arrow(np.array(center_y_list), np.array(center_x_list),
-    #                 np.array(coordinates_list[0]) - np.array(coordinates_list[2]),
-    #                 np.array(coordinates_list[1]) - np.array(coordinates_list[3]), c=grasp_success)
-    axs[0, 0].scatter(np.array(center_x_list), np.array(center_y_list), zorder=2, c=grasp_success, alpha=0.5, lw=2)
-    axs[0, 1].imshow(np.squeeze(img), zorder=0)
-    # plt.show()
-    # axs[1, 0].scatter(data[0], data[1])
-    # axs[2, 0].imshow(gt_image)
-    for i, example in enumerate(preprocessed_examples):
-        h = i % gt_plot_height + 1
-        w = int(i / gt_plot_height)
-        z = 0
-        # axs[h, w].imshow(img, zorder=z)
-        z += 1
-
-        img2 = np.squeeze(example['image/decoded'])
-        # Assuming 'tf' preprocessing mode! Changing channel range from [-1, 1] to [0, 1]
-        img2 /= 2
-        img2 += 0.5
-        print('preprocessed max: ' + str(np.max(img2)) + ' min: ' + str(np.min(img2)) + ' shape: ' + str(np.shape(img2)))
-        axs[h, w].imshow(img2, alpha=1, zorder=z)
-        # plt.show()
-        z += 1
-        # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
-        widths = [1, 2, 1, 2]
-        alphas = [0.25, 0.5, 0.25, 0.5]
-        if example['bbox/grasp_success']:
-            # that's gap, plate, gap plate
-            colors = ['gray', 'green', 'gray', 'green']
-            success_str = 'pos'
-        else:
-            colors = ['gray', 'purple', 'gray', 'purple']
-            success_str = 'neg'
-
-        cx = [int(example['bbox/cx'])]
-        cy = [int(example['bbox/cy'])]
-        if showTextBox:
-            axs[h, w].text(
-                    int(cx[0]), int(cy[0]),
-                    success_str, size=10,
-                    # see the gripper angle
-                    rotation=float(np.rad2deg(example['bbox/theta'])),
-                    # this next one is just to see if random rotation matches actual image rotation
-                    # rotation=float(np.rad2deg(example['random_rotation'])),
-                    ha="right", va="top",
-                    bbox=dict(boxstyle="square",
-                              ec=(1., 0.5, 0.5),
-                              fc=(1., 0.8, 0.8),
-                              ),
-                    zorder=z,
-                    )
-            z += 1
-
-        axs[h, w].scatter(cx, cy, zorder=2, alpha=0.5, lw=2)
-        # bbox/x_i, y_i are not calculated according to preprocess, so use rectangle here
-        # axs[h, w].add_patch(patches.Rectangle((example['bbox/cx'], example['bbox/cy']),
-        #                                       example['bbox/width'], example['bbox/height'],
-        #                                       example['bbox/theta'], fill=False))
-        # for i, (color, width, alpha) in enumerate(zip(colors, widths, alphas)):
-        #     x_current = [example['bbox/x'+str(i)], example['bbox/x'+str((i+1)%4)]]
-        #     y_current = [example['bbox/y'+str(i)], example['bbox/y'+str((i+1)%4)]]
-        #     # axs[h, w].text(example['bbox/x'+str(i)], example['bbox/y'+str(i)], "Point:"+str(i))
-
-        #     axs[h, w].add_line(lines.Line2D(x_current, y_current, linewidth=width,
-        #                        color=color, zorder=z, alpha=alpha))
-        #     axs[0, 0].add_line(lines.Line2D(x_current, y_current, linewidth=width,
-        #                        color=color, zorder=z, alpha=alpha))
-        plt.show()
-
-    # axs[1, 1].hist2d(data[0], data[1])
-    # plt.draw()
-    # plt.pause(0.25)
-
-    plt.show()
-    return width
-
-
 def main(argv):
+    # tf.enable_eager_execution()
     batch_size = 1
     is_training = True
-    validation_file = FLAGS.evaluate_filename
-    crop_to = 'image_contains_grasp_box_center'
+    glob_path = os.path.join(FLAGS.data_dir, FLAGS.tfrecord_filename_base + '-imagewise-*' + '.tfrecord')
+    tfrecord_files = glob.glob(glob_path)
+    print('tfrecord_files: ' + str(tfrecord_files))
+
+    # crop_to = 'image_contains_grasp_box_center'
     # crop_to = 'resize_height_and_resize_width'
-    success_only = True
+    crop_to = 'center_on_gripper_grasp_box_and_rotate_upright'
+
+    # success_only flag must be false in multigrasp case
+    success_only = False
     shuffle = False
     # FLAGS.random_translation = False
     # FLAGS.random_rotation = False
+    if 'multigrasp' in glob_path:
+        FLAGS.redundant_images = False
+    elif 'singlegrasp' in glob_path:
+        FLAGS.redundant_images = True
+
+    redundant_images = FLAGS.redundant_images
 
     for example_dict in tqdm(yield_record(
-            validation_file, is_training=is_training,
+            tfrecord_files, is_training=is_training,
             batch_size=batch_size, apply_filter=success_only,
             shuffle=shuffle, crop_to=crop_to)):
-        visualize_redundant_example(example_dict, showTextBox=True)
+        # loop through one example
+        if redundant_images:
+            grasp_visualization.visualize_redundant_images_example(
+                example_dict, showTextBox=True, blocking=True)
+        else:
+            img = np.squeeze(example_dict['image/decoded'])
+            grasp_visualization.visualize_example(img, example_dict)
 
 
 if __name__ == '__main__':
