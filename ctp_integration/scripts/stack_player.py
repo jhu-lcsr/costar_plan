@@ -6,7 +6,7 @@ combine them into a bokeh layout.
 
 The app can be served using:
 
-    bokeh serve --show player.py
+    bokeh serve --show stack_player.py --args --preprocess-inplace gripper_action --data ~/keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f
 
 """
 import numpy as np
@@ -32,7 +32,7 @@ parser = argparse.ArgumentParser(description='Process additional parameters for 
 
 parser.add_argument('--preprocess-inplace', type = str, action = 'store', default = 'None', 
                     help='Options include gripper_action, used to generate gripper_action_label and index of frame before next action')
-parser.add_argument('--data', type = str, action = 'store', default = '/costar_task_planning_stacking_dataset_v0.1', 
+parser.add_argument('--data-dir', type = str, action = 'store', default = '/costar_task_planning_stacking_dataset_v0.1', 
                     help='directory path containing the data')
 
 args = parser.parse_args()
@@ -147,7 +147,9 @@ def load_data_plot(renderer, frame_indices, gripper_status, action_status, gripp
 renderer = hv.renderer('bokeh')
 
 #example_filename = "C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/2018-05-23-20-18-25_example000002.success.h5f"
-file_name_list = glob.glob(args.data)
+#file_name_list = glob.glob("C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f")
+
+file_name_list = glob.glob(os.path.expanduser(args.data_dir))
 
 
 
