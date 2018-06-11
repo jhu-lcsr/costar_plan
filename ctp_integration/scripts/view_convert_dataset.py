@@ -29,14 +29,60 @@ except ImportError:
             return args[0]
         return kwargs.get('iterable', None)
 
-from costar_models.datasets.image import JpegToNumpy
-from costar_models.datasets.image import ConvertImageListToNumpy
+# from costar_models.datasets.image import JpegToNumpy
+# from costar_models.datasets.image import ConvertImageListToNumpy
 import pygame
 import io
 from PIL import Image
 import moviepy
 import moviepy.editor as mpye
 # import skimage
+
+def GetJpeg(img):
+    '''
+    Save a numpy array as a Jpeg, then get it out as a binary blob
+    '''
+    im = Image.fromarray(np.uint8(img))
+    output = io.BytesIO()
+    im.save(output, format="JPEG", quality=80)
+    return output.getvalue()
+
+def GetPng(img):
+    '''
+    Save a numpy array as a Jpeg, then get it out as a binary blob
+    '''
+    im = Image.fromarray(img)
+    output = io.BytesIO()
+    # enabling optimized file size
+    # increases saving time to ~0.4 seconds per image.
+    #im.save(output, format="PNG", optimize=True)
+    im.save(output, format="PNG")
+    return output.getvalue()
+
+def JpegToNumpy(jpeg):
+    stream = io.BytesIO(jpeg)
+    im = Image.open(stream)
+    return np.asarray(im, dtype=np.uint8)
+
+def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
+    """ Convert a list of binary jpeg or png files to numpy format.
+
+    # Arguments
+
+    data: a list of binary jpeg images to convert
+    format: default 'numpy' returns a 4d numpy array,
+        'list' returns a list of 3d numpy arrays
+    """
+    length = len(data)
+    imgs = []
+    for raw in data:
+        img = JpegToNumpy(raw)
+        if data_format == 'NCHW':
+            img = np.transpose(img, [2, 0, 1])
+        imgs.append(img)
+    if format == 'numpy':
+        imgs = np.array(imgs)
+    return imgs
 
 def npy_to_video(npy, filename, fps=10, preview=True, convert='gif'):
     """Convert a numpy array into a gif file at the location specified by filename.
@@ -172,7 +218,7 @@ def main(args, root="root"):
             if 'gif' in args['convert']:
                 clip.write_gif(save_filename, fps=fps)
             elif args['convert']:
-                clip.write_videofile(filename, fps=fps)
+                clip.write_videofile(save_filename, fps=fps)
         except KeyboardInterrupt as ex:
             progress_bar.write('Keyboard interrupt detected. Exiting')
             break
