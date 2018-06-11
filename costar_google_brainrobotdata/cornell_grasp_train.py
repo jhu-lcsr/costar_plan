@@ -765,7 +765,8 @@ def train_k_fold(split_type=None,
     grasp_utilities.mkdir_p(log_dir)
 
     # 2k files, but k folds, so read two file at a time
-    for i in tqdm(range(num_fold), desc='Preparing kfold'):
+    progbar_folds = tqdm(range(num_fold), desc='Preparing kfold')
+    for i in progbar_folds:
         # This is a special string,
         # make sure to maintain backwards compatibility
         # if you modify it.
@@ -796,7 +797,7 @@ def train_k_fold(split_type=None,
         train_size = sum(train_sizes)
 
         save_splits_weights = run_name + '-' + fold_name + '-' + split_type + '-train-on-' + train_id + '-val-on-' + val_id
-        print('Preparing fold ' + str(i) + ' train dataset splits: ' + train_id + ',   val dataset splits: ' + val_id)
+        progbar_folds.write('Preparing fold ' + str(i) + ' train dataset splits: ' + train_id + ',   val dataset splits: ' + val_id)
         training_run_params = dict(
             train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train_val',
             train_size=train_size, val_size=val_size,
@@ -842,7 +843,7 @@ def train_k_fold(split_type=None,
     return run_histories
 
 
-def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_acc', verbose=1):
+def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_binary_accuracy', verbose=1):
     """ Find the k_fold average of the best model weights on each fold, and save the results.
 
     Please note that currently this should only be utilized with classification models,
@@ -858,13 +859,13 @@ def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val
     results = {}
     for metric in metrics:
         best_metric_scores = []
-        for i, history_obj in enumerate(run_histories):
+        for history_description, history_object in six.iteritems(run_histories):
             if 'loss' in metric:
-                best_score = np.min(history_obj.history[metric])
-                results['fold_' + str(i) + '_min_' + metric] = best_score
+                best_score = np.min(history_object.history[metric])
+                results[history_description + '_min_' + metric] = best_score
             else:
-                best_score = np.max(history_obj.history[metric])
-                results['fold_' + str(i) + '_max_' + metric] = best_score
+                best_score = np.max(history_object.history[metric])
+                results[history_description + '_max_' + metric] = best_score
             best_metric_scores += [best_score]
         k_fold_average = np.mean(best_metric_scores)
         results['k_fold_average_' + metric] = k_fold_average
@@ -1017,8 +1018,8 @@ def load_dataset(
     """
     if train_filenames is None and val_filenames is None and test_filenames is None:
         # train/val/test filenames are generated from the CSV file if they aren't provided
-        train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = epoch_params()
-    train_steps, val_steps, test_steps = epoch_params_for_splits(
+        train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = load_dataset_sizes_from_csv()
+    train_steps, val_steps, test_steps = steps_per_epoch(
         train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
         samples_train=train_size, samples_val=val_size, samples_test=test_size)
 
@@ -1212,7 +1213,9 @@ def evaluate(
         steps=None, visualize=False,
         preprocessing_mode='tf', apply_filter=True, loss_fn=None, loss_name='loss',
         should_initialize=False, load_weights=None, fold_num=None, fold_name='', verbose=0):
-    """ This is specialized for running grasp regression right now,
+    """ Evaluate how well a model performs at grasp regression.
+
+        This is specialized for running grasp regression right now,
         so check the defaults if you want to use it for something else.
     """
     if data_features is None:
@@ -1286,7 +1289,7 @@ def evaluate(
                 if load_weights is not None:
                     # remove .h5 add the image number, and save the file
                     viz_filename = load_weights[:-3] + '_' + str(i) + '.jpg'
-                grasp_visualization.visualize_redundant_example(example_dict, predictions=predictions, save_filename=viz_filename, show=False)
+                grasp_visualization.visualize_redundant_images_example(example_dict, predictions=predictions, save_filename=viz_filename, show=False)
 
             score = np.squeeze(score)
             # save this score and prediction if there is no score yet
@@ -1333,11 +1336,12 @@ def evaluate(
     return result
 
 
-def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_type=None,
-                 csv_path='-k-fold-stat.csv', data_dir=None, tfrecord_filename_base=None):
-    """ Determine the number of steps to train, validate, and test each fold during k-fold training.
-    TODO(ahundt) rename this function, it is pretty nonsensical
+def load_dataset_sizes_from_csv(
+        train_splits=None, val_splits=None, test_splits=None, split_type=None,
+        csv_path='-k-fold-stat.csv', data_dir=None, tfrecord_filename_base=None):
+    """ Load csv specifying the number of steps to train, validate, and test each fold during k-fold training.
 
+    The csv files are created by cornell_grasp_dataset_writer.py.
     Please be aware that the number of train and validation steps changes every time the dataset is converted.
     These values are automatically loaded from a csv file, but be certain you do not mix the csv files up or
     overwrite the datasets and csv files separately.
@@ -1374,33 +1378,32 @@ def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_typ
         test_size = 0
         for i in range(train_splits):
             train_size += unique_image_num[i]
-            train_filenames += [os.path.join(data_dir,
-                                tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
+            train_filenames += [os.path.join(
+                                    data_dir,
+                                    tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
 
         for i in range(train_splits, train_splits + val_splits):
             val_size += unique_image_num[i]
-            val_filenames += [os.path.join(data_dir,
-                              tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
+            val_filenames += [os.path.join(
+                                    data_dir,
+                                    tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
 
         for i in range(train_splits + val_splits, train_splits + val_splits + test_splits):
             test_size += unique_image_num[i]
-            test_filenames += [os.path.join(data_dir,
-                               tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
+            test_filenames += [os.path.join(
+                                    data_dir,
+                                    tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
 
         return train_filenames, train_size, val_filenames, val_size, test_filenames, test_size
 
-        # samples_in_training_dataset = 6402
-        # samples_in_val_dataset = 1617
-        # val_batch_size = 11
-        # steps_in_val_dataset, divides_evenly = np.divmod(samples_in_val_dataset, val_batch_size)
-        # assert divides_evenly == 0
-        # steps_per_epoch_train = np.ceil(float(samples_in_training_dataset) / float(batch_size))
-        # return samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size
 
+def steps_per_epoch(train_batch=None, samples_train=None,
+                    val_batch=None, samples_val=None,
+                    test_batch=None, samples_test=None):
+    """Determine the number of steps per epoch for a given number of samples and batch size.
 
-def epoch_params_for_splits(train_batch=None, samples_train=None,
-                            val_batch=None, samples_val=None,
-                            test_batch=None, samples_test=None):
+    Also ensures val and test divides evenly for reproducible results.
+    """
 
     returns = []
     steps_train = None
@@ -1411,13 +1414,17 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
         steps_train = int(np.ceil(float(samples_train) / float(train_batch)))
     if samples_val is not None and val_batch is not None:
         steps_in_val_dataset, divides_evenly = np.divmod(samples_val, val_batch)
-        # If this fails you need to fix the batch size so it divides evenly!
-        assert divides_evenly == 0
+        if divides_evenly != 0:
+            raise ValueError('You need to fix the validation batch size ' + str(val_batch) +
+                             ' so it divides the number of samples ' + str(samples_val) + ' evenly. '
+                             'In a worst case you can simply choose a batch size of 1.')
         steps_val = steps_in_val_dataset
     if samples_test is not None and test_batch is not None:
         steps_in_test_dataset, divides_evenly = np.divmod(samples_test, test_batch)
-        # If this fails you need to fix the batch size so it divides evenly!
-        assert divides_evenly == 0
+        if divides_evenly != 0:
+            raise ValueError('You need to fix the test batch size ' + str(val_batch) +
+                             ' so it divides the number of samples ' + str(samples_val) + ' evenly. '
+                             'In a worst case you can simply choose a batch size of 1.')
         steps_test = steps_in_test_dataset
 
     return steps_train, steps_val, steps_test
