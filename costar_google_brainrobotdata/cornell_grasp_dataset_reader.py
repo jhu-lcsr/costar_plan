@@ -292,7 +292,7 @@ def sin_cos_height_width_4(height=None, width=None, sin_theta=None, cos_theta=No
                                 features['bbox/height'], features['bbox/width']]
     else:
         sin_cos_height_width = [sin_theta, cos_theta, height, width]
-    return K.stack(sin_cos_height_width)
+    return K.stack(sin_cos_height_width, axis=-1)
 
 
 def sin_cos_width_3(width=None, sin_theta=None, cos_theta=None, features=None):
@@ -304,7 +304,7 @@ def sin_cos_width_3(width=None, sin_theta=None, cos_theta=None, features=None):
                                 features['bbox/width']]
     else:
         sin_cos_height_width = [sin_theta, cos_theta, width]
-    return K.stack(sin_cos_height_width)
+    return K.stack(sin_cos_height_width, axis=-1)
 
 
 def sin2_cos2_height_width_4(height=None, width=None, sin_theta=None, cos_theta=None, features=None):
@@ -316,7 +316,7 @@ def sin2_cos2_height_width_4(height=None, width=None, sin_theta=None, cos_theta=
                                 features['bbox/height'], features['bbox/width']]
     else:
         sin_cos_height_width = [sin_theta, cos_theta, height, width]
-    return K.stack(sin_cos_height_width)
+    return K.stack(sin_cos_height_width, axis=-1)
 
 
 def sin2_cos2_width_3(width=None, sin_theta=None, cos_theta=None, features=None):
@@ -328,7 +328,7 @@ def sin2_cos2_width_3(width=None, sin_theta=None, cos_theta=None, features=None)
                                 features['bbox/width']]
     else:
         sin_cos_height_width = [sin_theta, cos_theta, width]
-    return K.stack(sin_cos_height_width)
+    return K.stack(sin_cos_height_width, axis=-1)
 
 
 def approximate_gaussian_ground_truth_image(image_shape, center, grasp_theta, grasp_width, grasp_height, label, sigma_divisor=None):
