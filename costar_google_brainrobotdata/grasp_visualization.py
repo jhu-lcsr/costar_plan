@@ -173,7 +173,6 @@ def visualize_redundant_images_example(
     # if showTextBox is None:
     #     showTextBox = FLAGS.showTextBox
 
-    # TODO(ahundt) don't duplicate this in cornell_grasp_dataset_writer
     if not isinstance(features_dicts, list):
         features_dicts = [features_dicts]
 
@@ -341,7 +340,6 @@ def visualize_example(
     center_x_list = []
     center_y_list = []
     grasp_success = []
-    print('>>>>>>>>>>>>>>>>>>>>')
 
     gt_plot_height = None
     bbox_count = None
@@ -353,17 +351,19 @@ def visualize_example(
             bbox_count = example['bbox/count'][0]
             gt_plot_height = bbox_count / 2
 
-    center_x_list = np.squeeze(center_x_list)
-    center_y_list = np.squeeze(center_x_list)
-    grasp_success = np.squeeze(grasp_success)
     if gt_plot_height is None:
+        # The data is stored a list of dictionaries containing single data values
         gt_plot_height = len(center_x_list)/2
     else:
+        # The data is stored as lists or arrays in a single dictionary
         # Remove padded values from the lists
+        center_x_list = np.squeeze(center_x_list)
+        center_y_list = np.squeeze(center_x_list)
+        grasp_success = np.squeeze(grasp_success)
         center_x_list = center_x_list[:bbox_count]
         center_y_list = center_x_list[:bbox_count]
         grasp_success = grasp_success[:bbox_count]
-    print('gt_plot_height: ' + str(gt_plot_height))
+
     fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=figsize)
     axs[0, 0].imshow(img, zorder=0)
     # for i in range(4):
