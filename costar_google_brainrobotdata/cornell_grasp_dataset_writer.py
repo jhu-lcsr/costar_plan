@@ -215,6 +215,14 @@ flags.DEFINE_boolean(
        The tfrecord file names will contain the text multigrasp if there are not redundant images
        and singlegrasp to indicate if there are redundant images.
     """)
+flags.DEFINE_integer(
+    'bbox_padded_count', 50,
+    """
+    When redundant_images is False, this is the fixed number of entries every example will contain
+    regardless of the number of entries in the original dataset, zero padding all data to have equal length.
+    Must be greater than or equal to the maximum number of labels for any image in the dataset. If this value
+    is 0 or None, no padding will be added and all labels of success, gripper poses, etc will have variable length.
+    """)
 flags.DEFINE_float(
     'evaluate_fraction', 0.2,
     """proportion of dataset to be used separately for evaluation,
@@ -365,7 +373,8 @@ def read_label_file(path):
 
 def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAGS.num_fold,
                  tfrecord_filename_base=FLAGS.tfrecord_filename_base, do_shuffle=FLAGS.shuffle,
-                 write=FLAGS.write, redundant_images=FLAGS.redundant_images, seed=FLAGS.seed):
+                 write=FLAGS.write, redundant_images=FLAGS.redundant_images, seed=FLAGS.seed,
+                 bbox_padded_count=FLAGS.bbox_padded_count):
     """ K-Fold on dataset.
         path: path to z.txt, a file match images and objects. And *pos/neg.txt, should
         remain in same folder with z.txt.
@@ -389,6 +398,10 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
     fold_last_object = ['' for i in range(num_fold)]
 
     fold_image_id_list = [[] for i in range(num_fold)]
+
+    if bbox_padded_count is None:
+        bbox_padded_count = 0
+    bbox_padded_count_list = [bbox_padded_count for i in range(num_fold)]
 
     # special filenames for the rundant and non-redundant_images versions of the dataset
     # TODO(ahundt) update reader to account for these filename changes!
@@ -470,9 +483,9 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
 
     info_lists = [which_splits, num_splits, unique_image_num_list,
                   unique_object_num_list, positive_num_list, negative_num_list,
-                  total_grasp_list, spilt_type_list]
+                  total_grasp_list, spilt_type_list, bbox_padded_count_list]
     head_line = ('which_splits, num_splits, unique_image, unique_object,'
-                 'num_pos, num_neg, num_total_grasp, spilt_type\n')
+                 'num_pos, num_neg, num_total_grasp, spilt_type, bbox_padded_count\n')
 
     csv_string = head_line
     for i in range(num_fold):
@@ -493,7 +506,8 @@ def k_fold_split(path=FLAGS.data_dir, split_type=FLAGS.split_type, num_fold=FLAG
 def k_fold_tfrecord_writer(
         path=FLAGS.data_dir, kFold_list=None,
         split_type=FLAGS.split_type, tfrecord_filename_base=FLAGS.tfrecord_filename_base,
-        write=FLAGS.write, redundant_images=FLAGS.redundant_images):
+        write=FLAGS.write, redundant_images=FLAGS.redundant_images,
+        bbox_padded_count=FLAGS.bbox_padded_count):
     """ Write Tfrecord based on image_id stored in kFold_list.
 
         path: directory of where origin data is stored, not a file path.
@@ -530,7 +544,8 @@ def k_fold_tfrecord_writer(
             image_path = path + image_id[:2] + '/pcd' + image_id + 'r.png'
             image_buffer, height, width = _process_image(image_path, coder)
             examples, _, _ = traverse_examples_in_single_image(
-                image_path, bbox_pos_path, bbox_neg_path, image_buffer, height, width)
+                image_path, bbox_pos_path, bbox_neg_path, image_buffer, height, width,
+                bbox_padded_count=bbox_padded_count)
             for example in examples:
                 cur_writer.write(example.SerializeToString())
         cur_writer.close()
@@ -821,7 +836,7 @@ def _validate_text(text):
 
 
 def _create_examples(
-        filename, image_id, image_buffer, height, width, dict_bbox_lists):
+        filename, image_id, image_buffer, height, width, dict_bbox_lists, bbox_padded_count=None):
     """
 
     Create a TFRecord example which stores multiple bounding box copies with a single image.
@@ -830,11 +845,25 @@ def _create_examples(
     # Arguments
 
         dict_bbox_lists: A dictionary containing lists of feature values.
+        bbox_padded_count: Fixed length to zero pad pad all examples to
+            no padding is performed if the padded count is 0 or None.
 
     # Returns
 
       A list of examples
     """
+    label_count = len(dict_bbox_lists['bbox/grasp_success'])
+
+    if not bbox_padded_count:
+        bbox_padded_count = 0
+        padding_amount = 0
+    else:
+        padding_amount = bbox_padded_count - label_count
+        if padding_amount < 0:
+            raise ValueError(
+                'Padding bbox_padded_count: ' + str(bbox_padded_count) +
+                ' is insufficient for number of labels in this entry of the dataset: ' +
+                str(label_count))
 
     # Build an Example proto for an example
     feature = {'image/filename': _bytes_feature(filename),
@@ -842,22 +871,30 @@ def _create_examples(
                'image/height': _int64_feature(height),
                'image/width': _int64_feature(width),
                'image/id': _int64_feature(image_id),
-               # number of data labels in this image
-               'bbox/count': _int64_feature(len(dict_bbox_lists['bbox/grasp_success']))}
+               # real number of data labels in this image
+               'bbox/count': _int64_feature(label_count),
+               # constant length padded number of data labels in this image
+               'bbox/padded_count': _int64_feature(bbox_padded_count),
+               # number of values that are actually just padding
+               'bbox/padding_amount': _int64_feature(padding_amount)}
+
+    float_padding = [float(0.)] * padding_amount
+    int_padding = [int(0)] * padding_amount
 
     for i in range(4):
-        feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
-        feature['bbox/x' + str(i)] = _floats_feature(dict_bbox_lists['bbox/x' + str(i)])
-    feature['bbox/cy'] = _floats_feature(dict_bbox_lists['bbox/cy'])
-    feature['bbox/cx'] = _floats_feature(dict_bbox_lists['bbox/cx'])
-    feature['bbox/tan'] = _floats_feature(dict_bbox_lists['bbox/tan'])
-    feature['bbox/theta'] = _floats_feature(dict_bbox_lists['bbox/theta'])
-    feature['bbox/sin_theta'] = _floats_feature(dict_bbox_lists['bbox/sin_theta'])
-    feature['bbox/cos_theta'] = _floats_feature(dict_bbox_lists['bbox/cos_theta'])
-    feature['bbox/width'] = _floats_feature(dict_bbox_lists['bbox/width'])
-    feature['bbox/height'] = _floats_feature(dict_bbox_lists['bbox/height'])
-    feature['bbox/grasp_success'] = _int64_feature(dict_bbox_lists['bbox/grasp_success'])
+        feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)] + float_padding)
+        feature['bbox/x' + str(i)] = _floats_feature(dict_bbox_lists['bbox/x' + str(i)] + float_padding)
+    feature['bbox/cy'] = _floats_feature(dict_bbox_lists['bbox/cy'] + [float(0)] * padding_amount)
+    feature['bbox/cx'] = _floats_feature(dict_bbox_lists['bbox/cx'] + float_padding)
+    feature['bbox/tan'] = _floats_feature(dict_bbox_lists['bbox/tan'] + float_padding)
+    feature['bbox/theta'] = _floats_feature(dict_bbox_lists['bbox/theta'] + float_padding)
+    feature['bbox/sin_theta'] = _floats_feature(dict_bbox_lists['bbox/sin_theta'] + float_padding)
+    feature['bbox/cos_theta'] = _floats_feature(dict_bbox_lists['bbox/cos_theta'] + float_padding)
+    feature['bbox/width'] = _floats_feature(dict_bbox_lists['bbox/width'] + float_padding)
+    feature['bbox/height'] = _floats_feature(dict_bbox_lists['bbox/height'] + float_padding)
+    feature['bbox/grasp_success'] = _int64_feature(dict_bbox_lists['bbox/grasp_success'] + int_padding)
     example = tf.train.Example(features=tf.train.Features(feature=feature))
+
     return [example]
 
 
@@ -923,7 +960,9 @@ def list_of_dicts_to_dict_of_lists(ld):
     return {key: [item[key] for item in ld] for key in ld[0].keys()}
 
 
-def traverse_examples_in_single_image(filename, path_pos, path_neg, image_buffer, height, width, verbose=FLAGS.verbose):
+def traverse_examples_in_single_image(
+        filename, path_pos, path_neg, image_buffer, height, width,
+        bbox_padded_count=FLAGS.bbox_padded_count, verbose=FLAGS.verbose):
     """
     """
     # get the bounding box information as lists of dictionaries storing feature data as floats and ints
@@ -958,12 +997,15 @@ def traverse_examples_in_single_image(filename, path_pos, path_neg, image_buffer
     if FLAGS.redundant_images:
         examples = _create_examples_redundant_images(filename, image_id, image_buffer, height, width, bbox_example_features)
     else:
-        examples = _create_examples(filename, image_id, image_buffer, height, width, dict_bbox_lists)
+        examples = _create_examples(filename, image_id, image_buffer, height, width, dict_bbox_lists, bbox_padded_count)
 
     return examples, attempt_count, count_fail_success
 
 
-def traverse_dataset(filenames, eval_fraction=FLAGS.evaluate_fraction, write=FLAGS.write, train_file=None, validation_file=None):
+def traverse_dataset(
+        filenames, eval_fraction=FLAGS.evaluate_fraction,
+        write=FLAGS.write, train_file=None, validation_file=None,
+        bbox_padded_count=FLAGS.bbox_padded_count):
     """ Deprecated function for walking through the dataset
     """
     coder = ImageCoder()
@@ -986,7 +1028,8 @@ def traverse_dataset(filenames, eval_fraction=FLAGS.evaluate_fraction, write=FLA
         bbox_neg_path = filename[:-5]+'cneg.txt'
         image_buffer, height, width = _process_image(filename, coder)
         examples, attempt_count, count_fail_success = traverse_examples_in_single_image(
-            filename, bbox_pos_path, bbox_neg_path, image_buffer, height, width)
+            filename, bbox_pos_path, bbox_neg_path, image_buffer, height, width,
+            bbox_padded_count=bbox_padded_count)
 
         # Split the dataset in 80% for training and 20% for validation
         total_attempt_count += attempt_count

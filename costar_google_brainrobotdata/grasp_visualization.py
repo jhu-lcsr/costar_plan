@@ -313,7 +313,8 @@ def visualize_redundant_images_example(
 
 def visualize_example(
         img, bbox_example_features, gt_images=None, showTextBox=False,
-        show=True, blocking=True, save_filename=None, close=True):
+        show=True, blocking=True, save_filename=None, close=True,
+        figsize=(15, 15)):
     """ Visualize an example from the dataset with multiple grasp labels.
 
     # Arguments
@@ -330,11 +331,40 @@ def visualize_example(
     """
     if gt_images is None:
         gt_images = [None] * len(bbox_example_features)
-    center_x_list = [example['bbox/cx'] for example in bbox_example_features]
-    center_y_list = [example['bbox/cy'] for example in bbox_example_features]
-    grasp_success = [example['bbox/grasp_success'] for example in bbox_example_features]
-    gt_plot_height = len(center_x_list)/2
-    fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=(15, 15))
+
+    if isinstance(bbox_example_features, dict):
+        example_format = 'dict_of_lists'
+        bbox_example_features = [bbox_example_features]
+    else:
+        example_format = 'list_of_dicts'
+
+    center_x_list = []
+    center_y_list = []
+    grasp_success = []
+    print('>>>>>>>>>>>>>>>>>>>>')
+
+    gt_plot_height = None
+    bbox_count = None
+    for example in bbox_example_features:
+        center_x_list += [example['bbox/cx']]
+        center_y_list += [example['bbox/cy']]
+        grasp_success += [example['bbox/grasp_success']]
+        if 'bbox/count' in example:
+            bbox_count = example['bbox/count'][0]
+            gt_plot_height = bbox_count / 2
+
+    center_x_list = np.squeeze(center_x_list)
+    center_y_list = np.squeeze(center_x_list)
+    grasp_success = np.squeeze(grasp_success)
+    if gt_plot_height is None:
+        gt_plot_height = len(center_x_list)/2
+    else:
+        # Remove padded values from the lists
+        center_x_list = center_x_list[:bbox_count]
+        center_y_list = center_x_list[:bbox_count]
+        grasp_success = grasp_success[:bbox_count]
+    print('gt_plot_height: ' + str(gt_plot_height))
+    fig, axs = plt.subplots(gt_plot_height + 1, 4, figsize=figsize)
     axs[0, 0].imshow(img, zorder=0)
     # for i in range(4):
     #     feature['bbox/y' + str(i)] = _floats_feature(dict_bbox_lists['bbox/y' + str(i)])
@@ -346,23 +376,54 @@ def visualize_example(
     axs[0, 1].imshow(img, zorder=0)
     # axs[1, 0].scatter(data[0], data[1])
     # axs[2, 0].imshow(gt_image)
-    for i, (gt_image, example) in enumerate(zip(gt_images, bbox_example_features)):
-        grasp_success = example['bbox/grasp_success']
-        cx = example['bbox/cx']
-        cy = example['bbox/cy']
-        x_current, y_current = get_grasp_polygon_lines_from_example(example)
-        h = i % gt_plot_height + 1
-        w = int(i / gt_plot_height)
-        z = 0
-        axs[h, w].imshow(img, zorder=z)
-        z += 1
-        if gt_image is not None:
-            axs[h, w].imshow(gt_image, alpha=0.25, zorder=z)
-        z += 1
-        # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
-        theta = example['bbox/theta']
-        z = draw_grasp(axs[h, w], grasp_success, (cx, cy), theta, x_current, y_current, z=z, showTextBox=showTextBox)
-        z = draw_grasp(axs[0, 0], grasp_success, (cx, cy), theta, x_current, y_current, z=z, showTextBox=showTextBox)
+    if example_format == 'list_of_dicts':
+        # The data is stored a list of dictionaries containing single data values
+        for i, (gt_image, example) in enumerate(zip(gt_images, bbox_example_features)):
+            grasp_success = example['bbox/grasp_success']
+            cx = example['bbox/cx']
+            cy = example['bbox/cy']
+            x_current, y_current = get_grasp_polygon_lines_from_example(example)
+            h = i % gt_plot_height + 1
+            w = int(i / gt_plot_height)
+            z = 0
+            axs[h, w].imshow(img, zorder=z)
+            z += 1
+            if gt_image is not None:
+                axs[h, w].imshow(gt_image, alpha=0.25, zorder=z)
+            z += 1
+            # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
+            theta = example['bbox/theta']
+            z = draw_grasp(axs[h, w], grasp_success, (cx, cy), theta, x_current, y_current, z=z, showTextBox=showTextBox)
+            z = draw_grasp(axs[0, 0], grasp_success, (cx, cy), theta, x_current, y_current, z=z, showTextBox=showTextBox)
+    else:
+        # The data is stored as lists or arrays in a single dictionary
+        for k, (gt_image, example) in enumerate(zip(gt_images, bbox_example_features)):
+            print('example[bbox/grasp_success]: ' + str(example['bbox/grasp_success']))
+            # assume bbox/count is present
+            for i in range(example['bbox/count']):
+                grasp_success = np.squeeze(example['bbox/grasp_success'])[i]
+                cx = np.squeeze(example['bbox/cx'])[i]
+                cy = np.squeeze(example['bbox/cy'])[i]
+
+                num_bboxes = 4
+                x_current = [[] for k in range(num_bboxes)]
+                y_current = [[] for k in range(num_bboxes)]
+                for j in range(num_bboxes):
+                    x_current[j] += [np.squeeze(example['bbox/x'+str(j)])[i], np.squeeze(example['bbox/x'+str((j+1) % 4)])[i]]
+                    y_current[j] += [np.squeeze(example['bbox/y'+str(j)])[i], np.squeeze(example['bbox/y'+str((j+1) % 4)])[i]]
+                # x_current, y_current = get_grasp_polygon_lines_from_example(example)
+                h = i % gt_plot_height + 1
+                w = int(i / gt_plot_height)
+                z = 0
+                axs[h, w].imshow(img, zorder=z)
+                z += 1
+                if gt_image is not None:
+                    axs[h, w].imshow(gt_image, alpha=0.25, zorder=z)
+                z += 1
+                # axs[h, w*2+1].imshow(gt_image, alpha=0.75, zorder=1)
+                theta = np.squeeze(example['bbox/theta'])[i]
+                z = draw_grasp(axs[h, w], grasp_success, (cx, cy), theta, x_current, y_current, z=z, showTextBox=showTextBox)
+                z = draw_grasp(axs[0, 0], grasp_success, (cx, cy), theta, x_current, y_current, z=z, showTextBox=showTextBox)
 
     plt.tight_layout()
     if save_filename:

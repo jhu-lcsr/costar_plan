@@ -289,7 +289,8 @@ def transform_and_crop_coordinate(coordinate, transform=None, offset=None, theta
                 coordinate = tf.matmul(projection_matrix,
                                        coordinate)
                 coordinate = tf.transpose(coordinate)[:, :2]
-                coordinate = tf.stack([coordinate[:, 0], coordinate[:, 1]])
+                # TODO(ahundt) verify that order and axis are correct for multiple coordinates
+                coordinate = tf.stack([coordinate[:, 0], coordinate[:, 1]], axis=-1)
                 if squeeze:
                     coordinate = tf.squeeze(coordinate)
 
