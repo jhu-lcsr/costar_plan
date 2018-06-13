@@ -124,8 +124,11 @@ def _parse_args():
                         help=('Comma separated list of data channels to convert to a list and print as a string.'
                               'Options include: label, gripper, pose, nsecs, secs, q, dq, labels_to_name, all_tf2_frames_as_yaml, '
                               'all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json, and more. See collector.py for more key strings.'))
-    parser.add_argument('--preprocess-inplace', type = str, action = 'store', default = '', 
-                    help='Options include gripper_action, used to generate gripper_action_label and index of frame before next action')
+    parser.add_argument('--preprocess_inplace', type=str, action='store', default='',
+                        help="""Currently the only option is gripper_action, which generates new labels
+                                gripper_action_label and gripper_action_goal_idx based on the timestep at which the gripper opened and closed,
+                                and inserts them directly into the hdf5 file.
+                             """)
 
     return vars(parser.parse_args())
 
@@ -190,32 +193,21 @@ def main(args, root="root"):
                     data_to_print = args['print'].split(',')
                     for data_str in data_to_print:
                         progress_bar.write(filename + ' ' + data_str + ': ' + str(list(data[data_str])))
-                
-                if args['preprocess_inplace'] == 'gripper_action':
-                    if "gripper_action_label" not in list(data.keys()):
-                        gripper_status = list(data['gripper'])
-                        action_status = list(data['label'])
-                        gripper_action_goal_idx = []
-                        unique_actions, indices= np.unique(action_status, return_index = True)
-                        unique_actions = [action_status[index] for index in sorted(indices)]
-                        action_ind = 0
-                        gripper_action_label = action_status[:]
-                        for i in range(len(gripper_status)):
-                            if (gripper_status[i]>0.1 and gripper_status[i-1]<0.1) or(gripper_status[i]<0.5 and gripper_status[i-1]>0.5):
-                                action_ind+=1
-                                print(i)
-                                gripper_action_goal_idx.append(i)
 
-                            # For handling error files having improper data
-                            if len(unique_actions) <= action_ind or len(gripper_action_label)<= i:
-                                break
-                            else:
-                                gripper_action_label[i] = unique_actions[action_ind]
+                if args['preprocess_inplace'] == 'gripper_action':
+                    # generate new action labels based on when the gripper opens and closes
+                    if "gripper_action_label" not in list(data.keys()):
+                        gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data)
+                        # add the new action label and goal indices based on when the gripper opens/closes
                         data['gripper_action_label'], data['gripper_action_goal_idx'] = np.array(gripper_action_label), np.array(gripper_action_goal_idx)
                     else:
-                        print('gripper_action_label present')
-                        print(list(data['gripper_action_goal_idx']))
+                        progress_bar.write(
+                            'skipping file, gripper_action_label is already present: ' +
+                            str(example_filename) + ' gripper_action_goal_idx: ' + str(list(data['gripper_action_goal_idx'])))
 
+                    # skip other steps like video viewing,
+                    # so this conversion runs 1000x faster
+                    continue
 
                 # Video display and conversion
                 try:
@@ -259,7 +251,43 @@ def main(args, root="root"):
                 example_filename + ': ' + str(ex))
             continue
 
-        
+
+def generate_gripper_action_label(data):
+    """ generate new action labels and goal action indices based on the gripper open/closed state
+
+    This performs an in place modification of the data argument sets 'gripper_action_label' and 'gripper_action_goal_idx' in the data argument.
+
+    Use stack_player.py to visualize the dataset, that makes it easier to understand what this data is.
+
+    # Returns
+
+        gripper_action_label, gripper_action_goal_idx
+
+        numpy array containing integer label values,
+        and numpy array containing integer goal timestep indices.
+    """
+    gripper_status = list(data['gripper'])
+    action_status = list(data['label'])
+    gripper_action_goal_idx = []
+    unique_actions, indices = np.unique(action_status, return_index=True)
+    unique_actions = [action_status[index] for index in sorted(indices)]
+    action_ind = 0
+    gripper_action_label = action_status[:]
+    for i in range(len(gripper_status)):
+        if (gripper_status[i] > 0.1 and gripper_status[i-1] < 0.1) or (gripper_status[i] < 0.5 and gripper_status[i-1] > 0.5):
+            action_ind += 1
+            # print(i)
+            gripper_action_goal_idx.append(i)
+
+        # For handling error files having improper data
+        if len(unique_actions) <= action_ind or len(gripper_action_label) <= i:
+            break
+        else:
+            gripper_action_label[i] = unique_actions[action_ind]
+
+    return gripper_action_label, gripper_action_goal_idx
+
+
 if __name__ == "__main__":
     args = _parse_args()
     main(args)
