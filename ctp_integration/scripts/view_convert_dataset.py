@@ -129,6 +129,7 @@ def _parse_args():
                                 gripper_action_label and gripper_action_goal_idx based on the timestep at which the gripper opened and closed,
                                 and inserts them directly into the hdf5 file.
                              """)
+    parser.add_argument("--write", action='store_true', help='Actually write out the changes specified in preprocess_inplace.')
 
     return vars(parser.parse_args())
 
@@ -172,7 +173,8 @@ def main(args, root="root"):
         pygame.display.set_caption(description)
 
         mode = 'r'
-        if len(args['preprocess_inplace']) > 0:
+        # open the files in a writing mode
+        if args['write']:
             mode = 'r+'
 
         # open the file
@@ -196,14 +198,14 @@ def main(args, root="root"):
 
                 if args['preprocess_inplace'] == 'gripper_action':
                     # generate new action labels based on when the gripper opens and closes
-                    if "gripper_action_label" not in list(data.keys()):
-                        gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data)
-                        # add the new action label and goal indices based on when the gripper opens/closes
+                    gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data)
+                    # add the new action label and goal indices based on when the gripper opens/closes
+                    if args['write']:
                         data['gripper_action_label'], data['gripper_action_goal_idx'] = np.array(gripper_action_label), np.array(gripper_action_goal_idx)
                     else:
                         progress_bar.write(
-                            'skipping file, gripper_action_label is already present: ' +
-                            str(example_filename) + ' gripper_action_goal_idx: ' + str(list(data['gripper_action_goal_idx'])))
+                            'gripper_action_label test run, use --write to change the files in place. gripper_action_label: ' +
+                            str(gripper_action_label) + ' gripper_action_goal_idx: ' + str(gripper_action_goal_idx))
 
                     # skip other steps like video viewing,
                     # so this conversion runs 1000x faster
