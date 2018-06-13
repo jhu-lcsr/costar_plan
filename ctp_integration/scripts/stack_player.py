@@ -6,7 +6,7 @@ combine them into a bokeh layout.
 
 The app can be served using:
 
-    bokeh serve --show stack_player.py --args --preprocess-inplace gripper_action --data ~/keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f
+    bokeh serve --show stack_player.py --args --preprocess-inplace gripper_action --data-dir ~/keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f
 
 """
 import numpy as np
@@ -101,18 +101,30 @@ def process_image(file_path):
     action_status = list(data['label'])
     gripper_action_goal_idx = []
 
+    # print("gripper ",gripper_status)
+    # print("frames ", frame_indices)
+
     #generate new action labels and goal action indices
     if(args.preprocess_inplace == 'gripper_action'):
-        unique_actions, indices= np.unique(action_status, return_index = True)
-        unique_actions = [action_status[index] for index in sorted(indices)]
-        action_ind = 0
-        gripper_action_label = action_status[:]
-        for i in range(len(gripper_status)):
-            if (gripper_status[i]>0.1 and gripper_status[i-1]<0.1) or(gripper_status[i]<0.5 and gripper_status[i-1]>0.5):
-                action_ind+=1
-                print(i)
-                gripper_action_goal_idx.append(i)
-            gripper_action_label[i]=unique_actions[action_ind]
+        if "gripper_action_label" in list(data.keys()):
+            gripper_action_label = list(data['gripper_action_label'])
+            gripper_action_goal_idx = list(data['gripper_action_goal_idx'])
+            print(gripper_action_goal_idx)
+            print("gripper_action_labels already exist..")
+        else:
+            unique_actions, indices= np.unique(action_status, return_index = True)
+            unique_actions = [action_status[index] for index in sorted(indices)]
+            action_ind = 0
+            gripper_action_label = action_status[:]
+            for i in range(len(gripper_status)):
+                if (gripper_status[i]>0.1 and gripper_status[i-1]<0.1) or(gripper_status[i]<0.5 and gripper_status[i-1]>0.5):
+                    action_ind+=1
+                    print(i)
+                    gripper_action_goal_idx.append(i)
+                if len(unique_actions) <= action_ind or len(gripper_action_label)<= i:
+                    break
+                else:
+                    gripper_action_label[i] = unique_actions[action_ind]
 
     rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='list')
     return rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx
@@ -142,6 +154,35 @@ def load_data_plot(renderer, frame_indices, gripper_status, action_status, gripp
 
     return gripper_plot, action_plot, gripper_action_plot
 
+def check_errors(file_list, index, action = 'next'):
+    """ Checks the file for valid data and returns the index of the file to be read.
+
+    # Arguments
+
+    file_list: a list of file names in the directory
+    index: index of the file to check
+    action: action to identify the button task
+    """
+    file_list_copy = file_list[:]
+    index_copy = index
+    print(file_list[index])
+    flag = 0
+    while flag == 0:
+        with h5py.File(file_list[index], 'r') as data:
+            if len(list(data['q'])) == 0:
+                print("-------File Empty------")
+                if len(file_name_list) > 1:
+                    if action == 'next':
+                        index = (index + 1) % len(file_list_copy)
+                    else:
+                        index = (index - 1) % len(file_list_copy)
+                else:
+                    print("Closing...")
+                    exit()
+            else:
+                flag = 1
+    return index
+
 
 
 renderer = hv.renderer('bokeh')
@@ -150,10 +191,11 @@ renderer = hv.renderer('bokeh')
 #file_name_list = glob.glob("C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f")
 
 file_name_list = glob.glob(os.path.expanduser(args.data_dir))
+index = 17
 
+index = check_errors(file_name_list, index)
 
-
-rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx = process_image(file_name_list[0])
+rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx = process_image(file_name_list[index])
 print('images loaded')
 # Declare the HoloViews object
 start = 0
@@ -198,16 +240,22 @@ def animate():
         button.label = ' Play'
         curdoc().remove_periodic_callback(animate_update)
 def next_image(files,action):
-    global file_textbox, button, button_next, button_prev, count
+    global file_textbox, button, button_next, button_prev, index
     print("next clicked")
     file_textbox.value = "Processing..."
     renderer = hv.renderer('bokeh')
     if action == 'next':
-        count=(count + 1) % len(files)
+        index=(index + 1) % len(files)
     else:
-        count=(count - 1) % len(files)
+        index=(index - 1) % len(files)
     #print("it ", iterator)
-    file_name = files[count]
+    print("index before check",index)
+    index = check_errors(files, index, action)
+    print("index after check", index)
+    print("len", len(files))
+
+
+    file_name = files[index]
     rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx = process_image(file_name)
     print("image loaded")
     print("action goal idx", gripper_action_goal_idx)
@@ -246,7 +294,6 @@ def next_image(files,action):
     curdoc().add_root(layout_child)
 
 #iterator = iter(file_name_list)
-count = 1
 
 button = Button(label=' Play', width=60)
 button.on_click(animate)
@@ -256,10 +303,10 @@ button_next.on_click(partial(next_image, files=file_name_list, action = 'next'))
 button_prev = Button(label = 'Prev', width =60)
 button_prev.on_click(partial(next_image, files=file_name_list, action = 'prev'))
 
-
 # https://bokeh.pydata.org/en/latest/docs/reference/models/widgets.inputs.html
 # TODO(ahundt) switch to AutocompleteInput with list of files
-file_textbox = TextInput(value=file_name_list[0].split('\\')[-1], width=width)
+file_textbox = TextInput(value=file_name_list[index].split('\\')[-1], width=width)
+
 
 # TODO(ahundt) load another file when it changes
 # def textbox_update(attrname, old, new):
