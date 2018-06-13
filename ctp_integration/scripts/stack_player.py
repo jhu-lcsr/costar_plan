@@ -191,7 +191,7 @@ renderer = hv.renderer('bokeh')
 #file_name_list = glob.glob("C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f")
 
 file_name_list = glob.glob(os.path.expanduser(args.data_dir))
-index = 17
+index = 0
 
 index = check_errors(file_name_list, index)
 
