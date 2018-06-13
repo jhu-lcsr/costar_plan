@@ -6,8 +6,9 @@ combine them into a bokeh layout.
 
 The app can be served using:
 
-    bokeh serve --show stack_player.py --args --preprocess-inplace gripper_action --data-dir ~/keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f
+    bokeh serve --show scripts/stack_player.py --args  --data-dir "~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f"
 
+Note that the data dir with * uses glob syntax, so this example will only load the data which has been labeled as successful grasps.
 """
 import numpy as np
 import holoviews as hv
@@ -30,12 +31,11 @@ from functools import partial
 
 parser = argparse.ArgumentParser(description='Process additional parameters for stack player')
 
-parser.add_argument('--preprocess-inplace', type = str, action = 'store', default = 'None', 
-                    help='Options include gripper_action, used to generate gripper_action_label and index of frame before next action')
-parser.add_argument('--data-dir', type = str, action = 'store', default = '/costar_task_planning_stacking_dataset_v0.1', 
+parser.add_argument('--data-dir', type=str, action='store', default='~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1',
                     help='directory path containing the data')
 
 args = parser.parse_args()
+
 
 def GetJpeg(img):
     '''
@@ -83,7 +83,7 @@ def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
         imgs = np.array(imgs)
     return imgs
 
-def generate_holo_map(rgb_images,height, width):
+def generate_holo_map(rgb_images, height, width):
     frame_map = {}
     for i, image in enumerate(rgb_images):
         hv_rgb = hv.RGB(image)
@@ -104,30 +104,37 @@ def process_image(file_path):
     # print("gripper ",gripper_status)
     # print("frames ", frame_indices)
 
-    #generate new action labels and goal action indices
-    if(args.preprocess_inplace == 'gripper_action'):
-        if "gripper_action_label" in list(data.keys()):
-            gripper_action_label = list(data['gripper_action_label'])
-            gripper_action_goal_idx = list(data['gripper_action_goal_idx'])
-            print(gripper_action_goal_idx)
-            print("gripper_action_labels already exist..")
-        else:
-            unique_actions, indices= np.unique(action_status, return_index = True)
-            unique_actions = [action_status[index] for index in sorted(indices)]
-            action_ind = 0
-            gripper_action_label = action_status[:]
-            for i in range(len(gripper_status)):
-                if (gripper_status[i]>0.1 and gripper_status[i-1]<0.1) or(gripper_status[i]<0.5 and gripper_status[i-1]>0.5):
-                    action_ind+=1
-                    print(i)
-                    gripper_action_goal_idx.append(i)
-                if len(unique_actions) <= action_ind or len(gripper_action_label)<= i:
-                    break
-                else:
-                    gripper_action_label[i] = unique_actions[action_ind]
+    # generate new action labels and goal action indices
+    gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data, action_status, gripper_status, gripper_action_goal_idx)
 
     rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='list')
     return rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx
+
+def generate_gripper_action_label(data, action_status, gripper_status, gripper_action_goal_idx):
+    """ generate new action labels and goal action indices based on the gripper open/closed state
+    """
+    if "gripper_action_label" in list(data.keys()):
+        # load the gripper action label from the hdf5 file
+        gripper_action_label = list(data['gripper_action_label'])
+        gripper_action_goal_idx = list(data['gripper_action_goal_idx'])
+        print(gripper_action_goal_idx)
+        print("gripper_action_labels already exist..")
+    else:
+        # compute the gripper action label on the fly
+        unique_actions, indices = np.unique(action_status, return_index=True)
+        unique_actions = [action_status[index] for index in sorted(indices)]
+        action_ind = 0
+        gripper_action_label = action_status[:]
+        for i in range(len(gripper_status)):
+            if (gripper_status[i] > 0.1 and gripper_status[i-1] < 0.1) or (gripper_status[i] < 0.5 and gripper_status[i-1] > 0.5):
+                action_ind += 1
+                print(i)
+                gripper_action_goal_idx.append(i)
+            if len(unique_actions) <= action_ind or len(gripper_action_label) <= i:
+                break
+            else:
+                gripper_action_label[i] = unique_actions[action_ind]
+    return gripper_action_label, gripper_action_goal_idx
 
 def load_data_plot(renderer, frame_indices, gripper_status, action_status, gripper_action_label, height, width):
     # load the gripper data
@@ -154,7 +161,7 @@ def load_data_plot(renderer, frame_indices, gripper_status, action_status, gripp
 
     return gripper_plot, action_plot, gripper_action_plot
 
-def check_errors(file_list, index, action = 'next'):
+def check_errors(file_list, index, action='next'):
     """ Checks the file for valid data and returns the index of the file to be read.
 
     # Arguments
@@ -184,7 +191,6 @@ def check_errors(file_list, index, action = 'next'):
     return index
 
 
-
 renderer = hv.renderer('bokeh')
 
 #example_filename = "C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/2018-05-23-20-18-25_example000002.success.h5f"
@@ -209,7 +215,7 @@ if end > 0:
 
 # hv.opts(plot_width=width, plot_height=height)
 
-holomap = generate_holo_map(rgb_images,height,width)
+holomap = generate_holo_map(rgb_images, height, width)
 
 # Convert the HoloViews object into a plot
 plot = renderer.get_plot(holomap)
@@ -239,7 +245,8 @@ def animate():
     else:
         button.label = ' Play'
         curdoc().remove_periodic_callback(animate_update)
-def next_image(files,action):
+
+def next_image(files, action):
     global file_textbox, button, button_next, button_prev, index
     print("next clicked")
     file_textbox.value = "Processing..."
@@ -253,7 +260,6 @@ def next_image(files,action):
     index = check_errors(files, index, action)
     print("index after check", index)
     print("len", len(files))
-
 
     file_name = files[index]
     rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx = process_image(file_name)
@@ -271,21 +277,18 @@ def next_image(files,action):
     slider = Slider(start=start, end=end, value=0, step=1, title="Frame", width=width)
     slider.on_change('value', slider_update)
 
-    holomap = generate_holo_map(rgb_images,height,width)
+    holomap = generate_holo_map(rgb_images, height, width)
     print("generated holomap")
     plot = renderer.get_plot(holomap)
     print("plot rendered")
     gripper_plot, action_plot, gripper_action_plot = load_data_plot(renderer, frame_indices, gripper_status, action_status, gripper_action_label, height, width)
     print("plot loaded..")
-    plot_list = [
-    [plot.state],
-    [gripper_plot.state],
-    [action_plot.state]]
+    plot_list = [[plot.state], [gripper_plot.state], [action_plot.state]]
 
-    widget_list = [[slider, button, button_prev, button_next],[file_textbox]]
+    widget_list = [[slider, button, button_prev, button_next], [file_textbox]]
 
-    if args.preprocess_inplace == "gripper_action":
-        plot_list.append([gripper_action_plot.state])
+    # "gripper_action" plot, labels based on the gripper opening and closing
+    plot_list.append([gripper_action_plot.state])
     layout_child = layout(plot_list+widget_list, sizing_mode='fixed')
     curdoc().clear()
     file_textbox.value = file_name.split("\\")[-1]
@@ -298,10 +301,10 @@ def next_image(files,action):
 button = Button(label=' Play', width=60)
 button.on_click(animate)
 
-button_next = Button(label = 'Next', width =60)
-button_next.on_click(partial(next_image, files=file_name_list, action = 'next'))
-button_prev = Button(label = 'Prev', width =60)
-button_prev.on_click(partial(next_image, files=file_name_list, action = 'prev'))
+button_next = Button(label='Next', width=60)
+button_next.on_click(partial(next_image, files=file_name_list, action='next'))
+button_prev = Button(label='Prev', width=60)
+button_prev.on_click(partial(next_image, files=file_name_list, action='prev'))
 
 # https://bokeh.pydata.org/en/latest/docs/reference/models/widgets.inputs.html
 # TODO(ahundt) switch to AutocompleteInput with list of files
@@ -322,8 +325,8 @@ plot_list = [
 
 widget_list = [[slider, button, button_prev, button_next],[file_textbox]]
 
-if args.preprocess_inplace == "gripper_action":
-    plot_list.append([gripper_action_plot.state])
+# "gripper_action" plot, labels based on the gripper opening and closing
+plot_list.append([gripper_action_plot.state])
 
 layout_root = layout(plot_list+widget_list, sizing_mode='fixed')
 
