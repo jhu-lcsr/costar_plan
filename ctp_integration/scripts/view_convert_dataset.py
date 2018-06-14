@@ -197,11 +197,19 @@ def main(args, root="root"):
                         progress_bar.write(filename + ' ' + data_str + ': ' + str(list(data[data_str])))
 
                 if args['preprocess_inplace'] == 'gripper_action':
+                    print("frames ",len(list(data['image'])))
                     # generate new action labels based on when the gripper opens and closes
                     gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data)
                     # add the new action label and goal indices based on when the gripper opens/closes
                     if args['write']:
-                        data['gripper_action_label'], data['gripper_action_goal_idx'] = np.array(gripper_action_label), np.array(gripper_action_goal_idx)
+                        
+                        #cannot write without deleting existing data
+                        if "gripper_action_label" in list(data.keys()):
+                                print("deleting existing gripper action labels")
+                                del data['gripper_action_label'] 
+                                del data['gripper_action_goal_idx']
+                        data['gripper_action_label'], data['gripper_action_goal_idx']= np.array(gripper_action_label), np.array(gripper_action_goal_idx)
+                        #print("data on file",list(data['gripper_action_goal_idx']))
                     else:
                         progress_bar.write(
                             'gripper_action_label test run, use --write to change the files in place. gripper_action_label: ' +
@@ -270,12 +278,14 @@ def generate_gripper_action_label(data):
     """
     gripper_status = list(data['gripper'])
     action_status = list(data['label'])
+    print("goal",list(data["goal_idx"]))
     gripper_action_goal_idx = []
     unique_actions, indices = np.unique(action_status, return_index=True)
     unique_actions = [action_status[index] for index in sorted(indices)]
     action_ind = 0
     gripper_action_label = action_status[:]
     for i in range(len(gripper_status)):
+
         if (gripper_status[i] > 0.1 and gripper_status[i-1] < 0.1) or (gripper_status[i] < 0.5 and gripper_status[i-1] > 0.5):
             action_ind += 1
             # print(i)
@@ -286,6 +296,24 @@ def generate_gripper_action_label(data):
             break
         else:
             gripper_action_label[i] = unique_actions[action_ind]
+
+    gripper_ind = 0
+    #print(gripper_action_goal_idx)
+    goal_list = []
+    for i in range(len(gripper_action_label)):
+
+        if gripper_ind < len(gripper_action_goal_idx):
+            goal_to_add = gripper_action_goal_idx[gripper_ind] - 1
+        else:
+            goal_to_add = len(gripper_status)-1
+        
+        if(i<goal_to_add):
+            goal_list.append(goal_to_add)
+
+        else:
+            gripper_ind+=1
+    gripper_action_goal_idx = goal_list
+    #print(gripper_action_goal_idx)
 
     return gripper_action_label, gripper_action_goal_idx
 
