@@ -168,7 +168,7 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32):
+def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32, verbose=0):
     """Depth images become an XYZ point cloud in the camera frame with shape (depth.shape[0], depth.shape[1], 3).
 
     Transform a depth image into a point cloud in the camera frame with one point for each
@@ -187,8 +187,6 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32):
           32bit floating point depths in meters. The result is a 3-D array with
           shape (rows, cols, 3). Pixels with invalid depth in the input have
           NaN or 0 for the z-coordinate in the result.
-      flip_x: 1.0 leaves data as-is, -1.0 flips the data across the x axis
-      flip_y: -1.0 leaves data as-is, -1.0 flips the data across the y axis
 
       intrinsics_matrix: 3x3 matrix for projecting depth values to z values
       in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
@@ -219,12 +217,14 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32):
     assert X.size == Y.size and X.size == depth.size
     assert X.shape == Y.shape and X.shape == depth.shape
 
-    print('X np: ', X.shape)
-    print('Y np: ', Y.shape)
-    print('depth np: ', depth.shape)
+    if verbose > 0:
+        print('X np: ', X.shape)
+        print('Y np: ', Y.shape)
+        print('depth np: ', depth.shape)
     XYZ = np.column_stack([X, Y, depth])
     assert XYZ.shape == (y_range * x_range, 3)
-    print('XYZ pre reshape np: ', XYZ.shape)
+    if verbose > 0:
+        print('XYZ pre reshape np: ', XYZ.shape)
     XYZ = XYZ.reshape((y_range, x_range, 3))
 
     return XYZ.astype(dtype)
