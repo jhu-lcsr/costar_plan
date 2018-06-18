@@ -48,7 +48,7 @@ class DataGenerator(keras.utils.Sequence):
 
         # Arguments
 
-        list_IDs: a list of file paths to be read
+        list_Ids: a list of file paths to be read
         """
 
         def JpegToNumpy(jpeg):
@@ -81,7 +81,7 @@ class DataGenerator(keras.utils.Sequence):
 
 
         # Generate data
-        for i, ID in enumerate(list_Ids_temp):
+        for i, ID in enumerate(list_Ids):
             # Store sample
             #X[i,] = np.load('data/' + ID + '.npy')
             data = h5py.File(ID, 'r')
@@ -91,7 +91,7 @@ class DataGenerator(keras.utils.Sequence):
             indices = [0]+ list(np.random.randint(1,len(rgb_images),10))
             print(indices)
             X['image'] = (rgb_images[indices])
-            X['pose'] = np.array(data['pose'])
+            X['pose'] = np.array(data['pose'][indices])
             #X.append(np.array(data['pose'])[indices])
 
             # Store class
