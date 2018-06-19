@@ -91,6 +91,9 @@ tf.flags.DEFINE_string('vrepVisualizeRGBFormat', 'vrep_rgb',
                             Examples include 'vrep_depth_rgb' and 'vrep_depth_encoded_rgb',
                             see http://www.forum.coppeliarobotics.com/viewtopic.php?f=9&t=737&p=27805#p27805.
                        """)
+tf.flags.DEFINE_string('vrepDebugMode', 'save_ply,print_transform',
+                       """Options are: '', 'fixed_depth', 'save_ply', 'print_transform', 'print_vrep.visualization.drawLines'.
+                       More than one option can be specified at a time with comma or space separation.""")
 
 # the following line is needed for tf versions before 1.5
 # flags.FLAGS._parse_flags()
