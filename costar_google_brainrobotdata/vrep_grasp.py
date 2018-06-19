@@ -334,7 +334,8 @@ class VREPGraspVisualization(object):
                 # TODO(ahundt) make sure rot180 + fliplr is applied upstream in the dataset and to the depth images
                 # gripper/image/decoded is unusual because there is no depth image and the orientation is rotated 180 degrees from the others
                 # it might also only be available captured in some of the more recent datasets.
-                vrep.visualization.set_vision_sensor_image(self.client_id, 'kcam_rgb_close_gripper', close_gripper_rgb_image, convert=FLAGS.vrepVisualizeRGBFormat)
+                vrep.visualization.set_vision_sensor_image(
+                    self.client_id, 'kcam_rgb_close_gripper', close_gripper_rgb_image, convert=FLAGS.vrepVisualizeRGBFormat)
 
                 # Walk through all the other images from initial time step to final time step
                 rgb_images = time_ordered_feature_data_dict['move_to_grasp/time_ordered/rgb_image/decoded']
