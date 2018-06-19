@@ -29,6 +29,19 @@ from PIL import Image
 import argparse
 from functools import partial
 
+try:
+    # don't require tensorflow for reading, it only speeds things up
+    import tensorflow as tf
+except ImportError:
+    tf = None
+
+try:
+    # don't require vrep, only use it if it is available
+    import vrep
+except ImportError:
+    vrep = None
+
+
 parser = argparse.ArgumentParser(description='Process additional parameters for stack player')
 
 parser.add_argument('--data-dir', type=str, action='store', default='~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1',
@@ -59,11 +72,14 @@ def GetPng(img):
     return output.getvalue()
 
 def JpegToNumpy(jpeg):
-    stream = io.BytesIO(jpeg)
-    im = Image.open(stream)
-    return np.asarray(im, dtype=np.uint8)
+    if tf is not None:
+        image = tf.image.decode_jpeg(jpeg)
+    else:
+        stream = io.BytesIO(jpeg)
+        image = Image.open(stream)
+    return np.asarray(image, dtype=np.uint8)
 
-def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
+def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC', dtype=np.uint8):
     """ Convert a list of binary jpeg or png files to numpy format.
 
     # Arguments
@@ -73,27 +89,31 @@ def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
         'list' returns a list of 3d numpy arrays
     """
     length = len(data)
-    imgs = []
+    images = []
     for raw in data:
         img = JpegToNumpy(raw)
         if data_format == 'NCHW':
             img = np.transpose(img, [2, 0, 1])
-        imgs.append(img)
+        images.append(img)
     if format == 'numpy':
-        imgs = np.array(imgs)
-    return imgs
+        images = np.array(images, dtype=dtype)
+    return images
 
 def generate_holo_map(rgb_images, height, width):
     frame_map = {}
     for i, image in enumerate(rgb_images):
-        hv_rgb = hv.RGB(image)
+
+        # print('image type: ' + str(type(image)))
+        hv_rgb = hv.RGB(np.array(image))
         shape = image.shape
         frame_map[i] = hv_rgb
     holomap = hv.HoloMap(frame_map)
-    holomap = holomap.options(width=width, height=height)
+    holomap = holomap.options(width=int(width), height=int(height))
     return holomap
 
 def process_image(file_path):
+    """ Update the example, loading images and other data
+    """
     data = h5py.File(file_path, 'r')
     rgb_images = list(data['image'])
     frame_indices = np.arange(len(rgb_images))
@@ -109,6 +129,7 @@ def process_image(file_path):
 
     rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='list')
     return rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx
+
 
 def generate_gripper_action_label(data, action_status, gripper_status, gripper_action_goal_idx):
     """ generate new action labels and goal action indices based on the gripper open/closed state
@@ -161,6 +182,7 @@ def load_data_plot(renderer, frame_indices, gripper_status, action_status, gripp
 
     return gripper_plot, action_plot, gripper_action_plot
 
+
 def check_errors(file_list, index, action='next'):
     """ Checks the file for valid data and returns the index of the file to be read.
 
@@ -190,7 +212,8 @@ def check_errors(file_list, index, action='next'):
                 flag = 1
     return index
 
-
+if tf is not None:
+    tf.enable_eager_execution()
 renderer = hv.renderer('bokeh')
 
 #example_filename = "C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/2018-05-23-20-18-25_example000002.success.h5f"
@@ -210,9 +233,9 @@ end = len(rgb_images)
 width = int(640*1.5)
 height = int(480*1.5)
 if end > 0:
-    height = rgb_images[0].shape[0]
-    width = rgb_images[0].shape[1]
-
+    height = int(rgb_images[0].shape[0])
+    width = int(rgb_images[0].shape[1])
+print('width: ' + str(width) + ' height: ' + str(height))
 # hv.opts(plot_width=width, plot_height=height)
 
 holomap = generate_holo_map(rgb_images, height, width)
@@ -265,8 +288,8 @@ def next_image(files, action):
     rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx = process_image(file_name)
     print("image loaded")
     print("action goal idx", gripper_action_goal_idx)
-    height = rgb_images[0].shape[0]
-    width = rgb_images[0].shape[1]
+    height = int(rgb_images[0].shape[0])
+    width = int(rgb_images[0].shape[1])
     start = 0
     end = len(rgb_images)
     print(end)
@@ -289,7 +312,7 @@ def next_image(files, action):
 
     # "gripper_action" plot, labels based on the gripper opening and closing
     plot_list.append([gripper_action_plot.state])
-    layout_child = layout(plot_list+widget_list, sizing_mode='fixed')
+    layout_child = layout(plot_list + widget_list, sizing_mode='fixed')
     curdoc().clear()
     file_textbox.value = file_name.split("\\")[-1]
     #curdoc().remove_root(layout_child)
@@ -323,7 +346,7 @@ plot_list = [
     [gripper_plot.state],
     [action_plot.state]]
 
-widget_list = [[slider, button, button_prev, button_next],[file_textbox]]
+widget_list = [[slider, button, button_prev, button_next], [file_textbox]]
 
 # "gripper_action" plot, labels based on the gripper opening and closing
 plot_list.append([gripper_action_plot.state])

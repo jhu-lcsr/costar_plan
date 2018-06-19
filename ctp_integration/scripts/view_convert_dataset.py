@@ -37,6 +37,11 @@ from PIL import Image
 import moviepy
 import moviepy.editor as mpye
 # import skimage
+try:
+    # don't require tensorflow for viewing
+    import tensorflow as tf
+except ImportError:
+    tf = None
 
 def GetJpeg(img):
     '''
@@ -46,6 +51,7 @@ def GetJpeg(img):
     output = io.BytesIO()
     im.save(output, format="JPEG", quality=80)
     return output.getvalue()
+
 
 def GetPng(img):
     '''
@@ -59,12 +65,17 @@ def GetPng(img):
     im.save(output, format="PNG")
     return output.getvalue()
 
-def JpegToNumpy(jpeg):
-    stream = io.BytesIO(jpeg)
-    im = Image.open(stream)
-    return np.asarray(im, dtype=np.uint8)
 
-def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
+def JpegToNumpy(jpeg):
+    if tf is not None:
+        image = tf.image.decode_jpeg(jpeg)
+    else:
+        stream = io.BytesIO(jpeg)
+        image = Image.open(stream)
+    return np.asarray(image, dtype=np.uint8)
+
+
+def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC', dtype=np.uint8):
     """ Convert a list of binary jpeg or png files to numpy format.
 
     # Arguments
@@ -74,15 +85,15 @@ def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
         'list' returns a list of 3d numpy arrays
     """
     length = len(data)
-    imgs = []
+    images = []
     for raw in data:
         img = JpegToNumpy(raw)
         if data_format == 'NCHW':
             img = np.transpose(img, [2, 0, 1])
-        imgs.append(img)
+        images.append(img)
     if format == 'numpy':
-        imgs = np.array(imgs)
-    return imgs
+        images = np.array(images, dtype=dtype)
+    return images
 
 def npy_to_video(npy, filename, fps=10, preview=True, convert='gif'):
     """Convert a numpy array into a gif file at the location specified by filename.
@@ -202,11 +213,11 @@ def main(args, root="root"):
                     gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data)
                     # add the new action label and goal indices based on when the gripper opens/closes
                     if args['write']:
-                        
+
                         #cannot write without deleting existing data
                         if "gripper_action_label" in list(data.keys()):
                                 print("deleting existing gripper action labels")
-                                del data['gripper_action_label'] 
+                                del data['gripper_action_label']
                                 del data['gripper_action_goal_idx']
                         data['gripper_action_label'], data['gripper_action_goal_idx']= np.array(gripper_action_label), np.array(gripper_action_goal_idx)
                         #print("data on file",list(data['gripper_action_goal_idx']))
@@ -306,7 +317,7 @@ def generate_gripper_action_label(data):
             goal_to_add = gripper_action_goal_idx[gripper_ind] - 1
         else:
             goal_to_add = len(gripper_status)-1
-        
+
         if(i<goal_to_add):
             goal_list.append(goal_to_add)
 
@@ -319,5 +330,7 @@ def generate_gripper_action_label(data):
 
 
 if __name__ == "__main__":
+    if tf is not None:
+        tf.enable_eager_execution()
     args = _parse_args()
     main(args)
