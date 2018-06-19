@@ -11,6 +11,7 @@ import traceback
 
 import numpy as np
 import six  # compatibility between python 2 + 3 = six
+# import matplotlib
 import matplotlib.pyplot as plt
 
 try:
