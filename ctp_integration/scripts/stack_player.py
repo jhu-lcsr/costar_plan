@@ -59,6 +59,7 @@ def GetJpeg(img):
     im.save(output, format="JPEG", quality=80)
     return output.getvalue()
 
+
 def GetPng(img):
     '''
     Save a numpy array as a Jpeg, then get it out as a binary blob
