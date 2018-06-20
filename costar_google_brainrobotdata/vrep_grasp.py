@@ -58,6 +58,7 @@ from depth_image_encoding import FloatArrayToRgbImage
 from depth_image_encoding import FloatArrayToRawRGB
 from skimage.transform import resize
 from skimage import img_as_ubyte
+from skimage import img_as_uint
 from skimage.color import grey2rgb
 
 try:

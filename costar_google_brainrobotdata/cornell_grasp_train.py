@@ -23,6 +23,9 @@ import numpy as np
 import six
 from shapely.geometry import Polygon
 import cornell_grasp_dataset_reader
+
+import block_stacking_reader
+
 import time
 from tensorflow.python.platform import flags
 # TODO(ahundt) consider removing this dependency
@@ -262,6 +265,7 @@ def run_training(
         fine_tuning_epochs=None,
         loss=None,
         checkpoint=True,
+        dataset_name='cornell_grasping'
         **kwargs):
     """
 
@@ -362,7 +366,7 @@ def run_training(
     # TODO(ahundt) add a loss that changes size with how open the gripper is
     # loss = grasp_loss.segmentation_gaussian_measurement
 
-    dataset_names_str = 'cornell_grasping'
+    dataset_names_str = dataset_name
     run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
     callbacks = []
 
@@ -452,7 +456,7 @@ def run_training(
         test_filenames=test_filenames, test_size=test_size,
         label_features=label_features, data_features=data_features, batch_size=batch_size,
         train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
-        success_only=success_only, val_batch_size=1, val_all_features=val_all_features
+        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name
     )
 
     # # TODO(ahundt) check this more carefully, currently a hack
@@ -1005,7 +1009,7 @@ def load_dataset(
         train_data=None, validation_data=None, test_data=None,
         in_memory_validation=False,
         preprocessing_mode='tf', success_only=False,
-        val_all_features=False):
+        val_all_features=False, dataset_name = 'cornell_grasping'):
     """ Load the cornell grasping dataset from the file if it isn't already available.
 
     # Arguments
@@ -1016,58 +1020,79 @@ def load_dataset(
     val_all_features: Instead of getting the specific feature strings, the whole dictionary will be returned.
 
     """
-    if train_filenames is None and val_filenames is None and test_filenames is None:
-        # train/val/test filenames are generated from the CSV file if they aren't provided
-        train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = load_dataset_sizes_from_csv()
-    train_steps, val_steps, test_steps = steps_per_epoch(
-        train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
-        samples_train=train_size, samples_val=val_size, samples_test=test_size)
+    if dataset_name = 'cornell_grasping':
 
-    if in_memory_validation:
-        val_batch_size = val_size
+        if train_filenames is None and val_filenames is None and test_filenames is None:
+            # train/val/test filenames are generated from the CSV file if they aren't provided
+                train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = load_dataset_sizes_from_csv()
+        train_steps, val_steps, test_steps = steps_per_epoch(
+            train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
+            samples_train=train_size, samples_val=val_size, samples_test=test_size)
 
-    if validation_data is None and val_filenames is not None:
-        if val_all_features:
-            # Workaround for special evaluation call needed for jaccard regression.
-            # All features will be returned in a dictionary in this mode
-            val_label_features = None
-            val_data_features = None
+        if in_memory_validation:
+            val_batch_size = val_size
+
+        if validation_data is None and val_filenames is not None:
+            if val_all_features:
+                # Workaround for special evaluation call needed for jaccard regression.
+                # All features will be returned in a dictionary in this mode
+                val_label_features = None
+                val_data_features = None
+            else:
+                val_label_features = label_features
+                val_data_features = data_features
+            validation_data = cornell_grasp_dataset_reader.yield_record(
+                val_filenames, val_label_features, val_data_features,
+                batch_size=val_batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode,
+                apply_filter=success_only,
+                is_training=False)
+
+        if in_memory_validation:
+            print('loading validation data directly into memory, if you run out set in_memory_validation to False')
+            validation_data = next(validation_data)
+
+        if train_data is None and train_filenames is not None:
+            # TODO(ahundt) VAL_ON_TRAIN_TEMP_REMOVEME
+            train_data = cornell_grasp_dataset_reader.yield_record(
+                train_filenames, label_features, data_features,
+                batch_size=batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode,
+                apply_filter=success_only,
+                is_training=True)
+
+        if test_data is None and test_filenames is not None:
+            test_data = cornell_grasp_dataset_reader.yield_record(
+                test_filenames, label_features, data_features,
+                batch_size=test_batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode,
+                apply_filter=success_only,
+                is_training=False)
+
+                # val_filenames, batch_size=1, is_training=False,
+                # shuffle=False, steps=1,
         else:
-            val_label_features = label_features
-            val_data_features = data_features
-        validation_data = cornell_grasp_dataset_reader.yield_record(
-            val_filenames, val_label_features, val_data_features,
-            batch_size=val_batch_size,
-            parse_example_proto_fn=parse_and_preprocess,
-            preprocessing_mode=preprocessing_mode,
-            apply_filter=success_only,
-            is_training=False)
+            #temporarily hardcoded initialization
+            #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
+            file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
+            test_data = file_names[:200]
+            validation_data = file_names[200:400]
+            train_data = file_names[400:]
+            # train_data = file_names[:5]
+            # test_data = file_names[5:10]
+            # validation_data = file_names[10:15]
 
-    if in_memory_validation:
-        print('loading validation data directly into memory, if you run out set in_memory_validation to False')
-        validation_data = next(validation_data)
+            train_data = CostarBlockStackingSequence(train_data, batch_size)
+            test_data = CostarBlockStackingSequence(test_data, test_batch_size)
+            validation_data = CostarBlockStackingSequence(validation_data, val_batch_size)
 
-    if train_data is None and train_filenames is not None:
-        # TODO(ahundt) VAL_ON_TRAIN_TEMP_REMOVEME
-        train_data = cornell_grasp_dataset_reader.yield_record(
-            train_filenames, label_features, data_features,
-            batch_size=batch_size,
-            parse_example_proto_fn=parse_and_preprocess,
-            preprocessing_mode=preprocessing_mode,
-            apply_filter=success_only,
-            is_training=True)
+            train_steps, val_steps, test_steps = steps_per_epoch(
+            train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
+            samples_train=train_size, samples_val=val_size, samples_test=test_size)
 
-    if test_data is None and test_filenames is not None:
-        test_data = cornell_grasp_dataset_reader.yield_record(
-            test_filenames, label_features, data_features,
-            batch_size=test_batch_size,
-            parse_example_proto_fn=parse_and_preprocess,
-            preprocessing_mode=preprocessing_mode,
-            apply_filter=success_only,
-            is_training=False)
-
-            # val_filenames, batch_size=1, is_training=False,
-            # shuffle=False, steps=1,
 
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
