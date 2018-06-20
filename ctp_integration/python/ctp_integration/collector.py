@@ -46,8 +46,8 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
 
 class DataCollector(object):
     '''
-    Buffers data from an example then writes it to disk. 
-    
+    Buffers data from an example then writes it to disk.
+
     Data received includes:
     - images from camera
     - depth data (optional)
@@ -57,22 +57,22 @@ class DataCollector(object):
     '''
 
     def __init__(
-        self, robot_config,
-        task,
-        data_type="h5f",
-        rate=10,
-        data_root=".",
-        img_shape=(128,128),
-        camera_frame="camera_link",
-        tf_buffer=None,
-        tf_listener=None,
-        action_labels_to_always_log=None,
-        verbose=0,
-        synchronize=False):
+            self, robot_config,
+            task,
+            data_type="h5f",
+            rate=10,
+            data_root=".",
+            img_shape=(128,128),
+            camera_frame="camera_link",
+            tf_buffer=None,
+            tf_listener=None,
+            action_labels_to_always_log=None,
+            verbose=0,
+            synchronize=False):
         """ Initialize a data collector object for writing ros topic information and data collection state to disk
 
         img_shape: currently ignored
-        camera_frame: ros tf rigid body transform frame to use as the base of the camera coodinate systems 
+        camera_frame: ros tf rigid body transform frame to use as the base of the camera coodinate systems
         tf_buffer: temp store for 3d rigid body transforms, used during logging
         tf_listener: integrates with tf_buffer
         action_labels_to_always_log: 'move_to_home' is always logged by default, others can be added. This option may not work yet.
@@ -165,7 +165,7 @@ class DataCollector(object):
             # self._camera_depth_info_sub = rospy.Subscriber(self.camera_depth_info_topic, CameraInfo)
             # self._camera_rgb_info_sub = rospy.Subscriber(self.camera_rgb_info_topic, CameraInfo)
             # ensure synced data has headers: https://answers.ros.org/question/206650/subcribe-to-multiple-topics-with-message_filters/
-            # example code: 
+            # example code:
             # https://github.com/gt-ros-pkg/hrl/blob/df47c6fc4fbd32df44df0060643e94cdf5741ff3/hai_sandbox/src/hai_sandbox/kinect_fpfh.py
             # https://github.com/b2256/catkin_ws/blob/fef8bc05f34262083f02e06b1585f2170d6de5a3/src/bag2orb/src/afl_sync_node_16.py
             rospy.loginfo('synchronizing data for logging')
@@ -182,22 +182,26 @@ class DataCollector(object):
             self._camera_rgb_info_sub = rospy.Subscriber(self.camera_rgb_info_topic, CameraInfo, self._rgbInfoCb)
             self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
             self._depth_sub = rospy.Subscriber(self.depth_topic, Image, self._depthCb)
-        self._joints_sub = rospy.Subscriber(self.js_topic,
+        self._joints_sub = rospy.Subscriber(
+                self.js_topic,
                 JointState,
                 self._jointsCb)
-        self._info_sub = rospy.Subscriber(self.info_topic,
+        self._info_sub = rospy.Subscriber(
+                self.info_topic,
                 String,
                 self._infoCb)
-        self._smartmove_object_sub = rospy.Subscriber(self.object_topic,
+        self._smartmove_object_sub = rospy.Subscriber(
+                self.object_topic,
                 String,
                 self._objectCb)
-        self._gripper_sub = rospy.Subscriber(self.gripper_topic,
+        self._gripper_sub = rospy.Subscriber(
+                self.gripper_topic,
                 GripperMsg,
                 self._gripperCb)
 
     def _rgbdCb(self, rgb_msg, depth_msg):
         if rgb_msg is None:
-            rospy.logwarn("_rgbdCb: rgb_msg is None !!!!!!!!!")            
+            rospy.logwarn("_rgbdCb: rgb_msg is None !!!!!!!!!")
         try:
             # max out at 10 hz assuming 30hz data source
             # TODO(ahundt) make mod value configurable
@@ -231,7 +235,7 @@ class DataCollector(object):
 
     def _rgbCb(self, msg):
         if msg is None:
-            rospy.logwarn("_rgbCb: msg is None !!!!!!!!!")            
+            rospy.logwarn("_rgbCb: msg is None !!!!!!!!!")
         try:
             # max out at 10 hz assuming 30hz data source
             if msg.header.seq % 3 == 0:
@@ -279,7 +283,7 @@ class DataCollector(object):
                 # ref: https://stackoverflow.com/a/25592959
                 # also: https://stackoverflow.com/a/17970817
                 # kinda works, but only 8 bit image....
-                
+
                 # img_str = cv2.imencode('.png', cv_image, cv2.CV_16U)[1].tobytes()
                 # img_str = np.frombuffer(cv2.imencode('.png', cv_image)[1].tobytes(), np.uint8)
                 # doesn't work
@@ -423,7 +427,7 @@ class DataCollector(object):
             is one that is worth including in the dataset even if it
             is an error.failure case. For example, if the robot
             was given a motion command that caused it to crash into the
-            floor and hit a safety stop, this could be valuable training 
+            floor and hit a safety stop, this could be valuable training
             data and the error string will make it easier to determine
             what happened after the fact.
         '''
@@ -453,7 +457,7 @@ class DataCollector(object):
         # for now all examples are considered a success
         self.writer.write(self.data, filename, image_types=[("image", "jpeg"), ("depth_image", "png")])
         self.reset()
-    
+
     def set_home_pose(self, pose):
         self.home_xyz_quat = pose
 
@@ -488,25 +492,26 @@ class DataCollector(object):
             else:
                 extra = 0
 
-            rospy.loginfo("Starting new action: "
-                    + str(action_label)
-                    + ", prev was from "
-                    + str(self.prev_last_goal) 
-                    # + ' ' + (str(self.data["label"][self.prev_last_goal]) if self.prev_last_goal else "")
-                    + " to " + str(self.last_goal) 
-                    # + ' ' + (str(self.data["label"][self.last_goal]) if self.last_goal else "")
-                    )
+            rospy.loginfo(
+                "Starting new action: " +
+                str(action_label) +
+                ", prev was from " +
+                str(self.prev_last_goal) +
+                # ' ' + (str(self.data["label"][self.prev_last_goal]) if self.prev_last_goal else "") +
+                " to " + str(self.last_goal)
+                # ' ' + (str(self.data["label"][self.last_goal]) if self.last_goal else "") +
+                )
             self.data["goal_idx"] += (self.last_goal - self.prev_last_goal + extra) * [self.last_goal]
 
             len_idx = len(self.data["goal_idx"])
-            if not len_idx  == len_label:
+            if not len_idx == len_label:
                 rospy.logerr("lens = " + str(len_idx) + ", " + str(len_label))
                 raise RuntimeError("incorrectly set goal idx")
 
         # action text to check will be the string contents after the colon
         label_to_check = action_label.split(':')[-1]
 
-        should_log_this_timestep = (self.object is not None or 
+        should_log_this_timestep = (self.object is not None or
                                     label_to_check in self.action_labels_to_always_log)
         if not should_log_this_timestep:
             # here we check if a smartmove object is defined to determine
@@ -531,7 +536,7 @@ class DataCollector(object):
                 t = self.rgb_time
             else:
                 t = local_time
-                
+
             self.t = t
             # make sure we keep the right rgb and depth
             img_jpeg = self.rgb_img
@@ -557,9 +562,9 @@ class DataCollector(object):
                     except (tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                         pass
                     if not lookup_object:
-                        # If we can't get the current time for the object, 
+                        # If we can't get the current time for the object,
                         # get the latest available. This particular case will be common.
-                        # This is because the object detection srcipt can only run when the 
+                        # This is because the object detection srcipt can only run when the
                         # arm is out of the way.
                         obj_pose = self.tf_buffer.lookup_transform(self.base_link, self.object, latest_available_time_lookup)
 
@@ -569,7 +574,7 @@ class DataCollector(object):
                 self.tf2_dict = {}
                 transform_strings = all_tf2_frames_as_string.split('\n')
                 # get all of the other tf2 transforms
-                # using the latest available frame as a fallback 
+                # using the latest available frame as a fallback
                 # if the current timestep frame isn't available
                 for transform_string in transform_strings:
                     transform_tokens = transform_string.split(' ')
@@ -585,25 +590,25 @@ class DataCollector(object):
                             except (tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                                 pass
                             if not lookup_object:
-                                # If we can't get the current time for the object, 
+                                # If we can't get the current time for the object,
                                 # get the latest available. This particular case will be common.
-                                # This is because the object detection srcipt can only run when the 
+                                # This is because the object detection srcipt can only run when the
                                 # arm is out of the way.
                                 k_pose = self.tf_buffer.lookup_transform(self.base_link, k, latest_available_time_lookup)
                             k_pose = self.tf_buffer.lookup_transform(self.base_link, k, t)
-    
+
                             k_xyz_qxqyqzqw = [
-                                    k_pose.transform.translation.x,
-                                    k_pose.transform.translation.y,
-                                    k_pose.transform.translation.z,
-                                    k_pose.transform.rotation.x,
-                                    k_pose.transform.rotation.y,
-                                    k_pose.transform.rotation.z,
-                                    k_pose.transform.rotation.w,]
+                                k_pose.transform.translation.x,
+                                k_pose.transform.translation.y,
+                                k_pose.transform.translation.z,
+                                k_pose.transform.rotation.x,
+                                k_pose.transform.rotation.y,
+                                k_pose.transform.rotation.z,
+                                k_pose.transform.rotation.w]
                             self.tf2_dict[k] = k_xyz_qxqyqzqw
                         except (tf2.ExtrapolationException, tf2.ConnectivityException) as e:
                             pass
-                
+
                 # don't load the yaml because it can take up to 0.2 seconds
                 all_tf2_frames_as_yaml = self.tf_buffer.all_frames_as_yaml()
                 self.tf2_json = json.dumps(self.tf2_dict)
@@ -613,14 +618,14 @@ class DataCollector(object):
                 rospy.logwarn_throttle(10.0, 'Collector transform lookup Failed: %s to %s, %s, %s'
                                        ' at image time: %s and local time: %s '
                                        '\nNote: This message may print >1000x less often than the problem occurs.' %
-                                       (self.base_link, self.camera_frame, self.ee_frame, 
+                                       (self.base_link, self.camera_frame, self.ee_frame,
                                        str(self.object), str(t), str(latest_available_time_lookup)))
-                
+
                 have_data = False
                 attempts += 1
                 # rospy.sleep(0.0)
                 if attempts > max_attempts - backup_timestamp_attempts:
-                    rospy.logwarn_throttle(10.0, 
+                    rospy.logwarn_throttle(10.0,
                                           'Collector failed to use the rgb image rosmsg timestamp, '
                                           'trying latest available time as backup. '
                                           'Note: This message may print >1000x less often than the problem occurs.')
@@ -632,7 +637,7 @@ class DataCollector(object):
                     raise e
 
         if t == latest_available_time_lookup:
-            # Use either the latest available timestamp or 
+            # Use either the latest available timestamp or
             # the local timestamp as backup,
             # even though it will be less accurate
             if self.rgb_time is not None:
@@ -661,7 +666,7 @@ class DataCollector(object):
             # self.data["object_pose"].append([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         else:
             raise ValueError("Attempted to log unsupported "
-                             "object pose data for action_label " + 
+                             "object pose data for action_label " +
                              str(action_label))
         self.data["camera_rgb_optical_frame_pose"].append(rgb_optical_xyz_quat)
         self.data["camera_depth_optical_frame_pose"].append(depth_optical_xyz_quat)

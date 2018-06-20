@@ -23,11 +23,11 @@ def main(_):
     # recommended for
     # - pixelwise classification
     # - classification of images centered and rotated to grasp proposals
-    # feature_combo = 'image_preprocessed_norm_sin2_cos2_width_3'
+    feature_combo = 'image_preprocessed_norm_sin2_cos2_width_3'
 
     # Warning: this version will have some correlation with due to the height parameter!
     # However, it will be OK to use to classify the output of regression
-    feature_combo = 'image_preprocessed_norm_sin2_cos2_height_width_4'
+    # feature_combo = 'image_preprocessed_norm_sin2_cos2_height_width_4'
 
     # Recommended for single prediction if images are merely center cropped
     # and not rotated or translated to the proposed grasp positions:
@@ -78,7 +78,6 @@ def main(_):
     # 1 validation fold
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
-    initial_num_samples = 1000
 
     # This only means that the first part of the run is not fine tuning
     # The later fine_tuning_epochs will work correctly.

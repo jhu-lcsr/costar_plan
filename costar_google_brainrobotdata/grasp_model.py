@@ -6,6 +6,7 @@ import keras
 from keras.applications.nasnet import NASNetLarge
 from keras.applications.resnet50 import ResNet50
 from keras.applications.nasnet import NASNetMobile
+from keras.applications.mobilenetv2 import MobileNetV2
 from keras.applications.inception_resnet_v2 import InceptionResNetV2
 from keras import backend as K
 from keras.layers import Dense
@@ -29,6 +30,7 @@ from keras.models import Model
 from keras.layers import Lambda
 from keras.layers import Reshape
 from keras.applications.imagenet_utils import _obtain_input_shape
+import keras_applications
 
 import keras_contrib
 from keras_contrib.applications.densenet import DenseNetFCN
@@ -607,16 +609,27 @@ def choose_hypertree_model(
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.vgg19.VGG19
             elif image_model_name == 'nasnet_large':
+                if image_model_weights == 'shared':
+                    image_model = NASNetLarge(
+                        input_shape=image_input_shape, include_top=False, pooling=None,
+                        classes=classes, weights=weights
+                    )
+                elif image_model_weights == 'separate':
+                    image_model = NASNetLarge
+                else:
+                    raise ValueError('Unsupported image_model_name')
+
+                # TODO(ahundt) switch to keras_contrib model below when keras_contrib is updated with correct weights https://github.com/keras-team/keras/pull/10209.
                 # please note that with nasnet_large, no pooling,
                 # and an aux network the two outputs will be different
                 # dimensions! Therefore, we need to add our own pooling
                 # for the aux network.
                 # TODO(ahundt) just max pooling in NASNetLarge for now, but need to figure out pooling for the segmentation case.
-                image_model = keras_contrib.applications.nasnet.NASNetLarge(
-                    input_shape=image_input_shape, include_top=False, pooling=None,
-                    classes=classes, use_auxiliary_branch=use_auxiliary_branch,
-                    weights=weights
-                )
+                # image_model = keras_contrib.applications.nasnet.NASNetLarge(
+                #     input_shape=image_input_shape, include_top=False, pooling=None,
+                #     classes=classes, use_auxiliary_branch=use_auxiliary_branch,
+                #     weights=weights
+                # )
             elif image_model_name == 'nasnet_mobile':
                 image_model = keras.applications.nasnet.NASNetMobile(
                     input_shape=image_input_shape, include_top=False,
@@ -629,6 +642,15 @@ def choose_hypertree_model(
                         classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.inception_resnet_v2.InceptionResNetV2
+                else:
+                    raise ValueError('Unsupported image_model_name')
+            elif image_model_name == 'mobilenet_v2':
+                if image_model_weights == 'shared':
+                    image_model = MobileNetV2(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes, weights=weights)
+                elif image_model_weights == 'separate':
+                    image_model = MobileNetV2
                 else:
                     raise ValueError('Unsupported image_model_name')
             elif image_model_name == 'resnet':
@@ -789,11 +811,12 @@ def choose_hypertree_model(
                         x = Conv2D(filters, (3, 3), activation='relu', padding='same',
                                    name=name + 'block6_conv%d' % l, kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
                 elif trunk_model_name == 'nasnet_normal_a_cell':
-                    filter_multiplier = 2
-                    p = None
+                    p = x
                     for l in range(num_layers):
-                        x, p = keras.applications.nasnet._normal_a_cell(x, p, filters, block_id='trunk_%d' % l)
-                        filters *= filter_multiplier
+                        block_id = 'trunk_' + str(l)
+                        # _normal_a_cell call changed due to creation of keras-applications repository
+                        # https://github.com/keras-team/keras-applications/blob/master/keras_applications/nasnet.py
+                        x, p = keras_applications.nasnet._normal_a_cell(x, p, filters, block_id=block_id)
                 else:
                     raise ValueError('Unsupported trunk_model_name ' + str(trunk_model_name) +
                                      ' options are dense, resnet, vgg, nasnet')
@@ -830,7 +853,7 @@ def set_trainable_layers(trainable, image_model):
     image_model: The model to configure
     """
     if ((not isinstance(trainable, bool) or not trainable)
-        and getattr(image_model, 'layers', None) is not None):
+            and getattr(image_model, 'layers', None) is not None):
         # enable portion of network depending on the depth
         if not trainable:
             for layer in image_model.layers:

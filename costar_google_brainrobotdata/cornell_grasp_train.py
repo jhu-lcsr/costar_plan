@@ -312,6 +312,20 @@ def run_training(
         FLAGS.crop_width = 331
         FLAGS.resize_height = 331
         FLAGS.resize_width = 331
+        print('Note: special overrides have been applied '
+              'to support nasnet_large.'
+              ' crop + resize width/height have been set to 331.')
+        #   ' Loss is repeated, and '
+    if image_model_name == 'inception_resnet_v2':
+        # set special dimensions for inception resnet v2
+        # https://github.com/keras-team/keras/blob/master/keras/applications/inception_resnet_v2.py#L194
+        FLAGS.crop_height = 299
+        FLAGS.crop_width = 299
+        FLAGS.resize_height = 299
+        FLAGS.resize_width = 299
+        print('Note: special overrides have been applied '
+              'to support inception_resnet_v2.'
+              ' crop + resize width/height have been set to 299.')
 
     [image_shapes, vector_shapes, data_features, model_name,
      monitor_loss_name, label_features, monitor_metric_name,
@@ -353,15 +367,13 @@ def run_training(
     callbacks = []
 
     loss_weights = None
-    if image_model_name == 'nasnet_large':
-        # nasnet_large has an auxilliary network,
-        # so we apply the loss on both
-        loss = [loss, loss]
-        loss_weights = [1.0, 0.4]
-        label_features += label_features
-        print('Note: special overrides have been applied '
-              'to support nasnet_large. Loss is repeated, and '
-              ' crop + resize width/height have been set to 331.')
+    # if image_model_name == 'nasnet_large':
+    #     # TODO(ahundt) switch to keras_contrib NASNet model and enable aux network below when keras_contrib is updated with correct weights https://github.com/keras-team/keras/pull/10209.
+    #     # nasnet_large has an auxilliary network,
+    #     # so we apply the loss on both
+    #     loss = [loss, loss]
+    #     loss_weights = [1.0, 0.4]
+    #     label_features += label_features
 
     callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
 
@@ -382,6 +394,9 @@ def run_training(
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
 
+    callbacks += [SlowModelStopping(max_batch_time_seconds=1.0),
+                  InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
+
     if checkpoint:
         checkpoint = keras.callbacks.ModelCheckpoint(
             log_dir_run_name + '-epoch-{epoch:03d}-' +
@@ -390,17 +405,16 @@ def run_training(
             save_best_only=True, verbose=1, monitor=monitor_metric_name)
 
         callbacks = callbacks + [checkpoint]
-    callbacks += [SlowModelStopping(max_batch_time_seconds=1.0),
-                  InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
-    # An additional useful param is write_batch_performance:
-    #  https://github.com/keras-team/keras/pull/7617
-    #  write_batch_performance=True)
-    progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
-                                   write_grads=False, write_images=False,
-                                   histogram_freq=0, batch_size=batch_size)
-                                   # histogram_freq=0, batch_size=batch_size,
-                                   # write_batch_performance=True)
-    callbacks = callbacks + [progress_tracker]
+
+        # An additional useful param is write_batch_performance:
+        #  https://github.com/keras-team/keras/pull/7617
+        #  write_batch_performance=True)
+        progress_tracker = TensorBoard(log_dir=log_dir, write_graph=True,
+                                       write_grads=False, write_images=False,
+                                       histogram_freq=0, batch_size=batch_size)
+                                       # histogram_freq=0, batch_size=batch_size,
+                                       # write_batch_performance=True)
+        callbacks = callbacks + [progress_tracker]
 
     # make sure the TQDM callback is always the final one
     callbacks += [keras_tqdm.TQDMCallback()]
@@ -709,6 +723,7 @@ def train_k_fold(split_type=None,
     if num_test != 0:
         raise ValueError('k_fold training does not support test data. '
                          'Check the command line flags and set --num_test 0')
+    # We will extract the number of training steps from the csv files
     cur_csv_path = os.path.join(FLAGS.data_dir, tfrecord_filename_base + '-' + split_type + csv_path)
     csv_reader = csv.DictReader(open(cur_csv_path, mode='r'))
     unique_image_num = []
@@ -794,22 +809,68 @@ def train_k_fold(split_type=None,
         # save out all kfold params so they can be reloaded in the future
         json.dump(kfold_param_dicts, fp)
 
-    # json_histories_path = os.path.join(log_dir, kfold_run_name + '_histories.json')
+    json_histories_path = os.path.join(log_dir, kfold_run_name + '_histories.json')
     run_histories = {}
+    history_dicts = {}
     progbar_fold_name_list = tqdm(fold_name_list, desc='Training k_fold')
     for i, (params, fold_name) in enumerate(zip(kfold_run_train_param_list, progbar_fold_name_list)):
         progbar_fold_name_list.write('\n------------------------------------------\n'
                                      'Training fold ' + str(i) + ' of ' + str(len(fold_name_list)) + '\n'
                                      '\n------------------------------------------\n')
+        # this is a history object, which contains
+        # a .history member and a .epochs member
         history = run_training(**params)
         run_histories[fold_name] = history
+        history_dicts[fold_name] = history.history
         progbar_fold_name_list.update()
-        # TODO(ahundt) save histories in some nice way
-        # with open(json_histories_path, 'w') as fp:
-        #     # save out all kfold params so they can be reloaded in the future
-        #     json.dump(run_histories, fp)
+        # save the histories so far, overwriting past updates
+        with open(json_histories_path, 'w') as fp:
+            # save out all kfold params so they can be reloaded in the future
+            json.dump(history_dicts, fp)
+
+    # find the k-fold average and save it out to a json file
+    # Warning: this file will massively underestimate scores for jaccard distance metrics!
+    json_summary_path = os.path.join(log_dir, kfold_run_name + '_summary.json')
+    k_fold_run_histories_average(run_histories, json_summary_path)
 
     return run_histories
+
+
+def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_acc', verbose=1):
+    """ Find the k_fold average of the best model weights on each fold, and save the results.
+
+    Please note that currently this should only be utilized with classification models,
+    it will not calculated grasp_jaccard regression models' scores correctly.
+
+    # Returns
+
+    results disctionary including the max value of metric for each fold,
+    plus the average of all folds in a dictionary.
+    """
+    if isinstance(metrics, str):
+        metrics = [metrics]
+    results = {}
+    for metric in metrics:
+        best_metric_scores = []
+        for i, history_obj in enumerate(run_histories):
+            if 'loss' in metric:
+                best_score = np.min(history_obj.history[metric])
+                results['fold_' + str(i) + '_min_' + metric] = best_score
+            else:
+                best_score = np.max(history_obj.history[metric])
+                results['fold_' + str(i) + '_max_' + metric] = best_score
+            best_metric_scores += [best_score]
+        k_fold_average = np.mean(best_metric_scores)
+        results['k_fold_average_' + metric] = k_fold_average
+
+    if verbose:
+        print('k_fold_results:\n ' + str(results))
+
+    if save_filename is not None:
+        with open(save_filename, 'w') as fp:
+            # save out all kfold params so they can be reloaded in the future
+            json.dump(results, fp)
+    return results
 
 
 def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=None, loss=None):
@@ -1004,8 +1065,20 @@ def load_dataset(
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 
-def model_predict_k_fold(kfold_params=None, verbose=0):
+def model_predict_k_fold(
+        kfold_params=None,
+        verbose=0,
+        data_features=None,
+        prediction_name='norm_sin2_cos2_hw_yx_6',
+        metric_name='grasp_jaccard',
+        unique_score_category='image/filename',
+        metric_fn=grasp_metrics.grasp_jaccard_batch):
     """ Load past runs and make predictions with the model and data.
+
+    Currently only supports evaluating jaccard scores.
+
+    # Arguments
+
         model: compiled model instance.
         input_data: generator instance.
         kfold_params: a path to a json file containing parameters from a previous k_fold cross validation run
@@ -1022,9 +1095,11 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
 
     print(""" Predicting on kfold results.
     Double check that you've actually got the best model checkpoint.
-    We currently take the last checkpoint file in the folder
-    using whatever ordering your OS provides.
+    We currently take the checkpoint based on the highest val_acc score
+    in the .h5 filename
     """)
+    if data_features is None:
+        data_features = ['image/preprocessed']
     kfold_params_dir = None
 
     if kfold_params is not None and isinstance(kfold_params, str):
@@ -1040,11 +1115,6 @@ def model_predict_k_fold(kfold_params=None, verbose=0):
 
     # TODO(ahundt) low priority: automatically choose feature and metric strings
     # choose_features_and_metrics(feature_combo_name, problem_name)
-    prediction_name = 'norm_sin2_cos2_hw_yx_6'
-    metric_name = 'grasp_jaccard'
-    unique_score_category = 'image/filename'
-    data_features = ['image/preprocessed']
-    metric_fn = grasp_metrics.grasp_jaccard_batch
 
     metric_fold_averages = np.zeros((num_fold))
     loss_fold_averages = np.zeros((num_fold))
@@ -1133,7 +1203,7 @@ def evaluate(
         model, example_generator=None, val_filenames=None, data_features=None, prediction_name='norm_sin2_cos2_hw_yx_6',
         metric_fn=grasp_metrics.grasp_jaccard_batch,
         progbar_folds=sys.stdout, unique_score_category='image/filename', metric_name='grasp_jaccard',
-        steps=None, visualize=True,
+        steps=None, visualize=False,
         preprocessing_mode='tf', apply_filter=True, loss_fn=None, loss_name='loss',
         should_initialize=False, load_weights=None, fold_num=None, fold_name='', verbose=0):
     """ This is specialized for running grasp regression right now,
@@ -1181,8 +1251,9 @@ def evaluate(
             # todo get
             predict_input = [example_dict[feature_name] for feature_name in data_features]
             ground_truth = example_dict[prediction_name]
-            import matplotlib
-            matplotlib.pyplot.imshow((np.squeeze(predict_input) / 2.0) + 0.5)
+            if visualize:
+                import matplotlib
+                matplotlib.pyplot.imshow((np.squeeze(predict_input) / 2.0) + 0.5)
             result = model.predict_on_batch(predict_input)
             if verbose > 0:
                 progbar_folds.write('\nground_truth: ' + str(ground_truth))
@@ -1248,7 +1319,7 @@ def evaluate(
     result = [(metric_name, fold_average)]
     progbar_folds.write('---------------------------------------------')
     progbar_folds.write('Completed fold ' + str(fold_num) + ' name ' + str(fold_name) +
-                        ' with average jaccard metric score: ' + str(fold_average))
+                        ' with average ' + str(metric_name) + ' metric score: ' + str(fold_average))
     if loss_fn is not None:
         progbar_folds.write(' average loss: ' + str(loss_average))
         result += [(loss_name, loss_average)]
@@ -1258,7 +1329,7 @@ def evaluate(
 
 def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_type=None,
                  csv_path='-k-fold-stat.csv', data_dir=None, tfrecord_filename_base=None):
-    """ Determine the number of steps to train, validate, and test
+    """ Determine the number of steps to train, validate, and test each fold during k-fold training.
     TODO(ahundt) rename this function, it is pretty nonsensical
 
     Please be aware that the number of train and validation steps changes every time the dataset is converted.
