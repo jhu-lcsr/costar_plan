@@ -7,13 +7,15 @@ from PIL import Image
 
 import numpy as np
 import json
-from tensorflow import keras
+import keras
+from keras.utils import Sequence
+import tensorflow as tf
 
 
-class CostarBlockStackingSequence(keras.utils.Sequence):
+class CostarBlockStackingSequence(Sequence):
     '''Generates a batch of data from the stacking dataset.
     '''
-    def __init__(self, list_IDs, batch_size=32, shuffle=True, seed = 0):
+    def __init__(self, list_IDs, batch_size=32, shuffle=True, seed=0, resize_shape=None):
         '''Initialization
         
         #Arguments
@@ -26,6 +28,7 @@ class CostarBlockStackingSequence(keras.utils.Sequence):
         self.list_IDs = list_IDs
         self.shuffle = shuffle
         self.seed = seed
+        self.resize_shape = resize_shape
         self.on_epoch_end()
 
     def __len__(self):
@@ -36,13 +39,12 @@ class CostarBlockStackingSequence(keras.utils.Sequence):
         'Generate one batch of data'
         # Generate indexes of the batch
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
-        print(indexes)
-
+        print("batch ",indexes)
         # Find list of IDs
         list_IDs_temp = [self.list_IDs[k] for k in indexes]
-
         # Generate data
         X, y = self.__data_generation(list_IDs_temp)
+
 
         return X, y
 
@@ -85,6 +87,7 @@ class CostarBlockStackingSequence(keras.utils.Sequence):
                 imgs = np.array(imgs)
             return imgs
         # Initialization
+        print("generating batch..")
         X = []
         init_images = []
         current_images = []
@@ -104,7 +107,7 @@ class CostarBlockStackingSequence(keras.utils.Sequence):
             #indices = [0]
             indices = [0] + list(np.random.randint(1,len(rgb_images),1))
             init_images.append(rgb_images[0])
-            current_images.append(rgb_images[indices[1:]])
+            current_images.append(rgb_images[indices[1]])
             poses.append(np.array(data['pose'][indices[1:]])[0]) 
             # x = x + tuple([rgb_images[indices]])
             # x = x + tuple([np.array(data['pose'])[indices]])
@@ -137,17 +140,26 @@ class CostarBlockStackingSequence(keras.utils.Sequence):
             y.append(label)
         action_labels,init_images, current_images, poses = np.array(action_labels), np.array(init_images), np.array(current_images), np.array(poses)
         poses = np.concatenate([poses,action_labels],axis = 1)
-        X = (init_images, current_images, poses)
+        print("---",current_images.shape)
+        init_images = tf.image.resize_images(init_images,[224,224])
+        current_images = tf.image.resize_images(current_images,[224,224])
+        print("---",current_images.shape)
+        X = np.array(init_images)
         y = np.array(y)
+
+        print("batch generated..")
 
         return X, y
 
 if __name__ == "__main__":
+    tf.enable_eager_execution()
     filenames = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
     #print(filenames)
-    training_generator = CostarBlockStackingSequence(filenames,batch_size=2)
+    training_generator = CostarBlockStackingSequence(filenames,batch_size=1)
+    # a = next(training_generator)
+    X,y=training_generator.__getitem__(1)
     X,y=training_generator.__getitem__(1)
     #print(X.keys())
-    print(len(X))
     print(X[0].shape)
-    print(y[0])
+    # print(X[0].shape)
+    # print(y[0])

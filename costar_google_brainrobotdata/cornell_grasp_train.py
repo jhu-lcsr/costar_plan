@@ -24,7 +24,7 @@ import six
 from shapely.geometry import Polygon
 import cornell_grasp_dataset_reader
 
-import block_stacking_reader
+from block_stacking_reader import CostarBlockStackingSequence
 
 import time
 from tensorflow.python.platform import flags
@@ -265,7 +265,7 @@ def run_training(
         fine_tuning_epochs=None,
         loss=None,
         checkpoint=True,
-        dataset_name='cornell_grasping'
+        dataset_name='cornell_grasping',
         **kwargs):
     """
 
@@ -383,6 +383,7 @@ def run_training(
 
     log_dir = os.path.join(log_dir, run_name)
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
+    run_name = "test"
     log_dir_run_name = os.path.join(log_dir, run_name)
     csv_logger = CSVLogger(log_dir_run_name + '.csv')
     callbacks = callbacks + [csv_logger]
@@ -391,7 +392,7 @@ def run_training(
 
     # Save the hyperparams to a json string so it is human readable
     if hyperparams is not None:
-        with open(log_dir_run_name + '_hyperparams.json', 'w') as fp:
+        with open(log_dir_run_name + '_hyperparams.json', 'w+') as fp:
             json.dump(hyperparams, fp)
 
     # Save the current model to a json string so it is human readable
@@ -427,7 +428,7 @@ def run_training(
         callbacks = callbacks + [progress_tracker]
 
     # make sure the TQDM callback is always the final one
-    callbacks += [keras_tqdm.TQDMCallback()]
+    #callbacks += [keras_tqdm.TQDMCallback()]
 
     #TODO(ahundt) enable when https://github.com/keras-team/keras/pull/9105 is resolved
     # callbacks += [FineTuningCallback(epoch=0)]
@@ -456,7 +457,7 @@ def run_training(
         test_filenames=test_filenames, test_size=test_size,
         label_features=label_features, data_features=data_features, batch_size=batch_size,
         train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
-        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name
+        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name = dataset_name
     )
 
     # # TODO(ahundt) check this more carefully, currently a hack
@@ -1020,7 +1021,8 @@ def load_dataset(
     val_all_features: Instead of getting the specific feature strings, the whole dictionary will be returned.
 
     """
-    if dataset_name = 'cornell_grasping':
+    print("-------------",dataset_name)
+    if dataset_name == 'cornell_grasping':
 
         if train_filenames is None and val_filenames is None and test_filenames is None:
             # train/val/test filenames are generated from the CSV file if they aren't provided
@@ -1074,24 +1076,31 @@ def load_dataset(
 
                 # val_filenames, batch_size=1, is_training=False,
                 # shuffle=False, steps=1,
-        else:
-            #temporarily hardcoded initialization
-            #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
-            file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
-            test_data = file_names[:200]
-            validation_data = file_names[200:400]
-            train_data = file_names[400:]
-            # train_data = file_names[:5]
-            # test_data = file_names[5:10]
-            # validation_data = file_names[10:15]
+    else:
+        #temporarily hardcoded initialization
+        #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
+        file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
+        print("------------------------------------------------")
+        # test_data = file_names[:200]
+        # validation_data = file_names[200:400]
+        # train_data = file_names[400:]
+        train_data = file_names[:5]
+        test_data = file_names[5:10]
+        validation_data = file_names[10:15]
+        print(train_data)
 
-            train_data = CostarBlockStackingSequence(train_data, batch_size)
-            test_data = CostarBlockStackingSequence(test_data, test_batch_size)
-            validation_data = CostarBlockStackingSequence(validation_data, val_batch_size)
 
-            train_steps, val_steps, test_steps = steps_per_epoch(
-            train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
-            samples_train=train_size, samples_val=val_size, samples_test=test_size)
+        train_data = CostarBlockStackingSequence(train_data, batch_size)
+        test_data = CostarBlockStackingSequence(test_data, batch_size)
+        validation_data = CostarBlockStackingSequence(validation_data, batch_size)
+        # validation_data = None
+        train_size = 5
+
+        train_steps, val_steps, test_steps = steps_per_epoch(
+        train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
+        samples_train=train_size, samples_val=train_size, samples_test=train_size)
+        print("--------", train_steps, val_steps, test_steps)
+        # val_steps = None
 
 
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
@@ -1457,7 +1466,7 @@ def steps_per_epoch(train_batch=None, samples_train=None,
 
 def main(_):
 
-    # tf.enable_eager_execution()
+    tf.enable_eager_execution()
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     if 'k_fold' in FLAGS.pipeline_stage:
