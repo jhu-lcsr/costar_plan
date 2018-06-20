@@ -11,7 +11,7 @@ Author: Andrew Hundt <ATHundt@gmail.com>
 License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
 
 """
-import tf
+import tensorflow as tf
 import keras
 import keras.backend as K
 from keras.backend.tensorflow_backend import *
