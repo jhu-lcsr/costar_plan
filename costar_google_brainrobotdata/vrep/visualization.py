@@ -15,7 +15,7 @@ import six  # compatibility between python 2 + 3 = six
 import matplotlib.pyplot as plt
 
 try:
-    import vrep as vrep
+    import vrep
 except Exception as e:
     print ('--------------------------------------------------------------')
     print ('"vrep.py" could not be imported. This means very probably that')
@@ -25,7 +25,7 @@ except Exception as e:
     print ('ReadMe.txt in the vrep remote API folder')
     print ('--------------------------------------------------------------')
     print ('')
-    raise e
+    raise
 
 import tensorflow as tf
 
@@ -98,7 +98,7 @@ tf.flags.DEFINE_string('vrepDebugMode', 'save_ply,print_transform',
 
 # the following line is needed for tf versions before 1.5
 # flags.FLAGS._parse_flags()
-FLAGS = flags.FLAGS
+# FLAGS = flags.FLAGS
 
 
 def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32, verbose=0):
@@ -172,7 +172,7 @@ def vrepPrint(client_id, message):
     print(message)
 
 
-def create_dummy(client_id, display_name, transform=None, parent_handle=-1, debug=FLAGS.vrepDebugMode, operation_mode=vrep.simx_opmode_blocking):
+def create_dummy(client_id, display_name, transform=None, parent_handle=-1, debug=None, operation_mode=vrep.simx_opmode_blocking):
     """Create a dummy object in the simulation
 
     # Arguments
@@ -323,8 +323,8 @@ def set_vision_sensor_image(client_id, display_name, image, convert=None, scale_
 def create_point_cloud(client_id, display_name, transform=None, point_cloud=None, depth_image=None, color_image=None,
                        camera_intrinsics_matrix=None, parent_handle=-1, clear=True,
                        max_voxel_size=0.01, max_point_count_per_voxel=10, point_size=10, options=8,
-                       rgb_sensor_display_name=None, depth_sensor_display_name=None, convert_depth=FLAGS.vrepVisualizeDepthFormat,
-                       convert_rgb=FLAGS.vrepVisualizeRGBFormat, save_ply_path=None, rgb_display_mode='vision_sensor'):
+                       rgb_sensor_display_name=None, depth_sensor_display_name=None, convert_depth=None,
+                       convert_rgb=None, save_ply_path=None, rgb_display_mode='vision_sensor'):
     """Create a point cloud object in the simulation, plus optionally render the depth and rgb images.
 
     # Arguments
@@ -363,6 +363,10 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
             'point_cloud' to display the image when the point cloud is being generated.
             'vision_sensor' to make a separate call go the vison sensor display function.
     """
+    if convert_depth is None:
+        convert_depth = 'vrep_depth_encoded_rgb'
+    if convert_rgb is None:
+        convert_rgb = 'vrep_rgb'
     if transform is None:
         transform = np.array([0., 0., 0., 0., 0., 0., 1.])
 
@@ -464,7 +468,7 @@ def create_point_cloud(client_id, display_name, transform=None, point_cloud=None
         return res
 
 
-def drawLines(client_id, display_name, lines, parent_handle=-1, transform=None, debug=FLAGS.vrepDebugMode, operation_mode=vrep.simx_opmode_blocking):
+def drawLines(client_id, display_name, lines, parent_handle=-1, transform=None, debug=None, operation_mode=vrep.simx_opmode_blocking):
     """Create a line in the simulation.
 
     Note that there are currently some quirks with this function. Only one line is accepted,
