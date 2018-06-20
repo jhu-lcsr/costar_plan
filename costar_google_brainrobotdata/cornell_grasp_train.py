@@ -974,6 +974,15 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         classes = 5
     elif problem_name == 'pixelwise_grasp_regression':
         raise NotImplementedError
+    elif problem_name == 'semantic_grasp_regression':
+        # this is the first case we're trying with the costar stacking dataset
+        metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        vector_shapes = [(48,)]
+        shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
+        image_shapes = [shape, shape]
+        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        loss = keras.losses.mean_squared_error
+        model_name = '_semantic_grasp_regression_model'
     else:
         raise ValueError('Selected problem_name ' + str(problem_name) + ' does not exist. '
                          'feature selection options are segmentation and classification, '
@@ -1056,7 +1065,6 @@ def load_dataset(
             validation_data = next(validation_data)
 
         if train_data is None and train_filenames is not None:
-            # TODO(ahundt) VAL_ON_TRAIN_TEMP_REMOVEME
             train_data = cornell_grasp_dataset_reader.yield_record(
                 train_filenames, label_features, data_features,
                 batch_size=batch_size,
