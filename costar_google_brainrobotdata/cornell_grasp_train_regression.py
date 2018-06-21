@@ -53,15 +53,20 @@ def main(_):
         #                           '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
 
         # Best first and last epoch on hyperopt run 2018-03-08
-        FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
-                                  '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
-                                  '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+        # FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
+        #                           '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
+        #                           '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+
+        FLAGS.load_hyperparams = ('hyperparams/regression/'
+                                  '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
     FLAGS.epochs = 60
     FLAGS.fine_tuning_epochs = 0
     print('Regression Training on Jaccard Distance is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
           'you will need to modify cornell_grasp_train_regression.py directly.')
+
+    dataset_name = 'costar_stacking_dataset'
 
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,

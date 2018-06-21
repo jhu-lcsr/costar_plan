@@ -7,6 +7,7 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 
 '''
 import sys
+import os
 import tensorflow as tf
 import grasp_utilities
 import cornell_grasp_train
@@ -53,16 +54,26 @@ def main(_):
         #                           '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
 
         # Best first and last epoch on hyperopt run 2018-03-08
-        FLAGS.load_hyperparams = (r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/regression/2018-03-01-15-12-20_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+        # FLAGS.load_hyperparams = ('/home/ahundt/.keras/datasets/logs/hyperopt_logs_cornell_regression/'
+        #                           '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6/'
+        #                           '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+        # FLAGS.load_hyperparams = (r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/regression/2018-03-01-15-12-20_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+
+        FLAGS.load_hyperparams = ('hyperparams/regression/'
+                                  '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
     FLAGS.epochs = 60
     FLAGS.batch_size = 1
-    FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
-    FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f'
+    # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
+    # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f'
+
+    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f')
     FLAGS.fine_tuning_epochs = 0
-    print('Regression Training on Jaccard Distance is about to begin. '
+    print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
           'you will need to modify cornell_grasp_train_regression.py directly.')
+
+    dataset_name = 'costar_stacking_dataset'
 
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
@@ -77,18 +88,21 @@ def main(_):
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='objectwise',
+            dataset_name=dataset_name,
             **hyperparams)
         cornell_grasp_train.train_k_fold(
             problem_name=problem_type,
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='imagewise',
+            dataset_name=dataset_name,
             **hyperparams)
     else:
         cornell_grasp_train.run_training(
             problem_name=problem_type,
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
+            dataset_name=dataset_name,
             **hyperparams)
 
 if __name__ == '__main__':

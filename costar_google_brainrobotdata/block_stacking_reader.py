@@ -19,9 +19,9 @@ class CostarBlockStackingSequence(Sequence):
     '''
     def __init__(self, list_IDs, batch_size=32, shuffle=True, seed=0, resize_shape=None):
         '''Initialization
-        
+
         #Arguments
-        
+
         list_Ids: a list of file paths to be read
         batch_size: specifies the size of each batch
         shuffle: boolean to specify shuffle after each epoch
@@ -41,7 +41,7 @@ class CostarBlockStackingSequence(Sequence):
         'Generate one batch of data'
         # Generate indexes of the batch
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
-        print("batch ",indexes)
+        print("batch getitem indices:" + str(indexes))
         # Find list of IDs
         list_IDs_temp = [self.list_IDs[k] for k in indexes]
         # Generate data
@@ -122,7 +122,7 @@ class CostarBlockStackingSequence(Sequence):
                 action[data['gripper_action_label'][j]] = 1
                 action_labels.append(action)
             # action_labels = np.array(action_labels)
-            
+
 
             #print(action_labels)
             # x = x + tuple([action_labels])
@@ -161,9 +161,9 @@ class CostarBlockStackingSequence(Sequence):
 
 if __name__ == "__main__":
     tf.enable_eager_execution()
-    filenames = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
+    filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f'))
     #print(filenames)
-    training_generator = CostarBlockStackingSequence(filenames,batch_size=1)
+    training_generator = CostarBlockStackingSequence(filenames, batch_size=1)
     # a = next(training_generator)
     enqueuer = OrderedEnqueuer(
                     training_generator,
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     x,y = generator_ouput
     print(x.shape)
     print(y.shape)
- 
+
     # X,y=training_generator.__getitem__(1)
     #print(X.keys())
     # print(X[0].shape)

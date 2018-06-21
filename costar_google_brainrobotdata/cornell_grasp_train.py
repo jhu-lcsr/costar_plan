@@ -384,7 +384,6 @@ def run_training(
 
     log_dir = os.path.join(log_dir, run_name)
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
-    run_name = "test"
     log_dir_run_name = os.path.join(log_dir, run_name)
     csv_logger = CSVLogger(log_dir_run_name + '.csv')
     callbacks = callbacks + [csv_logger]
@@ -498,7 +497,7 @@ def run_training(
         # sess.run(init_l)
         init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         sess.run(init_op)
-        
+
         # fit the model
         history = model.fit_generator(
             train_data,
@@ -1100,7 +1099,6 @@ def load_dataset(
         validation_data = file_names[10:15]
         print(train_data)
 
-
         train_data = CostarBlockStackingSequence(train_data, batch_size)
         test_data = CostarBlockStackingSequence(test_data, batch_size)
         validation_data = CostarBlockStackingSequence(validation_data, batch_size)
@@ -1108,8 +1106,8 @@ def load_dataset(
         train_size = 5
 
         train_steps, val_steps, test_steps = steps_per_epoch(
-        train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
-        samples_train=train_size, samples_val=train_size, samples_test=train_size)
+            train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
+            samples_train=train_size, samples_val=train_size, samples_test=train_size)
         print("--------", train_steps, val_steps, test_steps)
         # enqueuer = OrderedEnqueuer(
         #             train_data,
@@ -1124,7 +1122,7 @@ def load_dataset(
         # print(x.shape)
         # print(y.shape)
         # exit()
- 
+
         # val_steps = None
 
 
