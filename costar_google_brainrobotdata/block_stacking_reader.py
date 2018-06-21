@@ -4,11 +4,13 @@ import os
 import io
 import glob
 from PIL import Image
+import cv2
 
 import numpy as np
 import json
 import keras
 from keras.utils import Sequence
+from keras.utils import OrderedEnqueuer
 import tensorflow as tf
 
 
@@ -106,6 +108,9 @@ class CostarBlockStackingSequence(Sequence):
             rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
             #indices = [0]
             indices = [0] + list(np.random.randint(1,len(rgb_images),1))
+            #resize using opencv
+            # for k,images in enumerate(rgb_images[indices]):
+            #     rgb_images[k] = cv2.resize(images, dsize=(224, 224, 3))
             init_images.append(rgb_images[0])
             current_images.append(rgb_images[indices[1]])
             poses.append(np.array(data['pose'][indices[1:]])[0]) 
@@ -128,8 +133,8 @@ class CostarBlockStackingSequence(Sequence):
             # Store class
             label = ()
             #change to goals computed
-            goal_ids = np.array(data['gripper_action_goal_idx'])[indices[1:]]
-            label = label + tuple(np.array(data['pose'])[goal_ids])
+            goal_ids = np.array(data['gripper_action_goal_idx'])[indices[1]]
+            label = np.array(data['pose'])[goal_ids]
             #print(type(label))
             # for items in list(data['all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json'][indices]):
             #     json_data = json.loads(items.decode('UTF-8'))
@@ -140,11 +145,13 @@ class CostarBlockStackingSequence(Sequence):
             y.append(label)
         action_labels,init_images, current_images, poses = np.array(action_labels), np.array(init_images), np.array(current_images), np.array(poses)
         poses = np.concatenate([poses,action_labels],axis = 1)
-        print("---",current_images.shape)
+        print("---",init_images.shape)
         init_images = tf.image.resize_images(init_images,[224,224])
-        current_images = tf.image.resize_images(current_images,[224,224])
-        print("---",current_images.shape)
+        # current_images = tf.image.resize_images(current_images,[224,224])
+        print("---",init_images.shape)
         X = np.array(init_images)
+        print("type=======",type(X))
+        print("shape=====",X.shape)
         y = np.array(y)
 
         print("batch generated..")
@@ -157,9 +164,21 @@ if __name__ == "__main__":
     #print(filenames)
     training_generator = CostarBlockStackingSequence(filenames,batch_size=1)
     # a = next(training_generator)
-    X,y=training_generator.__getitem__(1)
-    X,y=training_generator.__getitem__(1)
+    enqueuer = OrderedEnqueuer(
+                    training_generator,
+                    use_multiprocessing=False,
+                    shuffle=True)
+    enqueuer.start(workers=1, max_queue_size=1)
+    generator = iter(enqueuer.get())
+    print("-------------------")
+    generator_ouput = next(generator)
+    print("-------------------op")
+    x,y = generator_ouput
+    print(x.shape)
+    print(y.shape)
+ 
+    # X,y=training_generator.__getitem__(1)
     #print(X.keys())
-    print(X[0].shape)
+    # print(X[0].shape)
     # print(X[0].shape)
     # print(y[0])

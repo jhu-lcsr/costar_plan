@@ -66,6 +66,7 @@ from callbacks import PrintLogsCallback
 from callbacks import FineTuningCallback
 from callbacks import SlowModelStopping
 from callbacks import InaccurateModelStopping
+from keras.utils import OrderedEnqueuer
 
 import grasp_loss
 import grasp_metrics
@@ -497,6 +498,7 @@ def run_training(
         # sess.run(init_l)
         init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         sess.run(init_op)
+        
         # fit the model
         history = model.fit_generator(
             train_data,
@@ -505,7 +507,7 @@ def run_training(
             validation_data=validation_data,
             validation_steps=validation_steps,
             callbacks=callbacks,
-            verbose=0)
+            verbose=0, use_multiprocessing=False)
 
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
         if fine_tuning and fine_tuning_epochs is not None and fine_tuning_epochs > 0:
@@ -1108,6 +1110,20 @@ def load_dataset(
         train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
         samples_train=train_size, samples_val=train_size, samples_test=train_size)
         print("--------", train_steps, val_steps, test_steps)
+        enqueuer = OrderedEnqueuer(
+                    train_data,
+                    use_multiprocessing=False,
+                    shuffle=True)
+        enqueuer.start(workers=1, max_queue_size=1)
+        generator = iter(enqueuer.get())
+        print("-------------------")
+        generator_ouput = next(generator)
+        print("-------------------op")
+        x,y = generator_ouput
+        print(x.shape)
+        print(y.shape)
+        exit()
+ 
         # val_steps = None
 
 
