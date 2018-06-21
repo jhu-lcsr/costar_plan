@@ -459,7 +459,7 @@ def run_training(
         test_filenames=test_filenames, test_size=test_size,
         label_features=label_features, data_features=data_features, batch_size=batch_size,
         train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
-        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name = dataset_name
+        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name=dataset_name
     )
 
     # # TODO(ahundt) check this more carefully, currently a hack
@@ -1028,7 +1028,7 @@ def load_dataset(
         train_data=None, validation_data=None, test_data=None,
         in_memory_validation=False,
         preprocessing_mode='tf', success_only=False,
-        val_all_features=False, dataset_name = 'cornell_grasping'):
+        val_all_features=False, dataset_name='cornell_grasping'):
     """ Load the cornell grasping dataset from the file if it isn't already available.
 
     # Arguments
