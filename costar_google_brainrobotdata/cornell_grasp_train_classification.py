@@ -69,13 +69,18 @@ def main(_):
         # FLAGS.load_hyperparams = ('hyperparams/classification/2018-04-07-15-31-34_vgg_classifier_model-_img_vgg_vec_dense_block_trunk_dense_block-dataset_cornell_grasping-grasp_success_hyperparams.json')
 
         # One of best results from hyperopt run ending 2018-05-08
-        FLAGS.load_hyperparams = ('hyperparams/classification/2018-05-03-17-02-01_inception_resnet_v2_classifier_model-'
+        # FLAGS.load_hyperparams = ('hyperparams/classification/2018-05-03-17-02-01_inception_resnet_v2_classifier_model-'
+        #                           '_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_cornell_grasping-grasp_success_hyperparams.json')
+
+        # Best hyperopt result without "height" (length along which gripper can slide, not gripper openness) parameter from hyperopt run ending 2018-06-02
+        FLAGS.load_hyperparams = ('hyperparams/classification/2018-05-26-01-22-00_inception_resnet_v2_classifier_model-'
                                   '_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_cornell_grasping-grasp_success_hyperparams.json')
-    FLAGS.epochs = 40
+    FLAGS.epochs = 80
     FLAGS.fine_tuning_epochs = 0
     # 8 training folds
     FLAGS.num_train = 8
-    # 1 validation fold
+    # 1 validation fold, this is automatically
+    # changed below for the k_fold case
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
 

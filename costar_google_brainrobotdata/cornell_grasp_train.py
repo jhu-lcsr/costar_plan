@@ -21,8 +21,13 @@ import datetime
 import tensorflow as tf
 import numpy as np
 import six
+import random
 from shapely.geometry import Polygon
 import cornell_grasp_dataset_reader
+
+from block_stacking_reader import CostarBlockStackingSequence
+from block_stacking_reader import block_stacking_generator
+
 import time
 from tensorflow.python.platform import flags
 # TODO(ahundt) consider removing this dependency
@@ -63,6 +68,7 @@ from callbacks import PrintLogsCallback
 from callbacks import FineTuningCallback
 from callbacks import SlowModelStopping
 from callbacks import InaccurateModelStopping
+from keras.utils import OrderedEnqueuer
 
 import grasp_loss
 import grasp_metrics
@@ -262,6 +268,7 @@ def run_training(
         fine_tuning_epochs=None,
         loss=None,
         checkpoint=True,
+        dataset_name='cornell_grasping',
         **kwargs):
     """
 
@@ -362,7 +369,7 @@ def run_training(
     # TODO(ahundt) add a loss that changes size with how open the gripper is
     # loss = grasp_loss.segmentation_gaussian_measurement
 
-    dataset_names_str = 'cornell_grasping'
+    dataset_names_str = dataset_name
     run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
     callbacks = []
 
@@ -387,14 +394,20 @@ def run_training(
 
     # Save the hyperparams to a json string so it is human readable
     if hyperparams is not None:
-        with open(log_dir_run_name + '_hyperparams.json', 'w') as fp:
+        with open(log_dir_run_name + '_hyperparams.json', 'w+') as fp:
             json.dump(hyperparams, fp)
 
     # Save the current model to a json string so it is human readable
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
 
-    callbacks += [SlowModelStopping(max_batch_time_seconds=1.0),
+    # Stop when models are extremely slow
+    max_batch_time_seconds = 1.0
+    if epochs > 10:
+        # give extra time if it is a long run because
+        # it was probably manually configured
+        max_batch_time_seconds *= 2
+    callbacks += [SlowModelStopping(max_batch_time_seconds=max_batch_time_seconds),
                   InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
 
     if checkpoint:
@@ -446,7 +459,7 @@ def run_training(
         test_filenames=test_filenames, test_size=test_size,
         label_features=label_features, data_features=data_features, batch_size=batch_size,
         train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
-        success_only=success_only, val_batch_size=1, val_all_features=val_all_features
+        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name=dataset_name
     )
 
     # # TODO(ahundt) check this more carefully, currently a hack
@@ -486,6 +499,7 @@ def run_training(
         # sess.run(init_l)
         init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         sess.run(init_op)
+
         # fit the model
         history = model.fit_generator(
             train_data,
@@ -676,7 +690,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
     if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
         callbacks = callbacks + [
             # Reduce the learning rate if training plateaus.
-            keras.callbacks.ReduceLROnPlateau(patience=15, verbose=1, factor=0.5, monitor=monitor_loss_name)
+            keras.callbacks.ReduceLROnPlateau(patience=13, verbose=1, factor=0.5, monitor=monitor_loss_name)
         ]
     return callbacks, optimizer
 
@@ -759,7 +773,8 @@ def train_k_fold(split_type=None,
     grasp_utilities.mkdir_p(log_dir)
 
     # 2k files, but k folds, so read two file at a time
-    for i in tqdm(range(num_fold), desc='Preparing kfold'):
+    progbar_folds = tqdm(range(num_fold), desc='Preparing kfold')
+    for i in progbar_folds:
         # This is a special string,
         # make sure to maintain backwards compatibility
         # if you modify it.
@@ -790,7 +805,7 @@ def train_k_fold(split_type=None,
         train_size = sum(train_sizes)
 
         save_splits_weights = run_name + '-' + fold_name + '-' + split_type + '-train-on-' + train_id + '-val-on-' + val_id
-        print('Preparing fold ' + str(i) + ' train dataset splits: ' + train_id + ',   val dataset splits: ' + val_id)
+        progbar_folds.write('Preparing fold ' + str(i) + ' train dataset splits: ' + train_id + ',   val dataset splits: ' + val_id)
         training_run_params = dict(
             train_filenames=train_filenames, val_filenames=val_filenames, pipeline='train_val',
             train_size=train_size, val_size=val_size,
@@ -826,7 +841,7 @@ def train_k_fold(split_type=None,
         # save the histories so far, overwriting past updates
         with open(json_histories_path, 'w') as fp:
             # save out all kfold params so they can be reloaded in the future
-            json.dump(history_dicts, fp)
+            json.dump(history_dicts, fp, cls=grasp_utilities.NumpyEncoder)
 
     # find the k-fold average and save it out to a json file
     # Warning: this file will massively underestimate scores for jaccard distance metrics!
@@ -836,7 +851,7 @@ def train_k_fold(split_type=None,
     return run_histories
 
 
-def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_acc', verbose=1):
+def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_binary_accuracy', verbose=1):
     """ Find the k_fold average of the best model weights on each fold, and save the results.
 
     Please note that currently this should only be utilized with classification models,
@@ -852,13 +867,13 @@ def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val
     results = {}
     for metric in metrics:
         best_metric_scores = []
-        for i, history_obj in enumerate(run_histories):
+        for history_description, history_object in six.iteritems(run_histories):
             if 'loss' in metric:
-                best_score = np.min(history_obj.history[metric])
-                results['fold_' + str(i) + '_min_' + metric] = best_score
+                best_score = np.min(history_object.history[metric])
+                results[history_description + '_min_' + metric] = best_score
             else:
-                best_score = np.max(history_obj.history[metric])
-                results['fold_' + str(i) + '_max_' + metric] = best_score
+                best_score = np.max(history_object.history[metric])
+                results[history_description + '_max_' + metric] = best_score
             best_metric_scores += [best_score]
         k_fold_average = np.mean(best_metric_scores)
         results['k_fold_average_' + metric] = k_fold_average
@@ -962,6 +977,21 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         classes = 5
     elif problem_name == 'pixelwise_grasp_regression':
         raise NotImplementedError
+    elif problem_name == 'semantic_grasp_regression':
+        # TODO(ahundt) create a real 3d grasp success metric
+        # this is the first case we're trying with the costar stacking dataset
+        classes = 7
+        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'mean_squared_error'
+        vector_shapes = [(48,)]
+        # TODO(ahundt) features, loss, metric are made up... create real ones
+        label_features = ['pose']
+        monitor_loss_name = 'val_loss'
+        shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
+        image_shapes = [shape, shape]
+        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        loss = keras.losses.mean_absolute_error
+        model_name = '_semantic_grasp_regression_model'
     else:
         raise ValueError('Selected problem_name ' + str(problem_name) + ' does not exist. '
                          'feature selection options are segmentation and classification, '
@@ -998,7 +1028,7 @@ def load_dataset(
         train_data=None, validation_data=None, test_data=None,
         in_memory_validation=False,
         preprocessing_mode='tf', success_only=False,
-        val_all_features=False):
+        val_all_features=False, dataset_name='cornell_grasping'):
     """ Load the cornell grasping dataset from the file if it isn't already available.
 
     # Arguments
@@ -1009,59 +1039,116 @@ def load_dataset(
     val_all_features: Instead of getting the specific feature strings, the whole dictionary will be returned.
 
     """
-    if train_filenames is None and val_filenames is None and test_filenames is None:
-        # train/val/test filenames are generated from the CSV file if they aren't provided
-        train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = epoch_params()
-    train_steps, val_steps, test_steps = epoch_params_for_splits(
-        train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
-        samples_train=train_size, samples_val=val_size, samples_test=test_size)
+    print("-------------",dataset_name)
+    if dataset_name == 'cornell_grasping':
 
-    if in_memory_validation:
-        val_batch_size = val_size
+        if train_filenames is None and val_filenames is None and test_filenames is None:
+            # train/val/test filenames are generated from the CSV file if they aren't provided
+                train_filenames, train_size, val_filenames, val_size, test_filenames, test_size = load_dataset_sizes_from_csv()
+        train_steps, val_steps, test_steps = steps_per_epoch(
+            train_batch=batch_size, val_batch=val_batch_size, test_batch=test_batch_size,
+            samples_train=train_size, samples_val=val_size, samples_test=test_size)
 
-    if validation_data is None and val_filenames is not None:
-        if val_all_features:
-            # Workaround for special evaluation call needed for jaccard regression.
-            # All features will be returned in a dictionary in this mode
-            val_label_features = None
-            val_data_features = None
-        else:
-            val_label_features = label_features
-            val_data_features = data_features
-        validation_data = cornell_grasp_dataset_reader.yield_record(
-            val_filenames, val_label_features, val_data_features,
-            batch_size=val_batch_size,
-            parse_example_proto_fn=parse_and_preprocess,
-            preprocessing_mode=preprocessing_mode,
-            apply_filter=success_only,
-            is_training=False)
+        if in_memory_validation:
+            val_batch_size = val_size
 
-    if in_memory_validation:
-        print('loading validation data directly into memory, if you run out set in_memory_validation to False')
-        validation_data = next(validation_data)
+        if validation_data is None and val_filenames is not None:
+            if val_all_features:
+                # Workaround for special evaluation call needed for jaccard regression.
+                # All features will be returned in a dictionary in this mode
+                val_label_features = None
+                val_data_features = None
+            else:
+                val_label_features = label_features
+                val_data_features = data_features
+            validation_data = cornell_grasp_dataset_reader.yield_record(
+                val_filenames, val_label_features, val_data_features,
+                batch_size=val_batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode,
+                apply_filter=success_only,
+                is_training=False)
 
-    if train_data is None and train_filenames is not None:
-        # TODO(ahundt) VAL_ON_TRAIN_TEMP_REMOVEME
-        train_data = cornell_grasp_dataset_reader.yield_record(
-            train_filenames, label_features, data_features,
-            batch_size=batch_size,
-            parse_example_proto_fn=parse_and_preprocess,
-            preprocessing_mode=preprocessing_mode,
-            apply_filter=success_only,
-            is_training=True)
+        if in_memory_validation:
+            print('loading validation data directly into memory, if you run out set in_memory_validation to False')
+            validation_data = next(validation_data)
 
-    if test_data is None and test_filenames is not None:
-        test_data = cornell_grasp_dataset_reader.yield_record(
-            test_filenames, label_features, data_features,
-            batch_size=test_batch_size,
-            parse_example_proto_fn=parse_and_preprocess,
-            preprocessing_mode=preprocessing_mode,
-            apply_filter=success_only,
-            is_training=False)
+        if train_data is None and train_filenames is not None:
+            train_data = cornell_grasp_dataset_reader.yield_record(
+                train_filenames, label_features, data_features,
+                batch_size=batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode,
+                apply_filter=success_only,
+                is_training=True)
 
-            # val_filenames, batch_size=1, is_training=False,
-            # shuffle=False, steps=1,
+        if test_data is None and test_filenames is not None:
+            test_data = cornell_grasp_dataset_reader.yield_record(
+                test_filenames, label_features, data_features,
+                batch_size=test_batch_size,
+                parse_example_proto_fn=parse_and_preprocess,
+                preprocessing_mode=preprocessing_mode,
+                apply_filter=success_only,
+                is_training=False)
 
+                # val_filenames, batch_size=1, is_training=False,
+                # shuffle=False, steps=1,
+    else:
+        #temporarily hardcoded initialization
+        #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
+        file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
+        np.random.seed(0)
+        print("------------------------------------------------")
+        np.random.shuffle(file_names)
+        val_test_size = 128
+        # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
+        estimated_images_per_example = 250
+        test_data = file_names[:val_test_size]
+        with open('test.txt', mode='w') as myfile:
+            myfile.write('\n'.join(test_data))
+        validation_data = file_names[val_test_size:val_test_size*2]
+        with open('val.txt', mode='w') as myfile:
+            myfile.write('\n'.join(validation_data))
+        train_data = file_names[val_test_size*2:]
+        with open('train.txt', mode='w') as myfile:
+            myfile.write('\n'.join(train_data))
+
+        # train_data = file_names[:5]
+        # test_data = file_names[5:10]
+        # validation_data = file_names[10:15]
+        # print(train_data)
+
+        train_data = CostarBlockStackingSequence(train_data, batch_size, is_training=True, shuffle=True)
+        test_data = CostarBlockStackingSequence(test_data, batch_size, is_training=False)
+        validation_data = CostarBlockStackingSequence(validation_data, batch_size, is_training=True)
+        train_size = len(train_data) * batch_size * estimated_images_per_example
+        val_size = len(validation_data) * batch_size * estimated_images_per_example
+        test_size = len(test_data) * batch_size * estimated_images_per_example
+        # train_data = block_stacking_generator(train_data)
+        # test_data = block_stacking_generator(test_data)
+        # validation_data = block_stacking_generator(validation_data)
+        # validation_data = None
+        # train_size = 5
+
+        train_steps, val_steps, test_steps = steps_per_epoch(
+            train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
+            samples_train=train_size, samples_val=val_size, samples_test=test_size)
+        # print("--------", train_steps, val_steps, test_steps)
+        # enqueuer = OrderedEnqueuer(
+        #             train_data,
+        #             use_multiprocessing=False,
+        #             shuffle=True)
+        # enqueuer.start(workers=1, max_queue_size=1)
+        # generator = iter(enqueuer.get())
+        # print("-------------------")
+        # generator_ouput = next(generator)
+        # print("-------------------op")
+        # x,y = generator_ouput
+        # print(x.shape)
+        # print(y.shape)
+        # exit()
+
+        # val_steps = None
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 
@@ -1206,7 +1293,9 @@ def evaluate(
         steps=None, visualize=False,
         preprocessing_mode='tf', apply_filter=True, loss_fn=None, loss_name='loss',
         should_initialize=False, load_weights=None, fold_num=None, fold_name='', verbose=0):
-    """ This is specialized for running grasp regression right now,
+    """ Evaluate how well a model performs at grasp regression.
+
+        This is specialized for running grasp regression right now,
         so check the defaults if you want to use it for something else.
     """
     if data_features is None:
@@ -1280,7 +1369,7 @@ def evaluate(
                 if load_weights is not None:
                     # remove .h5 add the image number, and save the file
                     viz_filename = load_weights[:-3] + '_' + str(i) + '.jpg'
-                grasp_visualization.visualize_redundant_example(example_dict, predictions=predictions, save_filename=viz_filename, show=False)
+                grasp_visualization.visualize_redundant_images_example(example_dict, predictions=predictions, save_filename=viz_filename, show=False)
 
             score = np.squeeze(score)
             # save this score and prediction if there is no score yet
@@ -1327,11 +1416,12 @@ def evaluate(
     return result
 
 
-def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_type=None,
-                 csv_path='-k-fold-stat.csv', data_dir=None, tfrecord_filename_base=None):
-    """ Determine the number of steps to train, validate, and test each fold during k-fold training.
-    TODO(ahundt) rename this function, it is pretty nonsensical
+def load_dataset_sizes_from_csv(
+        train_splits=None, val_splits=None, test_splits=None, split_type=None,
+        csv_path='-k-fold-stat.csv', data_dir=None, tfrecord_filename_base=None):
+    """ Load csv specifying the number of steps to train, validate, and test each fold during k-fold training.
 
+    The csv files are created by cornell_grasp_dataset_writer.py.
     Please be aware that the number of train and validation steps changes every time the dataset is converted.
     These values are automatically loaded from a csv file, but be certain you do not mix the csv files up or
     overwrite the datasets and csv files separately.
@@ -1368,33 +1458,32 @@ def epoch_params(train_splits=None, val_splits=None, test_splits=None, split_typ
         test_size = 0
         for i in range(train_splits):
             train_size += unique_image_num[i]
-            train_filenames += [os.path.join(data_dir,
-                                tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
+            train_filenames += [os.path.join(
+                                    data_dir,
+                                    tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
 
         for i in range(train_splits, train_splits + val_splits):
             val_size += unique_image_num[i]
-            val_filenames += [os.path.join(data_dir,
-                              tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
+            val_filenames += [os.path.join(
+                                    data_dir,
+                                    tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
 
         for i in range(train_splits + val_splits, train_splits + val_splits + test_splits):
             test_size += unique_image_num[i]
-            test_filenames += [os.path.join(data_dir,
-                               tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
+            test_filenames += [os.path.join(
+                                    data_dir,
+                                    tfrecord_filename_base + '-' + split_type + '-fold-' + str(i) + '.tfrecord')]
 
         return train_filenames, train_size, val_filenames, val_size, test_filenames, test_size
 
-        # samples_in_training_dataset = 6402
-        # samples_in_val_dataset = 1617
-        # val_batch_size = 11
-        # steps_in_val_dataset, divides_evenly = np.divmod(samples_in_val_dataset, val_batch_size)
-        # assert divides_evenly == 0
-        # steps_per_epoch_train = np.ceil(float(samples_in_training_dataset) / float(batch_size))
-        # return samples_in_val_dataset, steps_per_epoch_train, steps_in_val_dataset, val_batch_size
 
+def steps_per_epoch(train_batch=None, samples_train=None,
+                    val_batch=None, samples_val=None,
+                    test_batch=None, samples_test=None):
+    """Determine the number of steps per epoch for a given number of samples and batch size.
 
-def epoch_params_for_splits(train_batch=None, samples_train=None,
-                            val_batch=None, samples_val=None,
-                            test_batch=None, samples_test=None):
+    Also ensures val and test divides evenly for reproducible results.
+    """
 
     returns = []
     steps_train = None
@@ -1405,13 +1494,17 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
         steps_train = int(np.ceil(float(samples_train) / float(train_batch)))
     if samples_val is not None and val_batch is not None:
         steps_in_val_dataset, divides_evenly = np.divmod(samples_val, val_batch)
-        # If this fails you need to fix the batch size so it divides evenly!
-        assert divides_evenly == 0
+        if divides_evenly != 0:
+            raise ValueError('You need to fix the validation batch size ' + str(val_batch) +
+                             ' so it divides the number of samples ' + str(samples_val) + ' evenly. '
+                             'In a worst case you can simply choose a batch size of 1.')
         steps_val = steps_in_val_dataset
     if samples_test is not None and test_batch is not None:
         steps_in_test_dataset, divides_evenly = np.divmod(samples_test, test_batch)
-        # If this fails you need to fix the batch size so it divides evenly!
-        assert divides_evenly == 0
+        if divides_evenly != 0:
+            raise ValueError('You need to fix the test batch size ' + str(val_batch) +
+                             ' so it divides the number of samples ' + str(samples_val) + ' evenly. '
+                             'In a worst case you can simply choose a batch size of 1.')
         steps_test = steps_in_test_dataset
 
     return steps_train, steps_val, steps_test
@@ -1419,7 +1512,7 @@ def epoch_params_for_splits(train_batch=None, samples_train=None,
 
 def main(_):
 
-    # tf.enable_eager_execution()
+    tf.enable_eager_execution()
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     if 'k_fold' in FLAGS.pipeline_stage:

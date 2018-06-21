@@ -345,7 +345,7 @@ class DataCollector(object):
                     # self.depth_img = np_image
                     # self.depth_img = img_str
                     self.depth_img = bytevalues
-                #print (self.depth_img)
+                # print (self.depth_img)
         except CvBridgeError as e:
             rospy.logwarn(str(e))
 

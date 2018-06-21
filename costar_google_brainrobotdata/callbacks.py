@@ -161,16 +161,25 @@ class SlowModelStopping(keras.callbacks.Callback):
     """ Stop a model from training if it runs too slowly.
     """
 
-    def __init__(self, min_batch_patience=30, max_batch_time_seconds=1, max_epoch_time_seconds=7000, verbose=0):
+    def __init__(
+            self,
+            min_batch_patience=30,
+            max_batch_time_seconds=1,
+            max_epoch_time_seconds=7000,
+            max_epoch_to_check_batch_time=2,
+            verbose=0):
         self._min_batch_patience = min_batch_patience
         self._max_batch_time_seconds = max_batch_time_seconds
         self._max_epoch_time_seconds = max_epoch_time_seconds
         self._epoch_elapsed = 0
         self.verbose = verbose
         self.stopped_epoch = 0
+        self.current_epoch = 0
+        self.max_epoch_to_check_batch_time = max_epoch_to_check_batch_time
 
     def on_epoch_begin(self, epoch, logs=None):
         self._epoch_start = default_timer()
+        self.current_epoch = epoch
 
     def on_batch_begin(self, batch, logs=None):
         self._batch_start = default_timer()
@@ -181,6 +190,7 @@ class SlowModelStopping(keras.callbacks.Callback):
         self._batch_elapsed.append(batch_elapsed)
         if(self._min_batch_patience is not None and
            self._max_batch_time_seconds is not None and
+           self.current_epoch < self.max_epoch_to_check_batch_time and
            batch > self._min_batch_patience and
            batch < self._min_batch_patience + 10):
 
