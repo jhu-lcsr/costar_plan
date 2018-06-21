@@ -17,7 +17,7 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    problem_type = 'grasp_regression'
+    problem_type = 'semantic_grasp_regression'
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
     # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
@@ -61,8 +61,8 @@ def main(_):
 
         FLAGS.load_hyperparams = ('hyperparams/regression/'
                                   '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
-    FLAGS.epochs = 60
-    FLAGS.batch_size = 1
+    FLAGS.epochs = 600
+    FLAGS.batch_size = 16
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
     # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f'
 

@@ -21,10 +21,12 @@ import datetime
 import tensorflow as tf
 import numpy as np
 import six
+import random
 from shapely.geometry import Polygon
 import cornell_grasp_dataset_reader
 
 from block_stacking_reader import CostarBlockStackingSequence
+from block_stacking_reader import block_stacking_generator
 
 import time
 from tensorflow.python.platform import flags
@@ -428,7 +430,7 @@ def run_training(
         callbacks = callbacks + [progress_tracker]
 
     # make sure the TQDM callback is always the final one
-    #callbacks += [keras_tqdm.TQDMCallback()]
+    callbacks += [keras_tqdm.TQDMCallback()]
 
     #TODO(ahundt) enable when https://github.com/keras-team/keras/pull/9105 is resolved
     # callbacks += [FineTuningCallback(epoch=0)]
@@ -506,7 +508,7 @@ def run_training(
             validation_data=validation_data,
             validation_steps=validation_steps,
             callbacks=callbacks,
-            verbose=0, use_multiprocessing=False)
+            verbose=0)
 
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
         if fine_tuning and fine_tuning_epochs is not None and fine_tuning_epochs > 0:
@@ -976,14 +978,19 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
     elif problem_name == 'pixelwise_grasp_regression':
         raise NotImplementedError
     elif problem_name == 'semantic_grasp_regression':
+        # TODO(ahundt) create a real 3d grasp success metric
         # this is the first case we're trying with the costar stacking dataset
         classes = 7
-        metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'mean_squared_error'
         vector_shapes = [(48,)]
+        # TODO(ahundt) features, loss, metric are made up... create real ones
+        label_features = ['pose']
+        monitor_loss_name = 'val_loss'
         shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         image_shapes = [shape, shape]
         metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
-        loss = keras.losses.mean_squared_error
+        loss = keras.losses.mean_absolute_error
         model_name = '_semantic_grasp_regression_model'
     else:
         raise ValueError('Selected problem_name ' + str(problem_name) + ' does not exist. '
@@ -1090,25 +1097,41 @@ def load_dataset(
         #temporarily hardcoded initialization
         #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
         file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
+        np.random.seed(0)
         print("------------------------------------------------")
-        # test_data = file_names[:200]
-        # validation_data = file_names[200:400]
-        # train_data = file_names[400:]
-        train_data = file_names[:5]
-        test_data = file_names[5:10]
-        validation_data = file_names[10:15]
-        print(train_data)
+        np.random.shuffle(file_names)
+        val_test_size = 128
+        test_data = file_names[:val_test_size]
+        with open('test.txt', mode='w') as myfile:
+            myfile.write('\n'.join(test_data))
+        validation_data = file_names[val_test_size:val_test_size*2]
+        with open('val.txt', mode='w') as myfile:
+            myfile.write('\n'.join(validation_data))
+        train_data = file_names[val_test_size*2:]
+        with open('train.txt', mode='w') as myfile:
+            myfile.write('\n'.join(train_data))
 
-        train_data = CostarBlockStackingSequence(train_data, batch_size)
-        test_data = CostarBlockStackingSequence(test_data, batch_size)
-        validation_data = CostarBlockStackingSequence(validation_data, batch_size)
+        # train_data = file_names[:5]
+        # test_data = file_names[5:10]
+        # validation_data = file_names[10:15]
+        # print(train_data)
+
+        train_size = len(train_data)
+        val_size = len(validation_data)
+        test_size = len(test_data)
+        train_data = CostarBlockStackingSequence(train_data, batch_size, is_training=True, shuffle=True)
+        test_data = CostarBlockStackingSequence(test_data, batch_size, is_training=False)
+        validation_data = CostarBlockStackingSequence(validation_data, batch_size, is_training=True)
+        # train_data = block_stacking_generator(train_data)
+        # test_data = block_stacking_generator(test_data)
+        # validation_data = block_stacking_generator(validation_data)
         # validation_data = None
-        train_size = 5
+        # train_size = 5
 
         train_steps, val_steps, test_steps = steps_per_epoch(
             train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
-            samples_train=train_size, samples_val=train_size, samples_test=train_size)
-        print("--------", train_steps, val_steps, test_steps)
+            samples_train=train_size, samples_val=val_size, samples_test=test_size)
+        # print("--------", train_steps, val_steps, test_steps)
         # enqueuer = OrderedEnqueuer(
         #             train_data,
         #             use_multiprocessing=False,
@@ -1124,8 +1147,6 @@ def load_dataset(
         # exit()
 
         # val_steps = None
-
-
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 

@@ -96,6 +96,7 @@ def main(_):
             **hyperparams)
 
 if __name__ == '__main__':
+    tf.enable_eager_execution()
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
     # FLAGS._parse_flags()
     tf.app.run(main=main)
