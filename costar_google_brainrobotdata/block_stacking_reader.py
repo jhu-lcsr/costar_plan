@@ -65,6 +65,30 @@ class CostarBlockStackingSequence(Sequence):
         if self.shuffle == True:
             np.random.shuffle(self.indexes)
 
+    def encode_pose(self, pose):
+        """ Encode n x 7 array of poses to something that might be regressed by 7 sigmoid values
+        """
+        # change unit quaternion to be in range [0, 1]
+        # change x y z to be in what should hopefully be [0, 1]
+        xyz = (pose[:, :3] / 5) + 0.5
+        quat = (pose[:, 3:] / 2) + 0.5
+        if self.verbose > 0:
+            print('encode xyz: ' + str(xyz) + '\n encode quat: ' + str(quat))
+        encoded_pose = np.concatenate([xyz, quat], axis=-1)
+        return encoded_pose
+
+    def decode_pose(self, pose):
+        """ Decode n x 7 array of poses encoding in encode_pose
+        """
+        # change unit quaternion to be in range [-1, 1]
+        # change x y z to be in what should hopefully be [-2.5, 2.5]
+        xyz = (pose[:, :3] - 0.5) * 5
+        quat = (pose[:, 3:] - 0.5) * 2
+        if self.verbose > 0:
+            print('decode xyz: ' + str(xyz) + '\n decode quat: ' + str(quat))
+        encoded_pose = np.concatenate([xyz, quat], axis=-1)
+        return encoded_pose
+
     def __data_generation(self, list_Ids):
         """ Generates data containing batch_size samples
 
@@ -170,7 +194,9 @@ class CostarBlockStackingSequence(Sequence):
             print('Error: Skipping file due to IO error when opening ' +
                   example_filename + ': ' + str(ex) + ' using the last example twice for batch')
 
-        action_labels, init_images, current_images, poses = np.array(action_labels), np.array(init_images), np.array(current_images), np.array(poses)
+        action_labels, init_images, current_images = np.array(action_labels), np.array(init_images), np.array(current_images)
+        poses = np.stack(poses)
+        poses = self.encode_pose(poses)
         action_poses_vec = np.concatenate([poses, action_labels], axis=1)
         # print("---",init_images.shape)
         # init_images = tf.image.resize_images(init_images,[224,224])
@@ -180,10 +206,14 @@ class CostarBlockStackingSequence(Sequence):
         X = [init_images, current_images, action_poses_vec]
         # print("type=======",type(X))
         # print("shape=====",X.shape)
-        y = np.array(y)
+        y = np.stack(y)
+        y = self.encode_pose(y)
+
         batch = (X, y)
 
         if self.verbose > 0:
+            # diff should be nonzero for most timesteps except just before the gripper closes!
+            print('encoded current poses: ' + str(poses) + ' labels: ' + str(y) + ' diff: ' + str(poses - y))
             print("generated batch: " + str(list_Ids))
 
         return batch
