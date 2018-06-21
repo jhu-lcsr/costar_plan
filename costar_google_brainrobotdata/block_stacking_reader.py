@@ -40,7 +40,7 @@ class CostarBlockStackingSequence(Sequence):
     def __getitem__(self, index):
         'Generate one batch of data'
         # Generate indexes of the batch
-        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
         print("batch getitem indices:" + str(indexes))
         # Find list of IDs
         list_IDs_temp = [self.list_IDs[k] for k in indexes]
@@ -100,10 +100,13 @@ class CostarBlockStackingSequence(Sequence):
 
         # Generate data
         for i, ID in enumerate(list_Ids):
+            print('reading: ' + str(i) + ' path: ' + str(ID))
             # Store sample
             #X[i,] = np.load('data/' + ID + '.npy')
             x = ()
             data = h5py.File(ID, 'r')
+            if 'gripper_action_goal_idx' not in list(data.keys()) or 'gripper_action_label' not in list(data.keys()):
+                raise ValueError('You need to run preprocessing before this will work!')
             rgb_images = list(data['image'])
             rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
             #indices = [0]
@@ -133,7 +136,9 @@ class CostarBlockStackingSequence(Sequence):
             # Store class
             label = ()
             #change to goals computed
-            goal_ids = np.array(data['gripper_action_goal_idx'])[indices[1]]
+            index1 = indices[1]
+            print(index1)
+            goal_ids = np.array(data['gripper_action_goal_idx'])[index1]
             label = np.array(data['pose'])[goal_ids]
             #print(type(label))
             # for items in list(data['all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json'][indices]):
@@ -149,7 +154,7 @@ class CostarBlockStackingSequence(Sequence):
         init_images = tf.image.resize_images(init_images,[224,224])
         # current_images = tf.image.resize_images(current_images,[224,224])
         print("---",init_images.shape)
-        X = np.array(init_images)
+        X = init_images.numpy()
         print("type=======",type(X))
         print("shape=====",X.shape)
         y = np.array(y)
@@ -157,6 +162,19 @@ class CostarBlockStackingSequence(Sequence):
         print("batch generated..")
 
         return X, y
+
+def block_stacking_generator(sequence):
+
+    # training_generator = CostarBlockStackingSequence(filenames, batch_size=1)
+    epoch_size = len(sequence)
+    step = 0
+    while True:
+        if step > epoch_size:
+            step = 0
+            sequence.on_epoch_end()
+        batch = sequence.__getitem__(step)
+        step += 1
+        yield batch
 
 if __name__ == "__main__":
     tf.enable_eager_execution()
