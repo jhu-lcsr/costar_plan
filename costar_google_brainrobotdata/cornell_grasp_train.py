@@ -1109,19 +1109,19 @@ def load_dataset(
             train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
             samples_train=train_size, samples_val=train_size, samples_test=train_size)
         print("--------", train_steps, val_steps, test_steps)
-        enqueuer = OrderedEnqueuer(
-                    train_data,
-                    use_multiprocessing=False,
-                    shuffle=True)
-        enqueuer.start(workers=1, max_queue_size=1)
-        generator = iter(enqueuer.get())
-        print("-------------------")
-        generator_ouput = next(generator)
-        print("-------------------op")
-        x,y = generator_ouput
-        print(x.shape)
-        print(y.shape)
-        exit()
+        # enqueuer = OrderedEnqueuer(
+        #             train_data,
+        #             use_multiprocessing=False,
+        #             shuffle=True)
+        # enqueuer.start(workers=1, max_queue_size=1)
+        # generator = iter(enqueuer.get())
+        # print("-------------------")
+        # generator_ouput = next(generator)
+        # print("-------------------op")
+        # x,y = generator_ouput
+        # print(x.shape)
+        # print(y.shape)
+        # exit()
 
         # val_steps = None
 

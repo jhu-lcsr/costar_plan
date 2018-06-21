@@ -4,7 +4,7 @@ import os
 import io
 import glob
 from PIL import Image
-import cv2
+from skimage.transform import resize
 
 import numpy as np
 import json
@@ -111,12 +111,13 @@ class CostarBlockStackingSequence(Sequence):
             rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
             #indices = [0]
             indices = [0] + list(np.random.randint(1,len(rgb_images),1))
-            #resize using opencv
-            # for k,images in enumerate(rgb_images[indices]):
-            #     rgb_images[k] = cv2.resize(images, dsize=(224, 224, 3))
-            init_images.append(rgb_images[0])
-            current_images.append(rgb_images[indices[1]])
-            poses.append(np.array(data['pose'][indices[1:]])[0])
+            #resize using skimage
+            rgb_images_resized=[]
+            for k,images in enumerate(rgb_images[indices]):
+                rgb_images_resized.append(resize(images, (224, 224, 3)))
+            init_images.append(rgb_images_resized[0])
+            current_images.append(rgb_images_resized[1])
+            poses.append(np.array(data['pose'][indices[1:]])[0]) 
             # x = x + tuple([rgb_images[indices]])
             # x = x + tuple([np.array(data['pose'])[indices]])
             for j in indices[1:]:
@@ -151,7 +152,7 @@ class CostarBlockStackingSequence(Sequence):
         action_labels,init_images, current_images, poses = np.array(action_labels), np.array(init_images), np.array(current_images), np.array(poses)
         poses = np.concatenate([poses,action_labels],axis = 1)
         print("---",init_images.shape)
-        init_images = tf.image.resize_images(init_images,[224,224])
+        # init_images = tf.image.resize_images(init_images,[224,224])
         # current_images = tf.image.resize_images(current_images,[224,224])
         print("---",init_images.shape)
         X = init_images.numpy()
