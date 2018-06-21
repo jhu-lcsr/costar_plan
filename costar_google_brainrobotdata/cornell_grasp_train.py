@@ -1101,6 +1101,8 @@ def load_dataset(
         print("------------------------------------------------")
         np.random.shuffle(file_names)
         val_test_size = 128
+        # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
+        estimated_images_per_example = 250
         test_data = file_names[:val_test_size]
         with open('test.txt', mode='w') as myfile:
             myfile.write('\n'.join(test_data))
@@ -1116,12 +1118,12 @@ def load_dataset(
         # validation_data = file_names[10:15]
         # print(train_data)
 
-        train_size = len(train_data)
-        val_size = len(validation_data)
-        test_size = len(test_data)
         train_data = CostarBlockStackingSequence(train_data, batch_size, is_training=True, shuffle=True)
         test_data = CostarBlockStackingSequence(test_data, batch_size, is_training=False)
         validation_data = CostarBlockStackingSequence(validation_data, batch_size, is_training=True)
+        train_size = len(train_data) * batch_size * estimated_images_per_example
+        val_size = len(validation_data) * batch_size * estimated_images_per_example
+        test_size = len(test_data) * batch_size * estimated_images_per_example
         # train_data = block_stacking_generator(train_data)
         # test_data = block_stacking_generator(test_data)
         # validation_data = block_stacking_generator(validation_data)
