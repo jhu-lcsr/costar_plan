@@ -978,6 +978,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         raise NotImplementedError
     elif problem_name == 'semantic_grasp_regression':
         # this is the first case we're trying with the costar stacking dataset
+        classes = 7
         metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         vector_shapes = [(48,)]
         shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
