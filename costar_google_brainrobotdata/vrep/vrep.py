@@ -35,25 +35,29 @@ from vrepConst import *
 
 #load library
 libsimx = None
-try:
+file_extension = '.so'
+if platform.system() == 'cli':
+    file_extension = '.dll'
+elif platform.system() == 'Windows':
+    file_extension = '.dll'
+elif platform.system() == 'Darwin':
+    file_extension = '.dylib'
+else:
     file_extension = '.so'
-    if platform.system() =='cli':
-        file_extension = '.dll'
-    elif platform.system() =='Windows':
-        file_extension = '.dll'
-    elif platform.system() == 'Darwin':
-        file_extension = '.dylib'
-    else:
-        file_extension = '.so'
-    libfullpath = os.path.join(os.path.dirname(__file__), 'remoteApi' + file_extension)
+libfullpath = os.path.join(os.path.dirname(__file__), 'remoteApi' + file_extension)
+if not os.path.isfile(libfullpath):
+    raise ImportError('V-REP remote api library file does not exist: ' + str(libfullpath))
+
+try:
     libsimx = ct.CDLL(libfullpath)
 except:
     print ('----------------------------------------------------')
-    print ('The remoteApi library could not be loaded. Make sure')
-    print ('it is located in the same folder as "vrep.py", or')
+    print ('The remoteApi library could not be loaded at: ' + str(libfullpath))
+    print ('Make sure it is located in the same folder as "vrep.py", or')
     print ('appropriately adjust the file "vrep.py"')
     print ('----------------------------------------------------')
     print ('')
+    raise
 
 #ctypes wrapper prototypes
 c_GetJointPosition          = ct.CFUNCTYPE(ct.c_int32,ct.c_int32, ct.c_int32, ct.POINTER(ct.c_float), ct.c_int32)(("simxGetJointPosition", libsimx))
