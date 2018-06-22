@@ -210,7 +210,7 @@ def block_stacking_generator(sequence):
 
 if __name__ == "__main__":
     tf.enable_eager_execution()
-    filenames = glob.glob(os.path.expanduser(r'C:\Users\Varun\JHU\LAB\Projects\costar_task_planning_stacking_dataset_v0.1\*success.h5f'))
+    filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1'))
     #print(filenames)
     training_generator = CostarBlockStackingSequence(filenames, batch_size=1, verbose = 0)
     num_batches = len(training_generator)
