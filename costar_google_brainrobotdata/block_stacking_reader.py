@@ -75,8 +75,12 @@ class CostarBlockStackingSequence(Sequence):
 
         def JpegToNumpy(jpeg):
             stream = io.BytesIO(jpeg)
-            im = Image.open(stream)
-            return np.asarray(im, dtype=np.uint8)
+            im = np.asarray(Image.open(stream))
+            try:
+                return im.astype(np.uint8)
+            except(TypeError) as exception:
+                print("Failed to convert PIL image type",exception)
+                print("type ",type(im),"len ",len(im))
 
         def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
             """ Convert a list of binary jpeg or png files to numpy format.
@@ -126,6 +130,8 @@ class CostarBlockStackingSequence(Sequence):
                 else:
                     raise NotImplementedError
                 indices = [0] + list(image_indices)
+                if self.verbose > 0:
+                    print("Indices --",indices)
                 rgb_images = list(data['image'][indices])
                 rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
                 #resize using skimage
@@ -204,9 +210,9 @@ def block_stacking_generator(sequence):
 
 if __name__ == "__main__":
     tf.enable_eager_execution()
-    filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f'))
+    filenames = glob.glob(os.path.expanduser(r'C:\Users\Varun\JHU\LAB\Projects\costar_task_planning_stacking_dataset_v0.1\*success.h5f'))
     #print(filenames)
-    training_generator = CostarBlockStackingSequence(filenames, batch_size=1)
+    training_generator = CostarBlockStackingSequence(filenames, batch_size=1, verbose = 0)
     num_batches = len(training_generator)
 
     bsg = block_stacking_generator(training_generator)
