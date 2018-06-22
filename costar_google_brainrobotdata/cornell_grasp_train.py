@@ -269,6 +269,7 @@ def run_training(
         loss=None,
         checkpoint=True,
         dataset_name='cornell_grasping',
+        should_initialize=False,
         **kwargs):
     """
 
@@ -287,6 +288,9 @@ def run_training(
        If provided these values will simply be dumped to a file and
        not utilized in any other way.
     checkpoint: if True, checkpoints will be save, if false they will not.
+    should_initialize: Workaround for some combined tf/keras bug (Maybe fixed in tf 1.8?)
+       see https://github.com/keras-team/keras/issues/4875#issuecomment-313166165,
+       TODO(ahundt) remove should_initialize and the corresponding code below if it has been False for a while without issue.
     """
     if epochs is None:
         epochs = FLAGS.epochs
@@ -338,7 +342,8 @@ def run_training(
      monitor_loss_name, label_features, monitor_metric_name,
      loss, metrics, classes, success_only] = choose_features_and_metrics(feature_combo_name, problem_name, loss=loss)
 
-    keras.backend.get_session().run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+    if should_initialize:
+        keras.backend.get_session().run([tf.global_variables_initializer(), tf.local_variables_initializer()])
     # see parse_and_preprocess() for the creation of these features
     model_name = image_model_name + model_name
 
@@ -488,17 +493,18 @@ def run_training(
 
         # print('calling model.fit_generator()')
 
+        # TODO(ahundt) Do hack which resets the session & reloads weights for now... will fix later. (Fixed in 1.8?)
         # Workaround for some combined tf/keras bug
         # see https://github.com/keras-team/keras/issues/4875#issuecomment-313166165
         # keras.backend.manual_variable_initialization(True)
-
-        sess = keras.backend.get_session()
-        # init_g = tf.global_variables_initializer()
-        # init_l = tf.local_variables_initializer()
-        # sess.run(init_g)
-        # sess.run(init_l)
-        init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-        sess.run(init_op)
+        if should_initialize:
+            sess = keras.backend.get_session()
+            # init_g = tf.global_variables_initializer()
+            # init_l = tf.local_variables_initializer()
+            # sess.run(init_g)
+            # sess.run(init_l)
+            init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+            sess.run(init_op)
 
         # fit the model
         history = model.fit_generator(
