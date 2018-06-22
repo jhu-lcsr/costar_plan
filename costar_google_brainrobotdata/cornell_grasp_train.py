@@ -978,19 +978,17 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
     elif problem_name == 'pixelwise_grasp_regression':
         raise NotImplementedError
     elif problem_name == 'semantic_grasp_regression':
-        # TODO(ahundt) create a real 3d grasp success metric
         # this is the first case we're trying with the costar stacking dataset
         classes = 8
-        metrics = [grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
-        monitor_metric_name = 'val_grasp_accuracy_xyz_aaxyz_nsc'
+        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [grasp_metrics.grasp_acc, 'mse', 'mae', grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
         vector_shapes = [(49,)]
-        # TODO(ahundt) features, loss, metric are made up... create real ones
         label_features = ['xyz_aaxyz_nsc_8']
         monitor_loss_name = 'val_loss'
         shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         image_shapes = [shape, shape]
-        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.mean_absolute_error
         model_name = '_semantic_grasp_regression_model'
     else:
