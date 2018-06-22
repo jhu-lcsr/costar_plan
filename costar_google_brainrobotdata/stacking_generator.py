@@ -8,6 +8,11 @@ from PIL import Image
 import numpy as np
 import json
 from tensorflow import keras
+try:
+    # don't require tensorflow for reading
+    import tensorflow as tf
+except ImportError:
+    tf = None
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -40,7 +45,7 @@ class DataGenerator(keras.utils.Sequence):
     def on_epoch_end(self):
         #Updates indexes after each epoch
         self.indexes = np.arange(len(self.list_IDs))
-        if self.shuffle == True:
+        if self.shuffle is True:
             np.random.shuffle(self.indexes)
 
     def __data_generation(self, list_Ids):
@@ -52,9 +57,13 @@ class DataGenerator(keras.utils.Sequence):
         """
 
         def JpegToNumpy(jpeg):
-            stream = io.BytesIO(jpeg)
-            im = Image.open(stream)
-            return np.asarray(im, dtype=np.uint8)
+            if tf is not None:
+                # make sure to call tf.enable_eager_execution() at the start of your program
+                image = tf.image.decode_jpeg(jpeg)
+            else:
+                stream = io.BytesIO(jpeg)
+                image = Image.open(stream)
+            return np.asarray(image, dtype=np.uint8)
 
         def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
             """ Convert a list of binary jpeg or png files to numpy format.
@@ -98,7 +107,7 @@ class DataGenerator(keras.utils.Sequence):
             for items in list(data['all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json']):
                 json_data = json.loads(items.decode('UTF-8'))
                 y.append(np.array(json_data['camera_rgb_frame']))
-        y = np.array(y)  
+        y = np.array(y)
 
         return X, y
 
