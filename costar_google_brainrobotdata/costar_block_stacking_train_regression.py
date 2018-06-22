@@ -62,7 +62,8 @@ def main(_):
         FLAGS.load_hyperparams = ('hyperparams/regression/'
                                   '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
     FLAGS.epochs = 600
-    FLAGS.batch_size = 16
+    FLAGS.batch_size = 32
+    optimizer_name = 'adam'
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
     # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f'
 
@@ -103,6 +104,7 @@ def main(_):
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             dataset_name=dataset_name,
+            optimizer_name=optimizer_name,
             **hyperparams)
 
 if __name__ == '__main__':

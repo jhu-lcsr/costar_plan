@@ -12,6 +12,39 @@ import keras
 from keras.utils import Sequence
 from keras.utils import OrderedEnqueuer
 import tensorflow as tf
+import grasp_metrics
+
+def random_eraser(input_img, p=0.5, s_l=0.02, s_h=0.4, r_1=0.3, r_2=1/0.3, v_l=0, v_h=255, pixel_level=True):
+    """ Cutout and random erasing algorithms for data augmentation
+
+    source:
+    https://github.com/yu4u/cutout-random-erasing/blob/master/random_eraser.py
+    """
+    img_h, img_w, img_c = input_img.shape
+    p_1 = np.random.rand()
+
+    if p_1 > p:
+        return input_img
+
+    while True:
+        s = np.random.uniform(s_l, s_h) * img_h * img_w
+        r = np.random.uniform(r_1, r_2)
+        w = int(np.sqrt(s / r))
+        h = int(np.sqrt(s * r))
+        left = np.random.randint(0, img_w)
+        top = np.random.randint(0, img_h)
+
+        if left + w <= img_w and top + h <= img_h:
+            break
+
+    if pixel_level:
+        c = np.random.uniform(v_l, v_h, (h, w, img_c))
+    else:
+        c = np.random.uniform(v_l, v_h)
+
+    input_img[top:top + h, left:left + w, :] = c
+
+    return input_img
 
 
 class CostarBlockStackingSequence(Sequence):
@@ -155,7 +188,12 @@ class CostarBlockStackingSequence(Sequence):
                 #resize using skimage
                 rgb_images_resized = []
                 for k, images in enumerate(rgb_images):
-                    rgb_images_resized.append(resize(images, (224, 224, 3)))
+                    resized_image = resize(images, (224, 224, 3))
+                    if self.is_training:
+                        # do some image augmentation with random erasing & cutout
+                        resized_image = random_eraser(resized_image)
+                    rgb_images_resized.append(resized_image)
+
                 init_images.append(rgb_images_resized[0])
                 current_images.append(rgb_images_resized[1])
                 poses.append(np.array(data['pose'][indices[1:]])[0])
@@ -195,9 +233,19 @@ class CostarBlockStackingSequence(Sequence):
                   example_filename + ': ' + str(ex) + ' using the last example twice for batch')
 
         action_labels, init_images, current_images = np.array(action_labels), np.array(init_images), np.array(current_images)
-        poses = np.stack(poses)
-        poses = self.encode_pose(poses)
-        action_poses_vec = np.concatenate([poses, action_labels], axis=1)
+        poses = np.array(poses)
+
+        # print('poses shape: ' + str(poses.shape))
+        encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(poses)
+
+        epsilon = 1e-3
+        if np.any(encoded_poses < 0 - epsilon) or np.any(encoded_poses > 1 + epsilon):
+            raise ValueError('An encoded pose was outside the [0,1] range! Update your encoding. poses: ' +
+                             str(poses) + ' encoded poses: ' + str(encoded_poses))
+        # print('encoded poses shape: ' + str(encoded_poses.shape))
+        # print('action labels shape: ' + str(action_labels.shape))
+        action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
+        # print('encoded poses vec shape: ' + str(action_poses_vec.shape))
         # print("---",init_images.shape)
         # init_images = tf.image.resize_images(init_images,[224,224])
         # current_images = tf.image.resize_images(current_images,[224,224])
@@ -206,8 +254,7 @@ class CostarBlockStackingSequence(Sequence):
         X = [init_images, current_images, action_poses_vec]
         # print("type=======",type(X))
         # print("shape=====",X.shape)
-        y = np.stack(y)
-        y = self.encode_pose(y)
+        y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y)
 
         batch = (X, y)
 
