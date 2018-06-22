@@ -158,6 +158,7 @@ def generate_gripper_action_label(data, action_status, gripper_status, gripper_a
                 gripper_action_label[i] = unique_actions[action_ind]
     return gripper_action_label, gripper_action_goal_idx
 
+
 def load_data_plot(renderer, frame_indices, gripper_status, action_status, gripper_action_label, height, width):
     # load the gripper data
     gripper_data = hv.Table({'Gripper': gripper_status, 'Frame': frame_indices},
