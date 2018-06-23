@@ -1116,7 +1116,7 @@ def load_dataset(
         np.random.seed(0)
         print("------------------------------------------------")
         np.random.shuffle(file_names)
-        val_test_size = 256
+        val_test_size = 128
         # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
         estimated_images_per_example = 250
         test_data = file_names[:val_test_size]
