@@ -190,6 +190,12 @@ flags.DEFINE_string(
     """ Load the json file containing parameters from a kfold cross validation run.
     """
 )
+flags.DEFINE_string(
+    'dataset_name',
+    'cornell_grasping',
+    'Configure training run for a specific dataset.'
+    ' Options are: cornell_grasping and costar_block_stacking.'
+)
 
 FLAGS = flags.FLAGS
 
@@ -268,7 +274,7 @@ def run_training(
         fine_tuning_epochs=None,
         loss=None,
         checkpoint=True,
-        dataset_name='cornell_grasping',
+        dataset_name=None,
         should_initialize=False,
         **kwargs):
     """
@@ -316,6 +322,8 @@ def run_training(
         fine_tuning_epochs = FLAGS.fine_tuning_epochs
     if feature_combo_name is None:
         feature_combo_name = FLAGS.feature_combo
+    if dataset_name is None:
+        dataset_name = FLAGS.dataset_name
 
     if image_model_name == 'nasnet_large':
         # set special dimensions for nasnet
