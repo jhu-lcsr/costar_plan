@@ -208,20 +208,20 @@ def main(args, root="root"):
                         progress_bar.write(filename + ' ' + data_str + ': ' + str(list(data[data_str])))
 
                 if args['preprocess_inplace'] == 'gripper_action':
+                    if 'gripper' not in data or 'label' not in data:
+                        progress_bar.write('Skipping file because the feature string '
+                                           'gripper  and/or label is not present: ' +
+                                           str(filename))
+                        continue
                     # if 'label' in data:
                     #     progress_bar.write("frames ", len(list(data['label'])))
                     # generate new action labels based on when the gripper opens and closes
                     gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data)
                     # add the new action label and goal indices based on when the gripper opens/closes
                     if args['write']:
-                        if 'gripper' not in data or 'label' not in data:
-                            progress_bar.write('Skipping file because the feature for the'
-                                               ' gripper and/or the label is not present: ' +
-                                               str(filename))
-                            continue
                         # cannot write without deleting existing data
                         if "gripper_action_label" in list(data.keys()):
-                                progress_bar.write("deleting existing gripper action labels")
+                                progress_bar.write('Deleting existing gripper action labels for file: ' + str(filename))
                                 del data['gripper_action_label']
                                 del data['gripper_action_goal_idx']
 
