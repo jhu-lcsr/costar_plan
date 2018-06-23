@@ -488,7 +488,7 @@ def run_training(
     # This lets us take advantage of tensorboard visualization
     if 'train' in pipeline:
         if 'test' in pipeline:
-            if test_steps == 0:
+            if test_steps == 0 and not hasattr(test_data, '__len__'):
                 raise ValueError('Attempting to run test data' + str(test_filenames) +
                                  ' with an invalid number of steps: ' + str(test_steps))
             # we need this callback to be at the beginning of the callbacks list!
@@ -1133,10 +1133,11 @@ def load_dataset(
         # test_data = file_names[5:10]
         # validation_data = file_names[10:15]
         # print(train_data)
-
-        train_data = CostarBlockStackingSequence(train_data, batch_size, is_training=True, shuffle=True)
-        test_data = CostarBlockStackingSequence(test_data, batch_size, is_training=False)
-        validation_data = CostarBlockStackingSequence(validation_data, batch_size, is_training=True)
+        # TODO(ahundt) use cornell & google dataset data augmentation / preprocessing for block stacking.
+        crop_shape = (FLAGS.crop_height, FLAGS.crop_width, 3)
+        train_data = CostarBlockStackingSequence(train_data, batch_size, is_training=True, shuffle=True, crop_shape=crop_shape)
+        test_data = CostarBlockStackingSequence(test_data, batch_size, is_training=False, crop_shape=crop_shape)
+        validation_data = CostarBlockStackingSequence(validation_data, batch_size, is_training=True, crop_shape=crop_shape)
         train_size = len(train_data) * batch_size * estimated_images_per_example
         val_size = len(validation_data) * batch_size * estimated_images_per_example
         test_size = len(test_data) * batch_size * estimated_images_per_example

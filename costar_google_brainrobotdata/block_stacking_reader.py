@@ -52,7 +52,7 @@ class CostarBlockStackingSequence(Sequence):
     '''Generates a batch of data from the stacking dataset.
     '''
     def __init__(self, list_example_filenames, batch_size=32, shuffle=False, seed=0,
-                 resize_shape=None, is_training=True, verbose=0):
+                 resize_shape=None, is_training=True, crop_shape=None, verbose=0):
         '''Initialization
 
         #Arguments
@@ -70,6 +70,10 @@ class CostarBlockStackingSequence(Sequence):
         self.is_training = is_training
         self.verbose = verbose
         self.on_epoch_end()
+        if crop_shape is None:
+            # height width 3
+            crop_shape = (224, 224, 3)
+        self.crop_shape = crop_shape
 
     def __len__(self):
         """Denotes the number of batches per epoch
@@ -192,14 +196,16 @@ class CostarBlockStackingSequence(Sequence):
                     print("Indices --",indices)
                 rgb_images = list(data['image'][indices])
                 rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
-                #resize using skimage
+                # resize using skimage
                 rgb_images_resized = []
-                for k, images in enumerate(rgb_images):
-                    resized_image = resize(images, (224, 224, 3))
-                    if self.is_training:
-                        # do some image augmentation with random erasing & cutout
-                        resized_image = random_eraser(resized_image)
-                    rgb_images_resized.append(resized_image)
+                if self.crop_shape is not None:
+                    for k, images in enumerate(rgb_images):
+                        # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
+                        resized_image = resize(images, self.crop_shape)
+                        if self.is_training:
+                            # do some image augmentation with random erasing & cutout
+                            resized_image = random_eraser(resized_image)
+                        rgb_images_resized.append(resized_image)
 
                 init_images.append(rgb_images_resized[0])
                 current_images.append(rgb_images_resized[1])
@@ -289,8 +295,8 @@ def block_stacking_generator(sequence):
 if __name__ == "__main__":
     tf.enable_eager_execution()
     filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2'))
-    #print(filenames)
-    training_generator = CostarBlockStackingSequence(filenames, batch_size=1, verbose = 0)
+    # print(filenames)
+    training_generator = CostarBlockStackingSequence(filenames, batch_size=1, verbose=0)
     num_batches = len(training_generator)
 
     bsg = block_stacking_generator(training_generator)
