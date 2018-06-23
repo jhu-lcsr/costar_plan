@@ -74,7 +74,7 @@ def main(_):
           'training on mae loss so to change them '
           'you will need to modify cornell_grasp_train_regression.py directly.')
 
-    dataset_name = 'costar_stacking_dataset'
+    dataset_name = 'costar_block_stacking'
 
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
