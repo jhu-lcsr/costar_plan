@@ -194,7 +194,7 @@ def main(args, root="root"):
                 fps = args['fps']
                 # check if the data is there to load
                 load_depth = args['depth'] and 'depth_image' in data and len(data['depth_image']) > 0
-                load_rgb = args['rgb'] and 'image' in data and len(data['depth_image']) > 0
+                load_rgb = args['rgb'] and 'image' in data and len(data['image']) > 0
 
                 if args['gripper']:
                     # print the gripper data channel
