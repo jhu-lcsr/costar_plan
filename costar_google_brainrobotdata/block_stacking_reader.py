@@ -186,7 +186,9 @@ class CostarBlockStackingSequence(Sequence):
         try:
             with h5py.File(example_filename, 'r') as data:
                 if 'gripper_action_goal_idx' not in list(data.keys()) or 'gripper_action_label' not in list(data.keys()):
-                    raise ValueError('You need to run preprocessing before this will work! see view_convert_dataset.py --preprocess_inplace.')
+                    raise ValueError('You need to run preprocessing before this will work! \n' +
+                                     '    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --preprocess_inplace gripper_action --write'
+                                     '\n File with error: ' + str(example_filename))
                 #indices = [0]
                 # len of goal indexes is the same as the number of images, so this saves loading all the images
                 all_goal_ids = np.array(data['gripper_action_goal_idx'])
