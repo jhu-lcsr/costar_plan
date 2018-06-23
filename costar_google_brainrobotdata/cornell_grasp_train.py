@@ -1100,7 +1100,7 @@ def load_dataset(
                 # shuffle=False, steps=1,
     else:
         #temporarily hardcoded initialization
-        #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
+        #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
         file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
         np.random.seed(0)
         print("------------------------------------------------")

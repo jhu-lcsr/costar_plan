@@ -65,9 +65,9 @@ def main(_):
     FLAGS.batch_size = 32
     optimizer_name = 'adam'
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
-    # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f'
+    # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f'
 
-    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f')
+    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f')
     FLAGS.fine_tuning_epochs = 0
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
