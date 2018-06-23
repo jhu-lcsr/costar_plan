@@ -1044,7 +1044,7 @@ def load_dataset(
     val_all_features: Instead of getting the specific feature strings, the whole dictionary will be returned.
 
     """
-    print("-------------",dataset_name)
+    print('dataset name: ' + dataset_name)
     if dataset_name == 'cornell_grasping':
 
         if train_filenames is None and val_filenames is None and test_filenames is None:
@@ -1098,7 +1098,10 @@ def load_dataset(
 
                 # val_filenames, batch_size=1, is_training=False,
                 # shuffle=False, steps=1,
-    else:
+    elif dataset_name == 'costar_block_stacking':
+        if 'cornell' in FLAGS.data_dir:
+            FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
+            print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
         #temporarily hardcoded initialization
         #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
         file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
@@ -1154,6 +1157,9 @@ def load_dataset(
         # exit()
 
         # val_steps = None
+    else:
+        raise ValueError('Unsupported dataset_name ' + str(dataset_name) +
+                         ' Options are: cornell_grasping and costar_block_stacking')
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 

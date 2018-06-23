@@ -41,12 +41,13 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
         min_top_block_filter_multiplier = 6
         FLAGS.crop_height = 224
         FLAGS.crop_width = 224
-    elif problem_type == 'grasp_regression' or problem_type == 'regression':
+    elif problem_type in ['grasp_regression', 'regression', 'semantic_grasp_regression']:
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
         # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
         FLAGS.problem_type = problem_type
         FLAGS.feature_combo = feature_combo_name
+        # only meaningful on the cornell and google dataset readers
         FLAGS.crop_to = 'image_contains_grasp_box_center'
         if param_to_optimize == 'val_acc':
             param_to_optimize = 'val_grasp_jaccard'
@@ -57,21 +58,31 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
 
 
 def main(_):
-
-    FLAGS.problem_type = 'classification'
+    # Edit these flags to choose your configuration:
+    # FLAGS.problem_type = 'classification'
+    # FLAGS.dataset_name = 'cornell_grasping'
+    FLAGS.dataset_name = 'costar_block_stacking'
+    FLAGS.problem_type = 'semantic_grasp_regression'
+    FLAGS.batch_size = 128
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
-    FLAGS.epochs = 1
+    FLAGS.epochs = 2
     FLAGS.fine_tuning_epochs = 0
     run_name = FLAGS.run_name
     log_dir = FLAGS.log_dir
     run_name = grasp_utilities.timeStamped(run_name)
     run_training_fn = cornell_grasp_train.run_training
     problem_type = FLAGS.problem_type
-    param_to_optimize = 'val_acc'
+    param_to_optimize = 'loss'
     seed = 15
     initial_num_samples = 4000
     maximum_hyperopt_steps = 10
+    # enable random learning rates, if enabled,
+    # this will be the primary motivator for good/bad
+    # performance, so once you find a good setting
+    # lock it to find a good model
+    learning_rate_enabled = True
+
     # checkpoint is a special parameter to not save hdf5 files because training runs
     # are very quick (~1min) and checkpoint files are very large (~100MB)
     # which is forwarded to cornell_grasp_train.py run_training() function.
@@ -103,6 +114,7 @@ def main(_):
         param_to_optimize=param_to_optimize,
         initial_num_samples=initial_num_samples,
         maximum_hyperopt_steps=maximum_hyperopt_steps,
+        learning_rate_enabled=learning_rate_enabled,
         seed=seed,
         checkpoint=checkpoint)
 
