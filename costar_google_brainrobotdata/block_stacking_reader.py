@@ -185,8 +185,8 @@ class CostarBlockStackingSequence(Sequence):
             x = ()
         try:
             with h5py.File(example_filename, 'r') as data:
-                if 'gripper_action_goal_idx' not in list(data.keys()) or 'gripper_action_label' not in list(data.keys()):
-                    raise ValueError('You need to run preprocessing before this will work! \n' +
+                if 'gripper_action_goal_idx' not in data or 'gripper_action_label' not in data:
+                    raise ValueError('block_stacking_reader.py: You need to run preprocessing before this will work! \n' +
                                      '    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --preprocess_inplace gripper_action --write'
                                      '\n File with error: ' + str(example_filename))
                 #indices = [0]
