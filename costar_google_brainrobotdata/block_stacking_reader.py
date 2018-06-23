@@ -52,7 +52,7 @@ class CostarBlockStackingSequence(Sequence):
     '''Generates a batch of data from the stacking dataset.
     '''
     def __init__(self, list_example_filenames, batch_size=32, shuffle=False, seed=0,
-                 resize_shape=None, is_training=True, crop_shape=None, verbose=0):
+                 is_training=True, output_shape=None, verbose=0):
         '''Initialization
 
         #Arguments
@@ -66,14 +66,15 @@ class CostarBlockStackingSequence(Sequence):
         self.list_example_filenames = list_example_filenames
         self.shuffle = shuffle
         self.seed = seed
-        self.resize_shape = resize_shape
+        self.output_shape = output_shape
         self.is_training = is_training
         self.verbose = verbose
         self.on_epoch_end()
-        if crop_shape is None:
-            # height width 3
-            crop_shape = (224, 224, 3)
-        self.crop_shape = crop_shape
+        self.output_shape = output_shape
+        # if crop_shape is None:
+        #     # height width 3
+        #     crop_shape = (224, 224, 3)
+        # self.crop_shape = crop_shape
 
     def __len__(self):
         """Denotes the number of batches per epoch
@@ -198,10 +199,10 @@ class CostarBlockStackingSequence(Sequence):
                 rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
                 # resize using skimage
                 rgb_images_resized = []
-                if self.crop_shape is not None:
+                if self.resize_shape is not None:
                     for k, images in enumerate(rgb_images):
                         # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
-                        resized_image = resize(images, self.crop_shape)
+                        resized_image = resize(images, self.resize_shape)
                         if self.is_training:
                             # do some image augmentation with random erasing & cutout
                             resized_image = random_eraser(resized_image)

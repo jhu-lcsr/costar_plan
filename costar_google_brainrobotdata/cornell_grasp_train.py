@@ -1116,7 +1116,7 @@ def load_dataset(
         np.random.seed(0)
         print("------------------------------------------------")
         np.random.shuffle(file_names)
-        val_test_size = 128
+        val_test_size = 256
         # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
         estimated_images_per_example = 250
         test_data = file_names[:val_test_size]
@@ -1134,10 +1134,12 @@ def load_dataset(
         # validation_data = file_names[10:15]
         # print(train_data)
         # TODO(ahundt) use cornell & google dataset data augmentation / preprocessing for block stacking.
-        crop_shape = (FLAGS.crop_height, FLAGS.crop_width, 3)
-        train_data = CostarBlockStackingSequence(train_data, batch_size, is_training=True, shuffle=True, crop_shape=crop_shape)
-        test_data = CostarBlockStackingSequence(test_data, batch_size, is_training=False, crop_shape=crop_shape)
-        validation_data = CostarBlockStackingSequence(validation_data, batch_size, is_training=True, crop_shape=crop_shape)
+
+        if output_shape is None:
+            output_shape = (FLAGS.resize_height, FLAGS.resize_width)
+        train_data = CostarBlockStackingSequence(train_data, batch_size, is_training=True, shuffle=True, output_shape=output_shape)
+        test_data = CostarBlockStackingSequence(test_data, batch_size, is_training=False, output_shape=output_shape)
+        validation_data = CostarBlockStackingSequence(validation_data, batch_size, is_training=True, output_shape=output_shape)
         train_size = len(train_data) * batch_size * estimated_images_per_example
         val_size = len(validation_data) * batch_size * estimated_images_per_example
         test_size = len(test_data) * batch_size * estimated_images_per_example
