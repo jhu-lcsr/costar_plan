@@ -208,19 +208,21 @@ def main(args, root="root"):
                         progress_bar.write(filename + ' ' + data_str + ': ' + str(list(data[data_str])))
 
                 if args['preprocess_inplace'] == 'gripper_action':
-                    print("frames ",len(list(data['label'])))
+                    # if 'label' in data:
+                    #     progress_bar.write("frames ", len(list(data['label'])))
                     # generate new action labels based on when the gripper opens and closes
                     gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data)
                     # add the new action label and goal indices based on when the gripper opens/closes
                     if args['write']:
 
-                        #cannot write without deleting existing data
+                        # cannot write without deleting existing data
                         if "gripper_action_label" in list(data.keys()):
-                                print("deleting existing gripper action labels")
+                                progress_bar.write("deleting existing gripper action labels")
                                 del data['gripper_action_label']
                                 del data['gripper_action_goal_idx']
+
                         data['gripper_action_label'], data['gripper_action_goal_idx'] = np.array(gripper_action_label), np.array(gripper_action_goal_idx)
-                        #print("data on file",list(data['gripper_action_goal_idx']))
+                        # progress_bar.write("data on file",list(data['gripper_action_goal_idx']))
                     else:
                         progress_bar.write(
                             'gripper_action_label test run, use --write to change the files in place. gripper_action_label: ' +
