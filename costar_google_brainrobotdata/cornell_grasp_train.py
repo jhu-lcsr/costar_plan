@@ -1134,9 +1134,7 @@ def load_dataset(
         # validation_data = file_names[10:15]
         # print(train_data)
         # TODO(ahundt) use cornell & google dataset data augmentation / preprocessing for block stacking.
-
-        if output_shape is None:
-            output_shape = (FLAGS.resize_height, FLAGS.resize_width)
+        output_shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         train_data = CostarBlockStackingSequence(train_data, batch_size, is_training=True, shuffle=True, output_shape=output_shape)
         test_data = CostarBlockStackingSequence(test_data, batch_size, is_training=False, output_shape=output_shape)
         validation_data = CostarBlockStackingSequence(validation_data, batch_size, is_training=True, output_shape=output_shape)

@@ -50,6 +50,8 @@ def random_eraser(input_img, p=0.5, s_l=0.02, s_h=0.4, r_1=0.3, r_2=1/0.3, v_l=0
 
 class CostarBlockStackingSequence(Sequence):
     '''Generates a batch of data from the stacking dataset.
+
+    # TODO(ahundt) match the preprocessing /augmentation apis of cornell & google dataset
     '''
     def __init__(self, list_example_filenames, batch_size=32, shuffle=False, seed=0,
                  is_training=True, output_shape=None, verbose=0):
