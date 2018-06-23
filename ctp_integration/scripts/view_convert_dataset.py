@@ -214,7 +214,11 @@ def main(args, root="root"):
                     gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data)
                     # add the new action label and goal indices based on when the gripper opens/closes
                     if args['write']:
-
+                        if 'gripper' not in data or 'label' not in data:
+                            progress_bar.write('Skipping file because the feature for the'
+                                               ' gripper and/or the label is not present: ' +
+                                               str(filename))
+                            continue
                         # cannot write without deleting existing data
                         if "gripper_action_label" in list(data.keys()):
                                 progress_bar.write("deleting existing gripper action labels")
@@ -291,7 +295,7 @@ def generate_gripper_action_label(data):
     """
     gripper_status = list(data['gripper'])
     action_status = list(data['label'])
-    print("goal",list(data["goal_idx"]))
+    # print("goal",list(data["goal_idx"]))
     gripper_action_goal_idx = []
     unique_actions, indices = np.unique(action_status, return_index=True)
     unique_actions = [action_status[index] for index in sorted(indices)]
@@ -320,11 +324,11 @@ def generate_gripper_action_label(data):
         else:
             goal_to_add = len(gripper_status)-1
 
-        if(i<goal_to_add):
+        if(i < goal_to_add):
             goal_list.append(goal_to_add)
 
         else:
-            gripper_ind+=1
+            gripper_ind += 1
     gripper_action_goal_idx = goal_list
     #print(gripper_action_goal_idx)
 
