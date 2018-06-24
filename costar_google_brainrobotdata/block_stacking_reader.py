@@ -53,7 +53,9 @@ class CostarBlockStackingSequence(Sequence):
 
     # TODO(ahundt) match the preprocessing /augmentation apis of cornell & google dataset
     '''
-    def __init__(self, list_example_filenames, batch_size=32, shuffle=False, seed=0,
+    def __init__(self, list_example_filenames,
+                 label_features_to_extract=None, data_features_to_extract=None,
+                 batch_size=32, shuffle=False, seed=0,
                  is_training=True, output_shape=None, verbose=0):
         '''Initialization
 
@@ -63,6 +65,9 @@ class CostarBlockStackingSequence(Sequence):
         batch_size: specifies the size of each batch
         shuffle: boolean to specify shuffle after each epoch
         seed: a random seed to use. If seed is None it will be in order!
+        # TODO(ahundt) better notes about the two parameters below. See choose_features_and_metrics() in cornell_grasp_trin.py.
+        label_features_to_extract: defaults to regression options, classification options are also available
+        data_features_to_extract: defaults to regression options, classification options are also available
         '''
         self.batch_size = batch_size
         self.list_example_filenames = list_example_filenames
@@ -73,6 +78,8 @@ class CostarBlockStackingSequence(Sequence):
         self.verbose = verbose
         self.on_epoch_end()
         self.output_shape = output_shape
+        self.label_features_to_extract = label_features_to_extract
+        self.data_features_to_extract = data_features_to_extract
         # if crop_shape is None:
         #     # height width 3
         #     crop_shape = (224, 224, 3)
@@ -144,8 +151,8 @@ class CostarBlockStackingSequence(Sequence):
             try:
                 return im.astype(np.uint8)
             except(TypeError) as exception:
-                print("Failed to convert PIL image type",exception)
-                print("type ",type(im),"len ",len(im))
+                print("Failed to convert PIL image type", exception)
+                print("type ", type(im), "len ", len(im))
 
         def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC'):
             """ Convert a list of binary jpeg or png files to numpy format.
@@ -175,13 +182,15 @@ class CostarBlockStackingSequence(Sequence):
         poses = []
         y = []
         action_labels = []
+        action_successes = []
+        example_filename = ''
 
         # Generate data
         for i, example_filename in enumerate(list_Ids):
             if self.verbose > 0:
                 print('reading: ' + str(i) + ' path: ' + str(example_filename))
             # Store sample
-            #X[i,] = np.load('data/' + example_filename + '.npy')
+            # X[i,] = np.load('data/' + example_filename + '.npy')
             x = ()
         try:
             with h5py.File(example_filename, 'r') as data:
@@ -189,7 +198,7 @@ class CostarBlockStackingSequence(Sequence):
                     raise ValueError('block_stacking_reader.py: You need to run preprocessing before this will work! \n' +
                                      '    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --preprocess_inplace gripper_action --write'
                                      '\n File with error: ' + str(example_filename))
-                #indices = [0]
+                # indices = [0]
                 # len of goal indexes is the same as the number of images, so this saves loading all the images
                 all_goal_ids = np.array(data['gripper_action_goal_idx'])
                 if self.seed is not None:
@@ -246,6 +255,10 @@ class CostarBlockStackingSequence(Sequence):
                     #print(json_data.keys())
                     #y.append(np.array(json_data['camera_rgb_frame']))
                 y.append(label)
+                if 'success' in example_filename:
+                    action_successes = action_successes + [1]
+                else:
+                    action_successes = action_successes + [0]
         except IOError as ex:
             print('Error: Skipping file due to IO error when opening ' +
                   example_filename + ': ' + str(ex) + ' using the last example twice for batch')
@@ -264,17 +277,36 @@ class CostarBlockStackingSequence(Sequence):
                              str(poses) + ' encoded poses: ' + str(encoded_poses))
         # print('encoded poses shape: ' + str(encoded_poses.shape))
         # print('action labels shape: ' + str(action_labels.shape))
-        action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
         # print('encoded poses vec shape: ' + str(action_poses_vec.shape))
         # print("---",init_images.shape)
         # init_images = tf.image.resize_images(init_images,[224,224])
         # current_images = tf.image.resize_images(current_images,[224,224])
         # print("---",init_images.shape)
         # X = init_images
-        X = [init_images, current_images, action_poses_vec]
+        if 'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
+            # regression input case
+            action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
+            X = [init_images, current_images, action_poses_vec]
+        elif 'proposed_goal_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
+            # classification input case
+            proposed_and_current_action_vec = np.concatenate([encoded_poses, action_labels, y], axis=-1)
+            X = [init_images, current_images, proposed_and_current_action_vec]
+
+        else:
+            raise ValueError('Unsupported data input: ' + str(self.data_features_to_extract))
+
         # print("type=======",type(X))
         # print("shape=====",X.shape)
-        y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y)
+
+        # determine the label
+        if self.label_features_to_extract is None or 'grasp_goal_xyz_aaxyz_nsc_8' in self.label_features_to_extract:
+            # default, regression label case
+            y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y)
+        elif 'grasp_success' in self.label_features_to_extract or 'action_success' in self.label_features_to_extract:
+            # classification label case
+            y = action_successes
+        else:
+            raise ValueError('Unsupported label: ' + str(action_labels))
 
         batch = (X, y)
 

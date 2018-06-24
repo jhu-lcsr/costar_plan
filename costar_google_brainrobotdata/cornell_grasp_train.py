@@ -992,19 +992,35 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
     elif problem_name == 'pixelwise_grasp_regression':
         raise NotImplementedError
     elif problem_name == 'semantic_grasp_regression':
-        # this is the first case we're trying with the costar stacking dataset
+        # this is the regression case with the costar block stacking dataset
         classes = 8
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
         metrics = [grasp_metrics.grasp_acc, 'mse', 'mae', grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
         vector_shapes = [(49,)]
-        label_features = ['xyz_aaxyz_nsc_8']
+        data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
+        label_features = ['grasp_goal_xyz_aaxyz_nsc_8']
         monitor_loss_name = 'val_loss'
         shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         image_shapes = [shape, shape]
         loss = keras.losses.mean_absolute_error
         model_name = '_semantic_grasp_regression_model'
+    elif problem_name == 'semantic_grasp_classification':
+        # this is the classification case with the costar block stacking dataset
+        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'val_binary_accuracy'
+        data_features = ['image/preprocessed', 'proposed_goal_xyz_aaxyz_nsc_8']
+        label_features = ['grasp_success']
+        # this is the length of the state vector defined in block_stacking_reader.py
+        vector_shapes = [(57,)]
+        # TODO(ahundt) should grasp_success be renamed action_success?
+        monitor_loss_name = 'val_loss'
+        shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
+        image_shapes = [shape, shape]
+        loss = keras.losses.binary_crossentropy
+        model_name = '_semantic_grasp_classification_model'
     else:
         raise ValueError('Selected problem_name ' + str(problem_name) + ' does not exist. '
                          'feature selection options are segmentation and classification, '
@@ -1108,7 +1124,12 @@ def load_dataset(
                 # shuffle=False, steps=1,
     elif dataset_name == 'costar_block_stacking':
         if 'cornell' in FLAGS.data_dir:
-            FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
+            if 'grasp_success' in label_features or 'action_success' in label_features:
+                # classification case
+                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
+            else:
+                # regression case
+                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*.h5f'
             print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
         #temporarily hardcoded initialization
         #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
