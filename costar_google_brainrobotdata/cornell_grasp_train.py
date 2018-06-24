@@ -1144,8 +1144,8 @@ def load_dataset(
         # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
         # videos are at 10hz and there are about 25 seconds of video in each:
         # estimated_images_per_example = 250
-        # TODO(ahundt) lowered number of images visited per example temporarily for hyperopt
-        estimated_images_per_example = 25
+        # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
+        estimated_images_per_example = 5
         test_data = file_names[:val_test_size]
         with open('test.txt', mode='w') as myfile:
             myfile.write('\n'.join(test_data))
