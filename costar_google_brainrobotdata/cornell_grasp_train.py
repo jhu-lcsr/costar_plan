@@ -1126,10 +1126,10 @@ def load_dataset(
         if 'cornell' in FLAGS.data_dir:
             if 'grasp_success' in label_features or 'action_success' in label_features:
                 # classification case
-                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
+                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*.h5f'
             else:
                 # regression case
-                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*.h5f'
+                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
             print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
         #temporarily hardcoded initialization
         #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
