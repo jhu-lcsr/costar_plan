@@ -681,7 +681,7 @@ def choose_hypertree_model(
                     x = Input(shape=image_input_shape)
                     image_model = Model(x, x)
                 elif image_model_weights == 'separate':
-                    def identity_model(input_shape=(224,224,3), weights=None, classes=None,
+                    def identity_model(input_shape=(224, 224, 3), weights=None, classes=None,
                                        input_tensor=None):
                         """ Identity Model is an empty model that returns the input.
                         """
