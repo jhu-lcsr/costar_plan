@@ -174,157 +174,167 @@ class CostarBlockStackingSequence(Sequence):
             if format == 'numpy':
                 imgs = np.array(imgs)
             return imgs
-        # Initialization
-        if self.verbose > 0:
-            print("generating batch: " + str(list_Ids))
-        X = []
-        init_images = []
-        current_images = []
-        poses = []
-        y = []
-        action_labels = []
-        action_successes = []
-        example_filename = ''
-        if isinstance(list_Ids, int):
-            # if it is just a single int
-            # make it a list so we can iterate
-            list_Ids = [list_Ids]
-
-        # Generate data
-        for i, example_filename in enumerate(list_Ids):
-            if self.verbose > 0:
-                print('reading: ' + str(i) + ' path: ' + str(example_filename))
-            # Store sample
-            # X[i,] = np.load('data/' + example_filename + '.npy')
-            x = ()
         try:
-            with h5py.File(example_filename, 'r') as data:
-                if 'gripper_action_goal_idx' not in data or 'gripper_action_label' not in data:
-                    raise ValueError('block_stacking_reader.py: You need to run preprocessing before this will work! \n' +
-                                     '    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --preprocess_inplace gripper_action --write'
-                                     '\n File with error: ' + str(example_filename))
-                # indices = [0]
-                # len of goal indexes is the same as the number of images, so this saves loading all the images
-                all_goal_ids = np.array(data['gripper_action_goal_idx'])
-                if self.seed is not None:
-                    image_indices = np.random.randint(1, len(all_goal_ids)-1, 1)
-                else:
-                    raise NotImplementedError
-                indices = [0] + list(image_indices)
+            # Initialization
+            if self.verbose > 0:
+                print("generating batch: " + str(list_Ids))
+            X = []
+            init_images = []
+            current_images = []
+            poses = []
+            y = []
+            action_labels = []
+            action_successes = []
+            example_filename = ''
+            if isinstance(list_Ids, int):
+                # if it is just a single int
+                # make it a list so we can iterate
+                list_Ids = [list_Ids]
+
+            # Generate data
+            for i, example_filename in enumerate(list_Ids):
                 if self.verbose > 0:
-                    print("Indices --", indices)
-                rgb_images = list(data['image'][indices])
-                rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
-                # resize using skimage
-                rgb_images_resized = []
-                for k, images in enumerate(rgb_images):
-                    # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
-                    if self.output_shape is not None:
-                        resized_image = resize(images, self.output_shape)
+                    print('reading: ' + str(i) + ' path: ' + str(example_filename))
+                # Store sample
+                # X[i,] = np.load('data/' + example_filename + '.npy')
+                x = ()
+            try:
+                with h5py.File(example_filename, 'r') as data:
+                    if 'gripper_action_goal_idx' not in data or 'gripper_action_label' not in data:
+                        raise ValueError('block_stacking_reader.py: You need to run preprocessing before this will work! \n' +
+                                         '    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --preprocess_inplace gripper_action --write'
+                                         '\n File with error: ' + str(example_filename))
+                    # indices = [0]
+                    # len of goal indexes is the same as the number of images, so this saves loading all the images
+                    all_goal_ids = np.array(data['gripper_action_goal_idx'])
+                    if self.seed is not None:
+                        image_indices = np.random.randint(1, len(all_goal_ids)-1, 1)
                     else:
-                        resized_image = images
-                    if self.is_training:
-                        # do some image augmentation with random erasing & cutout
-                        resized_image = random_eraser(resized_image)
-                    rgb_images_resized.append(resized_image)
+                        raise NotImplementedError
+                    indices = [0] + list(image_indices)
+                    if self.verbose > 0:
+                        print("Indices --", indices)
+                    rgb_images = list(data['image'][indices])
+                    rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
+                    # resize using skimage
+                    rgb_images_resized = []
+                    for k, images in enumerate(rgb_images):
+                        # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
+                        if self.output_shape is not None:
+                            resized_image = resize(images, self.output_shape)
+                        else:
+                            resized_image = images
+                        if self.is_training:
+                            # do some image augmentation with random erasing & cutout
+                            resized_image = random_eraser(resized_image)
+                        rgb_images_resized.append(resized_image)
 
-                init_images.append(rgb_images_resized[0])
-                current_images.append(rgb_images_resized[1])
-                poses.append(np.array(data['pose'][indices[1:]])[0])
-                # x = x + tuple([rgb_images[indices]])
-                # x = x + tuple([np.array(data['pose'])[indices]])
-                for j in indices[1:]:
-                    action = np.zeros(41)
-                    action[data['gripper_action_label'][j]] = 1
-                    action_labels.append(action)
-                # action_labels = np.array(action_labels)
+                    init_images.append(rgb_images_resized[0])
+                    current_images.append(rgb_images_resized[1])
+                    poses.append(np.array(data['pose'][indices[1:]])[0])
+                    # x = x + tuple([rgb_images[indices]])
+                    # x = x + tuple([np.array(data['pose'])[indices]])
+                    for j in indices[1:]:
+                        action = np.zeros(41)
+                        action[data['gripper_action_label'][j]] = 1
+                        action_labels.append(action)
+                    # action_labels = np.array(action_labels)
 
 
-                #print(action_labels)
-                # x = x + tuple([action_labels])
-                #X.append(x)
-                # action_labels = np.unique(data['gripper_action_label'])
-                # print(np.array(data['labels_to_name']).shape)
-                #X.append(np.array(data['pose'])[indices])
+                    #print(action_labels)
+                    # x = x + tuple([action_labels])
+                    #X.append(x)
+                    # action_labels = np.unique(data['gripper_action_label'])
+                    # print(np.array(data['labels_to_name']).shape)
+                    #X.append(np.array(data['pose'])[indices])
 
-                # Store class
-                label = ()
-                #change to goals computed
-                index1 = indices[1]
-                goal_ids = all_goal_ids[index1]
-                # print(index1)
-                label = np.array(data['pose'])[goal_ids]
-                #print(type(label))
-                # for items in list(data['all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json'][indices]):
-                #     json_data = json.loads(items.decode('UTF-8'))
-                #     label = label + tuple([json_data['gripper_center']])
-                #     print(np.array(json_data['gripper_center']))
-                    #print(json_data.keys())
-                    #y.append(np.array(json_data['camera_rgb_frame']))
-                y.append(label)
-                if 'success' in example_filename:
-                    action_successes = action_successes + [1]
-                else:
-                    action_successes = action_successes + [0]
-        except IOError as ex:
-            print('Error: Skipping file due to IO error when opening ' +
-                  example_filename + ': ' + str(ex) + ' using the last example twice for batch')
+                    # Store class
+                    label = ()
+                    #change to goals computed
+                    index1 = indices[1]
+                    goal_ids = all_goal_ids[index1]
+                    # print(index1)
+                    label = np.array(data['pose'])[goal_ids]
+                    #print(type(label))
+                    # for items in list(data['all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json'][indices]):
+                    #     json_data = json.loads(items.decode('UTF-8'))
+                    #     label = label + tuple([json_data['gripper_center']])
+                    #     print(np.array(json_data['gripper_center']))
+                        #print(json_data.keys())
+                        #y.append(np.array(json_data['camera_rgb_frame']))
+                    y.append(label)
+                    if 'success' in example_filename:
+                        action_successes = action_successes + [1]
+                    else:
+                        action_successes = action_successes + [0]
+            except IOError as ex:
+                print('Error: Skipping file due to IO error when opening ' +
+                      example_filename + ': ' + str(ex) + ' using the last example twice for batch')
 
-        action_labels = np.array(action_labels)
-        init_images = keras_applications.imagenet_utils._preprocess_numpy_input(
-            np.array(init_images, dtype=np.float32),
-            data_format='channels_last', mode='tf')
-        current_images = keras_applications.imagenet_utils._preprocess_numpy_input(
-            np.array(current_images, dtype=np.float32),
-            data_format='channels_last', mode='tf')
-        poses = np.array(poses)
+            action_labels = np.array(action_labels)
+            init_images = keras_applications.imagenet_utils._preprocess_numpy_input(
+                np.array(init_images, dtype=np.float32),
+                data_format='channels_last', mode='tf')
+            current_images = keras_applications.imagenet_utils._preprocess_numpy_input(
+                np.array(current_images, dtype=np.float32),
+                data_format='channels_last', mode='tf')
+            poses = np.array(poses)
 
-        # print('poses shape: ' + str(poses.shape))
-        encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(poses)
+            # print('poses shape: ' + str(poses.shape))
+            encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(poses)
 
-        epsilon = 1e-3
-        if np.any(encoded_poses < 0 - epsilon) or np.any(encoded_poses > 1 + epsilon):
-            raise ValueError('An encoded pose was outside the [0,1] range! Update your encoding. poses: ' +
-                             str(poses) + ' encoded poses: ' + str(encoded_poses))
-        # print('encoded poses shape: ' + str(encoded_poses.shape))
-        # print('action labels shape: ' + str(action_labels.shape))
-        # print('encoded poses vec shape: ' + str(action_poses_vec.shape))
-        # print("---",init_images.shape)
-        # init_images = tf.image.resize_images(init_images,[224,224])
-        # current_images = tf.image.resize_images(current_images,[224,224])
-        # print("---",init_images.shape)
-        # X = init_images
-        if self.data_features_to_extract is None or 'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
-            # default, regression input case
-            action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
-            X = [init_images, current_images, action_poses_vec]
-        elif 'proposed_goal_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
-            # classification input case
-            proposed_and_current_action_vec = np.concatenate([encoded_poses, action_labels, y], axis=-1)
-            X = [init_images, current_images, proposed_and_current_action_vec]
+            epsilon = 1e-3
+            if np.any(encoded_poses < 0 - epsilon) or np.any(encoded_poses > 1 + epsilon):
+                raise ValueError('An encoded pose was outside the [0,1] range! Update your encoding. poses: ' +
+                                 str(poses) + ' encoded poses: ' + str(encoded_poses))
+            # print('encoded poses shape: ' + str(encoded_poses.shape))
+            # print('action labels shape: ' + str(action_labels.shape))
+            # print('encoded poses vec shape: ' + str(action_poses_vec.shape))
+            # print("---",init_images.shape)
+            # init_images = tf.image.resize_images(init_images,[224,224])
+            # current_images = tf.image.resize_images(current_images,[224,224])
+            # print("---",init_images.shape)
+            # X = init_images
+            if self.data_features_to_extract is None or 'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
+                # default, regression input case
+                action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
+                X = [init_images, current_images, action_poses_vec]
+            elif 'proposed_goal_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
+                # classification input case
+                proposed_and_current_action_vec = np.concatenate([encoded_poses, action_labels, y], axis=-1)
+                X = [init_images, current_images, proposed_and_current_action_vec]
 
-        else:
-            raise ValueError('Unsupported data input: ' + str(self.data_features_to_extract))
+            else:
+                raise ValueError('Unsupported data input: ' + str(self.data_features_to_extract))
 
-        # print("type=======",type(X))
-        # print("shape=====",X.shape)
+            # print("type=======",type(X))
+            # print("shape=====",X.shape)
 
-        # determine the label
-        if self.label_features_to_extract is None or 'grasp_goal_xyz_aaxyz_nsc_8' in self.label_features_to_extract:
-            # default, regression label case
-            y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y)
-        elif 'grasp_success' in self.label_features_to_extract or 'action_success' in self.label_features_to_extract:
-            # classification label case
-            y = action_successes
-        else:
-            raise ValueError('Unsupported label: ' + str(action_labels))
+            # determine the label
+            if self.label_features_to_extract is None or 'grasp_goal_xyz_aaxyz_nsc_8' in self.label_features_to_extract:
+                # default, regression label case
+                y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y)
+            elif 'grasp_success' in self.label_features_to_extract or 'action_success' in self.label_features_to_extract:
+                # classification label case
+                y = action_successes
+            else:
+                raise ValueError('Unsupported label: ' + str(action_labels))
 
-        batch = (X, y)
+            batch = (X, y)
 
-        if self.verbose > 0:
-            # diff should be nonzero for most timesteps except just before the gripper closes!
-            print('encoded current poses: ' + str(poses) + ' labels: ' + str(y) + ' diff: ' + str(poses - y))
-            print("generated batch: " + str(list_Ids))
+            if self.verbose > 0:
+                # diff should be nonzero for most timesteps except just before the gripper closes!
+                print('encoded current poses: ' + str(poses) + ' labels: ' + str(y) + ' diff: ' + str(poses - y))
+                print("generated batch: " + str(list_Ids))
+            except Exception as ex:
+                print('CostarBlockStackingSequence: Keras will often swallow exceptions without a stack trace, '
+                      'so we are printing the stack trace here before re-raising the error.')
+                ex_type, ex, tb = sys.exc_info()
+                traceback.print_tb(tb)
+                # deletion must be explicit to prevent leaks
+                # https://stackoverflow.com/a/16946886/99379
+                del tb
+                raise
 
         return batch
 
