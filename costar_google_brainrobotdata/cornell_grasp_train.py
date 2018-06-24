@@ -1139,7 +1139,10 @@ def load_dataset(
         np.random.shuffle(file_names)
         val_test_size = 128
         # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
-        estimated_images_per_example = 250
+        # videos are at 10hz and there are about 25 seconds of video in each:
+        # estimated_images_per_example = 250
+        # TODO(ahundt) lowered number of images visited per example temporarily for hyperopt
+        estimated_images_per_example = 25
         test_data = file_names[:val_test_size]
         with open('test.txt', mode='w') as myfile:
             myfile.write('\n'.join(test_data))
