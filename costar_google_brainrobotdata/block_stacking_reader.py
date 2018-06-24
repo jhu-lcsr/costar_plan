@@ -290,8 +290,8 @@ class CostarBlockStackingSequence(Sequence):
         # current_images = tf.image.resize_images(current_images,[224,224])
         # print("---",init_images.shape)
         # X = init_images
-        if 'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
-            # regression input case
+        if self.data_features_to_extract is None or 'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
+            # default, regression input case
             action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
             X = [init_images, current_images, action_poses_vec]
         elif 'proposed_goal_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
