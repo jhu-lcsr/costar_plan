@@ -13,6 +13,7 @@ from keras.utils import Sequence
 from keras.utils import OrderedEnqueuer
 import tensorflow as tf
 import grasp_metrics
+import keras_applications
 
 
 def random_eraser(input_img, p=0.5, s_l=0.02, s_h=0.4, r_1=0.3, r_2=1/0.3, v_l=0, v_h=255, pixel_level=True):
@@ -264,10 +265,10 @@ class CostarBlockStackingSequence(Sequence):
                   example_filename + ': ' + str(ex) + ' using the last example twice for batch')
 
         action_labels = np.array(action_labels)
-        init_images = keras.applications.imagenet_utils._preprocess_numpy_input(
+        init_images = keras_applications.imagenet_utils._preprocess_numpy_input(
             np.array(init_images, dtype=np.float32),
             data_format='channels_last', mode='tf')
-        current_images = keras.applications.imagenet_utils._preprocess_numpy_input(
+        current_images = keras_applications.imagenet_utils._preprocess_numpy_input(
             np.array(current_images, dtype=np.float32),
             data_format='channels_last', mode='tf')
         poses = np.array(poses)
