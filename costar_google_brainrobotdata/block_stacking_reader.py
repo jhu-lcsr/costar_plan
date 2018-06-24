@@ -185,6 +185,10 @@ class CostarBlockStackingSequence(Sequence):
         action_labels = []
         action_successes = []
         example_filename = ''
+        if isinstance(list_Ids, int):
+            # if it is just a single int
+            # make it a list so we can iterate
+            list_Ids = [list_Ids]
 
         # Generate data
         for i, example_filename in enumerate(list_Ids):
