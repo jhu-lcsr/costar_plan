@@ -2,6 +2,7 @@
 import h5py
 import os
 import io
+import sys
 import glob
 from PIL import Image
 from skimage.transform import resize
