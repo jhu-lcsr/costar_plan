@@ -4,6 +4,7 @@ import os
 import io
 import sys
 import glob
+import traceback
 from PIL import Image
 from skimage.transform import resize
 
