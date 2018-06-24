@@ -113,7 +113,7 @@ class CostarBlockStackingSequence(Sequence):
             # continue the large random sequence for training
             np.random.seed(self.seed)
         self.indexes = np.arange(len(self.list_example_filenames))
-        if self.shuffle == True:
+        if self.shuffle is True:
             np.random.shuffle(self.indexes)
 
     def encode_pose(self, pose):
@@ -200,78 +200,78 @@ class CostarBlockStackingSequence(Sequence):
                 # Store sample
                 # X[i,] = np.load('data/' + example_filename + '.npy')
                 x = ()
-            try:
-                with h5py.File(example_filename, 'r') as data:
-                    if 'gripper_action_goal_idx' not in data or 'gripper_action_label' not in data:
-                        raise ValueError('block_stacking_reader.py: You need to run preprocessing before this will work! \n' +
-                                         '    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --preprocess_inplace gripper_action --write'
-                                         '\n File with error: ' + str(example_filename))
-                    # indices = [0]
-                    # len of goal indexes is the same as the number of images, so this saves loading all the images
-                    all_goal_ids = np.array(data['gripper_action_goal_idx'])
-                    if self.seed is not None:
-                        image_indices = np.random.randint(1, len(all_goal_ids)-1, 1)
-                    else:
-                        raise NotImplementedError
-                    indices = [0] + list(image_indices)
-                    if self.verbose > 0:
-                        print("Indices --", indices)
-                    rgb_images = list(data['image'][indices])
-                    rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
-                    # resize using skimage
-                    rgb_images_resized = []
-                    for k, images in enumerate(rgb_images):
-                        # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
-                        if self.output_shape is not None:
-                            resized_image = resize(images, self.output_shape)
+                try:
+                    with h5py.File(example_filename, 'r') as data:
+                        if 'gripper_action_goal_idx' not in data or 'gripper_action_label' not in data:
+                            raise ValueError('block_stacking_reader.py: You need to run preprocessing before this will work! \n' +
+                                             '    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --preprocess_inplace gripper_action --write'
+                                             '\n File with error: ' + str(example_filename))
+                        # indices = [0]
+                        # len of goal indexes is the same as the number of images, so this saves loading all the images
+                        all_goal_ids = np.array(data['gripper_action_goal_idx'])
+                        if self.seed is not None:
+                            image_indices = np.random.randint(1, len(all_goal_ids)-1, 1)
                         else:
-                            resized_image = images
-                        if self.is_training:
-                            # do some image augmentation with random erasing & cutout
-                            resized_image = random_eraser(resized_image)
-                        rgb_images_resized.append(resized_image)
+                            raise NotImplementedError
+                        indices = [0] + list(image_indices)
+                        if self.verbose > 0:
+                            print("Indices --", indices)
+                        rgb_images = list(data['image'][indices])
+                        rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
+                        # resize using skimage
+                        rgb_images_resized = []
+                        for k, images in enumerate(rgb_images):
+                            # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
+                            if self.output_shape is not None:
+                                resized_image = resize(images, self.output_shape)
+                            else:
+                                resized_image = images
+                            if self.is_training:
+                                # do some image augmentation with random erasing & cutout
+                                resized_image = random_eraser(resized_image)
+                            rgb_images_resized.append(resized_image)
 
-                    init_images.append(rgb_images_resized[0])
-                    current_images.append(rgb_images_resized[1])
-                    poses.append(np.array(data['pose'][indices[1:]])[0])
-                    # x = x + tuple([rgb_images[indices]])
-                    # x = x + tuple([np.array(data['pose'])[indices]])
-                    for j in indices[1:]:
-                        action = np.zeros(41)
-                        action[data['gripper_action_label'][j]] = 1
-                        action_labels.append(action)
-                    # action_labels = np.array(action_labels)
+                        init_images.append(rgb_images_resized[0])
+                        current_images.append(rgb_images_resized[1])
+                        poses.append(np.array(data['pose'][indices[1:]])[0])
+                        # x = x + tuple([rgb_images[indices]])
+                        # x = x + tuple([np.array(data['pose'])[indices]])
+                        for j in indices[1:]:
+                            # generate the action label one-hot encoding
+                            action = np.zeros(41)
+                            action[data['gripper_action_label'][j]] = 1
+                            action_labels.append(action)
+                        # action_labels = np.array(action_labels)
 
+                        # print(action_labels)
+                        # x = x + tuple([action_labels])
+                        # X.append(x)
+                        # action_labels = np.unique(data['gripper_action_label'])
+                        # print(np.array(data['labels_to_name']).shape)
+                        # X.append(np.array(data['pose'])[indices])
 
-                    #print(action_labels)
-                    # x = x + tuple([action_labels])
-                    #X.append(x)
-                    # action_labels = np.unique(data['gripper_action_label'])
-                    # print(np.array(data['labels_to_name']).shape)
-                    #X.append(np.array(data['pose'])[indices])
-
-                    # Store class
-                    label = ()
-                    #change to goals computed
-                    index1 = indices[1]
-                    goal_ids = all_goal_ids[index1]
-                    # print(index1)
-                    label = np.array(data['pose'])[goal_ids]
-                    #print(type(label))
-                    # for items in list(data['all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json'][indices]):
-                    #     json_data = json.loads(items.decode('UTF-8'))
-                    #     label = label + tuple([json_data['gripper_center']])
-                    #     print(np.array(json_data['gripper_center']))
-                        #print(json_data.keys())
-                        #y.append(np.array(json_data['camera_rgb_frame']))
-                    y.append(label)
-                    if 'success' in example_filename:
-                        action_successes = action_successes + [1]
-                    else:
-                        action_successes = action_successes + [0]
-            except IOError as ex:
-                print('Error: Skipping file due to IO error when opening ' +
-                      example_filename + ': ' + str(ex) + ' using the last example twice for batch')
+                        # Store class
+                        label = ()
+                        # change to goals computed
+                        index1 = indices[1]
+                        goal_ids = all_goal_ids[index1]
+                        # print(index1)
+                        label = np.array(data['pose'])[goal_ids]
+                        # print(type(label))
+                        # for items in list(data['all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json'][indices]):
+                        #     json_data = json.loads(items.decode('UTF-8'))
+                        #     label = label + tuple([json_data['gripper_center']])
+                        #     print(np.array(json_data['gripper_center']))
+                            # print(json_data.keys())
+                            # y.append(np.array(json_data['camera_rgb_frame']))
+                        y.append(label)
+                        if 'success' in example_filename:
+                            action_successes = action_successes + [1]
+                        else:
+                            action_successes = action_successes + [0]
+                except IOError as ex:
+                    print('Error: Skipping file due to IO error when opening ' +
+                          example_filename + ': ' + str(ex) + ' using the last example twice for batch')
 
             action_labels = np.array(action_labels)
             init_images = keras_applications.imagenet_utils._preprocess_numpy_input(
@@ -330,7 +330,7 @@ class CostarBlockStackingSequence(Sequence):
                 print("generated batch: " + str(list_Ids))
         except Exception as ex:
             print('CostarBlockStackingSequence: Keras will often swallow exceptions without a stack trace, '
-                    'so we are printing the stack trace here before re-raising the error.')
+                  'so we are printing the stack trace here before re-raising the error.')
             ex_type, ex, tb = sys.exc_info()
             traceback.print_tb(tb)
             # deletion must be explicit to prevent leaks
