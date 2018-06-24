@@ -1134,8 +1134,8 @@ def load_dataset(
                 # regression case
                 FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
             print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
-        #temporarily hardcoded initialization
-        #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
+        # temporarily hardcoded initialization
+        # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
         file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
         np.random.seed(0)
         print("------------------------------------------------")
