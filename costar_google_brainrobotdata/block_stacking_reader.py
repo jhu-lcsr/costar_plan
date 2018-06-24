@@ -326,15 +326,15 @@ class CostarBlockStackingSequence(Sequence):
                 # diff should be nonzero for most timesteps except just before the gripper closes!
                 print('encoded current poses: ' + str(poses) + ' labels: ' + str(y) + ' diff: ' + str(poses - y))
                 print("generated batch: " + str(list_Ids))
-            except Exception as ex:
-                print('CostarBlockStackingSequence: Keras will often swallow exceptions without a stack trace, '
-                      'so we are printing the stack trace here before re-raising the error.')
-                ex_type, ex, tb = sys.exc_info()
-                traceback.print_tb(tb)
-                # deletion must be explicit to prevent leaks
-                # https://stackoverflow.com/a/16946886/99379
-                del tb
-                raise
+        except Exception as ex:
+            print('CostarBlockStackingSequence: Keras will often swallow exceptions without a stack trace, '
+                    'so we are printing the stack trace here before re-raising the error.')
+            ex_type, ex, tb = sys.exc_info()
+            traceback.print_tb(tb)
+            # deletion must be explicit to prevent leaks
+            # https://stackoverflow.com/a/16946886/99379
+            del tb
+            raise
 
         return batch
 
