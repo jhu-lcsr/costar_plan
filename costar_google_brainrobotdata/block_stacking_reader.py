@@ -213,14 +213,16 @@ class CostarBlockStackingSequence(Sequence):
                 rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
                 # resize using skimage
                 rgb_images_resized = []
-                if self.output_shape is not None:
-                    for k, images in enumerate(rgb_images):
-                        # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
+                for k, images in enumerate(rgb_images):
+                    # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
+                    if self.output_shape is not None:
                         resized_image = resize(images, self.output_shape)
-                        if self.is_training:
-                            # do some image augmentation with random erasing & cutout
-                            resized_image = random_eraser(resized_image)
-                        rgb_images_resized.append(resized_image)
+                    else:
+                        resized_image = images
+                    if self.is_training:
+                        # do some image augmentation with random erasing & cutout
+                        resized_image = random_eraser(resized_image)
+                    rgb_images_resized.append(resized_image)
 
                 init_images.append(rgb_images_resized[0])
                 current_images.append(rgb_images_resized[1])
