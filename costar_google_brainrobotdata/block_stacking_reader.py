@@ -264,8 +264,12 @@ class CostarBlockStackingSequence(Sequence):
                   example_filename + ': ' + str(ex) + ' using the last example twice for batch')
 
         action_labels = np.array(action_labels)
-        init_images = keras.applications.imagenet_utils._preprocess_numpy_input(np.array(init_images, data_format='channels_last', dtype=np.float32), mode='tf')
-        current_images = keras.applications.imagenet_utils._preprocess_numpy_input(np.array(current_images, data_format='channels_last', dtype=np.float32), mode='tf')
+        init_images = keras.applications.imagenet_utils._preprocess_numpy_input(
+            np.array(init_images, dtype=np.float32),
+            data_format='channels_last', mode='tf')
+        current_images = keras.applications.imagenet_utils._preprocess_numpy_input(
+            np.array(current_images, dtype=np.float32),
+            data_format='channels_last', mode='tf')
         poses = np.array(poses)
 
         # print('poses shape: ' + str(poses.shape))
