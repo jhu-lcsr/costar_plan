@@ -515,6 +515,7 @@ def run_training(
             sess.run(init_op)
 
         # fit the model
+        # TODO(ahundt) may need to disable multiprocessing for cornell and enable it for costar stacking
         history = model.fit_generator(
             train_data,
             steps_per_epoch=train_steps,
@@ -522,6 +523,8 @@ def run_training(
             validation_data=validation_data,
             validation_steps=validation_steps,
             callbacks=callbacks,
+            use_multiprocessing=True,
+            workers=20,
             verbose=0)
 
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
