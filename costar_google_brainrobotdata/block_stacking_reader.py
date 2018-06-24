@@ -198,7 +198,7 @@ class CostarBlockStackingSequence(Sequence):
                     raise NotImplementedError
                 indices = [0] + list(image_indices)
                 if self.verbose > 0:
-                    print("Indices --",indices)
+                    print("Indices --", indices)
                 rgb_images = list(data['image'][indices])
                 rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
                 # resize using skimage
@@ -250,7 +250,9 @@ class CostarBlockStackingSequence(Sequence):
             print('Error: Skipping file due to IO error when opening ' +
                   example_filename + ': ' + str(ex) + ' using the last example twice for batch')
 
-        action_labels, init_images, current_images = np.array(action_labels), np.array(init_images), np.array(current_images)
+        action_labels = np.array(action_labels)
+        init_images = keras.applications.imagenet_utils._preprocess_numpy_input(np.array(init_images, data_format='channels_last', dtype=np.float32), mode='tf')
+        current_images = keras.applications.imagenet_utils._preprocess_numpy_input(np.array(current_images, data_format='channels_last', dtype=np.float32), mode='tf')
         poses = np.array(poses)
 
         # print('poses shape: ' + str(poses.shape))
