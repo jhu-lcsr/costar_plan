@@ -51,6 +51,52 @@ def random_eraser(input_img, p=0.5, s_l=0.02, s_h=0.4, r_1=0.3, r_2=1/0.3, v_l=0
     return input_img
 
 
+def tile_vector_as_image_channels_np(vector_op, image_shape):
+    """
+    Takes a vector of length n and an image shape BHWC,
+    and repeat the vector as channels at each pixel.
+
+    # Params
+
+      vector_op: A tensor vector to tile.
+      image_shape: A list of integers [width, height] with the desired dimensions.
+    """
+    ivs = np.shape(vector_op)
+    # reshape the vector into a single pixel
+    vector_pixel_shape = [ivs[0], 1, 1, ivs[1]]
+    vector_op = np.reshape(vector_op, vector_pixel_shape)
+    # tile the pixel into a full image
+    tile_dimensions = [1, image_shape[1], image_shape[2], 1]
+    vector_op = np.tile(vector_op, tile_dimensions)
+    # if K.backend() is 'tensorflow':
+    #     output_shape = [ivs[0], image_shape[1], image_shape[2], ivs[1]]
+    #     vector_op.set_shape(output_shape)
+    return vector_op
+
+
+def concat_images_with_tiled_vector_np(images, vector):
+    """Combine a set of images with a vector, tiling the vector at each pixel in the images and concatenating on the channel axis.
+
+    # Params
+
+        images: list of images with the same dimensions
+        vector: vector to tile on each image. If you have
+            more than one vector, simply concatenate them
+            all before calling this function.
+
+    # Returns
+
+    """
+    if not isinstance(images, list):
+        images = [images]
+    image_shape = K.int_shape(images[0])
+    tiled_vector = tile_vector_as_image_channels(vector, image_shape)
+    images.append(tiled_vector)
+    combined = np.concatenate(images, axis=-1)
+
+    return combined
+
+
 class CostarBlockStackingSequence(Sequence):
     '''Generates a batch of data from the stacking dataset.
 
@@ -58,6 +104,7 @@ class CostarBlockStackingSequence(Sequence):
     '''
     def __init__(self, list_example_filenames,
                  label_features_to_extract=None, data_features_to_extract=None,
+                 total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
                  is_training=True, output_shape=None, verbose=0):
         '''Initialization
@@ -71,6 +118,8 @@ class CostarBlockStackingSequence(Sequence):
         # TODO(ahundt) better notes about the two parameters below. See choose_features_and_metrics() in cornell_grasp_trin.py.
         label_features_to_extract: defaults to regression options, classification options are also available
         data_features_to_extract: defaults to regression options, classification options are also available
+            Options include 'image_0_image_n_vec_xyz_aaxyz_nsc_15' which is a giant NHWC cube of image and pose data,
+            'current_xyz_aaxyz_nsc_8', 'proposed_goal_xyz_aaxyz_nsc_8'.
         '''
         self.batch_size = batch_size
         self.list_example_filenames = list_example_filenames
@@ -82,7 +131,9 @@ class CostarBlockStackingSequence(Sequence):
         self.on_epoch_end()
         self.output_shape = output_shape
         self.label_features_to_extract = label_features_to_extract
+        # TODO(ahundt) total_actions_available can probably be extracted from the example hdf5 files and doesn't need to be a param
         self.data_features_to_extract = data_features_to_extract
+        self.total_actions_available = total_actions_available
         # if crop_shape is None:
         #     # height width 3
         #     crop_shape = (224, 224, 3)
@@ -236,11 +287,22 @@ class CostarBlockStackingSequence(Sequence):
                         poses.append(np.array(data['pose'][indices[1:]])[0])
                         # x = x + tuple([rgb_images[indices]])
                         # x = x + tuple([np.array(data['pose'])[indices]])
-                        for j in indices[1:]:
-                            # generate the action label one-hot encoding
-                            action = np.zeros(41)
-                            action[data['gripper_action_label'][j]] = 1
-                            action_labels.append(action)
+
+                        if ('image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
+                            # normalized floating point encoding of action vector
+                            # from 0 to 1 in a single float which still becomes
+                            # a 2d array of dimension batch_size x 1
+                            # np.expand_dims(data['gripper_action_label'][indices[1:]], axis=-1) / self.total_actions_available
+                            for j in indices[1:]:
+                                action = [float(data['gripper_action_label'][j] / self.total_actions_available)]
+                                action_labels.append(action)
+                        else:
+                            # one hot encoding
+                            for j in indices[1:]:
+                                # generate the action label one-hot encoding
+                                action = np.zeros(self.total_actions_available)
+                                action[data['gripper_action_label'][j]] = 1
+                                action_labels.append(action)
                         # action_labels = np.array(action_labels)
 
                         # print(action_labels)
@@ -297,7 +359,9 @@ class CostarBlockStackingSequence(Sequence):
             # current_images = tf.image.resize_images(current_images,[224,224])
             # print("---",init_images.shape)
             # X = init_images
-            if self.data_features_to_extract is None or 'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
+            if (self.data_features_to_extract is None or
+                    'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract or
+                    'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
                 # default, regression input case
                 action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
                 X = [init_images, current_images, action_poses_vec]
@@ -308,6 +372,10 @@ class CostarBlockStackingSequence(Sequence):
 
             else:
                 raise ValueError('Unsupported data input: ' + str(self.data_features_to_extract))
+
+            if ('image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
+                # make the giant data cube if it is requested
+                X = concat_images_with_tiled_vector_np(X[:2], X[2:])
 
             # print("type=======",type(X))
             # print("shape=====",X.shape)
