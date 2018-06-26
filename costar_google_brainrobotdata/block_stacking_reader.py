@@ -89,8 +89,8 @@ def concat_images_with_tiled_vector_np(images, vector):
     """
     if not isinstance(images, list):
         images = [images]
-    image_shape = K.int_shape(images[0])
-    tiled_vector = tile_vector_as_image_channels(vector, image_shape)
+    image_shape = np.shape(images[0])
+    tiled_vector = tile_vector_as_image_channels_np(vector, image_shape)
     images.append(tiled_vector)
     combined = np.concatenate(images, axis=-1)
 
