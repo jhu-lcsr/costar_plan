@@ -288,7 +288,8 @@ class CostarBlockStackingSequence(Sequence):
                         # x = x + tuple([rgb_images[indices]])
                         # x = x + tuple([np.array(data['pose'])[indices]])
 
-                        if ('image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
+                        if (self.data_features_to_extract is not None and
+                                'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
                             # normalized floating point encoding of action vector
                             # from 0 to 1 in a single float which still becomes
                             # a 2d array of dimension batch_size x 1
