@@ -16,6 +16,7 @@ from keras.utils import OrderedEnqueuer
 import tensorflow as tf
 import grasp_metrics
 import keras_applications
+import keras_preprocessing
 
 
 def random_eraser(input_img, p=0.5, s_l=0.02, s_h=0.4, r_1=0.3, r_2=1/0.3, v_l=0, v_h=255, pixel_level=True):
@@ -272,6 +273,13 @@ class CostarBlockStackingSequence(Sequence):
                         # resize using skimage
                         rgb_images_resized = []
                         for k, images in enumerate(rgb_images):
+                            if self.is_training:
+                                # apply random shift to the images before resizing
+                                images = keras_preprocessing.random_shift(
+                                    images,
+                                    # height, width
+                                    1./(48. * 2.), 1./(64. * 2.),
+                                    row_axis=0, col_axis=1, channel_axis=2)
                             # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
                             if self.output_shape is not None:
                                 resized_image = resize(images, self.output_shape)
@@ -346,7 +354,8 @@ class CostarBlockStackingSequence(Sequence):
             poses = np.array(poses)
 
             # print('poses shape: ' + str(poses.shape))
-            encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(poses)
+            encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
+                poses, random_augmentation=self.is_training)
 
             epsilon = 1e-3
             if np.any(encoded_poses < 0 - epsilon) or np.any(encoded_poses > 1 + epsilon):
@@ -384,7 +393,7 @@ class CostarBlockStackingSequence(Sequence):
             # determine the label
             if self.label_features_to_extract is None or 'grasp_goal_xyz_aaxyz_nsc_8' in self.label_features_to_extract:
                 # default, regression label case
-                y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y)
+                y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.is_training)
             elif 'grasp_success' in self.label_features_to_extract or 'action_success' in self.label_features_to_extract:
                 # classification label case
                 y = action_successes
