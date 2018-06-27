@@ -841,7 +841,7 @@ def decode_xyz_aaxyz_nsc_to_xyz_qxyzw(xyz_aaxyz_nsc, rescale_meters=4):
     return xyz_qxyzw
 
 
-def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
+def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, max_rotation=0.261799):
     """ Calculate 3D grasp accuracy for a single result
 
     max_translation is 0.01 meters, or 1cm.
@@ -849,10 +849,10 @@ def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_n
 
     This version is for a single pair of numpy arrays of length 8.
     """
-    # currently set here so it works with tf.py_func, eventually this should be a param
-    max_translation = 0.01 * 10
-    # 15 degrees is 0.261799 radians
-    max_rotation = 0.261799 * 2
+    # # currently set here so it works with tf.py_func, eventually this should be a param
+    # max_translation = 0.01 * 10
+    # # 15 degrees is 0.261799 radians
+    # max_rotation = 0.261799 * 2
     y_true_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_true_xyz_aaxyz_nsc)
     y_pred_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_pred_xyz_aaxyz_nsc)
     # translation distance
