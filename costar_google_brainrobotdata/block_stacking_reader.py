@@ -275,7 +275,7 @@ class CostarBlockStackingSequence(Sequence):
                         for k, images in enumerate(rgb_images):
                             if self.is_training:
                                 # apply random shift to the images before resizing
-                                images = keras_preprocessing.random_shift(
+                                images = keras_preprocessing.image.random_shift(
                                     images,
                                     # height, width
                                     1./(48. * 2.), 1./(64. * 2.),
