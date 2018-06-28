@@ -980,8 +980,7 @@ def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_n
     angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
     if angle_distance < max_rotation and translation < max_translation:
         return 1.
-    else:
-        return 0.
+    return 0.
 
 
 def grasp_accuracy_xyz_aaxyz_nsc_batch(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, max_rotation=0.261799):
