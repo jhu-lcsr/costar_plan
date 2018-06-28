@@ -889,7 +889,7 @@ def cart_error(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
 
 def angle_error(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
     """ Calculate 3D grasp accuracy for a single result
-    grasp_accuracy_xyz_aaxyz_nsc
+    Input format is xyz_aaxyz_nsc.
     max_translation defaults to 0.1 meters, or 1cm.
     max_rotation defaults to 15 degrees in radians.
     """
@@ -908,6 +908,7 @@ def absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xy
 
     max_translation is 0.01 meters, or 1cm.
     max_rotation is 15 degrees in radians.
+    Input format is xyz_aaxyz_nsc.
 
     This version is for a single pair of numpy arrays of length 8.
     """
@@ -924,6 +925,7 @@ def absolute_angle_distance_xyz_aaxyz_nsc_batch(y_true_xyz_aaxyz_nsc, y_pred_xyz
 
     max_translation defaults to 0.01 meters, or 1cm.
     max_rotation defaults to 15 degrees in radians.
+    Input format is xyz_aaxyz_nsc.
     """
     # print('type of y_true_xyz_aaxyz_nsc: ' + str(type(y_true_xyz_aaxyz_nsc)))
     accuracies = []
@@ -939,6 +941,7 @@ def absolute_cart_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz
     """ Calculate cartesian distance of encoded pose
 
     This version is for a single pair of numpy arrays of length 8.
+    Input format is xyz_aaxyz_nsc.
     """
     y_true_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_true_xyz_aaxyz_nsc)
     y_pred_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_pred_xyz_aaxyz_nsc)
