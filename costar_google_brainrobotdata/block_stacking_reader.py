@@ -107,7 +107,7 @@ class CostarBlockStackingSequence(Sequence):
                  label_features_to_extract=None, data_features_to_extract=None,
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
-                 is_training=True, random_augmentation=None, output_shape=None, verbose=0):
+                 is_training=True, random_augmentation=0.5, output_shape=None, verbose=0):
         '''Initialization
 
         #Arguments

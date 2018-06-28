@@ -800,7 +800,7 @@ def normalize_axis(aaxyz):
     return aaxyz
 
 
-def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmentation=None):
+def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmentation=0.25):
     """ Encode a translation + quaternion pose to an encoded xyz, axis, and an angle as sin(theta) cos(theta)
     """
     xyz = (xyz_qxyzw[:3] / rescale_meters) + 0.5
@@ -828,7 +828,7 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmen
     return xyz_aaxyz_nsc
 
 
-def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, random_augmentation=None):
+def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, random_augmentation=0.5):
     """ Expects n by 7 batch with xyz_qxyzw
     """
     encoded_poses = []
@@ -855,10 +855,10 @@ def decode_xyz_aaxyz_nsc_to_xyz_qxyzw(xyz_aaxyz_nsc, rescale_meters=4):
     return xyz_qxyzw
 
 
-def grasp_acc(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.1, max_rotation=0.261799):
+def grasp_acc(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, max_rotation=0.261799):
     """ Calculate 3D grasp accuracy for a single result
     grasp_accuracy_xyz_aaxyz_nsc
-    max_translation defaults to 0.1 meters, or 1cm.
+    max_translation defaults to 0.01 meters, or 1cm.
     max_rotation defaults to 15 degrees in radians.
     """
     # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
