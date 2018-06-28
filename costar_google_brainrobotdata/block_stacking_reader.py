@@ -107,7 +107,7 @@ class CostarBlockStackingSequence(Sequence):
                  label_features_to_extract=None, data_features_to_extract=None,
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
-                 is_training=True, output_shape=None, verbose=0):
+                 is_training=True, augment_when_training=0.5, output_shape=None, verbose=0):
         '''Initialization
 
         #Arguments
@@ -135,6 +135,7 @@ class CostarBlockStackingSequence(Sequence):
         # TODO(ahundt) total_actions_available can probably be extracted from the example hdf5 files and doesn't need to be a param
         self.data_features_to_extract = data_features_to_extract
         self.total_actions_available = total_actions_available
+        self.augment_when_training = augment_when_training
         # if crop_shape is None:
         #     # height width 3
         #     crop_shape = (224, 224, 3)
@@ -146,7 +147,8 @@ class CostarBlockStackingSequence(Sequence):
         return int(np.floor(len(self.list_example_filenames) / self.batch_size))
 
     def __getitem__(self, index):
-        'Generate one batch of data'
+        """Generate one batch of data
+        """
         # Generate indexes of the batch
         indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
         if self.verbose > 0:
@@ -159,7 +161,8 @@ class CostarBlockStackingSequence(Sequence):
         return X, y
 
     def on_epoch_end(self):
-        #Updates indexes after each epoch
+        """ Updates indexes after each epoch
+        """
         if self.seed is not None and not self.is_training:
             # repeat the same order if we're validating or testing
             # continue the large random sequence for training
@@ -273,7 +276,7 @@ class CostarBlockStackingSequence(Sequence):
                         # resize using skimage
                         rgb_images_resized = []
                         for k, images in enumerate(rgb_images):
-                            if self.is_training and np.random.random() > 0.5:
+                            if self.is_training and np.random.random() > self.augment_when_training:
                                 # apply random shift to the images before resizing
                                 images = keras_preprocessing.image.random_shift(
                                     images,
