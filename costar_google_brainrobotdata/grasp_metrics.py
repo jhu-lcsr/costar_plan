@@ -959,7 +959,7 @@ def absolute_cart_distance_xyz_aaxyz_nsc_batch(y_true_xyz_aaxyz_nsc, y_pred_xyz_
     # print('type of y_true_xyz_aaxyz_nsc: ' + str(type(y_true_xyz_aaxyz_nsc)))
     accuracies = []
     for y_true, y_pred in zip(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
-        one_accuracy = absolute_cart_distance_xyz_aaxyz_nsc_batch(y_true, y_pred)
+        one_accuracy = absolute_cart_distance_xyz_aaxyz_nsc_single(y_true, y_pred)
         # print('one grasp acc: ' + str(one_accuracy))
         accuracies.append(one_accuracy)
     accuracies = np.array(accuracies, np.float32)
