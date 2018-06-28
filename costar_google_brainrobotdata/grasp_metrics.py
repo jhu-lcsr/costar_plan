@@ -811,7 +811,7 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmen
         # random rotation change
         random = Quaternion.random()
         # only take rotations less than 5 degrees
-        while random.angle() > np.pi / 36.:
+        while random.angle > np.pi / 36.:
             # TODO(ahundt) make more efficient
             random = Quaternion.random()
         rotation = rotation * random
