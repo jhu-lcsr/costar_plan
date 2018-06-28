@@ -807,7 +807,7 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmen
     # print('xyz: ' + str(xyz))
     rotation = Quaternion(xyz_qxyzw[3:])
     # pose augmentation with no feedback or correspondingly adjusted transform poses
-    if random_augmentation:
+    if random_augmentation and np.random.random() > 0.5:
         # random rotation change
         random = Quaternion.random()
         # only take rotations less than 5 degrees
