@@ -107,7 +107,7 @@ class CostarBlockStackingSequence(Sequence):
                  label_features_to_extract=None, data_features_to_extract=None,
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
-                 is_training=True, augment_when_training=0.5, output_shape=None, verbose=0):
+                 is_training=True, random_augmentation=None, output_shape=None, verbose=0):
         '''Initialization
 
         #Arguments
@@ -121,6 +121,7 @@ class CostarBlockStackingSequence(Sequence):
         data_features_to_extract: defaults to regression options, classification options are also available
             Options include 'image_0_image_n_vec_xyz_aaxyz_nsc_15' which is a giant NHWC cube of image and pose data,
             'current_xyz_aaxyz_nsc_8', 'proposed_goal_xyz_aaxyz_nsc_8'.
+        random_augmentation: None or a float value between 0 and 1 indiciating how frequently random augmentation should be applied.
         '''
         self.batch_size = batch_size
         self.list_example_filenames = list_example_filenames
@@ -135,7 +136,7 @@ class CostarBlockStackingSequence(Sequence):
         # TODO(ahundt) total_actions_available can probably be extracted from the example hdf5 files and doesn't need to be a param
         self.data_features_to_extract = data_features_to_extract
         self.total_actions_available = total_actions_available
-        self.augment_when_training = augment_when_training
+        self.random_augmentation = random_augmentation
         # if crop_shape is None:
         #     # height width 3
         #     crop_shape = (224, 224, 3)
@@ -276,7 +277,8 @@ class CostarBlockStackingSequence(Sequence):
                         # resize using skimage
                         rgb_images_resized = []
                         for k, images in enumerate(rgb_images):
-                            if self.is_training and np.random.random() > self.augment_when_training:
+                            if (self.is_training and self.random_augmentation is not None and
+                                    np.random.random() > self.random_augmentation):
                                 # apply random shift to the images before resizing
                                 images = keras_preprocessing.image.random_shift(
                                     images,

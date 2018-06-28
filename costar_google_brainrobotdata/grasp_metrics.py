@@ -800,14 +800,14 @@ def normalize_axis(aaxyz):
     return aaxyz
 
 
-def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmentation=False):
+def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmentation=None):
     """ Encode a translation + quaternion pose to an encoded xyz, axis, and an angle as sin(theta) cos(theta)
     """
     xyz = (xyz_qxyzw[:3] / rescale_meters) + 0.5
     # print('xyz: ' + str(xyz))
     rotation = Quaternion(xyz_qxyzw[3:])
     # pose augmentation with no feedback or correspondingly adjusted transform poses
-    if random_augmentation and np.random.random() > 0.5:
+    if random_augmentation is not None and np.random.random() > random_augmentation:
         # random rotation change
         random = Quaternion.random()
         # only take rotations less than 5 degrees
@@ -828,7 +828,7 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmen
     return xyz_aaxyz_nsc
 
 
-def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, random_augmentation=False):
+def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, random_augmentation=None):
     """ Expects n by 7 batch with xyz_qxyzw
     """
     encoded_poses = []
