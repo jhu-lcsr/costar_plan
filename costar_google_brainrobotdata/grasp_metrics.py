@@ -851,8 +851,116 @@ def decode_xyz_aaxyz_nsc_to_xyz_qxyzw(xyz_aaxyz_nsc, rescale_meters=4):
     # aaxyz is axis component of angle axis format
     aaxyz = normalize_axis(aaxyz)
     q = Quaternion(axis=xyz, angle=theta)
-    xyz_qxyzw = np.concatenate([aaxyz, q.elements], axis=-1)
+    xyz_qxyzw = np.concatenate([xyz, q.elements], axis=-1)
     return xyz_qxyzw
+
+
+def grasp_acc(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.1, max_rotation=0.261799):
+    """ Calculate 3D grasp accuracy for a single result
+    grasp_accuracy_xyz_aaxyz_nsc
+    max_translation defaults to 0.1 meters, or 1cm.
+    max_rotation defaults to 15 degrees in radians.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def cart_error(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
+    """ Calculate 3D grasp accuracy for a single result
+    grasp_accuracy_xyz_aaxyz_nsc
+    max_translation defaults to 0.1 meters, or 1cm.
+    max_rotation defaults to 15 degrees in radians.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        absolute_cart_distance_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc],
+        [tf.float32], stateful=False,
+        name='py_func/absolute_cart_distance_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def angle_error(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
+    """ Calculate 3D grasp accuracy for a single result
+    grasp_accuracy_xyz_aaxyz_nsc
+    max_translation defaults to 0.1 meters, or 1cm.
+    max_rotation defaults to 15 degrees in radians.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        absolute_angle_distance_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc],
+        [tf.float32], stateful=False,
+        name='py_func/absolute_angle_distance_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
+    """ Calculate 3D grasp accuracy for a single result
+
+    max_translation is 0.01 meters, or 1cm.
+    max_rotation is 15 degrees in radians.
+
+    This version is for a single pair of numpy arrays of length 8.
+    """
+    y_true_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_true_xyz_aaxyz_nsc)
+    y_pred_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_pred_xyz_aaxyz_nsc)
+    y_true_q = Quaternion(y_true_xyz_qxyzw[3:])
+    y_pred_q = Quaternion(y_pred_xyz_qxyzw[3:])
+    return Quaternion.absolute_distance(y_true_q, y_pred_q)
+
+
+def absolute_angle_distance_xyz_aaxyz_nsc_batch(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
+    """ Calculate 3D grasp accuracy for a single result
+    Expects batch of data as an nx8 array. Eager execution / numpy version.
+
+    max_translation defaults to 0.01 meters, or 1cm.
+    max_rotation defaults to 15 degrees in radians.
+    """
+    # print('type of y_true_xyz_aaxyz_nsc: ' + str(type(y_true_xyz_aaxyz_nsc)))
+    accuracies = []
+    for y_true, y_pred in zip(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
+        one_accuracy = absolute_angle_distance_xyz_aaxyz_nsc_single(y_true, y_pred)
+        # print('one grasp acc: ' + str(one_accuracy))
+        accuracies.append(one_accuracy)
+    accuracies = np.array(accuracies, np.float32)
+    return accuracies
+
+
+def absolute_cart_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
+    """ Calculate cartesian distance of encoded pose
+
+    This version is for a single pair of numpy arrays of length 8.
+    """
+    y_true_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_true_xyz_aaxyz_nsc)
+    y_pred_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_pred_xyz_aaxyz_nsc)
+    # translation distance
+    return np.linalg.norm(y_true_xyz_qxyzw[:3] - y_pred_xyz_qxyzw[:3])
+
+
+def absolute_cart_distance_xyz_aaxyz_nsc_batch(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
+    """ Calculate 3D grasp accuracy for a single result
+    Expects batch of data as an nx8 array. Eager execution / numpy version.
+
+    max_translation defaults to 0.01 meters, or 1cm.
+    max_rotation defaults to 15 degrees in radians.
+    """
+    # print('type of y_true_xyz_aaxyz_nsc: ' + str(type(y_true_xyz_aaxyz_nsc)))
+    accuracies = []
+    for y_true, y_pred in zip(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
+        one_accuracy = absolute_cart_distance_xyz_aaxyz_nsc_batch(y_true, y_pred)
+        # print('one grasp acc: ' + str(one_accuracy))
+        accuracies.append(one_accuracy)
+    accuracies = np.array(accuracies, np.float32)
+    return accuracies
 
 
 def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, max_rotation=0.261799):
@@ -863,21 +971,11 @@ def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_n
 
     This version is for a single pair of numpy arrays of length 8.
     """
-    # # currently set here so it works with tf.py_func, eventually this should be a param
-    # max_translation = 0.01 * 10
-    # # 15 degrees is 0.261799 radians
-    # max_rotation = 0.261799 * 2
-    y_true_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_true_xyz_aaxyz_nsc)
-    y_pred_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_pred_xyz_aaxyz_nsc)
     # translation distance
-    translation = np.linalg.norm(y_true_xyz_qxyzw[:3] - y_pred_xyz_qxyzw[:3])
-    is_translation_accurate = translation < max_translation
+    translation = absolute_cart_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
     # rotation distance
-    y_true_q = Quaternion(y_true_xyz_qxyzw[3:])
-    y_pred_q = Quaternion(y_true_xyz_qxyzw[3:])
-    is_rotation_accurate = Quaternion.absolute_distance(y_true_q, y_pred_q) < max_rotation
-    # return result
-    if is_translation_accurate and is_rotation_accurate:
+    angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
+    if angle_distance < max_rotation and translation < max_translation:
         return 1.
     else:
         return 0.
@@ -898,19 +996,3 @@ def grasp_accuracy_xyz_aaxyz_nsc_batch(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_ns
         accuracies.append(one_accuracy)
     accuracies = np.array(accuracies, np.float32)
     return accuracies
-
-
-def grasp_acc(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.1, max_rotation=0.261799):
-    """ Calculate 3D grasp accuracy for a single result
-    grasp_accuracy_xyz_aaxyz_nsc
-    max_translation defaults to 0.1 meters, or 1cm.
-    max_rotation defaults to 15 degrees in radians.
-    """
-    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
-    [filter_result] = tf.py_func(
-        grasp_accuracy_xyz_aaxyz_nsc_batch,
-        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc],
-        [tf.float32], stateful=False,
-        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
-    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
-    return filter_result
