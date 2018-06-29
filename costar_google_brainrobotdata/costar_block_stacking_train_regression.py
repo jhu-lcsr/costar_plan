@@ -59,11 +59,14 @@ def main(_):
         #                           '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
         # FLAGS.load_hyperparams = (r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/regression/2018-03-01-15-12-20_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
 
-        FLAGS.load_hyperparams = ('hyperparams/regression/'
-                                  '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
-    FLAGS.epochs = 600
-    FLAGS.batch_size = 32
-    optimizer_name = 'adam'
+        # FLAGS.load_hyperparams = ('hyperparams/regression/'
+        #                           '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+        # 2018-07-7 hyperopt 324 model results on actual stacking dataset
+        FLAGS.load_hyperparams = ('hyperparams/semantic_grasp_regression/'
+                                  '2018-06-25-03-45-46_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-06-25-03-45-46_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
+    FLAGS.epochs = 120
+    FLAGS.batch_size = 64
+    optimizer_name = 'sgd'
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
     # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f'
 
@@ -101,7 +104,7 @@ def main(_):
     else:
         cornell_grasp_train.run_training(
             problem_name=problem_type,
-            feature_combo_name=feature_combo,
+            # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             dataset_name=dataset_name,
             optimizer_name=optimizer_name,
