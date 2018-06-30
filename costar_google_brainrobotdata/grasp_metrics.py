@@ -804,28 +804,39 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmen
     """ Encode a translation + quaternion pose to an encoded xyz, axis, and an angle as sin(theta) cos(theta)
     """
     xyz = (xyz_qxyzw[:3] / rescale_meters) + 0.5
-    # print('xyz: ' + str(xyz))
-    rotation = Quaternion(xyz_qxyzw[3:])
-    # pose augmentation with no feedback or correspondingly adjusted transform poses
-    if random_augmentation is not None and np.random.random() > random_augmentation:
-        # random rotation change
-        random = Quaternion.random()
-        # only take rotations less than 5 degrees
-        while random.angle > np.pi / 36.:
-            # TODO(ahundt) make more efficient
+    length = len(xyz_qxyzw)
+    if length == 7:
+        # print('xyz: ' + str(xyz))
+        rotation = Quaternion(xyz_qxyzw[3:])
+        # pose augmentation with no feedback or correspondingly adjusted transform poses
+        if random_augmentation is not None and np.random.random() > random_augmentation:
+            # random rotation change
             random = Quaternion.random()
-        rotation = rotation * random
-        # random translation change of up to 0.5 cm
-        random = (np.random.random(3) - 0.5) / 10.
-        xyz = xyz + random
+            # only take rotations less than 5 degrees
+            while random.angle > np.pi / 36.:
+                # TODO(ahundt) make more efficient
+                random = Quaternion.random()
+            rotation = rotation * random
+            # random translation change of up to 0.5 cm
+            random = (np.random.random(3) - 0.5) / 10.
+            xyz = xyz + random
 
-    aaxyz_theta = rotation_to_xyz_theta(rotation)
-    # encode the unit axis vector into the [0,1] range
-    aaxyz = aaxyz_theta[:-1] / 2 + 0.5
-    nsc = encode_theta(aaxyz_theta[-1])
-    # print('nsc: ' + str(nsc))
-    xyz_aaxyz_nsc = np.concatenate([xyz, aaxyz, nsc], axis=-1)
-    return xyz_aaxyz_nsc
+        aaxyz_theta = rotation_to_xyz_theta(rotation)
+        # encode the unit axis vector into the [0,1] range
+        aaxyz = aaxyz_theta[:-1] / 2 + 0.5
+        nsc = encode_theta(aaxyz_theta[-1])
+        # print('nsc: ' + str(nsc))
+        xyz_aaxyz_nsc = np.concatenate([xyz, aaxyz, nsc], axis=-1)
+        return xyz_aaxyz_nsc
+    elif length == 3:
+        if random_augmentation is not None and np.random.random() > random_augmentation:
+            # random translation change of up to 0.5 cm
+            random = (np.random.random(3) - 0.5) / 10.
+            xyz = xyz + random
+
+        return xyz
+    else:
+        raise ValueError('encode_xyz_qxyzw_to_xyz_aaxyz_nsc: unsupported input data length')
 
 
 def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, random_augmentation=0.5):
@@ -845,14 +856,19 @@ def decode_xyz_aaxyz_nsc_to_xyz_qxyzw(xyz_aaxyz_nsc, rescale_meters=4):
     """ Encode a translation + quaternion pose to an encoded xyz, axis, and an angle as sin(theta) cos(theta)
     """
     xyz = (xyz_aaxyz_nsc[:3] + 0.5) * rescale_meters
-    theta = decode_sin_cos(xyz_aaxyz_nsc[-2:])
-    # decode [0, 1] range to [-1, 1] range
-    aaxyz = (xyz_aaxyz_nsc[3:-2] - 0.5) * 2
-    # aaxyz is axis component of angle axis format
-    aaxyz = normalize_axis(aaxyz)
-    q = Quaternion(axis=xyz, angle=theta)
-    xyz_qxyzw = np.concatenate([xyz, q.elements], axis=-1)
-    return xyz_qxyzw
+    length = len(xyz_aaxyz_nsc)
+    if length == 8:
+        theta = decode_sin_cos(xyz_aaxyz_nsc[-2:])
+        # decode [0, 1] range to [-1, 1] range
+        aaxyz = (xyz_aaxyz_nsc[3:-2] - 0.5) * 2
+        # aaxyz is axis component of angle axis format
+        aaxyz = normalize_axis(aaxyz)
+        q = Quaternion(axis=xyz, angle=theta)
+        xyz_qxyzw = np.concatenate([xyz, q.elements], axis=-1)
+        return xyz_qxyzw
+    elif length != 3:
+        raise ValueError('decode_xyz_aaxyz_nsc_to_xyz_qxyzw: unsupported input data length')
+    return xyz
 
 
 def grasp_acc(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, max_rotation=0.261799):
@@ -976,10 +992,17 @@ def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_n
     """
     # translation distance
     translation = absolute_cart_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
-    # rotation distance
-    angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
-    if angle_distance < max_rotation and translation < max_translation:
-        return 1.
+    length = len(y_true_xyz_aaxyz_nsc)
+    if length == 3:
+        # translation component only
+        if translation < max_translation:
+            return 1.
+    # translation and rotation
+    if length == 8:
+        # rotation distance
+        angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
+        if angle_distance < max_rotation and translation < max_translation:
+            return 1.
     return 0.
 
 

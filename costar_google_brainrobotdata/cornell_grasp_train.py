@@ -994,11 +994,13 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         classes = 5
     elif problem_name == 'pixelwise_grasp_regression':
         raise NotImplementedError
-    elif problem_name == 'semantic_grasp_regression':
+    elif problem_name == 'semantic_translation_regression':
+        # only the translation component of semantic grasp regression
         # this is the regression case with the costar block stacking dataset
-        classes = 8
+        # classes = 8
+        classes = 3
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae']
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae']
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1009,6 +1011,27 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
         # translation only
         data_features = ['image/preprocessed', 'current_xyz_3']
+        # label with translation and orientation
+        # label_features = ['grasp_goal_xyz_aaxyz_nsc_8']
+        label_features = ['grasp_goal_xyz_8']
+        monitor_loss_name = 'val_loss'
+        shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
+        image_shapes = [shape, shape]
+        # loss = keras.losses.mean_absolute_error
+        loss = keras.losses.mean_squared_error
+        model_name = '_semantic_translation_regression_model'
+    elif problem_name == 'semantic_grasp_regression':
+        # this is the regression case with the costar block stacking dataset
+        classes = 8
+        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae']
+        #  , grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'val_grasp_acc'
+        # this is the length of the state vector defined in block_stacking_reader.py
+        # label with translation and orientation
+        vector_shapes = [(49,)]
+        # data with translation and orientation
+        data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
         # label with translation and orientation
         # label_features = ['grasp_goal_xyz_aaxyz_nsc_8']
         label_features = ['grasp_goal_xyz_8']
