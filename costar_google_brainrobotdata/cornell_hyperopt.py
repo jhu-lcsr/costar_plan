@@ -66,7 +66,7 @@ def main(_):
     FLAGS.batch_size = 4
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
-    FLAGS.epochs = 2
+    FLAGS.epochs = 1
     FLAGS.fine_tuning_epochs = 0
     run_name = FLAGS.run_name
     log_dir = FLAGS.log_dir
@@ -74,7 +74,7 @@ def main(_):
     run_training_fn = cornell_grasp_train.run_training
     problem_type = FLAGS.problem_type
     param_to_optimize = 'loss'
-    seed = 21
+    seed = 32
     initial_num_samples = 4000
     maximum_hyperopt_steps = 10
     # enable random learning rates, if enabled,
