@@ -375,11 +375,16 @@ class CostarBlockStackingSequence(Sequence):
             # print("---",init_images.shape)
             # X = init_images
             if (self.data_features_to_extract is None or
+                    'current_xyz_3' in self.data_features_to_extract or
+                    'image_0_image_n_vec_xyz_10' in self.data_features_to_extract):
+                # default, regression input case
+                action_poses_vec = np.concatenate([encoded_poses[:,:3], action_labels], axis=-1)
+                X = [init_images, current_images, action_poses_vec]
+            elif (self.data_features_to_extract is None or
                     'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract or
                     'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
                 # default, regression input case
                 action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
-                X = [init_images, current_images, action_poses_vec]
             elif 'proposed_goal_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
                 # classification input case
                 proposed_and_current_action_vec = np.concatenate([encoded_poses, action_labels, y], axis=-1)
