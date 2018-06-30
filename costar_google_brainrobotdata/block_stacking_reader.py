@@ -107,7 +107,7 @@ class CostarBlockStackingSequence(Sequence):
                  label_features_to_extract=None, data_features_to_extract=None,
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
-                 is_training=True, random_augmentation=0.5, output_shape=None, verbose=0):
+                 is_training=True, random_augmentation=None, output_shape=None, verbose=0):
         '''Initialization
 
         #Arguments
@@ -403,11 +403,11 @@ class CostarBlockStackingSequence(Sequence):
             # determine the label
             if self.label_features_to_extract is None or 'grasp_goal_xyz_3' in self.label_features_to_extract:
                 # default, regression to translation case, see semantic_translation_regression in cornell_grasp_train.py
-                y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.is_training)
+                y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.random_augmentation)
                 y = y[:,:3]
             elif self.label_features_to_extract is None or 'grasp_goal_xyz_aaxyz_nsc_8' in self.label_features_to_extract:
                 # default, regression label case
-                y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.is_training)
+                y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.random_augmentation)
             elif 'grasp_success' in self.label_features_to_extract or 'action_success' in self.label_features_to_extract:
                 # classification label case
                 y = action_successes

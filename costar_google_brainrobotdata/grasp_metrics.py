@@ -800,7 +800,7 @@ def normalize_axis(aaxyz):
     return aaxyz
 
 
-def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmentation=0.25):
+def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmentation=None):
     """ Encode a translation + quaternion pose to an encoded xyz, axis, and an angle as sin(theta) cos(theta)
     """
     xyz = (xyz_qxyzw[:3] / rescale_meters) + 0.5
@@ -839,7 +839,7 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmen
         raise ValueError('encode_xyz_qxyzw_to_xyz_aaxyz_nsc: unsupported input data length')
 
 
-def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, random_augmentation=0.5):
+def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, random_augmentation=None):
     """ Expects n by 7 batch with xyz_qxyzw
     """
     encoded_poses = []
