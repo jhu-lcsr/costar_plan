@@ -59,16 +59,26 @@ def main(_):
         #                           '2018-03-07-18-36-17_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
         # FLAGS.load_hyperparams = (r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/regression/2018-03-01-15-12-20_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
 
-        FLAGS.load_hyperparams = ('hyperparams/regression/'
-                                  '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
-    FLAGS.epochs = 600
-    FLAGS.batch_size = 32
-    optimizer_name = 'adam'
+        # FLAGS.load_hyperparams = ('hyperparams/regression/'
+        #                           '2018-03-05-23-05-07_-vgg_regression_model-dataset_cornell_grasping-norm_sin2_cos2_hw_yx_6_hyperparams.json')
+        # 2018-06-28 hyperopt 324 model results on actual stacking dataset, may not be a great run... .25 m error. Rerun?
+        # FLAGS.load_hyperparams = ('hyperparams/semantic_grasp_regression/2018-06-25-03-45-46_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
+
+        # 2018-06-29 hyperopt best of 65 models on val_cart_error in hyperopt, 
+        # 1 epoch results: val angle error (rad): 0.215976331639 val cart error (m): 0.126106130658
+        # 120 epoch results: val cart error 0.25... much worse than the original 1 epoch.
+        #FLAGS.load_hyperparams = ('hyperparams/semantic_grasp_regression/2018-06-28-21-16-47_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
+
+        # 2018-6-30 hyperop 2nd best of 120 models on val_cart error in hyperopt
+        FLAGS.load_hyperparams = ('hyperopt_logs_costar_grasp_regression/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
+    FLAGS.epochs = 120
+    FLAGS.batch_size = 128
+    optimizer_name = 'sgd'
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
     # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f'
 
     FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f')
-    FLAGS.fine_tuning_epochs = 0
+    FLAGS.fine_tuning_epochs = 40
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
@@ -101,7 +111,7 @@ def main(_):
     else:
         cornell_grasp_train.run_training(
             problem_name=problem_type,
-            feature_combo_name=feature_combo,
+            # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             dataset_name=dataset_name,
             optimizer_name=optimizer_name,
