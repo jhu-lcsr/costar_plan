@@ -92,7 +92,7 @@ def main(_):
         feature_combo_name=feature_combo)
 
     # TODO: remove loss if it doesn't work or make me the default in the other files if it works really well
-    hyperparams['loss'] = 'mae'
+    hyperparams['loss'] = 'mse'
 
     if 'k_fold' in FLAGS.pipeline_stage:
         cornell_grasp_train.train_k_fold(
