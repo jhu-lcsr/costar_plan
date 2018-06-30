@@ -1002,7 +1002,9 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
-        vector_shapes = [(49,)]
+        # label with translation and orientation
+        # vector_shapes = [(49,)]
+        vector_shapes = [(44,)]
         # data with translation and orientation
         # data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
         # translation only
