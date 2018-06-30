@@ -17,7 +17,8 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    problem_type = 'semantic_grasp_regression'
+    # problem_type = 'semantic_grasp_regression'
+    problem_type = 'semantic_translation_regression'
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
     # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
@@ -64,7 +65,7 @@ def main(_):
         # 2018-06-28 hyperopt 324 model results on actual stacking dataset, may not be a great run... .25 m error. Rerun?
         # FLAGS.load_hyperparams = ('hyperparams/semantic_grasp_regression/2018-06-25-03-45-46_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
 
-        # 2018-06-29 hyperopt best of 65 models on val_cart_error in hyperopt, 
+        # 2018-06-29 hyperopt best of 65 models on val_cart_error in hyperopt,
         # 1 epoch results: val angle error (rad): 0.215976331639 val cart error (m): 0.126106130658
         # 120 epoch results: val cart error 0.25... much worse than the original 1 epoch.
         #FLAGS.load_hyperparams = ('hyperparams/semantic_grasp_regression/2018-06-28-21-16-47_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
