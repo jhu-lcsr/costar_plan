@@ -1195,13 +1195,13 @@ def load_dataset(
         output_shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         train_data = CostarBlockStackingSequence(
             train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
-            data_features_to_extract=data_features)
+            data_features_to_extract=data_features, label_features_to_extract=label_features)
         test_data = CostarBlockStackingSequence(
             test_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
-            data_features_to_extract=data_features)
+            data_features_to_extract=data_features, label_features_to_extract=label_features)
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
-            data_features_to_extract=data_features)
+            data_features_to_extract=data_features, label_features_to_extract=label_features)
         train_size = len(train_data) * batch_size * estimated_images_per_example
         val_size = len(validation_data) * batch_size * estimated_images_per_example
         test_size = len(test_data) * batch_size * estimated_images_per_example
