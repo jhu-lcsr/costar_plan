@@ -414,6 +414,13 @@ class CostarBlockStackingSequence(Sequence):
             else:
                 raise ValueError('Unsupported label: ' + str(action_labels))
 
+            # Debugging checks
+            if X is None:
+                raise ValueError('Unsupported input data for X: ' + str(x))
+            if y is None:
+                raise ValueError('Unsupported input data for y: ' + str(x))
+
+            # Assemble the data batch
             batch = (X, y)
 
             if self.verbose > 0:
@@ -450,7 +457,10 @@ if __name__ == "__main__":
     tf.enable_eager_execution()
     filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'))
     # print(filenames)
-    training_generator = CostarBlockStackingSequence(filenames, batch_size=1, verbose=0)
+    training_generator = CostarBlockStackingSequence(
+        filenames, batch_size=1, verbose=0,
+        label_features_to_extract='grasp_goal_xyz_aaxyz_nsc_8',
+        data_features_to_extract=['current_xyz_aaxyz_nsc_8'])
     num_batches = len(training_generator)
 
     bsg = block_stacking_generator(training_generator)
