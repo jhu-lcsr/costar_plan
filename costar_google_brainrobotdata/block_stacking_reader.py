@@ -287,7 +287,7 @@ class CostarBlockStackingSequence(Sequence):
                                     row_axis=0, col_axis=1, channel_axis=2)
                             # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
                             if self.output_shape is not None:
-                                resized_image = resize(images, self.output_shape)
+                                resized_image = resize(images, self.output_shape, mode='constant', preserve_range=True)
                             else:
                                 resized_image = images
                             if self.is_training:
@@ -456,11 +456,14 @@ def block_stacking_generator(sequence):
 
 if __name__ == "__main__":
     visualize = True
+    output_shape = (224, 224, 3)
+    # output_shape = None
     tf.enable_eager_execution()
     filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'))
     # print(filenames)
     training_generator = CostarBlockStackingSequence(
         filenames, batch_size=1, verbose=0,
+        output_shape=output_shape,
         label_features_to_extract='grasp_goal_xyz_aaxyz_nsc_8',
         data_features_to_extract=['current_xyz_aaxyz_nsc_8'])
     num_batches = len(training_generator)
