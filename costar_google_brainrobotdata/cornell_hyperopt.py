@@ -74,7 +74,7 @@ def main(_):
     run_training_fn = cornell_grasp_train.run_training
     problem_type = FLAGS.problem_type
     param_to_optimize = 'loss'
-    seed = 32
+    seed = 37
     initial_num_samples = 4000
     maximum_hyperopt_steps = 10
     # enable random learning rates, if enabled,
