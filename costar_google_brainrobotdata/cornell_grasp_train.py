@@ -420,8 +420,13 @@ def run_training(
         # give extra time if it is a long run because
         # it was probably manually configured
         max_batch_time_seconds *= 2
-    callbacks += [SlowModelStopping(max_batch_time_seconds=max_batch_time_seconds),
-                  InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
+    callbacks += [SlowModelStopping(max_batch_time_seconds=max_batch_time_seconds)]
+    # stop models that make predictions that are close to all true or all false
+    # this check works for both classification and sigmoid pose estimation
+    callbacks += [InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
+    if 'costar' in dataset_name:
+        # stop models that don't at least get within 40 cm after 300 batches.
+        callbacks += [InaccurateModelStopping(min_pred=0.0, max_pred=0.4, metric='cart_error')]
 
     if checkpoint:
         checkpoint = keras.callbacks.ModelCheckpoint(
