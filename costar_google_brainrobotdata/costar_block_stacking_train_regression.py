@@ -93,7 +93,7 @@ def main(_):
 
     # TODO: remove loss if it doesn't work or make me the default in the other files if it works really well
     hyperparams['loss'] = 'mse'
-    hyperparams['trainable'] = True
+    # hyperparams['trainable'] = True
 
     if 'k_fold' in FLAGS.pipeline_stage:
         cornell_grasp_train.train_k_fold(
