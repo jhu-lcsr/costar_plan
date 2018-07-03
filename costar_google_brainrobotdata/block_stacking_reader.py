@@ -455,6 +455,7 @@ def block_stacking_generator(sequence):
         yield batch
 
 if __name__ == "__main__":
+    visualize = True
     tf.enable_eager_execution()
     filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'))
     # print(filenames)
@@ -471,6 +472,21 @@ if __name__ == "__main__":
     for i in progress:
         data = next(bsg)
         progress.set_description('step: ' + str(i) + ' data type: ' + str(type(data)))
+
+        if visualize:
+            import matplotlib
+            import matplotlib.pyplot as plt
+            # clear view image
+            plt.imshow((np.squeeze(data[0][0]) / 2.0) + 0.5)
+            plt.draw()
+            plt.pause(0.25)
+            # current timestep image
+            plt.imshow((np.squeeze(data[0][1]) / 2.0) + 0.5)
+            plt.draw()
+            plt.pause(0.25)
+            # uncomment the following line to wait for
+            # one window to be closed before showing the next
+            # plt.show()
     # a = next(training_generator)
     enqueuer = OrderedEnqueuer(
                     training_generator,
