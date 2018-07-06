@@ -290,7 +290,7 @@ class CostarBlockStackingSequence(Sequence):
                                 resized_image = resize(images, self.output_shape, mode='constant', preserve_range=True)
                             else:
                                 resized_image = images
-                            if self.is_training:
+                            if self.is_training and self.random_augmentation:
                                 # do some image augmentation with random erasing & cutout
                                 resized_image = random_eraser(resized_image)
                             rgb_images_resized.append(resized_image)
