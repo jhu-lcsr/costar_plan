@@ -71,10 +71,10 @@ def main(_):
         # FLAGS.load_hyperparams = ('hyperparams/semantic_grasp_regression/2018-06-28-21-16-47_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
 
         # 2018-6-30 hyperop 2nd best of 120 models on val_cart error in hyperopt
-        FLAGS.load_hyperparams = ('hyperopt_logs_costar_grasp_regression/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
+        # FLAGS.load_hyperparams = ('hyperopt_logs_costar_grasp_regression/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
         
-        # 2018-07-03 val grasp acc of 0.003 in first epoch
-        FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-03-00-30-04_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+        # 2018-07-07 best performing non-vgg model
+        FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-06-22-34-31_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
     FLAGS.epochs = 120
     FLAGS.batch_size = 128
     optimizer_name = 'sgd'
