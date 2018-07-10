@@ -253,9 +253,9 @@ def optimize(
     hyperoptions.add_param('learning_rate', (0.0, 100.0), 'continuous',
                            enable=learning_rate_enabled, required=True, default=0.02)
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
-    # TODO(ahundt) run a separate search for the best dropout rate after finding a good model
+    # Ran a separate search for the best dropout rate after finding a good model, and 0.2 seems to generally be a decent option.
     hyperoptions.add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75],
-                           enable=True, required=True, default=0.2)
+                           enable=False, required=True, default=0.2)
 
     if problem_type == 'grasp_regression':
         # Right now only grasp_regression can configure the loss function
