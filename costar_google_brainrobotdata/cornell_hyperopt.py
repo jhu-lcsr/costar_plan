@@ -74,8 +74,12 @@ def main(_):
     run_training_fn = cornell_grasp_train.run_training
     problem_type = FLAGS.problem_type
     param_to_optimize = 'loss'
-    seed = 39
-    initial_num_samples = 4000
+    # TODO(ahundt) re-enable seed once memory leak issue below is fixed
+    # seed = 39
+    seed = None
+    # TODO(ahundt) costar generator has a memory leak! only do 100 samples as a quick fix. Large values can be used for the cornell dataset without issue.
+    # initial_num_samples = 4000
+    initial_num_samples = 100
     maximum_hyperopt_steps = 10
     # enable random learning rates, if enabled,
     # this will be the primary motivator for good/bad

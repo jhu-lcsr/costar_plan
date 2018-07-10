@@ -231,6 +231,7 @@ def optimize(
     # Configuring hyperparameters
 
     if variable_trainability:
+        enable_trainability = True
         # Proportion of layer depths that are trainable.
         # set variable_trainability to True to utilizing the proportional version
         # enables training for a number of layers proportional to the total,
@@ -238,6 +239,7 @@ def optimize(
         hyperoptions.add_param('trainable', (0.0, 1.0), 'continuous',
                                enable=True, required=True, default=0.0)
     else:
+        enable_trainability = False
         # The trainable flag refers to the imagenet pretrained network being trainable or not trainable.
         # We are defaulting to a reasonable learning rate found by prior searches and disabling trainability so that
         # we can restrict the search to more model improvements due to the outsized effects of these changes on performance
@@ -246,13 +248,21 @@ def optimize(
         # multi stage training not yet being configurable during hyperopt.
         #
         # 2018-06-10: except for cornell classification, the best models seem to have trainable=True, so we are locking that in.
-        hyperoptions.add_param('trainable', [True, False], enable=False, required=True, default=True)
+        hyperoptions.add_param('trainable', [True, False], enable=enable_trainability, required=True, default=True)
 
     # Learning rates are exponential so we take a uniform random
     # input and map it from 1 to 3e-5 on an exponential scale.
     # with a base of 0.9.
     # Therefore the value 50 is 0.9^50 == 0.005 (approx).
-    hyperoptions.add_param('learning_rate', (0.0, 100.0), 'continuous',
+    #
+    # 2018-06-10: We vary the learning rate search space depending on if trainability is variable or not.
+    if enable_trainability is False:
+        # learning rates from 1 to 0.01
+        lr_range = (0.0, 40.0)
+    else:
+        # learning rates from 1 to about 1e-5
+        lr_range = (0.0, 100)
+    hyperoptions.add_param('learning_rate', lr_range, 'continuous',
                            enable=learning_rate_enabled, required=True, default=0.02)
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
     #
