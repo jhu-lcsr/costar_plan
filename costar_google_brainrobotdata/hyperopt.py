@@ -244,7 +244,9 @@ def optimize(
         # during the random search phase. We plan to run a separate search on enabling trainable models on one of the best models
         # found when trainable is false. This is due to limitations in processing time availability at the time of writing and
         # multi stage training not yet being configurable during hyperopt.
-        hyperoptions.add_param('trainable', [True, False], enable=True, required=True, default=False)
+        #
+        # 2018-06-10: except for cornell classification, the best models seem to have trainable=True, so we are locking that in.
+        hyperoptions.add_param('trainable', [True, False], enable=False, required=True, default=True)
 
     # Learning rates are exponential so we take a uniform random
     # input and map it from 1 to 3e-5 on an exponential scale.
@@ -253,7 +255,8 @@ def optimize(
     hyperoptions.add_param('learning_rate', (0.0, 100.0), 'continuous',
                            enable=learning_rate_enabled, required=True, default=0.02)
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
-    # Ran a separate search for the best dropout rate after finding a good model, and 0.2 seems to generally be a decent option.
+    #
+    # 2018-06-10: Ran a separate search for the best dropout rate after finding a good model, and 0.2 seems to generally be a decent option.
     hyperoptions.add_param('dropout_rate', [0.0, 0.125, 0.2, 0.25, 0.5, 0.75],
                            enable=False, required=True, default=0.2)
 
