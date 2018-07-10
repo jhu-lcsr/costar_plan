@@ -268,23 +268,40 @@ def optimize(
         hyperoptions.add_param('vector_dense_filters', [2**x for x in range(6, 13)])
         hyperoptions.add_param('vector_branch_num_layers', [x for x in range(0, 5)])
         hyperoptions.add_param('vector_model_name', ['dense', 'dense_block'])
+        hyperoptions.add_param('vector_hidden_activation', ['linear', 'relu', 'elu'],
+                               default='linear', enable=True, required=True)
+        hyperoptions.add_param('vector_normalization', ['none', 'batch_norm', 'group_norm'],
+                               default='batch_norm', enable=False, required=True)
 
     # enable this if you're search for grasp classifications
     hyperoptions.add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
                            enable=False, required=True, default=feature_combo_name)
-    # leaving out nasnet_large for now because it needs different input dimensions.
     # other supported options: 'densenet', 'nasnet_mobile', 'resnet', 'inception_resnet_v2', 'mobilenet_v2', 'nasnet_large', 'vgg19',
     # TODO(ahundt) Debug 'mobilenet_v2' which might not be working correctly, it has been removed for now.
-    hyperoptions.add_param('image_model_name', ['vgg', 'nasnet_mobile', 'nasnet_large', 'inception_resnet_v2'],
+    # leaving out 'nasnet_large' and 'inception_resnet_v2' for now because they're
+    # very large networks that don't train quickly, and may not currently be fast enough for a robot.
+    # Please note that inception_resnet_v2 did quite well in both the cornell dataset and the costar dataset!
+    hyperoptions.add_param('image_model_name', ['vgg', 'nasnet_mobile'],
                            enable=True, required=True, default='vgg')
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
     hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 10)])
-    hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'resnet_conv_identity_block', 'nasnet_normal_a_cell'],
+    # Choose the model for the trunk, options are 'vgg_conv_block', 'dense_block', 'nasnet_normal_a_cell', 'resnet_conv_identity_block'
+    # an additional option is 'resnet_conv_identity_block', but it never really did well.
+    # dense_block does really well for the cornell dataset, vgg_conv_block for costar stacking dataset
+    hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'nasnet_normal_a_cell'],
                            default='dense_block', enable=True, required=True)
+    # trunk hidden activation currently only applies to the vgg case
+    hyperoptions.add_param('trunk_hidden_activation', ['relu', 'elu', 'linear'],
+                           default='relu', enable=True, required=True)
+    # 'trunk_normalization' currently only applies in vgg case and after the first conv in the nasnet case
+    hyperoptions.add_param('trunk_normalization', ['none', 'batch_norm', 'group_norm'],
+                           default='batch_norm', enable=True, required=True)
     hyperoptions.add_param('top_block_filters', [2**x for x in range(min_top_block_filter_multiplier, 12)])
     # number of dense layers before the final dense layer that performs classification in the top block
     hyperoptions.add_param('top_block_dense_layers', [0, 1, 2, 3, 4])
+    hyperoptions.add_param('top_block_hidden_activation', ['relu', 'elu', 'linear'],
+                           default='relu', enable=True, required=True)
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
     # The appropriate preprocessing mode must be chosen for each model.

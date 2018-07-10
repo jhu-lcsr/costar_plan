@@ -37,6 +37,7 @@ from keras_contrib.applications.densenet import DenseNetFCN
 from keras_contrib.applications.densenet import DenseNet
 from keras_contrib.applications.densenet import DenseNetImageNet121
 from keras_contrib.applications.resnet import ResNet
+from keras_contrib.layers.normalization import GroupNormalization
 import keras_contrib.applications.fully_convolutional_networks as fcn
 import keras_contrib.applications.densenet as densenet
 import keras_tqdm
@@ -271,7 +272,7 @@ def classifier_block(input_tensor, include_top=True, top='classification',
 
 def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0, include_top=True,
               classes=1, activation='sigmoid', final_pooling=None,
-              filters=64, dense_layers=0, name='', verbose=0):
+              filters=64, dense_layers=0, hidden_activation='relu', name='', verbose=0):
     """ Perform final convolutions for decision making, then apply the classification block.
 
         The top block adds the final "decision making" layers
@@ -292,6 +293,8 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             option in `keras.applications.imagenet_utils._obtain_input_shape()`.
         dense_layers: Number of additional dense layers before the final dense layer.
             The final dense layer defines number of output classes is created.
+        hidden_activation: Activation to be used in internal top block layers,
+            before the final output activation.
     """
     print('top block top: ' + str(top))
     # Extra Global Average Pooling allows more flexible input dimensions
@@ -307,7 +310,7 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             if dropout_rate is not None:
                 x = Dropout(dropout_rate)(x)
 
-            x = Dense(filters, activation='relu')(x)
+            x = Dense(filters, activation=hidden_activation)(x)
 
         if dropout_rate is not None:
             x = Dropout(dropout_rate)(x)
@@ -318,7 +321,7 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             if dropout_rate is not None:
                 x = Dropout(dropout_rate)(x)
 
-            x = Conv2D(filters, (1, 1), activation='relu', padding='same')(x)
+            x = Conv2D(filters, (1, 1), activation=hidden_activation, padding='same')(x)
 
         if dropout_rate is not None:
             x = Dropout(dropout_rate)(x)
@@ -359,6 +362,7 @@ def hypertree_model(
         create_vector_tree_roots_fn=None,
         create_tree_trunk_fn=None,
         top_block_dense_layers=0,
+        top_block_hidden_activation='relu',
         verbose=0):
 
     if images is None and image_shapes is None:
@@ -424,6 +428,7 @@ def hypertree_model(
             include_top, classes, activation,
             final_pooling, top_block_filters,
             dense_layers=top_block_dense_layers,
+            hidden_activation=top_block_hidden_activation,
             name=name, verbose=verbose)
         xs += [xi]
 
@@ -440,6 +445,23 @@ def hypertree_model(
     # create the model
     model = keras.models.Model(inputs=inputs, outputs=x)
     return model
+
+
+def choose_normalization(x, normalization, name=None):
+    """ Choose the type of normalization to use such as batchnorm or groupnorm.
+
+    x: the input tensor
+    normalization: One of None, 'none', 'batch_norm', or 'group_norm'
+    name: A name to give the layer.
+    """
+    if normalization is not None and normalization is not 'none':
+        if normalization == 'batch_norm':
+            # x = BatchNormalization()(x)
+            # TODO(ahundt) using nasnet default BatchNorm options, revert if this causes problems
+            x = BatchNormalization(axis=-1, momentum=0.9997, epsilon=1e-3)(x)
+        elif normalization == 'group_norm':
+            x = GroupNormalization()(x)
+    return x
 
 
 def choose_hypertree_model(
@@ -466,7 +488,12 @@ def choose_hypertree_model(
         vector_branch_num_layers=3,
         image_model_weights='shared',
         use_auxiliary_branch=True,
-        weights='imagenet'):
+        weights='imagenet',
+        trunk_hidden_activation='relu',
+        vector_hidden_activation='none',
+        top_block_hidden_activation='relu',
+        trunk_normalization='none',
+        vector_normalization='batch_norm'):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
@@ -479,6 +506,12 @@ def choose_hypertree_model(
         trunk_filters: the initial number of filters for the concatenated network trunk.
             Setting the parameters to None or 0 will use the number of cannels in the
             input data provided.
+        trunk_normalization: options are 'batch_norm', 'group_norm', and None or 'none'
+        trunk_hidden_activation: the activation to use for hidden layers in configurations that support it
+            the vgg trunk is the only option at the time of writing.
+        vector_normalization: options are 'batch_norm', 'group_norm', and None or 'none'
+        vector_hidden_activation: the activation to use for hidden layers in configurations that support it
+            the vgg trunk is the only option at the time of writing.
 
     # Notes
 
@@ -739,7 +772,8 @@ def choose_hypertree_model(
         def vector_branch_dense(
                 tensor, vector_dense_filters=vector_dense_filters,
                 num_layers=vector_branch_num_layers,
-                model_name=vector_model_name):
+                model_name=vector_model_name,
+                vector_normalization=vector_normalization):
             """ Vector branches that simply contain a single dense layer.
             """
             x = tensor
@@ -748,15 +782,15 @@ def choose_hypertree_model(
             if num_layers is None or num_layers == 0:
                 return x
             elif model_name == 'dense':
-                x = Dense(vector_dense_filters)(x)
+                x = Dense(vector_dense_filters, activation=vector_hidden_activation)(x)
                 # Important! some old models saved to disk
                 # are invalidated by the BatchNorm and Dropout
-                # lines below, comment them if you really neeed to go back
-                x = BatchNormalization()(x)
+                # lines below, comment them if you really need to go back
+                x = choose_normalization(x, vector_normalization)
                 x = Dropout(dropout_rate)(x)
                 if num_layers > 1:
                     for i in range(num_layers - 1):
-                        x = Dense(vector_dense_filters)(x)
+                        x = Dense(vector_dense_filters, activation=vector_hidden_activation)(x)
             elif model_name == 'dense_block':
                 densenet.__dense_block(
                     x, nb_layers=num_layers,
@@ -808,9 +842,19 @@ def choose_hypertree_model(
                     name = 'trunk'
                     weight_decay = 0.
                     for l in range(num_layers):
-                        x = Conv2D(filters, (3, 3), activation='relu', padding='same',
+                        x = Conv2D(filters, (3, 3), activation=trunk_hidden_activation, padding='same',
                                    name=name + 'block6_conv%d' % l, kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
+                        x = choose_normalization(x, trunk_normalization)
                 elif trunk_model_name == 'nasnet_normal_a_cell':
+
+                    x = layers.Conv2D(filters, (3, 3),
+                                      strides=(1, 1),
+                                      padding='valid',
+                                      use_bias=False,
+                                      name='trunk_conv1',
+                                      kernel_initializer='he_normal')(img_input)
+
+                    x = choose_normalization(x, trunk_normalization)
                     p = x
                     for l in range(num_layers):
                         block_id = 'trunk_' + str(l)
@@ -835,6 +879,7 @@ def choose_hypertree_model(
             include_top=include_top,
             top=top,
             top_block_filters=top_block_filters,
+            top_block_hidden_activation=top_block_hidden_activation,
             classes=classes,
             output_shape=output_shape,
             verbose=verbose
