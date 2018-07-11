@@ -847,12 +847,12 @@ def choose_hypertree_model(
                         x = choose_normalization(x, trunk_normalization)
                 elif trunk_model_name == 'nasnet_normal_a_cell':
 
-                    x = layers.Conv2D(filters, (3, 3),
-                                      strides=(1, 1),
-                                      padding='valid',
-                                      use_bias=False,
-                                      name='trunk_conv1',
-                                      kernel_initializer='he_normal')(img_input)
+                    x = Conv2D(filters, (3, 3),
+                               strides=(1, 1),
+                               padding='valid',
+                               use_bias=False,
+                               name='trunk_conv1',
+                               kernel_initializer='he_normal')(img_input)
 
                     x = choose_normalization(x, trunk_normalization)
                     p = x
