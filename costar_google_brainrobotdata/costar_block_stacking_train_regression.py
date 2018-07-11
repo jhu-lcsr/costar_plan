@@ -17,8 +17,8 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    # problem_type = 'semantic_grasp_regression'
     problem_type = 'semantic_translation_regression'
+    problem_type2 = 'semantic_grasp_regression'
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
     # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
@@ -71,10 +71,13 @@ def main(_):
         # FLAGS.load_hyperparams = ('hyperparams/semantic_grasp_regression/2018-06-28-21-16-47_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
 
         # 2018-6-30 hyperop 2nd best of 120 models on val_cart error in hyperopt
-        FLAGS.load_hyperparams = ('hyperopt_logs_costar_grasp_regression/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
+        # FLAGS.load_hyperparams = ('hyperopt_logs_costar_grasp_regression/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
         
-        # 2018-07-03 val grasp acc of 0.003 in first epoch
-        FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-03-00-30-04_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+        # 2018-07-07 best performing non-vgg model with 15% val and test grasp accracy for translations with semantic_translation_regression case.
+        # FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-06-22-34-31_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+        
+        # 2017-07-08 new possible best model, will be tried.
+        FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
     FLAGS.epochs = 120
     FLAGS.batch_size = 128
     optimizer_name = 'sgd'
@@ -103,6 +106,9 @@ def main(_):
 
     # TODO: remove loss if it doesn't work or make me the default in the other files if it works really well
     hyperparams['loss'] = 'mse'
+    # save weights at checkpoints as the model's performance improves
+    hyperparams['checkpoint'] = True
+    hyperparams['learning_rate'] = 0.6
     # hyperparams['trainable'] = True
 
     if 'k_fold' in FLAGS.pipeline_stage:
@@ -120,9 +126,32 @@ def main(_):
             split_type='imagewise',
             dataset_name=dataset_name,
             **hyperparams)
+        cornell_grasp_train.train_k_fold(
+            problem_name=problem_type2,
+            feature_combo_name=feature_combo,
+            hyperparams=hyperparams,
+            split_type='objectwise',
+            dataset_name=dataset_name,
+            **hyperparams)
+        cornell_grasp_train.train_k_fold(
+            problem_name=problem_type2,
+            feature_combo_name=feature_combo,
+            hyperparams=hyperparams,
+            split_type='imagewise',
+            dataset_name=dataset_name,
+            **hyperparams)
     else:
+        print('\n---------------------\ntraining problem type: ' + str(problem_type) + '\n---------------------')
         cornell_grasp_train.run_training(
             problem_name=problem_type,
+            # feature_combo_name=feature_combo,
+            hyperparams=hyperparams,
+            dataset_name=dataset_name,
+            optimizer_name=optimizer_name,
+            **hyperparams)
+        print('\n---------------------\ntraining problem type2: ' + str(problem_type2) + '\n---------------------')
+        cornell_grasp_train.run_training(
+            problem_name=problem_type2,
             # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             dataset_name=dataset_name,

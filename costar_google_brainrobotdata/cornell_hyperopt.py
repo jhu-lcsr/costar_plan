@@ -75,7 +75,7 @@ def main(_):
     problem_type = FLAGS.problem_type
     param_to_optimize = 'loss'
     # TODO(ahundt) re-enable seed once memory leak issue below is fixed
-    # seed = 39
+    # seed = 44
     seed = None
     # TODO(ahundt) costar generator has a memory leak! only do 100 samples as a quick fix. Large values can be used for the cornell dataset without issue.
     # initial_num_samples = 4000
