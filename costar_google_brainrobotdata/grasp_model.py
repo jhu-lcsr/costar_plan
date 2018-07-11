@@ -852,7 +852,7 @@ def choose_hypertree_model(
                                padding='valid',
                                use_bias=False,
                                name='trunk_conv1',
-                               kernel_initializer='he_normal')(img_input)
+                               kernel_initializer='he_normal')(x)
 
                     x = choose_normalization(x, trunk_normalization)
                     p = x
