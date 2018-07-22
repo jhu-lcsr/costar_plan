@@ -752,6 +752,7 @@ def choose_hypertree_model(
             if (coordinate_data is not None and
                     coordinate_data is not 'none' and
                     coordinate_data is 'coord_conv_img'):
+                tensor = Input(tensor=tensor)
                 tensor = coord_conv.CoordinateChannel2D()(tensor)
             if image_model_weights == 'shared':
                 ImageModelCarrier.image_models += [image_model]
