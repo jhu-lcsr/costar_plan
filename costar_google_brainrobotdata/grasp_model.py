@@ -594,7 +594,7 @@ def choose_hypertree_model(
             image_input_shape = image_shapes[0]
         if coordinate_data is not None and coordinate_data == 'coord_conv_img':
             # coord_conv_img case currently adds 2 additional channels.
-            image_input_shape[2] = image_input_shape[2] + 2
+            image_input_shape = (image_input_shape[0], image_input_shape[1], image_input_shape[2] + 2)
         print('hypertree image_input_shape: ' + str(image_input_shape))
         print('hypertree images: ' + str(images))
         print('hypertree classes: ' + str(classes))
