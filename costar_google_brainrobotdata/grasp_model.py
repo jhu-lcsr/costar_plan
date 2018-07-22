@@ -43,6 +43,7 @@ import keras_contrib.applications.densenet as densenet
 import keras_tqdm
 
 from keras.engine import Layer
+import coord_conv
 
 
 def tile_vector_as_image_channels(vector_op, image_shape):
@@ -493,6 +494,7 @@ def choose_hypertree_model(
         vector_hidden_activation='none',
         top_block_hidden_activation='relu',
         trunk_normalization='none',
+        coordinate_data=None,
         vector_normalization='batch_norm'):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
@@ -699,6 +701,7 @@ def choose_hypertree_model(
                     for layer in resnet_model.layers:
                         layer.trainable = False
                 # get the layer before the global average pooling
+                # TODO(ahundt) this may need to be changed due to recent resnet restructuring in keras
                 image_model = resnet_model.layers[-2]
             elif image_model_name == 'densenet':
                 if image_model_weights == 'shared':
@@ -741,11 +744,15 @@ def choose_hypertree_model(
             image_models = []
             image_model_num = 0
 
-        def create_image_model(tensor):
+        def create_image_model(tensor, coordinate_data=coordinate_data):
             """ Image classifier weights are shared or separate.
 
             This function helps set up the weights.
             """
+            if (coordinate_data is not None and
+                    coordinate_data is not 'none' and
+                    coordinate_data is 'coord_conv_img'):
+                tensor = coord_conv.CoordinateChannel2D(tensor)
             if image_model_weights == 'shared':
                 ImageModelCarrier.image_models += [image_model]
                 return image_model(tensor)
@@ -804,13 +811,19 @@ def choose_hypertree_model(
             print('Hypertree create_image_model completed for tensor: ' + str(tensor))
             return x
 
-        def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers):
+        def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers, coordinate_data=coordinate_data):
             """
                 filters: the initial number of filters for the concatenated network trunk.
                     Setting the parameters to None or 0 will use the number of cannels in the
                     input data provided.
             """
+            if (coordinate_data is not None and
+                    coordinate_data is not 'none' and
+                    coordinate_data is 'coord_conv_trunk'):
+                tensor = coord_conv.CoordinateChannel2D(tensor)
+
             x = tensor
+
             if filters is None or filters == 0:
                 channels = K.int_shape(tensor)[-1]
             else:

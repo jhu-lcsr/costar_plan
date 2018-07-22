@@ -304,6 +304,11 @@ def optimize(
     # dense_block does really well for the cornell dataset, vgg_conv_block for costar stacking dataset
     hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'nasnet_normal_a_cell'],
                            default='dense_block', enable=True, required=True)
+    # Enable or disable coordconv
+    # https://eng.uber.com/coordconv/
+    #  https://github.com/titu1994/keras-coordconv
+    hyperoptions.add_param('coordinate_data', ['none', 'coord_conv_img', 'coord_conv_trunk'],
+                           default='none', enable=True, required=True)
     # trunk hidden activation currently only applies to the vgg case
     hyperoptions.add_param('trunk_hidden_activation', ['relu', 'elu', 'linear'],
                            default='relu', enable=True, required=True)
