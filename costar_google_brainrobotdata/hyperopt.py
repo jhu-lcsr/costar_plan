@@ -309,7 +309,8 @@ def optimize(
     # https://github.com/titu1994/keras-coordconv
     # TODO(ahundt) fix bugs in , 'coord_conv_img'
     # valid options include ['none', 'coord_conv_trunk', 'coord_conv_img']
-    hyperoptions.add_param('coordinate_data', ['none', 'coord_conv_trunk'],
+    # hyperoptions.add_param('coordinate_data', ['none', 'coord_conv_trunk'],
+    hyperoptions.add_param('coordinate_data', ['coord_conv_img'],
                            default='none', enable=True, required=True)
     # trunk hidden activation currently only applies to the vgg case
     hyperoptions.add_param('trunk_hidden_activation', ['relu', 'elu', 'linear'],
