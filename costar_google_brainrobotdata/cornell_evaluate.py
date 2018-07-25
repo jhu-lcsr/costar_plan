@@ -1,5 +1,5 @@
 '''
-Evaluating a network on cornell grasping dataset.
+Evaluating a k_fold trained regression network on cornell grasping dataset.
 
 In other words, this network tries to predict a grasp rectangle from an input image.
 
@@ -82,5 +82,5 @@ if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
     # FLAGS._parse_flags()
     tf.app.run(main=main)
-    print('grasp_train.py run complete, original command: ', sys.argv)
+    print('cornell_evaluate.py run complete, original command: ', sys.argv)
     sys.exit()

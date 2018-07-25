@@ -4,6 +4,28 @@ import numpy as np
 import os
 import json
 import datetime
+import errno
+import json
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """ json encoder for numpy types
+
+    source: https://stackoverflow.com/a/49677241/99379
+    """
+    def default(self, obj):
+        if isinstance(obj,
+            (np.int_, np.intc, np.intp, np.int8,
+             np.int16, np.int32, np.int64, np.uint8,
+             np.uint16, np.uint32, np.uint64)):
+            return int(obj)
+        elif isinstance(obj,
+           (np.float_, np.float16, np.float32,
+            np.float64)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 
 def rotate(data, shift=1):
@@ -130,7 +152,7 @@ def find_best_weights(fold_log_dir, match_string='', verbose=0, out_file=sys.std
     return fold_checkpoint_file
 
 
-def make_model_description(run_name, model_name, hyperparams, dataset_names_str):
+def make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features=None):
     """ Put several strings together for a model description used in file and folder names
     """
     model_description = ''
@@ -141,12 +163,17 @@ def make_model_description(run_name, model_name, hyperparams, dataset_names_str)
 
     if hyperparams is not None:
         if 'image_model_name' in hyperparams:
-            model_description += '_' + hyperparams['image_model_name']
+            model_description += '_img_' + hyperparams['image_model_name']
+        if 'vector_model_name' in hyperparams:
+            model_description += '_vec_' + hyperparams['vector_model_name']
         if 'trunk_model_name' in hyperparams:
-            model_description += '_' + hyperparams['trunk_model_name']
+            model_description += '_trunk_' + hyperparams['trunk_model_name']
     ########################################################
     # End tensor configuration, begin model configuration and training
     model_description += '-dataset_' + dataset_names_str
+
+    if label_features is not None:
+        model_description += '-' + label_features
 
     run_name = timeStamped(model_description)
     return run_name

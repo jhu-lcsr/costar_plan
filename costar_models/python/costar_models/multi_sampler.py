@@ -293,7 +293,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
 
         return predictor, model, actor, ins, enc
 
-    def _makeTransform(self, h_dim=(8,8), perm_drop=False):
+    def _makeTransform(self, perm_drop=False):
         '''
         This is the version made for the newer code, it is set up to use both
         the initial and current observed world and creates a transform
@@ -307,6 +307,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         --------
         transform model
         '''
+        h_dim = self.hidden_shape
         h = Input((h_dim[0], h_dim[1], self.encoder_channels),name="h_in")
         option = Input((self.num_options,),name="t_opt_in")
         # Never use the BN here?
@@ -335,13 +336,13 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         skip = x
 
         if self.use_noise:
-            y = AddDense(z, 32, "lrelu", 0., constraint=None, output=False, bn=bn)
+            y = AddDense(z, 32, self.activation_fn, 0., constraint=None, output=False, bn=bn)
             x = TileOnto(x, y, 32, h_dim)
             x = AddConv2D(x, 32, [5,5], 1, 0., **kwargs)
 
         # Add convolution to incorporate action info -- 2 + 1 + 1 = 4
-        y = AddDense(option, 64, "lrelu", 0., constraint=None, output=False,
-                bn=bn, perm_drop=True)
+        y = AddDense(option, 64, self.activation_fn, 0., constraint=None, output=False,
+                bn=bn, perm_drop=False)
         x = TileOnto(x, y, 64, h_dim)
         x = AddConv2D(x, 64, [5,5], 1, 0., **kwargs)
 
@@ -549,7 +550,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
             else:
                 return features, [tt, o1_1h, v]
 
-    def trainFromGenerators(self, train_generator, test_generator, data=None):
+    def trainFromGenerators(self, train_generator, test_generator, data=None, verbose=1):
         '''
         Train tool from generator
 
@@ -559,6 +560,14 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         test_generator: produces test examples
         data: some extra data used for debugging (should be validation data)
         '''
+        if verbose > 0:
+            # print('num keys: ' + str(len(six.iteritems(data))))
+            debug_str = 'multi_sampler.py::RobotMultiPredictionSampler.trainFromGenerators keys: '
+            for i, (key, value) in enumerate(six.iteritems(data)):
+                print(str(i) + ' ' + str(key))
+                debug_str = debug_str + str(key) + ', '
+            print(debug_str)
+        # print('data:\n' + str(data))
 
         # ===================================================================
         # Use sample data to compile the model and set everything else up.

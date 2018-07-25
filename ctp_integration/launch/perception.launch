@@ -15,9 +15,22 @@
     <arg name="table_frame" value="$(arg table_frame)"/>
     <arg name="use_filtered_marker_tf" value="$(arg use_filtered_marker_tf)"/>
     <arg name="fake_table_frame" value="true"/>
-    <!-- Create center of the table to describe left and right -->
-    <arg name="table_center" value="0.422 -0.135 -0.023 0.030 -0.004 -0.157 0.987"/>
+    <!-- Create center of the table to describe left and right
+      Value order below is: "left/right forward/back up/down qx qy qz qw"
+     -->
+    <arg name="table_center" value="0.522 -0.135 -0.023 0.030 -0.004 -0.157 0.987"/>
+    <!-- center of the "cart" on which the robot is sitting; table center is
+         directly in front of this, as opposed to the robot base link, because
+         the robot is slightly rotated.-->
+    <arg name="cart_base_link" value="cart_base_link"/>
   </include>
+
+  <node
+    name="cart_tf_publisher"
+    type="static_transform_publisher"
+    pkg="tf"
+    args="-0.7 0 0 0 0 0 1 table_center cart_base_link 100">
+  </node>
 
   <!--
     roslaunch color_nn_segmenter costar_segmenter.launch

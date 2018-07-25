@@ -24,6 +24,8 @@ from .secondary import Secondary
 
 # CoSTAR
 from .pretrain_image_costar import PretrainImageCostar
+from .conditional_image_costar import ConditionalImageCostar
+from .discriminator import CostarDiscriminator
 
 # Jigsaws stuff
 from .dvrk import *
@@ -188,10 +190,27 @@ def MakeModel(features, model, taskdef, **kwargs):
                     model=model,
                     features=features,
                     **kwargs)
+        elif model == "conditional_image":
+            model_instance = ConditionalImageCostar(taskdef,
+                    features=features,
+                    model=model,
+                    **kwargs)
+        elif model == "discriminator":
+            model_instance = CostarDiscriminator(False, taskdef,
+                    features=features,
+                    model=model, **kwargs)
+        elif model == "goal_discriminator":
+            model_instance = CostarDiscriminator(True, taskdef,
+                    features=features,
+                    model=model, **kwargs)
 
         # Global setup for CoSTAR
         # this one uses jpegs
         model_instance.load_jpeg = True
+        # 2018-06-05 incremented null_option and num_options by 1 because of new move_to_home option
+        model_instance.null_option = 41
+        model_instance.num_options = 42
+        model_instance.validation_split = 0.2
 
     elif features == "husky":
         '''
@@ -247,7 +266,7 @@ def MakeModel(features, model, taskdef, **kwargs):
         model_instance.load_jpeg = False
         model_instance.num_options = HuskyNumOptions()
         model_instance.null_option = HuskyNullOption()
-    
+
     # If we did not create a model then die.
     if model_instance is None:
         if features is None:

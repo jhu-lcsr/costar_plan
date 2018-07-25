@@ -36,10 +36,8 @@ def main(args,root="root"):
 		if idx < args['start'] or idx > args['end']:
 			continue
 		
-		if args['ignore_failure']:
-			flag = filename[14:-4]
-			if flag is 'failure':
-				continue
+        if args['ignore_failure'] and 'failure' in filename:
+                continue
 
 		data = h5py.File(args['path']+filename,'r')
 		labels = list(data[args['name']])

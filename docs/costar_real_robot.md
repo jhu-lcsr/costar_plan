@@ -93,6 +93,60 @@ As of March 14, 2018, the list of actions in `labels_to_name` returns:
  'place_green_on_bluered', 'place_blue_on_yellow']
 ```
 
+There are a total of 40 actions (also referred to as options throughout the code, to differentiate them from low-level actions). We also add in an extra symbol for the "null" option, corresponding to no action having been selected.
+
+## Data Preprocessing
+
+Use the preproccessing script in `costar_models`:
+```
+# With ROS
+rosrun costar_models ./costar_models/scripts/preprocess_images \
+    --data_file robot.h5f --cpu
+# Without ROS
+$COSTAR_PLAN/costar_models/scripts/preprocess_images \
+    --data_file robot.h5f --cpu
+```
+
+Data will be placed in the directory name prepended with "small". In the above, we see the directories "robot" and "small_robot", each filled with ".h5f" files.
+
+A note on the `--cpu` flag: this is just to tell tensorflow it does not need the GPU for this script, really it should not need this anyway because we do not use tensorflow here.
+
+## Training Models
+
+### Pretrain Image Autoencoder
+
+### Conditional Image Model
+
+The conditional image model is supposed to train the whole pipeline now.
+
+```
+# With ROS
+rosrun costar_models ctp_model_tool --model conditional_image \
+    --dropout_rate 0.1 --data_file small_robot2.h5f --lr 0.001 \
+    --features costar -e 150 --model_directory $HOME/.costar/models \
+    --skip_connections 1 --use_ssm 1 --batch_size 64 --no_disc \
+    --steps_per_epoch 300 --retrain
+# Without ROS
+$COSTAR_PLAN/costar_models/scripts/ctp_model_tool --model conditional_image \
+    --dropout_rate 0.1 --data_file small_robot2.h5f --lr 0.001 \
+    --features costar -e 150 --model_directory $HOME/.costar/models \
+    --skip_connections 1 --use_ssm 1 --batch_size 64 --no_disc \
+    --steps_per_epoch 300 --retrain
+```
+
+Rundown of flags:
+  - `--retrain` tells it to re-learn the encoder and decoder
+  - `--data_file` tells it which directory and file format to load data from
+  - `--lr` sets the learning rate
+  - `--no_disc` tells it to use a simplified model without the augmented loss
+  - `--features costar` tells it to load the costar (real robot) version of the training model setup
+  - `--model_directory` will tell it where models and results are to be saved
+  - `--dropout_rate 0.1` sets 10% dropout
+  - `--skip_connections 1` activates skip connections in the transform
+  - `--use_ssm 1` enables a spatial softmax in the transform
+  - `--batch_size 64` tells it to use batches of 64 examples
+  - `--steps_per_epoch` tells it how often to update metrics and compute validation performance
+
 ## Debugging
 
 ### Debugging CoSTAR Arm

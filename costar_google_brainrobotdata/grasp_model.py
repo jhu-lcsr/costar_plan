@@ -6,6 +6,7 @@ import keras
 from keras.applications.nasnet import NASNetLarge
 from keras.applications.resnet50 import ResNet50
 from keras.applications.nasnet import NASNetMobile
+from keras.applications.mobilenetv2 import MobileNetV2
 from keras.applications.inception_resnet_v2 import InceptionResNetV2
 from keras import backend as K
 from keras.layers import Dense
@@ -29,17 +30,20 @@ from keras.models import Model
 from keras.layers import Lambda
 from keras.layers import Reshape
 from keras.applications.imagenet_utils import _obtain_input_shape
+import keras_applications
 
 import keras_contrib
 from keras_contrib.applications.densenet import DenseNetFCN
 from keras_contrib.applications.densenet import DenseNet
 from keras_contrib.applications.densenet import DenseNetImageNet121
 from keras_contrib.applications.resnet import ResNet
+from keras_contrib.layers.normalization import GroupNormalization
 import keras_contrib.applications.fully_convolutional_networks as fcn
 import keras_contrib.applications.densenet as densenet
 import keras_tqdm
 
 from keras.engine import Layer
+import coord_conv
 
 
 def tile_vector_as_image_channels(vector_op, image_shape):
@@ -269,7 +273,7 @@ def classifier_block(input_tensor, include_top=True, top='classification',
 
 def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0, include_top=True,
               classes=1, activation='sigmoid', final_pooling=None,
-              filters=64, dense_layers=0, name='', verbose=0):
+              filters=64, dense_layers=0, hidden_activation='relu', name='', verbose=0):
     """ Perform final convolutions for decision making, then apply the classification block.
 
         The top block adds the final "decision making" layers
@@ -290,6 +294,8 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             option in `keras.applications.imagenet_utils._obtain_input_shape()`.
         dense_layers: Number of additional dense layers before the final dense layer.
             The final dense layer defines number of output classes is created.
+        hidden_activation: Activation to be used in internal top block layers,
+            before the final output activation.
     """
     print('top block top: ' + str(top))
     # Extra Global Average Pooling allows more flexible input dimensions
@@ -305,7 +311,7 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             if dropout_rate is not None:
                 x = Dropout(dropout_rate)(x)
 
-            x = Dense(filters, activation='relu')(x)
+            x = Dense(filters, activation=hidden_activation)(x)
 
         if dropout_rate is not None:
             x = Dropout(dropout_rate)(x)
@@ -316,7 +322,7 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             if dropout_rate is not None:
                 x = Dropout(dropout_rate)(x)
 
-            x = Conv2D(filters, (1, 1), activation='relu', padding='same')(x)
+            x = Conv2D(filters, (1, 1), activation=hidden_activation, padding='same')(x)
 
         if dropout_rate is not None:
             x = Dropout(dropout_rate)(x)
@@ -357,6 +363,7 @@ def hypertree_model(
         create_vector_tree_roots_fn=None,
         create_tree_trunk_fn=None,
         top_block_dense_layers=0,
+        top_block_hidden_activation='relu',
         verbose=0):
 
     if images is None and image_shapes is None:
@@ -422,6 +429,7 @@ def hypertree_model(
             include_top, classes, activation,
             final_pooling, top_block_filters,
             dense_layers=top_block_dense_layers,
+            hidden_activation=top_block_hidden_activation,
             name=name, verbose=verbose)
         xs += [xi]
 
@@ -438,6 +446,23 @@ def hypertree_model(
     # create the model
     model = keras.models.Model(inputs=inputs, outputs=x)
     return model
+
+
+def choose_normalization(x, normalization, name=None):
+    """ Choose the type of normalization to use such as batchnorm or groupnorm.
+
+    x: the input tensor
+    normalization: One of None, 'none', 'batch_norm', or 'group_norm'
+    name: A name to give the layer.
+    """
+    if normalization is not None and normalization is not 'none':
+        if normalization == 'batch_norm':
+            # x = BatchNormalization()(x)
+            # TODO(ahundt) using nasnet default BatchNorm options, revert if this causes problems
+            x = BatchNormalization(axis=-1, momentum=0.9997, epsilon=1e-3)(x)
+        elif normalization == 'group_norm':
+            x = GroupNormalization()(x)
+    return x
 
 
 def choose_hypertree_model(
@@ -463,7 +488,14 @@ def choose_hypertree_model(
         trunk_model_name='dense',
         vector_branch_num_layers=3,
         image_model_weights='shared',
-        use_auxiliary_branch=True):
+        use_auxiliary_branch=True,
+        weights='imagenet',
+        trunk_hidden_activation='relu',
+        vector_hidden_activation='none',
+        top_block_hidden_activation='relu',
+        trunk_normalization='none',
+        coordinate_data=None,
+        vector_normalization='batch_norm'):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
@@ -476,6 +508,12 @@ def choose_hypertree_model(
         trunk_filters: the initial number of filters for the concatenated network trunk.
             Setting the parameters to None or 0 will use the number of cannels in the
             input data provided.
+        trunk_normalization: options are 'batch_norm', 'group_norm', and None or 'none'
+        trunk_hidden_activation: the activation to use for hidden layers in configurations that support it
+            the vgg trunk is the only option at the time of writing.
+        vector_normalization: options are 'batch_norm', 'group_norm', and None or 'none'
+        vector_hidden_activation: the activation to use for hidden layers in configurations that support it
+            the vgg trunk is the only option at the time of writing.
 
     # Notes
 
@@ -554,6 +592,12 @@ def choose_hypertree_model(
             )
         else:
             image_input_shape = image_shapes[0]
+        if coordinate_data is not None and coordinate_data == 'coord_conv_img':
+            # coord_conv_img case currently adds 2 additional channels.
+            image_input_shape = (image_input_shape[0], image_input_shape[1], image_input_shape[2] + 2)
+            if weights is not None and weights == 'imagenet':
+                print('hypertree coordinate_data configuration coord_conv_img is not compatible with imagenet weights, setting weights to None')
+                weights = None
         print('hypertree image_input_shape: ' + str(image_input_shape))
         print('hypertree images: ' + str(images))
         print('hypertree classes: ' + str(classes))
@@ -595,38 +639,59 @@ def choose_hypertree_model(
                 if image_model_weights == 'shared':
                     image_model = keras.applications.vgg16.VGG16(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.vgg16.VGG16
             elif image_model_name == 'vgg19':
                 if image_model_weights == 'shared':
                     image_model = keras.applications.vgg19.VGG19(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.vgg19.VGG19
             elif image_model_name == 'nasnet_large':
+                if image_model_weights == 'shared':
+                    image_model = NASNetLarge(
+                        input_shape=image_input_shape, include_top=False, pooling=None,
+                        classes=classes, weights=weights
+                    )
+                elif image_model_weights == 'separate':
+                    image_model = NASNetLarge
+                else:
+                    raise ValueError('Unsupported image_model_name')
+
+                # TODO(ahundt) switch to keras_contrib model below when keras_contrib is updated with correct weights https://github.com/keras-team/keras/pull/10209.
                 # please note that with nasnet_large, no pooling,
                 # and an aux network the two outputs will be different
                 # dimensions! Therefore, we need to add our own pooling
                 # for the aux network.
                 # TODO(ahundt) just max pooling in NASNetLarge for now, but need to figure out pooling for the segmentation case.
-                image_model = keras_contrib.applications.nasnet.NASNetLarge(
-                    input_shape=image_input_shape, include_top=False, pooling=None,
-                    classes=classes, use_auxiliary_branch=use_auxiliary_branch
-                )
+                # image_model = keras_contrib.applications.nasnet.NASNetLarge(
+                #     input_shape=image_input_shape, include_top=False, pooling=None,
+                #     classes=classes, use_auxiliary_branch=use_auxiliary_branch,
+                #     weights=weights
+                # )
             elif image_model_name == 'nasnet_mobile':
                 image_model = keras.applications.nasnet.NASNetMobile(
                     input_shape=image_input_shape, include_top=False,
-                    classes=classes, pooling=False
+                    classes=classes, pooling=False, weights=weights
                 )
             elif image_model_name == 'inception_resnet_v2':
                 if image_model_weights == 'shared':
                     image_model = keras.applications.inception_resnet_v2.InceptionResNetV2(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.inception_resnet_v2.InceptionResNetV2
+                else:
+                    raise ValueError('Unsupported image_model_name')
+            elif image_model_name == 'mobilenet_v2':
+                if image_model_weights == 'shared':
+                    image_model = MobileNetV2(
+                        input_shape=image_input_shape, include_top=False,
+                        classes=classes, weights=weights)
+                elif image_model_weights == 'separate':
+                    image_model = MobileNetV2
                 else:
                     raise ValueError('Unsupported image_model_name')
             elif image_model_name == 'resnet':
@@ -635,21 +700,40 @@ def choose_hypertree_model(
                 if image_model_weights == 'shared':
                     resnet_model = keras.applications.resnet50.ResNet50(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.resnet50.ResNet50
                 if not trainable:
                     for layer in resnet_model.layers:
                         layer.trainable = False
                 # get the layer before the global average pooling
+                # TODO(ahundt) this may need to be changed due to recent resnet restructuring in keras
                 image_model = resnet_model.layers[-2]
             elif image_model_name == 'densenet':
                 if image_model_weights == 'shared':
                     image_model = keras.applications.densenet.DenseNet169(
                         input_shape=image_input_shape, include_top=False,
-                        classes=classes)
+                        classes=classes, weights=weights)
                 elif image_model_weights == 'separate':
                     image_model = keras.applications.densenet.DenseNet169
+                else:
+                    raise ValueError('Unsupported image_model_name')
+            elif image_model_name is None or image_model_name == 'none':
+                if image_model_weights == 'shared':
+                    x = Input(shape=image_input_shape)
+                    image_model = Model(x, x)
+                elif image_model_weights == 'separate':
+                    def identity_model(input_shape=image_input_shape, weights=None, classes=None,
+                                       input_tensor=None):
+                        """ Identity Model is an empty model that returns the input.
+                        """
+                        if input_tensor is None:
+                            x = Input(shape=input_shape)
+                        else:
+                            x = Input(tensor=input_tensor)
+                        return Model(x, x)
+
+                    image_model = identity_model
                 else:
                     raise ValueError('Unsupported image_model_name')
             else:
@@ -666,11 +750,16 @@ def choose_hypertree_model(
             image_models = []
             image_model_num = 0
 
-        def create_image_model(tensor):
+        def create_image_model(tensor, coordinate_data=coordinate_data):
             """ Image classifier weights are shared or separate.
 
             This function helps set up the weights.
             """
+            if (coordinate_data is not None and
+                    coordinate_data is not 'none' and
+                    coordinate_data is 'coord_conv_img'):
+                # tensor = Input(tensor=tensor)
+                tensor = coord_conv.CoordinateChannel2D()(tensor)
             if image_model_weights == 'shared':
                 ImageModelCarrier.image_models += [image_model]
                 return image_model(tensor)
@@ -697,7 +786,8 @@ def choose_hypertree_model(
         def vector_branch_dense(
                 tensor, vector_dense_filters=vector_dense_filters,
                 num_layers=vector_branch_num_layers,
-                model_name=vector_model_name):
+                model_name=vector_model_name,
+                vector_normalization=vector_normalization):
             """ Vector branches that simply contain a single dense layer.
             """
             x = tensor
@@ -706,15 +796,15 @@ def choose_hypertree_model(
             if num_layers is None or num_layers == 0:
                 return x
             elif model_name == 'dense':
-                x = Dense(vector_dense_filters)(x)
+                x = Dense(vector_dense_filters, activation=vector_hidden_activation)(x)
                 # Important! some old models saved to disk
                 # are invalidated by the BatchNorm and Dropout
-                # lines below, comment them if you really neeed to go back
-                x = BatchNormalization()(x)
+                # lines below, comment them if you really need to go back
+                x = choose_normalization(x, vector_normalization)
                 x = Dropout(dropout_rate)(x)
                 if num_layers > 1:
                     for i in range(num_layers - 1):
-                        x = Dense(vector_dense_filters)(x)
+                        x = Dense(vector_dense_filters, activation=vector_hidden_activation)(x)
             elif model_name == 'dense_block':
                 densenet.__dense_block(
                     x, nb_layers=num_layers,
@@ -728,13 +818,19 @@ def choose_hypertree_model(
             print('Hypertree create_image_model completed for tensor: ' + str(tensor))
             return x
 
-        def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers):
+        def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers, coordinate_data=coordinate_data):
             """
                 filters: the initial number of filters for the concatenated network trunk.
                     Setting the parameters to None or 0 will use the number of cannels in the
                     input data provided.
             """
+            if (coordinate_data is not None and
+                    coordinate_data is not 'none' and
+                    coordinate_data is 'coord_conv_trunk'):
+                tensor = coord_conv.CoordinateChannel2D()(tensor)
+
             x = tensor
+
             if filters is None or filters == 0:
                 channels = K.int_shape(tensor)[-1]
             else:
@@ -766,14 +862,25 @@ def choose_hypertree_model(
                     name = 'trunk'
                     weight_decay = 0.
                     for l in range(num_layers):
-                        x = Conv2D(filters, (3, 3), activation='relu', padding='same',
+                        x = Conv2D(filters, (3, 3), activation=trunk_hidden_activation, padding='same',
                                    name=name + 'block6_conv%d' % l, kernel_regularizer=keras.regularizers.l2(weight_decay))(x)
+                        x = choose_normalization(x, trunk_normalization)
                 elif trunk_model_name == 'nasnet_normal_a_cell':
-                    filter_multiplier = 2
-                    p = None
+
+                    x = Conv2D(filters, (3, 3),
+                               strides=(1, 1),
+                               padding='valid',
+                               use_bias=False,
+                               name='trunk_conv1',
+                               kernel_initializer='he_normal')(x)
+
+                    x = choose_normalization(x, trunk_normalization)
+                    p = x
                     for l in range(num_layers):
-                        x, p = keras.applications.nasnet._normal_a_cell(x, p, filters, block_id='trunk_%d' % l)
-                        filters *= filter_multiplier
+                        block_id = 'trunk_' + str(l)
+                        # _normal_a_cell call changed due to creation of keras-applications repository
+                        # https://github.com/keras-team/keras-applications/blob/master/keras_applications/nasnet.py
+                        x, p = keras_applications.nasnet._normal_a_cell(x, p, filters, block_id=block_id)
                 else:
                     raise ValueError('Unsupported trunk_model_name ' + str(trunk_model_name) +
                                      ' options are dense, resnet, vgg, nasnet')
@@ -792,6 +899,7 @@ def choose_hypertree_model(
             include_top=include_top,
             top=top,
             top_block_filters=top_block_filters,
+            top_block_hidden_activation=top_block_hidden_activation,
             classes=classes,
             output_shape=output_shape,
             verbose=verbose
@@ -810,7 +918,7 @@ def set_trainable_layers(trainable, image_model):
     image_model: The model to configure
     """
     if ((not isinstance(trainable, bool) or not trainable)
-        and getattr(image_model, 'layers', None) is not None):
+            and getattr(image_model, 'layers', None) is not None):
         # enable portion of network depending on the depth
         if not trainable:
             for layer in image_model.layers:
@@ -1084,6 +1192,8 @@ def grasp_model_levine_2016(
     with K.name_scope(name) as scope:
         if input_image_shape is None:
             input_image_shape = K.int_shape(clear_view_image_op)[1:]
+        if len(input_image_shape) == 4:
+            input_image_shape = input_image_shape[1:]
 
         if activation not in ['softmax', 'sigmoid', None]:
             raise ValueError('activation must be one of "softmax" or "sigmoid"'

@@ -168,7 +168,7 @@ def vector_to_ptransform(XYZ):
     return ptransform
 
 
-def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32):
+def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32, verbose=0):
     """Depth images become an XYZ point cloud in the camera frame with shape (depth.shape[0], depth.shape[1], 3).
 
     Transform a depth image into a point cloud in the camera frame with one point for each
@@ -187,8 +187,6 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32):
           32bit floating point depths in meters. The result is a 3-D array with
           shape (rows, cols, 3). Pixels with invalid depth in the input have
           NaN or 0 for the z-coordinate in the result.
-      flip_x: 1.0 leaves data as-is, -1.0 flips the data across the x axis
-      flip_y: -1.0 leaves data as-is, -1.0 flips the data across the y axis
 
       intrinsics_matrix: 3x3 matrix for projecting depth values to z values
       in the point cloud frame. http://ksimek.github.io/2013/08/13/intrinsic/
@@ -219,12 +217,14 @@ def depth_image_to_point_cloud(depth, intrinsics_matrix, dtype=np.float32):
     assert X.size == Y.size and X.size == depth.size
     assert X.shape == Y.shape and X.shape == depth.shape
 
-    print('X np: ', X.shape)
-    print('Y np: ', Y.shape)
-    print('depth np: ', depth.shape)
+    if verbose > 0:
+        print('X np: ', X.shape)
+        print('Y np: ', Y.shape)
+        print('depth np: ', depth.shape)
     XYZ = np.column_stack([X, Y, depth])
     assert XYZ.shape == (y_range * x_range, 3)
-    print('XYZ pre reshape np: ', XYZ.shape)
+    if verbose > 0:
+        print('XYZ pre reshape np: ', XYZ.shape)
     XYZ = XYZ.reshape((y_range, x_range, 3))
 
     return XYZ.astype(dtype)
@@ -403,6 +403,56 @@ def grasp_dataset_rotation_to_theta(rotation, verbose=0):
         print("ANGLE_AXIS_MULTIPLY: ", aa.angle(), np.array(aa.axis()), multiply)
     theta *= multiply
     return theta
+
+
+def grasp_dataset_rotation_to_xyz_theta(rotation, verbose=0):
+    """Convert a rotation to an angle axis theta specifically for brainrobotdata
+
+    From above, a rotation to the right should be a positive theta,
+    and a rotation to the left negative theta. The initial pose is with the
+    z axis pointing down, the y axis to the right and the x axis forward.
+
+    This format does not allow for arbitrary rotation commands to be defined,
+    and originates from the paper and dataset:
+    https://sites.google.com/site/brainrobotdata/home/grasping-dataset
+    https://arxiv.org/abs/1603.02199
+
+    In the google brain dataset the gripper is only commanded to
+    rotate around a single vertical axis,
+    so you might clearly visualize it, this also happens to
+    approximately match the vector defined by gravity.
+    Furthermore, the original paper had the geometry of the
+    arm joints on which params could easily be extracted,
+    which is not available here. To resolve this discrepancy
+    Here we assume that the gripper generally starts off at a
+    quaternion orientation of approximately [qx=-1, qy=0, qz=0, qw=0].
+    This is equivalent to the angle axis
+    representation of [a=np.pi, x=-1, y=0, z=0],
+    which I'll name default_rot.
+
+    It is also important to note the ambiguity of the
+    angular distance between any current pose
+    and the end pose. This angular distance will
+    always have a positive value so the network
+    could not naturally discriminate between
+    turning left and turning right.
+    For this reason, we use the angular distance
+    from default_rot to define the input angle parameter,
+    and if the angle axis x axis component is > 0
+    we will use theta for rotation,
+    but if the angle axis x axis component is < 0
+    we will use -theta.
+    """
+    aa = eigen.AngleAxisd(rotation)
+    theta = aa.angle()
+    if aa.axis().z() < 0:
+        multiply = 1.0
+    else:
+        multiply = -1.0
+    if verbose > 0:
+        print("ANGLE_AXIS_MULTIPLY: ", aa.angle(), np.array(aa.axis()), multiply)
+    theta *= multiply
+    return np.array([aa.x(), aa.y(), aa.z(), theta])
 
 
 def grasp_dataset_ptransform_to_vector_sin_theta_cos_theta(ptransform, dtype=np.float32):

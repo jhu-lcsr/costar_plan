@@ -1,5 +1,8 @@
-
 --- Improved functions based on remoteApiCommandServerExample.ttt
+---
+--- Author: Andrew Hundt <ATHundt@gmail.com>
+--- License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
+
 displayText_function=function(inInts,inFloats,inStrings,inBuffer)
     -- Simply display a dialog box that prints the text stored in inStrings[1]:
     if #inStrings>=1 then
