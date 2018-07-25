@@ -172,30 +172,6 @@ class CostarBlockStackingSequence(Sequence):
         if self.shuffle is True:
             np.random.shuffle(self.indexes)
 
-    def encode_pose(self, pose):
-        """ Encode n x 7 array of poses to something that might be regressed by 7 sigmoid values
-        """
-        # change unit quaternion to be in range [0, 1]
-        # change x y z to be in what should hopefully be [0, 1]
-        xyz = (pose[:, :3] / 5) + 0.5
-        quat = (pose[:, 3:] / 2) + 0.5
-        if self.verbose > 0:
-            print('encode xyz: ' + str(xyz) + '\n encode quat: ' + str(quat))
-        encoded_pose = np.concatenate([xyz, quat], axis=-1)
-        return encoded_pose
-
-    def decode_pose(self, pose):
-        """ Decode n x 7 array of poses encoding in encode_pose
-        """
-        # change unit quaternion to be in range [-1, 1]
-        # change x y z to be in what should hopefully be [-2.5, 2.5]
-        xyz = (pose[:, :3] - 0.5) * 5
-        quat = (pose[:, 3:] - 0.5) * 2
-        if self.verbose > 0:
-            print('decode xyz: ' + str(xyz) + '\n decode quat: ' + str(quat))
-        encoded_pose = np.concatenate([xyz, quat], axis=-1)
-        return encoded_pose
-
     def __data_generation(self, list_Ids):
         """ Generates data containing batch_size samples
 
