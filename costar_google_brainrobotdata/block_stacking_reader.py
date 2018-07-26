@@ -98,6 +98,58 @@ def concat_images_with_tiled_vector_np(images, vector):
     return combined
 
 
+def blend_images_np(image, image2, alpha=0.5):
+    """Draws image2 on an image.
+    Args:
+      image: uint8 numpy array with shape (img_height, img_height, 3)
+      image2: a uint8 numpy array of shape (img_height, img_height) with
+        values between either 0 or 1.
+      color: color to draw the keypoints with. Default is red.
+      alpha: transparency value between 0 and 1. (default: 0.4)
+    Raises:
+      ValueError: On incorrect data type for image or image2s.
+    """
+    if image.dtype != np.uint8:
+        raise ValueError('`image` not of type np.uint8')
+    if image2.dtype != np.uint8:
+        raise ValueError('`image2` not of type np.uint8')
+    if image.shape[:2] != image2.shape[:2]:
+        raise ValueError('The image has spatial dimensions %s but the image2 has '
+                         'dimensions %s' % (image.shape[:2], image2.shape[:2]))
+    pil_image = Image.fromarray(image)
+    pil_image2 = Image.fromarray(image2)
+
+    pil_image = Image.blend(pil_image, pil_image2, alpha)
+    np.copyto(image, np.array(pil_image.convert('RGB')))
+    return image
+
+
+def blend_image_sequence(images, alpha=0.5):
+    """ Blend past goal images
+    """
+    blended_image = images[0]
+    if len(images) > 1:
+        for image in images[1:]:
+            print('image type: ' + str(type(image)) + ' dtype: ' + str(image.dtype))
+            blended_image = blend_images_np(blended_image, image)
+    return blended_image
+
+
+def get_past_goal_indices(current_index, goal_indices):
+    """ get past goal images, including the initial image
+    """
+    image_indicies = [0]
+    total_images = len(goal_indices)
+    print('total images: ' + str(total_images))
+    image_index = 1
+    while image_index < current_index and image_index < total_images:
+        image_index = goal_indices[image_index]
+        image_indicies += [image_index]
+        if image_index <= goal_indices[image_index]:
+            image_index += 1
+    return image_indicies
+
+
 class CostarBlockStackingSequence(Sequence):
     '''Generates a batch of data from the stacking dataset.
 
@@ -107,7 +159,8 @@ class CostarBlockStackingSequence(Sequence):
                  label_features_to_extract=None, data_features_to_extract=None,
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
-                 is_training=True, random_augmentation=None, output_shape=None, verbose=0):
+                 is_training=True, random_augmentation=None, output_shape=None,
+                 blend_previous_goal_images=False, verbose=0):
         '''Initialization
 
         #Arguments
@@ -137,6 +190,8 @@ class CostarBlockStackingSequence(Sequence):
         self.data_features_to_extract = data_features_to_extract
         self.total_actions_available = total_actions_available
         self.random_augmentation = random_augmentation
+
+        self.blend = blend_previous_goal_images
         # if crop_shape is None:
         #     # height width 3
         #     crop_shape = (224, 224, 3)
@@ -246,10 +301,20 @@ class CostarBlockStackingSequence(Sequence):
                         else:
                             raise NotImplementedError
                         indices = [0] + list(image_indices)
+                        if self.blend:
+                            img_indices = get_past_goal_indices(image_indices, all_goal_ids)
+                            print('goal indices and current:' + str(img_indices))
+                        else:
+                            img_indices = indicies
                         if self.verbose > 0:
                             print("Indices --", indices)
-                        rgb_images = list(data['image'][indices])
+                        rgb_images = list(data['image'][img_indices])
                         rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
+
+                        if self.blend:
+                            # TODO(ahundt) move this to after the resize loop for a speedup
+                            blended_image = blend_image_sequence(rgb_images)
+                            rgb_images = [rgb_images[0], blended_image]
                         # resize using skimage
                         rgb_images_resized = []
                         for k, images in enumerate(rgb_images):
