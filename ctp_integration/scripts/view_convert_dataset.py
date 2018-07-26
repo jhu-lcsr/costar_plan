@@ -194,7 +194,7 @@ def main(args, root="root"):
                 fps = args['fps']
                 # check if the data is there to load
                 load_depth = args['depth'] and 'depth_image' in data and len(data['depth_image']) > 0
-                load_rgb = args['rgb'] and 'image' in data and len(data['depth_image']) > 0
+                load_rgb = args['rgb'] and 'image' in data and len(data['image']) > 0
 
                 if args['gripper']:
                     # print the gripper data channel
@@ -208,19 +208,25 @@ def main(args, root="root"):
                         progress_bar.write(filename + ' ' + data_str + ': ' + str(list(data[data_str])))
 
                 if args['preprocess_inplace'] == 'gripper_action':
-                    print("frames ",len(list(data['image'])))
+                    if 'gripper' not in data or 'label' not in data:
+                        progress_bar.write('Skipping file because the feature string '
+                                           'gripper  and/or label is not present: ' +
+                                           str(filename))
+                        continue
+                    # if 'label' in data:
+                    #     progress_bar.write("frames ", len(list(data['label'])))
                     # generate new action labels based on when the gripper opens and closes
                     gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data)
                     # add the new action label and goal indices based on when the gripper opens/closes
                     if args['write']:
-
-                        #cannot write without deleting existing data
+                        # cannot write without deleting existing data
                         if "gripper_action_label" in list(data.keys()):
-                                print("deleting existing gripper action labels")
+                                progress_bar.write('Deleting existing gripper action labels for file: ' + str(filename))
                                 del data['gripper_action_label']
                                 del data['gripper_action_goal_idx']
-                        data['gripper_action_label'], data['gripper_action_goal_idx']= np.array(gripper_action_label), np.array(gripper_action_goal_idx)
-                        #print("data on file",list(data['gripper_action_goal_idx']))
+
+                        data['gripper_action_label'], data['gripper_action_goal_idx'] = np.array(gripper_action_label), np.array(gripper_action_goal_idx)
+                        # progress_bar.write("data on file",list(data['gripper_action_goal_idx']))
                     else:
                         progress_bar.write(
                             'gripper_action_label test run, use --write to change the files in place. gripper_action_label: ' +
@@ -289,7 +295,7 @@ def generate_gripper_action_label(data):
     """
     gripper_status = list(data['gripper'])
     action_status = list(data['label'])
-    print("goal",list(data["goal_idx"]))
+    # print("goal",list(data["goal_idx"]))
     gripper_action_goal_idx = []
     unique_actions, indices = np.unique(action_status, return_index=True)
     unique_actions = [action_status[index] for index in sorted(indices)]
@@ -318,11 +324,11 @@ def generate_gripper_action_label(data):
         else:
             goal_to_add = len(gripper_status)-1
 
-        if(i<goal_to_add):
+        if(i < goal_to_add):
             goal_list.append(goal_to_add)
 
         else:
-            gripper_ind+=1
+            gripper_ind += 1
     gripper_action_goal_idx = goal_list
     #print(gripper_action_goal_idx)
 

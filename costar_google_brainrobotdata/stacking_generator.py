@@ -98,12 +98,12 @@ class DataGenerator(keras.utils.Sequence):
             for items in list(data['all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json']):
                 json_data = json.loads(items.decode('UTF-8'))
                 y.append(np.array(json_data['camera_rgb_frame']))
-        y = np.array(y)  
+        y = np.array(y)
 
         return X, y
 
 
-filenames = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
+filenames = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
 #print(filenames)
 training_generator = DataGenerator(filenames,batch_size=1)
 # X,y=training_generator.__getitem__(1)

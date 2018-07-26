@@ -6,7 +6,7 @@ combine them into a bokeh layout.
 
 The app can be served using:
 
-    bokeh serve --show scripts/stack_player.py --args  --data-dir "~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1/*success.h5f"
+    bokeh serve --show scripts/stack_player.py --args  --data-dir "~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f"
 
 Note that the data dir with * uses glob syntax, so this example will only load the data which has been labeled as successful grasps.
 """
@@ -44,7 +44,7 @@ except ImportError:
 
 parser = argparse.ArgumentParser(description='Process additional parameters for stack player')
 
-parser.add_argument('--data-dir', type=str, action='store', default='~/.keras/datasets/costar_task_planning_stacking_dataset_v0.1',
+parser.add_argument('--data-dir', type=str, action='store', default='~/.keras/datasets/costar_block_stacking_dataset_v0.2',
                     help='directory path containing the data')
 
 args = parser.parse_args()
@@ -158,6 +158,7 @@ def generate_gripper_action_label(data, action_status, gripper_status, gripper_a
                 gripper_action_label[i] = unique_actions[action_ind]
     return gripper_action_label, gripper_action_goal_idx
 
+
 def load_data_plot(renderer, frame_indices, gripper_status, action_status, gripper_action_label, height, width):
     # load the gripper data
     gripper_data = hv.Table({'Gripper': gripper_status, 'Frame': frame_indices},
@@ -217,8 +218,8 @@ if tf is not None:
     tf.enable_eager_execution()
 renderer = hv.renderer('bokeh')
 
-#example_filename = "C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/2018-05-23-20-18-25_example000002.success.h5f"
-#file_name_list = glob.glob("C:/Users/Varun/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f")
+#example_filename = "C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/2018-05-23-20-18-25_example000002.success.h5f"
+#file_name_list = glob.glob("C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f")
 
 file_name_list = glob.glob(os.path.expanduser(args.data_dir))
 index = 0

@@ -190,6 +190,12 @@ flags.DEFINE_string(
     """ Load the json file containing parameters from a kfold cross validation run.
     """
 )
+flags.DEFINE_string(
+    'dataset_name',
+    'cornell_grasping',
+    'Configure training run for a specific dataset.'
+    ' Options are: cornell_grasping and costar_block_stacking.'
+)
 
 FLAGS = flags.FLAGS
 
@@ -268,7 +274,8 @@ def run_training(
         fine_tuning_epochs=None,
         loss=None,
         checkpoint=True,
-        dataset_name='cornell_grasping',
+        dataset_name=None,
+        should_initialize=False,
         **kwargs):
     """
 
@@ -287,6 +294,9 @@ def run_training(
        If provided these values will simply be dumped to a file and
        not utilized in any other way.
     checkpoint: if True, checkpoints will be save, if false they will not.
+    should_initialize: Workaround for some combined tf/keras bug (Maybe fixed in tf 1.8?)
+       see https://github.com/keras-team/keras/issues/4875#issuecomment-313166165,
+       TODO(ahundt) remove should_initialize and the corresponding code below if it has been False for a while without issue.
     """
     if epochs is None:
         epochs = FLAGS.epochs
@@ -312,6 +322,8 @@ def run_training(
         fine_tuning_epochs = FLAGS.fine_tuning_epochs
     if feature_combo_name is None:
         feature_combo_name = FLAGS.feature_combo
+    if dataset_name is None:
+        dataset_name = FLAGS.dataset_name
 
     if image_model_name == 'nasnet_large':
         # set special dimensions for nasnet
@@ -338,7 +350,8 @@ def run_training(
      monitor_loss_name, label_features, monitor_metric_name,
      loss, metrics, classes, success_only] = choose_features_and_metrics(feature_combo_name, problem_name, loss=loss)
 
-    keras.backend.get_session().run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+    if should_initialize:
+        keras.backend.get_session().run([tf.global_variables_initializer(), tf.local_variables_initializer()])
     # see parse_and_preprocess() for the creation of these features
     model_name = image_model_name + model_name
 
@@ -407,8 +420,18 @@ def run_training(
         # give extra time if it is a long run because
         # it was probably manually configured
         max_batch_time_seconds *= 2
-    callbacks += [SlowModelStopping(max_batch_time_seconds=max_batch_time_seconds),
-                  InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
+    callbacks += [SlowModelStopping(max_batch_time_seconds=max_batch_time_seconds)]
+    # stop models that make predictions that are close to all true or all false
+    # this check works for both classification and sigmoid pose estimation
+    callbacks += [InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
+    if 'costar' in dataset_name:
+        max_cart_error = 0.5
+        if epochs > 10:
+            # give extra time if it is a long run because
+            # it was probably manually configured
+            max_cart_error *= 2
+        # stop models that don't at least get within 40 cm after 300 batches.
+        callbacks += [InaccurateModelStopping(min_pred=0.0, max_pred=max_cart_error, metric='cart_error')]
 
     if checkpoint:
         checkpoint = keras.callbacks.ModelCheckpoint(
@@ -475,7 +498,7 @@ def run_training(
     # This lets us take advantage of tensorboard visualization
     if 'train' in pipeline:
         if 'test' in pipeline:
-            if test_steps == 0:
+            if test_steps == 0 and not hasattr(test_data, '__len__'):
                 raise ValueError('Attempting to run test data' + str(test_filenames) +
                                  ' with an invalid number of steps: ' + str(test_steps))
             # we need this callback to be at the beginning of the callbacks list!
@@ -488,19 +511,21 @@ def run_training(
 
         # print('calling model.fit_generator()')
 
+        # TODO(ahundt) Do hack which resets the session & reloads weights for now... will fix later. (Fixed in 1.8?)
         # Workaround for some combined tf/keras bug
         # see https://github.com/keras-team/keras/issues/4875#issuecomment-313166165
         # keras.backend.manual_variable_initialization(True)
-
-        sess = keras.backend.get_session()
-        # init_g = tf.global_variables_initializer()
-        # init_l = tf.local_variables_initializer()
-        # sess.run(init_g)
-        # sess.run(init_l)
-        init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-        sess.run(init_op)
+        if should_initialize:
+            sess = keras.backend.get_session()
+            # init_g = tf.global_variables_initializer()
+            # init_l = tf.local_variables_initializer()
+            # sess.run(init_g)
+            # sess.run(init_l)
+            init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+            sess.run(init_op)
 
         # fit the model
+        # TODO(ahundt) may need to disable multiprocessing for cornell and enable it for costar stacking
         history = model.fit_generator(
             train_data,
             steps_per_epoch=train_steps,
@@ -508,6 +533,8 @@ def run_training(
             validation_data=validation_data,
             validation_steps=validation_steps,
             callbacks=callbacks,
+            use_multiprocessing=False,
+            workers=20,
             verbose=0)
 
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
@@ -977,21 +1004,67 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         classes = 5
     elif problem_name == 'pixelwise_grasp_regression':
         raise NotImplementedError
-    elif problem_name == 'semantic_grasp_regression':
-        # TODO(ahundt) create a real 3d grasp success metric
-        # this is the first case we're trying with the costar stacking dataset
-        classes = 7
-        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
-        monitor_metric_name = 'mean_squared_error'
-        vector_shapes = [(48,)]
-        # TODO(ahundt) features, loss, metric are made up... create real ones
-        label_features = ['pose']
+    elif problem_name == 'semantic_translation_regression':
+        # only the translation component of semantic grasp regression
+        # this is the regression case with the costar block stacking dataset
+        # classes = 8
+        classes = 3
+        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae']
+        #  , grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'val_grasp_acc'
+        # this is the length of the state vector defined in block_stacking_reader.py
+        # label with translation and orientation
+        # vector_shapes = [(49,)]
+        vector_shapes = [(44,)]
+        # data with translation and orientation
+        # data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
+        # translation only
+        data_features = ['image/preprocessed', 'current_xyz_3']
+        # label with translation and orientation
+        # label_features = ['grasp_goal_xyz_aaxyz_nsc_8']
+        label_features = ['grasp_goal_xyz_3']
         monitor_loss_name = 'val_loss'
         shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         image_shapes = [shape, shape]
-        metrics = [keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
-        loss = keras.losses.mean_absolute_error
+        # loss = keras.losses.mean_absolute_error
+        loss = keras.losses.mean_squared_error
+        model_name = '_semantic_translation_regression_model'
+    elif problem_name == 'semantic_grasp_regression':
+        # this is the regression case with the costar block stacking dataset
+        classes = 8
+        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae']
+        #  , grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'val_grasp_acc'
+        # this is the length of the state vector defined in block_stacking_reader.py
+        # label with translation and orientation
+        vector_shapes = [(49,)]
+        # data with translation and orientation
+        data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
+        # label with translation and orientation
+        label_features = ['grasp_goal_xyz_aaxyz_nsc_8']
+        monitor_loss_name = 'val_loss'
+        shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
+        image_shapes = [shape, shape]
+        # loss = keras.losses.mean_absolute_error
+        loss = keras.losses.mean_squared_error
         model_name = '_semantic_grasp_regression_model'
+    elif problem_name == 'semantic_grasp_classification':
+        # this is the classification case with the costar block stacking dataset
+        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'val_binary_accuracy'
+        data_features = ['image/preprocessed', 'proposed_goal_xyz_aaxyz_nsc_8']
+        label_features = ['grasp_success']
+        # this is the length of the state vector defined in block_stacking_reader.py
+        vector_shapes = [(57,)]
+        # TODO(ahundt) should grasp_success be renamed action_success?
+        monitor_loss_name = 'val_loss'
+        shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
+        image_shapes = [shape, shape]
+        loss = keras.losses.binary_crossentropy
+        model_name = '_semantic_grasp_classification_model'
     else:
         raise ValueError('Selected problem_name ' + str(problem_name) + ' does not exist. '
                          'feature selection options are segmentation and classification, '
@@ -1039,7 +1112,7 @@ def load_dataset(
     val_all_features: Instead of getting the specific feature strings, the whole dictionary will be returned.
 
     """
-    print("-------------",dataset_name)
+    print('dataset name: ' + dataset_name)
     if dataset_name == 'cornell_grasping':
 
         if train_filenames is None and val_filenames is None and test_filenames is None:
@@ -1093,16 +1166,27 @@ def load_dataset(
 
                 # val_filenames, batch_size=1, is_training=False,
                 # shuffle=False, steps=1,
-    else:
-        #temporarily hardcoded initialization
-        #file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_task_planning_stacking_dataset_v0.1/*success.h5f"))
+    elif dataset_name == 'costar_block_stacking':
+        if 'cornell' in FLAGS.data_dir:
+            if 'grasp_success' in label_features or 'action_success' in label_features:
+                # classification case
+                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*.h5f'
+            else:
+                # regression case
+                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
+            print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
+        # temporarily hardcoded initialization
+        # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
         file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
         np.random.seed(0)
         print("------------------------------------------------")
         np.random.shuffle(file_names)
         val_test_size = 128
         # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
-        estimated_images_per_example = 250
+        # videos are at 10hz and there are about 25 seconds of video in each:
+        # estimated_images_per_example = 250
+        # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
+        estimated_images_per_example = 5
         test_data = file_names[:val_test_size]
         with open('test.txt', mode='w') as myfile:
             myfile.write('\n'.join(test_data))
@@ -1117,10 +1201,17 @@ def load_dataset(
         # test_data = file_names[5:10]
         # validation_data = file_names[10:15]
         # print(train_data)
-
-        train_data = CostarBlockStackingSequence(train_data, batch_size, is_training=True, shuffle=True)
-        test_data = CostarBlockStackingSequence(test_data, batch_size, is_training=False)
-        validation_data = CostarBlockStackingSequence(validation_data, batch_size, is_training=True)
+        # TODO(ahundt) use cornell & google dataset data augmentation / preprocessing for block stacking.
+        output_shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
+        train_data = CostarBlockStackingSequence(
+            train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
+            data_features_to_extract=data_features, label_features_to_extract=label_features)
+        test_data = CostarBlockStackingSequence(
+            test_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
+            data_features_to_extract=data_features, label_features_to_extract=label_features)
+        validation_data = CostarBlockStackingSequence(
+            validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
+            data_features_to_extract=data_features, label_features_to_extract=label_features)
         train_size = len(train_data) * batch_size * estimated_images_per_example
         val_size = len(validation_data) * batch_size * estimated_images_per_example
         test_size = len(test_data) * batch_size * estimated_images_per_example
@@ -1149,6 +1240,9 @@ def load_dataset(
         # exit()
 
         # val_steps = None
+    else:
+        raise ValueError('Unsupported dataset_name ' + str(dataset_name) +
+                         ' Options are: cornell_grasping and costar_block_stacking')
     return train_data, train_steps, validation_data, val_steps, test_data, test_steps
 
 
