@@ -1,9 +1,11 @@
+#!/usr/bin/env python
+
 '''
 View and Convert dataset lets you look at the video data in a costar stacking dataset.
 
 show a video from an h5f file:
 
-    python view_convert_dataset --path <path/to/data/folder/or/file> --preview True
+    python view_convert_dataset --path <path/to/data/folder/or/file> --preview
 
 Convert video from an h5f file into a gif:
 
