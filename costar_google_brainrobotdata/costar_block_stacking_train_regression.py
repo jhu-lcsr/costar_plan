@@ -72,12 +72,20 @@ def main(_):
 
         # 2018-6-30 hyperop 2nd best of 120 models on val_cart error in hyperopt
         # FLAGS.load_hyperparams = ('hyperopt_logs_costar_grasp_regression/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-06-28-15-45-13_inception_resnet_v2_semantic_grasp_regression_model-_img_inception_resnet_v2_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
-        
+
+        # 2018-07-26 #1 COORDCONV applied to initial input image, 2nd best best performing overall of about 700 hyperopt results (ABOUT TO BE RUN, BUT ENCOUNTERED BUG)
+        FLAGS.load_hyperparams = ('hyperopt_logs_costar_grasp_regression/2018-07-26-19-40-57_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-26-19-40-57_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json')
+
         # 2018-07-07 best performing non-vgg model with 15% val and test grasp accracy for translations with semantic_translation_regression case.
         # FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-06-22-34-31_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
-        
-        # 2017-07-08 new possible best model, will be tried.
-        FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+
+        # 2017-07-08 (LIKELY BEST MODEL of ~400 or maybe the one 2017-07-07?), 26% translation only validation accuracy, 17.5% combined translation + rotation validation accuracy.
+        # BEST MODEL Results in: ./logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3
+        # FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+
+        # ABOUT TO BE RUN, #1 of 700 models for val_grasp_acc in 1 epoch
+        # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+
     FLAGS.epochs = 120
     FLAGS.batch_size = 128
     optimizer_name = 'sgd'
@@ -108,8 +116,11 @@ def main(_):
     hyperparams['loss'] = 'mse'
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
-    hyperparams['learning_rate'] = 0.6
+    # hyperparams['learning_rate'] = 0.6
     # hyperparams['trainable'] = True
+    print('-' * 80)
+    print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams) + '\n\n' + str(hyperparams))
+    print('-' * 80)
 
     if 'k_fold' in FLAGS.pipeline_stage:
         cornell_grasp_train.train_k_fold(
