@@ -135,19 +135,39 @@ def blend_image_sequence(images, alpha=0.5):
     return blended_image
 
 
-def get_past_goal_indices(current_index, goal_indices):
-    """ get past goal images, including the initial image
+def get_past_goal_indices(current_robot_time_index, goal_indices, verbose=0):
+    """ get past goal image indices, including the initial image
+
+    # Arguments
+
+    current_robot_time_index: the index of the current "robot time" being simulated
+    goal_indices: a list of goal time indices for every robot time
+
+    # Returns
+
+    A list of indicies representing all the goal time steps
     """
-    image_indicies = [0]
-    total_images = len(goal_indices)
-    print('total images: ' + str(total_images))
+    image_indices = [0]
+    total_goal_indices = len(goal_indices)
+    if verbose:
+        print('total images: ' + str(total_goal_indices))
     image_index = 1
-    while image_index < current_index and image_index < total_images:
-        image_index = goal_indices[image_index]
-        image_indicies += [image_index]
-        if image_index <= goal_indices[image_index]:
-            image_index += 1
-    return image_indicies
+    while image_index < current_robot_time_index and image_index < total_goal_indices:
+        if verbose:
+            print('image_index: ' + str(image_index))
+        goal_image_index = goal_indices[image_index]
+        if goal_image_index < current_robot_time_index and goal_image_index < total_goal_indices:
+            if verbose:
+                print('goal_indices[goal_image_index]: ' + str(goal_indices[goal_image_index]))
+            image_indices += [goal_image_index]
+            if goal_image_index <= goal_indices[goal_image_index]:
+                image_index += 1
+        elif goal_image_index >= total_goal_indices:
+            print('block_stacking_reader.py::get_past_goal_indices(): goal index equals '
+                  'or exceeds total_goal_indices. goal_image_index: ' + str(goal_image_index) +
+                  ' total_goal_indices: ' + str(total_goal_indices))
+        image_index = goal_image_index
+    return image_indices
 
 
 class CostarBlockStackingSequence(Sequence):
@@ -296,6 +316,8 @@ class CostarBlockStackingSequence(Sequence):
                         # indices = [0]
                         # len of goal indexes is the same as the number of images, so this saves loading all the images
                         all_goal_ids = np.array(data['gripper_action_goal_idx'])
+                        if len(all_goal_ids) == 0:
+                            print('block_stacking_reader.py: no goal indices in this file, skipping: ' + example_filename)
                         if self.seed is not None:
                             image_indices = np.random.randint(1, len(all_goal_ids)-1, 1)
                         else:
@@ -303,13 +325,13 @@ class CostarBlockStackingSequence(Sequence):
                         indices = [0] + list(image_indices)
                         if self.blend:
                             img_indices = get_past_goal_indices(image_indices, all_goal_ids)
-                            print('goal indices and current:' + str(img_indices))
                         else:
-                            img_indices = indicies
+                            img_indices = indices
                         if self.verbose > 0:
                             print("Indices --", indices)
+                            print('img_indices: ' + str(img_indices))
                         rgb_images = list(data['image'][img_indices])
-                        rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
+                        rgb_images = ConvertImageListToNumpy(rgb_images, format='numpy')
 
                         if self.blend:
                             # TODO(ahundt) move this to after the resize loop for a speedup
@@ -467,7 +489,9 @@ class CostarBlockStackingSequence(Sequence):
 
             if self.verbose > 0:
                 # diff should be nonzero for most timesteps except just before the gripper closes!
-                print('encoded current poses: ' + str(poses) + ' labels: ' + str(y) + ' diff: ' + str(poses - y))
+                print('encoded current poses: ' + str(poses) + ' labels: ' + str(y))
+                # commented next line due to dimension issue
+                # + ' diff: ' + str(poses - y))
                 print("generated batch: " + str(list_Ids))
         except Exception as ex:
             print('CostarBlockStackingSequence: Keras will often swallow exceptions without a stack trace, '
@@ -503,10 +527,11 @@ if __name__ == "__main__":
     filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'))
     # print(filenames)
     training_generator = CostarBlockStackingSequence(
-        filenames, batch_size=1, verbose=0,
+        filenames, batch_size=1, verbose=1,
         output_shape=output_shape,
         label_features_to_extract='grasp_goal_xyz_aaxyz_nsc_8',
-        data_features_to_extract=['current_xyz_aaxyz_nsc_8'])
+        data_features_to_extract=['current_xyz_aaxyz_nsc_8'],
+        blend_previous_goal_images=True)
     num_batches = len(training_generator)
 
     bsg = block_stacking_generator(training_generator)
