@@ -755,9 +755,7 @@ def choose_hypertree_model(
 
             This function helps set up the weights.
             """
-            if (coordinate_data is not None and
-                    coordinate_data is not 'none' and
-                    coordinate_data is 'coord_conv_img'):
+            if coordinate_data is not None and coordinate_data == 'coord_conv_img':
                 print('Hypertree applying coord_conv.CoordinateChannel2D before creating the image model to ' + str(tensor))
                 tensor = coord_conv.CoordinateChannel2D()(tensor)
             if image_model_weights == 'shared':
