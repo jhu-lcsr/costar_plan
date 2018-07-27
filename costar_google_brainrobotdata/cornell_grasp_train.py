@@ -453,9 +453,9 @@ def run_training(
         callbacks = callbacks + [progress_tracker]
 
     # make sure the TQDM callback is always the final one
-    callbacks += [keras_tqdm.TQDMCallback()]
+    callbacks += [keras_tqdm.TQDMCallback(metric_format="{name}: {value:0.6f}")]
 
-    #TODO(ahundt) enable when https://github.com/keras-team/keras/pull/9105 is resolved
+    # TODO(ahundt) enable when https://github.com/keras-team/keras/pull/9105 is resolved
     # callbacks += [FineTuningCallback(epoch=0)]
 
     # if num_gpus > 1:
@@ -469,6 +469,7 @@ def run_training(
         metrics=metrics,
         loss_weights=loss_weights)
 
+    # don't return the whole dictionary of features, only the specific ones we want
     val_all_features = False
     # # # TODO(ahundt) check this more carefully, currently a hack
     # # # Special case for jaccard regression
