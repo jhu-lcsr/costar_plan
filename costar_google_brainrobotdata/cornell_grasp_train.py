@@ -386,6 +386,23 @@ def run_training(
     run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
     callbacks = []
 
+    # don't return the whole dictionary of features, only the specific ones we want
+    val_all_features = False
+    # # # TODO(ahundt) check this more carefully, currently a hack
+    # # # Special case for jaccard regression
+    # if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
+    #         problem_name == 'grasp_regression'):
+    #     val_all_features = True
+
+    train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
+        train_filenames=train_filenames, train_size=train_size,
+        val_filenames=val_filenames, val_size=val_size,
+        test_filenames=test_filenames, test_size=test_size,
+        label_features=label_features, data_features=data_features, batch_size=batch_size,
+        train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
+        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name=dataset_name
+    )
+
     loss_weights = None
     # if image_model_name == 'nasnet_large':
     #     # TODO(ahundt) switch to keras_contrib NASNet model and enable aux network below when keras_contrib is updated with correct weights https://github.com/keras-team/keras/pull/10209.
@@ -395,7 +412,7 @@ def run_training(
     #     loss_weights = [1.0, 0.4]
     #     label_features += label_features
 
-    callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
+    callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps=train_steps)
 
     log_dir = os.path.join(log_dir, run_name)
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
@@ -468,23 +485,6 @@ def run_training(
         loss=loss,
         metrics=metrics,
         loss_weights=loss_weights)
-
-    # don't return the whole dictionary of features, only the specific ones we want
-    val_all_features = False
-    # # # TODO(ahundt) check this more carefully, currently a hack
-    # # # Special case for jaccard regression
-    # if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
-    #         problem_name == 'grasp_regression'):
-    #     val_all_features = True
-
-    train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
-        train_filenames=train_filenames, train_size=train_size,
-        val_filenames=val_filenames, val_size=val_size,
-        test_filenames=test_filenames, test_size=test_size,
-        label_features=label_features, data_features=data_features, batch_size=batch_size,
-        train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
-        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name=dataset_name
-    )
 
     # # TODO(ahundt) check this more carefully, currently a hack
     # # Special case for jaccard regression
@@ -704,7 +704,7 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
     return preprocessing_mode
 
 
-def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name):
+def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps):
     if optimizer_name == 'sgd':
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
     elif optimizer_name == 'adam':
@@ -717,8 +717,12 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
 
     if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
         callbacks = callbacks + [
+            keras_contrib.callbacks.CyclicLR(
+                step_size=train_steps * 2, base_lr=1e-4, max_lr=learning_rate,
+                mode='exp_range', gamma=0.99994)
             # Reduce the learning rate if training plateaus.
-            keras.callbacks.ReduceLROnPlateau(patience=13, verbose=1, factor=0.5, monitor=monitor_loss_name)
+            # patience of 13 is a good option for the cornell datasets, 5 seems more appropriate for costar stack regression
+            # keras.callbacks.ReduceLROnPlateau(patience=5, verbose=1, factor=0.5, monitor=monitor_loss_name)
         ]
     return callbacks, optimizer
 
