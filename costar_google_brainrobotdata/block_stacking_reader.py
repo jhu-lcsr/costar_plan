@@ -154,16 +154,17 @@ def get_past_goal_indices(current_robot_time_index, goal_indices, filename='', v
         print('total images: ' + str(total_goal_indices))
     image_index = 1
     while image_index < current_robot_time_index and image_index < total_goal_indices:
-        if verbose:
+        if verbose > 0:
             print('image_index: ' + str(image_index))
         goal_image_index = goal_indices[image_index]
         if goal_image_index < current_robot_time_index and goal_image_index < total_goal_indices:
-            if verbose:
+            if verbose > 0:
                 print('goal_indices[goal_image_index]: ' + str(goal_indices[goal_image_index]))
             image_indices += [goal_image_index]
             if goal_image_index <= goal_indices[goal_image_index]:
                 image_index += 1
-        elif goal_image_index >= total_goal_indices:
+        # TODO(ahundt) understand the cause of the warning below, modify the preprocessing script to correct it
+        elif goal_image_index >= total_goal_indices and verbose > 0:
             print('block_stacking_reader.py::get_past_goal_indices(): warning, goal index equals '
                   'or exceeds total_goal_indices. filename: ' + str(filename) +
                   ' goal_image_index: ' + str(goal_image_index) +
