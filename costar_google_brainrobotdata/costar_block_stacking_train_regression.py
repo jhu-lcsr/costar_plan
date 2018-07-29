@@ -86,8 +86,11 @@ def main(_):
         # IN PROGRESS, hyperopt #1 of 700 models for val_grasp_acc in 1 epoch, looking decent, current progress 0.2 cartesian only val_grasp acc after 100 epochs
         # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
         
-        # ABOUT TO BE RUN, top nasnset_mobile model of 700 models.
-        FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-22-16-59-27_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-22-16-59-27_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+        # not so great, was top nasnset_mobile model of 700 models. (0.1 or 0.7 accuracy after 120 epochs, not that great, slow runtime)
+        # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-22-16-59-27_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-22-16-59-27_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+        
+        # top nasnet_mobile model for val_grasp_acc of 730 models.
+        FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-21-18-59-02_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-21-18-59-02_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
     FLAGS.epochs = 120
     FLAGS.batch_size = 128
