@@ -534,7 +534,7 @@ def run_training(
             validation_data=validation_data,
             validation_steps=validation_steps,
             callbacks=callbacks,
-            use_multiprocessing=True,
+            use_multiprocessing=False,
             workers=20,
             verbose=0)
 
