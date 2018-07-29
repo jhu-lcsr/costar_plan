@@ -144,7 +144,7 @@ flags.DEFINE_boolean('resize', False,
 FLAGS = flags.FLAGS
 
 
-def parse_example_proto(examples_serialized, have_image_id=True):
+def parse_example_proto(examples_serialized, have_image_id=False):
     feature_map = {
         'image/encoded': tf.FixedLenFeature([], dtype=tf.string,
                                             default_value=''),
@@ -177,25 +177,10 @@ def parse_example_proto(examples_serialized, have_image_id=True):
 
     features = tf.parse_single_example(examples_serialized, feature_map)
 
-    # expand the dimensions so we can evaluate at multiple labels for a single image
-    for i in range(4):
-        y_key = 'bbox/y' + str(i)
-        x_key = 'bbox/x' + str(i)
-        feature_map[y_key] = K.expand_dims(feature_map[y_key])
-        feature_map[x_key] = K.expand_dims(feature_map[x_key])
-    feature_map['bbox/cy'] = K.expand_dims(feature_map['bbox/cy'])
-    feature_map['bbox/cx'] = K.expand_dims(feature_map['bbox/cx'])
-    feature_map['bbox/tan'] = K.expand_dims(feature_map['bbox/tan'])
-    feature_map['bbox/theta'] = K.expand_dims(feature_map['bbox/theta'])
-    feature_map['bbox/sin_theta'] = K.expand_dims(feature_map['bbox/sin_theta'])
-    feature_map['bbox/cos_theta'] = K.expand_dims(feature_map['bbox/cos_theta'])
-    feature_map['bbox/width'] = K.expand_dims(feature_map['bbox/width'])
-    feature_map['bbox/height'] = K.expand_dims(feature_map['bbox/height'])
-    feature_map['bbox/grasp_success'] = K.expand_dims(feature_map['bbox/grasp_success'])
     return features
 
 
-def parse_example_proto_redundant(examples_serialized, have_image_id=True):
+def parse_example_proto_redundant(examples_serialized, have_image_id=False):
     """ Parse data from the tfrecord
 
     See also: _create_examples_redundant()
@@ -229,22 +214,6 @@ def parse_example_proto_redundant(examples_serialized, have_image_id=True):
     feature_map['bbox/grasp_success'] = tf.FixedLenFeature([1], dtype=tf.int64)
 
     features = tf.parse_single_example(examples_serialized, feature_map)
-
-    # expand the dimensions so we can evaluate at multiple labels for a single image
-    for i in range(4):
-        y_key = 'bbox/y' + str(i)
-        x_key = 'bbox/x' + str(i)
-        feature_map[y_key] = K.expand_dims(feature_map[y_key])
-        feature_map[x_key] = K.expand_dims(feature_map[x_key])
-    feature_map['bbox/cy'] = K.expand_dims(feature_map['bbox/cy'])
-    feature_map['bbox/cx'] = K.expand_dims(feature_map['bbox/cx'])
-    feature_map['bbox/tan'] = K.expand_dims(feature_map['bbox/tan'])
-    feature_map['bbox/theta'] = K.expand_dims(feature_map['bbox/theta'])
-    feature_map['bbox/sin_theta'] = K.expand_dims(feature_map['bbox/sin_theta'])
-    feature_map['bbox/cos_theta'] = K.expand_dims(feature_map['bbox/cos_theta'])
-    feature_map['bbox/width'] = K.expand_dims(feature_map['bbox/width'])
-    feature_map['bbox/height'] = K.expand_dims(feature_map['bbox/height'])
-    feature_map['bbox/grasp_success'] = K.expand_dims(feature_map['bbox/grasp_success'])
 
     return features
 
@@ -340,9 +309,7 @@ def crop_to_gripper_transform(
     crop_offset = crop_offset[::-1]
     if random_translation_max_pixels is not None:
         crop_offset = crop_offset + rcp.random_translation_offset(random_translation_max_pixels)[:2]
-    # normally we would reverse yx to xy here
-    # but we are going with a uniform max translation limit
-    # in both x and y so the swap is not needed.
+    # reverse yx to xy
     transforms += [tf.contrib.image.translations_to_projective_transforms(crop_offset)]
     input_height_f = cropped_image_shape[0]
     input_width_f = cropped_image_shape[1]
@@ -440,9 +407,7 @@ def parse_and_preprocess(
     image = tf.image.convert_image_dtype(image, dtype=tf.float32)
     image = tf.reshape(image, sensor_image_dimensions)
     feature['image/decoded'] = image
-
-    # There can be any number of grasp labels, so choose one randomly as the basis for augmentation
-    augmentation_grasp_index = tf.random_uniform((1,), minval=0, maxval=tf.size(feature['bbox/cy'], out_type=tf.int32), dtype=tf.int32)
+    input_image_shape = tf.shape(image)
 
     # It is critically important if any image augmentation
     # modifies the coordinate system of the image,
@@ -460,15 +425,14 @@ def parse_and_preprocess(
     # height is range of possible gripper positions along the line
     feature['sin_cos_width_3'] = sin_cos_width_3(features=feature)
     feature['sin2_cos2_width_3'] = sin2_cos2_width_3(features=feature)
-    feature['height_width_2'] = K.concatenate([feature['bbox/height'], feature['bbox/width']])
-    random_translation_box = K.cast(feature['height_width_2'][augmentation_grasp_index, :] // 2, 'int32')
+    random_translation_box = K.cast(feature['sin_cos_height_width_4'][-2:] // 2, 'int32')
 
     # perform image augmentation with projective transforms
     # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
     image, preprocessed_grasp_center_coordinate, grasp_center_rotation_theta, random_features = projective_image_augmentation(
         image, is_training, crop_to, crop_shape, random_translation_box, grasp_center_coordinate, grasp_center_rotation_theta, output_shape,
         random_rotation=random_rotation, random_translation=random_translation,
-        augmentation_grasp_index=augmentation_grasp_index, verbose=verbose)
+        verbose=verbose)
 
     if random_features is not None:
         feature.update(random_features)
@@ -521,7 +485,7 @@ def parse_and_preprocess(
     # make coordinate labels 4d because that's what keras expects
     grasp_success_coordinate_label = K.expand_dims(K.expand_dims(grasp_success_coordinate_label))
     feature['grasp_success_yx_3'] = grasp_success_coordinate_label
-    # preprocessing adds some extra normalization and incorporates changes in the values due to augmentation.
+    # preprocessing adds some extra normalization and incorporates changes in the values due to augmentatation.
     feature['preprocessed_sin_cos_width_3'] = K.concatenate([feature['bbox/preprocessed/sin_cos_2'], feature['bbox/preprocessed/width']])
     feature['preprocessed_norm_sin2_cos2_width_3'] = K.concatenate([feature['bbox/preprocessed/norm_sin2_cos2_2'], feature['bbox/preprocessed/width']])
     feature['preprocessed_norm_sin2_cos2_height_width_4'] = K.concatenate(
@@ -572,30 +536,9 @@ def parse_and_preprocess(
 def projective_image_augmentation(
         image, is_training, crop_to, crop_shape, random_translation_box,
         grasp_center_coordinate, grasp_center_rotation_theta, output_shape,
-        augmentation_grasp_index=None,
+        random_rotation=None, random_translation=None, verbose=0):
     """ perform image augmentation with projective transforms
-
-    crop_to: Choose the data augmentation projective transform configuration. Options are
-            'resize_height_and_resize_width' ensures your image will be the right size
-                but when training with random translations and rotations any part of the
-                image might be chosen.
-            'image_contains_grasp_box_center' ensures you will always have the grasp box center somewhere in the image
-                during training, and then a central crop is performed during testing.
-            'center_on_gripper_grasp_box' ensures the grasp box will always be
-                in the center of the image and if random translation is enabled
-                it will remain within the intersection over union jaccard metric limits.
-            'center_on_gripper_grasp_box_and_rotate_upright' ensures the grasp box
-                will always be centered, visible, and rotated upright, plus any random rotations
-                will be within the intersection over union jaccard metric and the
-                angle distance limits.
-
-    augmentation_grasp_index: If multiple grasps are supplied for
-        grasp_center_coordinate and grasp_center_rotation_theta, this index defines the dominant
-        grasp proposal to use for augmentation with respect to the crop_to parameter.
-        Default None selects index 0.
     """
-    if augmentation_grasp_index is None:
-        augmentation_grasp_index = 0
     # TODO(ahundt) add scaling and use that change to augment width (gripper openness) param
     input_image_shape = tf.shape(image)
     central_crop = False
@@ -662,7 +605,7 @@ def projective_image_augmentation(
     if ('center_on_gripper_grasp_box' in crop_to or
             (crop_to == 'image_contains_grasp_box_center' and is_training)):
         transform, random_features = crop_to_gripper_transform(
-            input_image_shape, grasp_center_coordinate[augmentation_grasp_index],
+            input_image_shape, grasp_center_coordinate,
             crop_to_gripper_theta, crop_shape,
             random_translation_max_pixels=translation_in_box,
             random_rotation=random_rotation)
