@@ -136,7 +136,7 @@ def blend_image_sequence(images, alpha=0.5, verbose=0):
     return blended_image
 
 
-def get_past_goal_indices(current_robot_time_index, goal_indices, verbose=0):
+def get_past_goal_indices(current_robot_time_index, goal_indices, filename='', verbose=0):
     """ get past goal image indices, including the initial image
 
     # Arguments
@@ -164,8 +164,9 @@ def get_past_goal_indices(current_robot_time_index, goal_indices, verbose=0):
             if goal_image_index <= goal_indices[goal_image_index]:
                 image_index += 1
         elif goal_image_index >= total_goal_indices:
-            print('block_stacking_reader.py::get_past_goal_indices(): goal index equals '
-                  'or exceeds total_goal_indices. goal_image_index: ' + str(goal_image_index) +
+            print('block_stacking_reader.py::get_past_goal_indices(): warning, goal index equals '
+                  'or exceeds total_goal_indices. filename: ' + str(filename) +
+                  ' goal_image_index: ' + str(goal_image_index) +
                   ' total_goal_indices: ' + str(total_goal_indices))
         image_index = goal_image_index
     return image_indices
@@ -325,7 +326,7 @@ class CostarBlockStackingSequence(Sequence):
                             raise NotImplementedError
                         indices = [0] + list(image_indices)
                         if self.blend:
-                            img_indices = get_past_goal_indices(image_indices, all_goal_ids)
+                            img_indices = get_past_goal_indices(image_indices, all_goal_ids, filename=example_filename)
                         else:
                             img_indices = indices
                         if self.verbose > 0:
