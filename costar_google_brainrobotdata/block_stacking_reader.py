@@ -130,7 +130,7 @@ def blend_image_sequence(images, alpha=0.5, verbose=0):
     blended_image = images[0]
     if len(images) > 1:
         for image in images[1:]:
-            if verbose:
+            if verbose > 1:
                 print('image type: ' + str(type(image)) + ' dtype: ' + str(image.dtype))
             blended_image = blend_images_np(blended_image, image)
     return blended_image
