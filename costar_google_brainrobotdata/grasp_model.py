@@ -491,7 +491,7 @@ def choose_hypertree_model(
         use_auxiliary_branch=True,
         weights='imagenet',
         trunk_hidden_activation='relu',
-        vector_hidden_activation='none',
+        vector_hidden_activation='linear',
         top_block_hidden_activation='relu',
         trunk_normalization='none',
         coordinate_data=None,
