@@ -102,7 +102,7 @@ def main(_):
         # 2018-07-30 #5 of 730 models for rotation (SHOULD RUN SOON)
         FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
-    FLAGS.epochs = 120
+    FLAGS.epochs = 300
     FLAGS.batch_size = 128
     optimizer_name = 'sgd'
     # FLAGS.crop_height = 480
