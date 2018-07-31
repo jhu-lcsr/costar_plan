@@ -443,13 +443,13 @@ class CostarBlockStackingSequence(Sequence):
             if (self.data_features_to_extract is None or
                     'current_xyz_3' in self.data_features_to_extract or
                     'image_0_image_n_vec_xyz_10' in self.data_features_to_extract):
-                # default, regression input case
+                # regression input case for translation only
                 action_poses_vec = np.concatenate([encoded_poses[:, :3], action_labels], axis=-1)
                 X = [init_images, current_images, action_poses_vec]
             elif (self.data_features_to_extract is None or
                     'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract or
                     'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
-                # default, regression input case
+                # default, regression input case for translation and rotation
                 action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
                 X = [init_images, current_images, action_poses_vec]
             elif 'proposed_goal_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
@@ -469,9 +469,13 @@ class CostarBlockStackingSequence(Sequence):
 
             # determine the label
             if self.label_features_to_extract is None or 'grasp_goal_xyz_3' in self.label_features_to_extract:
-                # default, regression to translation case, see semantic_translation_regression in cornell_grasp_train.py
+                # regression to translation case, see semantic_translation_regression in cornell_grasp_train.py
                 y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.random_augmentation)
                 y = y[:, :3]
+            elif self.label_features_to_extract is None or 'grasp_goal_aaxyz_nsc_5' in self.label_features_to_extract:
+                # regression to rotation case, see semantic_rotation_regression in cornell_grasp_train.py
+                y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.random_augmentation)
+                y = y[:, 3:]
             elif self.label_features_to_extract is None or 'grasp_goal_xyz_aaxyz_nsc_8' in self.label_features_to_extract:
                 # default, regression label case
                 y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.random_augmentation)

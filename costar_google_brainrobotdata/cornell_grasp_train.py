@@ -1035,6 +1035,29 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # loss = keras.losses.mean_absolute_error
         loss = keras.losses.mean_squared_error
         model_name = '_semantic_translation_regression_model'
+    elif problem_name == 'semantic_rotation_regression':
+        # only the rotation component of semantic grasp regression
+        # this is the regression case with the costar block stacking dataset
+        # classes = 8
+        classes = 5
+        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae']
+        #  , grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'val_grasp_acc'
+        # this is the length of the state vector defined in block_stacking_reader.py
+        # label with translation and orientation
+        vector_shapes = [(49,)]
+        # data with translation and orientation
+        data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
+        # label with translation and orientation
+        # label_features = ['grasp_goal_xyz_aaxyz_nsc_8']
+        label_features = ['grasp_goal_aaxyz_nsc_5']
+        monitor_loss_name = 'val_loss'
+        shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
+        image_shapes = [shape, shape]
+        # loss = keras.losses.mean_absolute_error
+        loss = keras.losses.mean_squared_error
+        model_name = '_semantic_rotation_regression_model'
     elif problem_name == 'semantic_grasp_regression':
         # this is the regression case with the costar block stacking dataset
         classes = 8
