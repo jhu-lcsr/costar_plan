@@ -207,7 +207,6 @@ class CostarBlockStackingSequence(Sequence):
         self.is_training = is_training
         self.verbose = verbose
         self.on_epoch_end()
-        self.output_shape = output_shape
         self.label_features_to_extract = label_features_to_extract
         # TODO(ahundt) total_actions_available can probably be extracted from the example hdf5 files and doesn't need to be a param
         self.data_features_to_extract = data_features_to_extract
