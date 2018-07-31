@@ -867,7 +867,7 @@ def decode_xyz_aaxyz_nsc_to_xyz_qxyzw(xyz_aaxyz_nsc, rescale_meters=4):
         xyz_qxyzw = np.concatenate([xyz, q.elements], axis=-1)
         return xyz_qxyzw
     elif length != 3:
-        raise ValueError('decode_xyz_aaxyz_nsc_to_xyz_qxyzw: unsupported input data length')
+        raise ValueError('decode_xyz_aaxyz_nsc_to_xyz_qxyzw: unsupported input data length of ' + str(length))
     return xyz
 
 
