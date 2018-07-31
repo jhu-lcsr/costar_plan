@@ -18,15 +18,17 @@ FLAGS = flags.FLAGS
 
 def main(_):
     # problem_type = 'semantic_translation_regression'
-    problem_type = 'semantic_rotation_regression'
+    # problem_type = 'semantic_rotation_regression'
+    problem_type = 'semantic_grasp_regression'
     problem_type2 = 'semantic_grasp_regression'
+    problem_type2 = None
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
     # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
     FLAGS.problem_type = problem_type
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
-    load_weights_translation = None
+    load_weights = None
     if FLAGS.load_hyperparams is None:
         # Results from classification hyperparameter run
         # FLAGS.load_hyperparams = ('/home/ahundt/datasets/logs/hyperopt_logs_cornell/'
@@ -84,8 +86,11 @@ def main(_):
         # 2018-07-30 CURRENT BEST MODEL FOR TRANSLATION
         # 2018-07-08 BEST of ~400 or maybe the one 2017-07-07?, 26% translation only validation accuracy, 17.5% combined translation + rotation validation accuracy.
         # BEST MODEL Results in: ./logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3
-        # FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
-        # load_weights_translation = './logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-115-val_loss-0.000-val_grasp_acc-0.258.h5'
+        FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+        # weights for TRANSLATION PROBLEM ONLY:
+        # load_weights = './logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-115-val_loss-0.000-val_grasp_acc-0.258.h5'
+        # weights for TRANSLATION + ROTATION PROBLEM:
+        load_weights = './logs_cornell/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8-epoch-018-val_loss-0.027-val_grasp_acc-0.175.h5'
 
         # 0.6 val_grasp_acc, hyperopt results placed this as #1 of 700 models for val_grasp_acc in 1 epoch
         # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
@@ -99,7 +104,7 @@ def main(_):
         # 2018-07-30 maybe worth a try, vgg model which did very well on rotation, #4 of 729, and fairly good on both val_grasp_acc and val_cart_error
         # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-24-07-43-45_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-24-07-43-45_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
-        # 2018-07-30 #5 of 730 models for rotation (SHOULD RUN SOON)
+        # 2018-07-30 EXCELLENT ROTATION MODEL #5 of 730 models for rotation 92% test accuracy for angles within 15 degrees.
         FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
     FLAGS.epochs = 300
@@ -133,9 +138,11 @@ def main(_):
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
     # hyperparams['learning_rate'] = 1.0
-    if load_weights_translation is not None:
+    if load_weights is not None:
+        # For resuming translation + rotation model training
+        hyperparams['learning_rate'] = 1e-2
         # For resuming translation model training
-        hyperparams['learning_rate'] = 1e-3
+        # hyperparams['learning_rate'] = 1e-3
     # hyperparams['trainable'] = True
     print('-' * 80)
     print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams) + '\n\n' + str(hyperparams))
@@ -178,16 +185,17 @@ def main(_):
             hyperparams=hyperparams,
             dataset_name=dataset_name,
             optimizer_name=optimizer_name,
-            load_weights=load_weights_translation,
+            load_weights=load_weights,
             **hyperparams)
-        # print('\n---------------------\ntraining problem type2: ' + str(problem_type2) + '\n---------------------')
-        # cornell_grasp_train.run_training(
-        #     problem_name=problem_type2,
-        #     # feature_combo_name=feature_combo,
-        #     hyperparams=hyperparams,
-        #     dataset_name=dataset_name,
-        #     optimizer_name=optimizer_name,
-        #     **hyperparams)
+        if problem_type2 is not None:
+            print('\n---------------------\ntraining problem type2: ' + str(problem_type2) + '\n---------------------')
+            cornell_grasp_train.run_training(
+                problem_name=problem_type2,
+                # feature_combo_name=feature_combo,
+                hyperparams=hyperparams,
+                dataset_name=dataset_name,
+                optimizer_name=optimizer_name,
+                **hyperparams)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
