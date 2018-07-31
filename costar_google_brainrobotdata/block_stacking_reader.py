@@ -183,7 +183,7 @@ class CostarBlockStackingSequence(Sequence):
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
                  is_training=True, random_augmentation=None, output_shape=None,
-                 blend_previous_goal_images=True, verbose=0):
+                 blend_previous_goal_images=False, verbose=0):
         '''Initialization
 
         #Arguments
