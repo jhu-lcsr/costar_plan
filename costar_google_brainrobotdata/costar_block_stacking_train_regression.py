@@ -122,7 +122,7 @@ def main(_):
     hyperparams['loss'] = 'mse'
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
-    # hyperparams['learning_rate'] = 0.6
+    # hyperparams['learning_rate'] = 1.0
     # hyperparams['trainable'] = True
     print('-' * 80)
     print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams) + '\n\n' + str(hyperparams))
