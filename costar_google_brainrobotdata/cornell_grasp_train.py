@@ -718,7 +718,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
     if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
         callbacks = callbacks + [
             keras_contrib.callbacks.CyclicLR(
-                step_size=train_steps * 2, base_lr=1e-4, max_lr=learning_rate,
+                step_size=train_steps * 2, base_lr=1e-6, max_lr=learning_rate,
                 mode='exp_range', gamma=0.99994)
             # Reduce the learning rate if training plateaus.
             # patience of 13 is a good option for the cornell datasets, 5 seems more appropriate for costar stack regression
