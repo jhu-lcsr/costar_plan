@@ -990,19 +990,29 @@ def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_n
 
     This version is for a single pair of numpy arrays of length 8.
     """
-    # translation distance
-    translation = absolute_cart_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
     length = len(y_true_xyz_aaxyz_nsc)
+    if length == 3 or length == 8:
+        # translation distance
+        translation = absolute_cart_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
     if length == 3:
         # translation component only
         if translation < max_translation:
             return 1.
     # translation and rotation
-    if length == 8:
+    elif length == 8:
         # rotation distance
         angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
         if angle_distance < max_rotation and translation < max_translation:
             return 1.
+    elif length == 5:
+        # rotation distance only, just use [0.5, 0.5, 0.5] for translation component so existing code can be utilized
+        angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(
+            [0.5, 0.5, 0.5] + y_true_xyz_aaxyz_nsc,
+            [0.5, 0.5, 0.5] + y_pred_xyz_aaxyz_nsc)
+        if angle_distance < max_rotation and translation < max_translation:
+            return 1.
+    else:
+        raise ValueError('grasp_accuracy_xyz_aaxyz_nsc_single: unsupported label value format of length ' + str(length))
     return 0.
 
 
