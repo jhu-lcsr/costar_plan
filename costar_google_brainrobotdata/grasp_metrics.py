@@ -1010,7 +1010,7 @@ def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_n
         angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(
             np.concatenate([fake_translation, y_true_xyz_aaxyz_nsc]),
             np.concatenate([fake_translation, y_pred_xyz_aaxyz_nsc]))
-        if angle_distance < max_rotation and translation < max_translation:
+        if angle_distance < max_rotation:
             return 1.
     else:
         raise ValueError('grasp_accuracy_xyz_aaxyz_nsc_single: unsupported label value format of length ' + str(length))
