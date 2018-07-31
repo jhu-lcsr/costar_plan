@@ -928,6 +928,15 @@ def absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xy
 
     This version is for a single pair of numpy arrays of length 8.
     """
+    length = len(y_true_xyz_aaxyz_nsc)
+    if length == 5:
+        # workaround rotation distance only,
+        # just use [0.5, 0.5, 0.5] for translation component
+        # so existing code can be utilized
+        fake_translation = np.array([0.5, 0.5, 0.5])
+        y_true_xyz_aaxyz_nsc = np.concatenate([fake_translation, y_true_xyz_aaxyz_nsc])
+        y_pred_xyz_aaxyz_nsc = np.concatenate([fake_translation, y_pred_xyz_aaxyz_nsc])
+
     y_true_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_true_xyz_aaxyz_nsc)
     y_pred_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_pred_xyz_aaxyz_nsc)
     y_true_q = Quaternion(y_true_xyz_qxyzw[3:])
