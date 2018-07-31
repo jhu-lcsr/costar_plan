@@ -1006,9 +1006,10 @@ def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_n
             return 1.
     elif length == 5:
         # rotation distance only, just use [0.5, 0.5, 0.5] for translation component so existing code can be utilized
+        fake_translation = np.array([0.5, 0.5, 0.5])
         angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(
-            [0.5, 0.5, 0.5] + y_true_xyz_aaxyz_nsc,
-            [0.5, 0.5, 0.5] + y_pred_xyz_aaxyz_nsc)
+            np.concatenate([fake_translation, y_true_xyz_aaxyz_nsc]),
+            np.concatenate([fake_translation, y_pred_xyz_aaxyz_nsc]))
         if angle_distance < max_rotation and translation < max_translation:
             return 1.
     else:
