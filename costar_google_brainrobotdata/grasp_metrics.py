@@ -887,7 +887,7 @@ def decode_xyz_aaxyz_nsc_to_xyz_qxyzw(xyz_aaxyz_nsc, rescale_meters=4, rotation_
         so mse gives similar weight to both rotations and translations.
         Use 1.0 for no adjustment.
     """
-    xyz = (xyz_aaxyz_nsc[:3] + 0.5) * rescale_meters
+    xyz = (xyz_aaxyz_nsc[:3] - 0.5) * rescale_meters
     length = len(xyz_aaxyz_nsc)
     if length == 8:
         theta = decode_sin_cos(xyz_aaxyz_nsc[-2:])
