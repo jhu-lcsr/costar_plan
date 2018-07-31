@@ -178,14 +178,14 @@ def main(_):
             optimizer_name=optimizer_name,
             load_weights=load_weights_translation,
             **hyperparams)
-        print('\n---------------------\ntraining problem type2: ' + str(problem_type2) + '\n---------------------')
-        cornell_grasp_train.run_training(
-            problem_name=problem_type2,
-            # feature_combo_name=feature_combo,
-            hyperparams=hyperparams,
-            dataset_name=dataset_name,
-            optimizer_name=optimizer_name,
-            **hyperparams)
+        # print('\n---------------------\ntraining problem type2: ' + str(problem_type2) + '\n---------------------')
+        # cornell_grasp_train.run_training(
+        #     problem_name=problem_type2,
+        #     # feature_combo_name=feature_combo,
+        #     hyperparams=hyperparams,
+        #     dataset_name=dataset_name,
+        #     optimizer_name=optimizer_name,
+        #     **hyperparams)
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
