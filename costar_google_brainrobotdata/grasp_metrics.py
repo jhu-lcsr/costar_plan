@@ -836,7 +836,7 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmen
 
         return xyz
     else:
-        raise ValueError('encode_xyz_qxyzw_to_xyz_aaxyz_nsc: unsupported input data length')
+        raise ValueError('encode_xyz_qxyzw_to_xyz_aaxyz_nsc: unsupported input data length of ' + str(length))
 
 
 def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, random_augmentation=None):
