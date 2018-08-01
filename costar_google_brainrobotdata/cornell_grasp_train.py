@@ -1247,6 +1247,7 @@ def load_dataset(
         train_size = len(train_data) * train_data.get_estimated_time_steps_per_example()
         val_size = len(validation_data) * validation_data.get_estimated_time_steps_per_example()
         test_size = len(test_data) * test_data.get_estimated_time_steps_per_example()
+        print('train size: ' + str(train_size) + ' val_size: ' + str(val_size) + ' test size: ' + str(test_size))
         # train_data = block_stacking_generator(train_data)
         # test_data = block_stacking_generator(test_data)
         # validation_data = block_stacking_generator(validation_data)
