@@ -111,7 +111,7 @@ def main(_):
 
         if problem_type == 'semantic_rotation_regression' and use_best_model:
             # 2018-07-30 EXCELLENT ROTATION MODEL #5 of 730 models for rotation 92% test accuracy for angles within 15 degrees.
-            FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+            FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
     FLAGS.epochs = 300
     FLAGS.batch_size = 256
