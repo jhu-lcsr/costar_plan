@@ -1215,7 +1215,7 @@ def load_dataset(
         # estimated_time_steps_per_example = 250
         # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
         # Only visit 5 images in val/test datasets so it doesn't take an unreasonable amount of time & for historical reasons.
-        estimated_time_steps_per_example = 5
+        estimated_time_steps_per_example = 8
         test_data = file_names[:val_test_size]
         with open('test.txt', mode='w') as myfile:
             myfile.write('\n'.join(test_data))
