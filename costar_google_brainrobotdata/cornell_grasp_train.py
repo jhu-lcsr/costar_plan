@@ -525,7 +525,7 @@ def run_training(
             init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
             sess.run(init_op)
 
-        print('check 2 - train_steps: ' + str(train_size) + ' validation_steps: ' + str(validation_steps) + ' test_steps: ' + str(test_steps))
+        print('check 2 - train_steps: ' + str(train_steps) + ' validation_steps: ' + str(validation_steps) + ' test_steps: ' + str(test_steps))
         # fit the model
         # TODO(ahundt) may need to disable multiprocessing for cornell and enable it for costar stacking
         history = model.fit_generator(
