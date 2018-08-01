@@ -284,7 +284,7 @@ def optimize(
         hyperoptions.add_param('vector_hidden_activation', ['linear', 'relu', 'elu'],
                                default='linear', enable=True, required=True)
         hyperoptions.add_param('vector_normalization', ['none', 'batch_norm', 'group_norm'],
-                               default='batch_norm', enable=False, required=True)
+                               default='batch_norm', enable=True, required=True)
 
     # enable this if you're search for grasp classifications
     hyperoptions.add_param('feature_combo_name', ['image_preprocessed_width_1', 'image_preprocessed_sin_cos_width_3'],
@@ -297,8 +297,8 @@ def optimize(
     hyperoptions.add_param('image_model_name', ['vgg', 'nasnet_mobile'],
                            enable=True, required=True, default='vgg')
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
-    hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 12)])
-    hyperoptions.add_param('trunk_layers', [x for x in range(0, 10)])
+    hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 13)])
+    hyperoptions.add_param('trunk_layers', [x for x in range(0, 11)])
     # Choose the model for the trunk, options are 'vgg_conv_block', 'dense_block', 'nasnet_normal_a_cell', 'resnet_conv_identity_block'
     # an additional option is 'resnet_conv_identity_block', but it never really did well.
     # dense_block does really well for the cornell dataset, vgg_conv_block for costar stacking dataset
