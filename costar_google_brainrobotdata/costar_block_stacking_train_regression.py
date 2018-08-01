@@ -17,10 +17,10 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    # problem_type = 'semantic_translation_regression'
+    problem_type = 'semantic_translation_regression'
     # problem_type = 'semantic_rotation_regression'
-    problem_type = 'semantic_grasp_regression'
-    problem_type2 = 'semantic_grasp_regression'
+    # problem_type = 'semantic_grasp_regression'
+    # problem_type2 = 'semantic_grasp_regression'
     problem_type2 = None
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
@@ -88,11 +88,12 @@ def main(_):
         # BEST MODEL Results in: ./logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3
         FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
         # weights for TRANSLATION PROBLEM ONLY:
+        load_weights = './logs_cornell/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-016-val_loss-0.000-val_grasp_acc-0.273.h5'
         # load_weights = './logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-115-val_loss-0.000-val_grasp_acc-0.258.h5'
         # weights for TRANSLATION + ROTATION PROBLEM:
         # same hyperparams as above, just also the same folder as the weights below it
         # FLAGS.load_hyperparams = './logs_cornell/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
-        load_weights = './logs_cornell/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8-epoch-018-val_loss-0.027-val_grasp_acc-0.175.h5'
+        # load_weights = './logs_cornell/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8-epoch-018-val_loss-0.027-val_grasp_acc-0.175.h5'
 
         # 0.6 val_grasp_acc, hyperopt results placed this as #1 of 700 models for val_grasp_acc in 1 epoch
         # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
@@ -141,8 +142,10 @@ def main(_):
     hyperparams['checkpoint'] = True
     # hyperparams['learning_rate'] = 1.0
     if load_weights is not None:
+        # For training from scratch
+        hyperparams['learning_rate'] = 1.0
         # For resuming translation + rotation model training
-        hyperparams['learning_rate'] = 1e-2
+        # hyperparams['learning_rate'] = 1e-2
         # For resuming translation model training
         # hyperparams['learning_rate'] = 1e-3
     # hyperparams['trainable'] = True
