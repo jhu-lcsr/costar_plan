@@ -17,8 +17,9 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    problem_type = 'semantic_translation_regression'
-    # problem_type = 'semantic_rotation_regression'
+    use_best_model = True
+    # problem_type = 'semantic_translation_regression'
+    problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
     # problem_type2 = 'semantic_grasp_regression'
     problem_type2 = None
@@ -83,17 +84,18 @@ def main(_):
         # 2018-07-07 best performing non-vgg model with 15% val and test grasp accracy for translations with semantic_translation_regression case.
         # FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-06-22-34-31_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
-        # 2018-07-30 CURRENT BEST MODEL FOR TRANSLATION
-        # 2018-07-08 BEST of ~400 or maybe the one 2017-07-07?, 26% translation only validation accuracy, 17.5% combined translation + rotation validation accuracy.
-        # BEST MODEL Results in: ./logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3
-        FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
-        # weights for TRANSLATION PROBLEM ONLY:
-        load_weights = './logs_cornell/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-016-val_loss-0.000-val_grasp_acc-0.273.h5'
-        # load_weights = './logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-115-val_loss-0.000-val_grasp_acc-0.258.h5'
-        # weights for TRANSLATION + ROTATION PROBLEM:
-        # same hyperparams as above, just also the same folder as the weights below it
-        # FLAGS.load_hyperparams = './logs_cornell/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
-        # load_weights = './logs_cornell/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8-epoch-018-val_loss-0.027-val_grasp_acc-0.175.h5'
+        if problem_type == 'semantic_translation_regression' and use_best_model:
+            # 2018-07-30 CURRENT BEST MODEL FOR TRANSLATION
+            # 2018-07-08 BEST of ~400 or maybe the one 2017-07-07?, 26% translation only validation accuracy, 17.5% combined translation + rotation validation accuracy.
+            # BEST MODEL Results in: ./logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3
+            FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+            # weights for TRANSLATION PROBLEM ONLY:
+            load_weights = './logs_cornell/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-016-val_loss-0.000-val_grasp_acc-0.273.h5'
+            # load_weights = './logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-115-val_loss-0.000-val_grasp_acc-0.258.h5'
+            # weights for TRANSLATION + ROTATION PROBLEM:
+            # same hyperparams as above, just also the same folder as the weights below it
+            # FLAGS.load_hyperparams = './logs_cornell/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+            # load_weights = './logs_cornell/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-11-14-01-56_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8-epoch-018-val_loss-0.027-val_grasp_acc-0.175.h5'
 
         # 0.6 val_grasp_acc, hyperopt results placed this as #1 of 700 models for val_grasp_acc in 1 epoch
         # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-22-07-15-09_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
@@ -107,8 +109,9 @@ def main(_):
         # 2018-07-30 maybe worth a try, vgg model which did very well on rotation, #4 of 729, and fairly good on both val_grasp_acc and val_cart_error
         # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-24-07-43-45_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-24-07-43-45_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
-        # 2018-07-30 EXCELLENT ROTATION MODEL #5 of 730 models for rotation 92% test accuracy for angles within 15 degrees.
-        # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+        if problem_type == 'semantic_rotation_regression' and use_best_model:
+            # 2018-07-30 EXCELLENT ROTATION MODEL #5 of 730 models for rotation 92% test accuracy for angles within 15 degrees.
+            FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
     FLAGS.epochs = 300
     FLAGS.batch_size = 256
