@@ -186,7 +186,7 @@ class CostarBlockStackingSequence(Sequence):
                  random_state=None,
                  is_training=True, random_augmentation=None, output_shape=None,
                  blend_previous_goal_images=False,
-                 estimated_images_per_example=250, verbose=0):
+                 estimated_time_steps_per_example=250, verbose=0):
         '''Initialization
 
         #Arguments
@@ -203,7 +203,7 @@ class CostarBlockStackingSequence(Sequence):
             Options include 'image_0_image_n_vec_xyz_aaxyz_nsc_15' which is a giant NHWC cube of image and pose data,
             'current_xyz_aaxyz_nsc_8', 'proposed_goal_xyz_aaxyz_nsc_8'.
         random_augmentation: None or a float value between 0 and 1 indiciating how frequently random augmentation should be applied.
-        estimated_images_per_example: The number of images in each example varies,
+        estimated_time_steps_per_example: The number of images in each example varies,
             so we simply sample in proportion to an estimated number of images per example.
             Due to random sampling, there is no guarantee that every image will be visited once!
             However, the images can be visited in a fixed order, particularly when is_training=False.
@@ -226,7 +226,7 @@ class CostarBlockStackingSequence(Sequence):
         self.random_augmentation = random_augmentation
 
         self.blend = blend_previous_goal_images
-        self.estimated_images_per_example = estimated_images_per_example
+        self.estimated_time_steps_per_example = estimated_time_steps_per_example
         # if crop_shape is None:
         #     # height width 3
         #     crop_shape = (224, 224, 3)
@@ -256,7 +256,7 @@ class CostarBlockStackingSequence(Sequence):
 
         Run extra steps in proportion to this if you want to get close to visiting every image.
         """
-        return self.estimated_images_per_example
+        return self.estimated_time_steps_per_example
 
     def on_epoch_end(self):
         """ Updates indexes after each epoch
