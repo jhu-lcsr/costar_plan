@@ -442,7 +442,7 @@ def run_training(
     # this check works for both classification and sigmoid pose estimation
     callbacks += [InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
     if 'costar' in dataset_name:
-        max_cart_error = 0.5
+        max_cart_error = 1.0
         if epochs > 10:
             # give extra time if it is a long run because
             # it was probably manually configured
