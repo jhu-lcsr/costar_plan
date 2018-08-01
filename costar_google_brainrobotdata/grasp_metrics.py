@@ -797,7 +797,9 @@ def normalize_axis(aaxyz, epsilon=1e-5):
 
     If axis is all zeros, epsilon is added to the final axis.
     """
-    if np.zeros(aaxyz):
+    if not np.any(aaxyz):
+        # source: https://stackoverflow.com/a/23567941/99379
+        # we checked if all values are zero, fix missing axis
         aaxyz[-1] += epsilon
     arr = sklearn.preprocessing.normalize(np.array([aaxyz], dtype=np.float))
     aaxyz = np.squeeze(arr[0, :])
