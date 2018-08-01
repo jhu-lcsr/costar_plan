@@ -525,7 +525,7 @@ def run_training(
             init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
             sess.run(init_op)
 
-        print('check 2 - train size: ' + str(train_size) + ' val_size: ' + str(val_size) + ' test size: ' + str(test_size))
+        print('check 2 - train_steps: ' + str(train_size) + ' validation_steps: ' + str(validation_steps) + ' test_steps: ' + str(test_steps))
         # fit the model
         # TODO(ahundt) may need to disable multiprocessing for cornell and enable it for costar stacking
         history = model.fit_generator(
@@ -1216,7 +1216,10 @@ def load_dataset(
         # estimated_time_steps_per_example = 250
         # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
         # Only visit 5 images in val/test datasets so it doesn't take an unreasonable amount of time & for historical reasons.
-        estimated_time_steps_per_example = 8
+
+
+        # We are multiplying by batch size as a hacky workaround because we want the sizing reduction from steps_per_epoch to
+        estimated_time_steps_per_example = 8 * batch_size
         test_data = file_names[:val_test_size]
         with open('test.txt', mode='w') as myfile:
             myfile.write('\n'.join(test_data))
@@ -1259,7 +1262,7 @@ def load_dataset(
             train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
             samples_train=train_size, samples_val=val_size, samples_test=test_size)
 
-        print('check 1.5 - train size: ' + str(train_size) + ' val_size: ' + str(val_size) + ' test size: ' + str(test_size))
+        print('check 1.5 - train_steps: ' + str(train_steps) + ' val_steps: ' + str(val_steps) + ' test_steps: ' + str(test_steps))
         # print("--------", train_steps, val_steps, test_steps)
         # enqueuer = OrderedEnqueuer(
         #             train_data,
