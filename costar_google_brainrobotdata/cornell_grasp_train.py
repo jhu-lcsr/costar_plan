@@ -1215,7 +1215,7 @@ def load_dataset(
         # estimated_images_per_example = 250
         # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
         # Only visit 5 images in val/test datasets so it doesn't take an unreasonable amount of time & for historical reasons.
-        # estimated_images_per_example = 5
+        estimated_images_per_example = 5
         test_data = file_names[:val_test_size]
         with open('test.txt', mode='w') as myfile:
             myfile.write('\n'.join(test_data))
@@ -1234,13 +1234,16 @@ def load_dataset(
         output_shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         train_data = CostarBlockStackingSequence(
             train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
-            data_features_to_extract=data_features, label_features_to_extract=label_features)
+            data_features_to_extract=data_features, label_features_to_extract=label_features,
+            estimated_images_per_example=estimated_images_per_example)
         test_data = CostarBlockStackingSequence(
             test_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
-            data_features_to_extract=data_features, label_features_to_extract=label_features)
+            data_features_to_extract=data_features, label_features_to_extract=label_features,
+            estimated_images_per_example=estimated_images_per_example)
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
-            data_features_to_extract=data_features, label_features_to_extract=label_features)
+            data_features_to_extract=data_features, label_features_to_extract=label_features,
+            estimated_images_per_example=estimated_images_per_example)
         train_size = len(train_data) * train_data.get_estimated_time_steps_per_example()
         val_size = len(validation_data) * train_data.get_estimated_time_steps_per_example()
         test_size = len(test_data) * train_data.get_estimated_time_steps_per_example()
