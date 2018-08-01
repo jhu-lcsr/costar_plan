@@ -244,7 +244,7 @@ class CostarBlockStackingSequence(Sequence):
 
         return X, y
 
-    def get_estimated_images_per_example():
+    def get_estimated_images_per_example(self):
         """ Get the estimated images per example,
 
         Run extra steps in proportion to this if you want to get close to visiting every image.
