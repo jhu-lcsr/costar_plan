@@ -1258,6 +1258,8 @@ def load_dataset(
         train_steps, val_steps, test_steps = steps_per_epoch(
             train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
             samples_train=train_size, samples_val=val_size, samples_test=test_size)
+
+        print('check 1.5 - train size: ' + str(train_size) + ' val_size: ' + str(val_size) + ' test size: ' + str(test_size))
         # print("--------", train_steps, val_steps, test_steps)
         # enqueuer = OrderedEnqueuer(
         #             train_data,
