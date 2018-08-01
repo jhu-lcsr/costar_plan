@@ -1214,7 +1214,8 @@ def load_dataset(
         # videos are at 10hz and there are about 25 seconds of video in each:
         # estimated_images_per_example = 250
         # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
-        # estimated_images_per_example = 250
+        # Only visit 5 images in val/test datasets so it doesn't take an unreasonable amount of time & for historical reasons.
+        # estimated_images_per_example = 5
         test_data = file_names[:val_test_size]
         with open('test.txt', mode='w') as myfile:
             myfile.write('\n'.join(test_data))
@@ -1240,9 +1241,9 @@ def load_dataset(
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features)
-        train_size = len(train_data)
-        val_size = len(validation_data)
-        test_size = len(test_data)
+        train_size = len(train_data) * train_data.get_estimated_images_per_example()
+        val_size = len(validation_data) * train_data.get_estimated_images_per_example()
+        test_size = len(test_data) * train_data.get_estimated_images_per_example()
         # train_data = block_stacking_generator(train_data)
         # test_data = block_stacking_generator(test_data)
         # validation_data = block_stacking_generator(validation_data)

@@ -228,7 +228,7 @@ class CostarBlockStackingSequence(Sequence):
     def __len__(self):
         """Denotes the number of batches per epoch
         """
-        return int(np.floor(len(self.list_example_filenames) / self.batch_size) * self.estimated_images_per_example)
+        return int(np.floor(len(self.list_example_filenames) / self.batch_size))
 
     def __getitem__(self, index):
         """Generate one batch of data
@@ -243,6 +243,13 @@ class CostarBlockStackingSequence(Sequence):
         X, y = self.__data_generation(list_example_filenames_temp)
 
         return X, y
+
+    def get_estimated_images_per_example():
+        """ Get the estimated images per example,
+
+        Run extra steps in proportion to this if you want to get close to visiting every image.
+        """
+        return self.estimated_images_per_example
 
     def on_epoch_end(self):
         """ Updates indexes after each epoch
