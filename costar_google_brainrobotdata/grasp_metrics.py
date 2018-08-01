@@ -792,7 +792,7 @@ def rotation_to_xyz_theta(rotation, verbose=0):
     return np.concatenate([aa.axis, [theta]], axis=-1)
 
 
-def normalize_axis(aaxyz, epsilon=1e-5, verbose=1):
+def normalize_axis(aaxyz, epsilon=1e-5, verbose=0):
     """ Normalize an axis in angle axis format data.
 
     If axis is all zeros, epsilon is added to the final axis.
