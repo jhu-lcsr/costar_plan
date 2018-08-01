@@ -183,7 +183,8 @@ class CostarBlockStackingSequence(Sequence):
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
                  is_training=True, random_augmentation=None, output_shape=None,
-                 blend_previous_goal_images=False, verbose=0):
+                 blend_previous_goal_images=False,
+                 estimated_images_per_example=250, verbose=0):
         '''Initialization
 
         #Arguments
@@ -198,6 +199,10 @@ class CostarBlockStackingSequence(Sequence):
             Options include 'image_0_image_n_vec_xyz_aaxyz_nsc_15' which is a giant NHWC cube of image and pose data,
             'current_xyz_aaxyz_nsc_8', 'proposed_goal_xyz_aaxyz_nsc_8'.
         random_augmentation: None or a float value between 0 and 1 indiciating how frequently random augmentation should be applied.
+        estimated_images_per_example: The number of images in each example varies,
+            so we simply sample in proportion to an estimated number of images per example.
+            Due to random sampling, there is no guarantee that every image will be visited once!
+            However, the images can be visited in a fixed order, particularly when is_training=False.
         '''
         self.batch_size = batch_size
         self.list_example_filenames = list_example_filenames
@@ -214,6 +219,7 @@ class CostarBlockStackingSequence(Sequence):
         self.random_augmentation = random_augmentation
 
         self.blend = blend_previous_goal_images
+        self.estimated_images_per_example = estimated_images_per_example
         # if crop_shape is None:
         #     # height width 3
         #     crop_shape = (224, 224, 3)
@@ -222,7 +228,7 @@ class CostarBlockStackingSequence(Sequence):
     def __len__(self):
         """Denotes the number of batches per epoch
         """
-        return int(np.floor(len(self.list_example_filenames) / self.batch_size))
+        return int(np.floor(len(self.list_example_filenames) / self.batch_size) * self.estimated_images_per_example)
 
     def __getitem__(self, index):
         """Generate one batch of data
