@@ -904,7 +904,7 @@ def decode_xyz_aaxyz_nsc_to_xyz_qxyzw(xyz_aaxyz_nsc, rescale_meters=4, rotation_
         # aaxyz is axis component of angle axis format,
         # Note that rotation_weight is automatically removed by normalization step.
         aaxyz = normalize_axis(aaxyz)
-        q = Quaternion(axis=xyz, angle=theta)
+        q = Quaternion(axis=aaxyz, angle=theta)
         xyz_qxyzw = np.concatenate([xyz, q.elements], axis=-1)
         return xyz_qxyzw
     elif length != 3:
