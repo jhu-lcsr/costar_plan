@@ -9,6 +9,7 @@ from PIL import Image
 from skimage.transform import resize
 
 import numpy as np
+from numpy.random import RandomState
 import json
 import keras
 from keras.utils import Sequence
@@ -182,6 +183,7 @@ class CostarBlockStackingSequence(Sequence):
                  label_features_to_extract=None, data_features_to_extract=None,
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
+                 random_state=None,
                  is_training=True, random_augmentation=None, output_shape=None,
                  blend_previous_goal_images=False,
                  estimated_images_per_example=250, verbose=0):
@@ -193,6 +195,8 @@ class CostarBlockStackingSequence(Sequence):
         batch_size: specifies the size of each batch
         shuffle: boolean to specify shuffle after each epoch
         seed: a random seed to use. If seed is None it will be in order!
+        random_state: A numpy RandomState object, if not provided one will be generated from the seed.
+            Used exclusively for example data ordering and the indices to visit within an example.
         # TODO(ahundt) better notes about the two parameters below. See choose_features_and_metrics() in cornell_grasp_trin.py.
         label_features_to_extract: defaults to regression options, classification options are also available
         data_features_to_extract: defaults to regression options, classification options are also available
@@ -204,10 +208,13 @@ class CostarBlockStackingSequence(Sequence):
             Due to random sampling, there is no guarantee that every image will be visited once!
             However, the images can be visited in a fixed order, particularly when is_training=False.
         '''
+        if random_state is None:
+            random_state = RandomState(seed)
         self.batch_size = batch_size
         self.list_example_filenames = list_example_filenames
         self.shuffle = shuffle
         self.seed = seed
+        self.random_state = random_state
         self.output_shape = output_shape
         self.is_training = is_training
         self.verbose = verbose
@@ -257,10 +264,10 @@ class CostarBlockStackingSequence(Sequence):
         if self.seed is not None and not self.is_training:
             # repeat the same order if we're validating or testing
             # continue the large random sequence for training
-            np.random.seed(self.seed)
+            self.random_state.seed(self.seed)
         self.indexes = np.arange(len(self.list_example_filenames))
         if self.shuffle is True:
-            np.random.shuffle(self.indexes)
+            self.random_state.shuffle(self.indexes)
 
     def __data_generation(self, list_Ids):
         """ Generates data containing batch_size samples
@@ -334,7 +341,7 @@ class CostarBlockStackingSequence(Sequence):
                         if len(all_goal_ids) == 0:
                             print('block_stacking_reader.py: no goal indices in this file, skipping: ' + example_filename)
                         if self.seed is not None:
-                            image_indices = np.random.randint(1, len(all_goal_ids)-1, 1)
+                            image_indices = self.random_state.randint(1, len(all_goal_ids)-1, 1)
                         else:
                             raise NotImplementedError
                         indices = [0] + list(image_indices)
