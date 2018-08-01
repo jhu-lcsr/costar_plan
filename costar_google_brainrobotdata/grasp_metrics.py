@@ -792,9 +792,13 @@ def rotation_to_xyz_theta(rotation, verbose=0):
     return np.concatenate([aa.axis, [theta]], axis=-1)
 
 
-def normalize_axis(aaxyz):
+def normalize_axis(aaxyz, epsilon=1e-5):
     """ Normalize an axis in angle axis format data.
+
+    If axis is all zeros, epsilon is added to the final axis.
     """
+    if np.zeros(aaxyz):
+        aaxyz[-1] += epsilon
     arr = sklearn.preprocessing.normalize(np.array([aaxyz], dtype=np.float))
     aaxyz = np.squeeze(arr[0, :])
     return aaxyz
