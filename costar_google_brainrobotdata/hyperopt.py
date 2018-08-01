@@ -263,7 +263,7 @@ def optimize(
         # learning rates from 1 to about 1e-5
         lr_range = (0.0, 100)
     hyperoptions.add_param('learning_rate', lr_range, 'continuous',
-                           enable=learning_rate_enabled, required=True, default=0.02)
+                           enable=learning_rate_enabled, required=True, default=1.0)
     # disabled dropout rate because in one epoch tests a dropout rate of 0 allows exceptionally fast learning.
     #
     # 2018-06-10: Ran a separate search for the best dropout rate after finding a good model, and 0.2 seems to generally be a decent option.

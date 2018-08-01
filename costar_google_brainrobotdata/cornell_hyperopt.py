@@ -63,7 +63,7 @@ def main(_):
     # FLAGS.dataset_name = 'cornell_grasping'
     FLAGS.dataset_name = 'costar_block_stacking'
     FLAGS.problem_type = 'semantic_grasp_regression'
-    FLAGS.batch_size = 4
+    FLAGS.batch_size = 16
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
     FLAGS.epochs = 1
@@ -85,7 +85,7 @@ def main(_):
     # this will be the primary motivator for good/bad
     # performance, so once you find a good setting
     # lock it to find a good model
-    learning_rate_enabled = True
+    learning_rate_enabled = False
 
     # checkpoint is a special parameter to not save hdf5 files because training runs
     # are very quick (~1min) and checkpoint files are very large (~100MB)
