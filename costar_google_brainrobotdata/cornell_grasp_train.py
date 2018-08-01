@@ -525,6 +525,7 @@ def run_training(
             init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
             sess.run(init_op)
 
+        print('check 2 - train size: ' + str(train_size) + ' val_size: ' + str(val_size) + ' test size: ' + str(test_size))
         # fit the model
         # TODO(ahundt) may need to disable multiprocessing for cornell and enable it for costar stacking
         history = model.fit_generator(
@@ -1236,18 +1237,18 @@ def load_dataset(
             train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
             estimated_time_steps_per_example=estimated_time_steps_per_example)
-        test_data = CostarBlockStackingSequence(
-            test_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
-            data_features_to_extract=data_features, label_features_to_extract=label_features,
-            estimated_time_steps_per_example=estimated_time_steps_per_example)
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
+            data_features_to_extract=data_features, label_features_to_extract=label_features,
+            estimated_time_steps_per_example=estimated_time_steps_per_example)
+        test_data = CostarBlockStackingSequence(
+            test_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
             estimated_time_steps_per_example=estimated_time_steps_per_example)
         train_size = len(train_data) * train_data.get_estimated_time_steps_per_example()
         val_size = len(validation_data) * validation_data.get_estimated_time_steps_per_example()
         test_size = len(test_data) * test_data.get_estimated_time_steps_per_example()
-        print('train size: ' + str(train_size) + ' val_size: ' + str(val_size) + ' test size: ' + str(test_size))
+        print('check 1 - train size: ' + str(train_size) + ' val_size: ' + str(val_size) + ' test size: ' + str(test_size))
         # train_data = block_stacking_generator(train_data)
         # test_data = block_stacking_generator(test_data)
         # validation_data = block_stacking_generator(validation_data)
