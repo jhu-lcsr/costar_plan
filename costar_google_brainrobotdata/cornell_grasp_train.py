@@ -441,14 +441,15 @@ def run_training(
     # stop models that make predictions that are close to all true or all false
     # this check works for both classification and sigmoid pose estimation
     callbacks += [InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
-    if 'costar' in dataset_name:
-        max_cart_error = 1.0
-        if epochs > 10:
-            # give extra time if it is a long run because
-            # it was probably manually configured
-            max_cart_error *= 2
-        # stop models that don't at least get within 40 cm after 300 batches.
-        callbacks += [InaccurateModelStopping(min_pred=0.0, max_pred=max_cart_error, metric='cart_error')]
+    # TODO(ahundt) some models good at angle are bad at cart & vice-versa, so don't stop models early
+    # if 'costar' in dataset_name:
+    #     max_cart_error = 1.0
+    #     if epochs > 10:
+    #         # give extra time if it is a long run because
+    #         # it was probably manually configured
+    #         max_cart_error *= 2
+    #     # stop models that don't at least get within 40 cm after 300 batches.
+    #     callbacks += [InaccurateModelStopping(min_pred=0.0, max_pred=max_cart_error, metric='cart_error')]
 
     if checkpoint:
         checkpoint = keras.callbacks.ModelCheckpoint(
