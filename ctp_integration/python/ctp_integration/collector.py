@@ -62,7 +62,7 @@ class DataCollector(object):
             data_type="h5f",
             rate=10,
             data_root=".",
-            img_shape=(128,128),
+            img_shape=(128, 128),
             camera_frame="camera_link",
             tf_buffer=None,
             tf_listener=None,
@@ -79,7 +79,6 @@ class DataCollector(object):
         verbose: print lots of extra info, useful for debuggging
         synchronize: will attempt to synchronize image data by timestamp. Not yet working as of 2018-05-05.
         """
-
 
         self.js_topic = "joint_states"
         # http://wiki.ros.org/depth_image_proc
@@ -213,7 +212,9 @@ class DataCollector(object):
                 rospy.loginfo('rgb color cv_image shape: ' + str(cv_image.shape) + ' depth sequence number: ' + str(msg.header.seq))
                 # print('rgb color cv_image shape: ' + str(cv_image.shape))
                 cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
-                rgb_img = cv2.imencode('.jpg', cv_image)[1].tobytes()
+                # encode the jpeg with high quality
+                encode_params = [cv2.IMWRITE_JPEG_QUALITY, 99]
+                rgb_img = cv2.imencode('.jpg', cv_image, encode_params)[1].tobytes()
                 # rgb_img = GetJpeg(np.asarray(cv_image))
 
                 cv_depth_image = self._bridge.imgmsg_to_cv2(depth_msg, desired_encoding="passthrough")
