@@ -474,7 +474,7 @@ class DataCollector(object):
 
         switched = False
         if not self.action == action_label:
-            if not self.action is None:
+            if self.action is not None:
                 switched = True
             self.prev_action = self.action
             self.action = action_label
