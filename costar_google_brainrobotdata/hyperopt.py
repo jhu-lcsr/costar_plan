@@ -318,7 +318,7 @@ def optimize(
     # 'trunk_normalization' currently only applies in vgg case and after the first conv in the nasnet case
     hyperoptions.add_param('trunk_normalization', ['none', 'batch_norm', 'group_norm'],
                            default='batch_norm', enable=True, required=True)
-    hyperoptions.add_param('top_block_filters', [2**x for x in range(min_top_block_filter_multiplier, 12)])
+    hyperoptions.add_param('top_block_filters', [2**x for x in range(min_top_block_filter_multiplier, 13)])
     # number of dense layers before the final dense layer that performs classification in the top block
     hyperoptions.add_param('top_block_dense_layers', [0, 1, 2, 3, 4])
     hyperoptions.add_param('top_block_hidden_activation', ['relu', 'elu', 'linear'],
