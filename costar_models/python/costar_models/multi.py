@@ -257,7 +257,7 @@ def MakeImageEncoder(model, img_shape, perm_drop=False):
         model.hidden_size = 2*model.encoder_channels
         model.hidden_shape = (model.hidden_size,)
     else:
-        model.encoder_channels = 8
+        model.encoder_channels = 32
         # Note: I removed the BN here
         x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
                 "same", lrelu=False,
