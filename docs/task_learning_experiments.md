@@ -54,6 +54,11 @@ Example command from 2018-03-30:
 export CUDA_VISIBLE_DEVICES="0" && rosrun costar_models ctp_model_tool --model conditional_image --data_file ~/datasets/costar_plan/data.h5f --lr 0.001 --dropout_rate 0.1 --retrain
 ```
 
+Example command after update to glob syntax, about 2018-04:
+```
+export CUDA_VISIBLE_DEVICES="0" && rosrun costar_models ctp_model_tool --model conditional_image --dropout_rate 0.1 --ssm 0 --data_file small_robot2.h5f --lr 0.001 --features costar -e 150 --model_directory $HOME/.costar/models --skip_connections 1 --use_ssm 0 --batch_size 64 --no_disc --steps_per_epoch 1600 --retrain --data_file "~/datasets/costar_task_planning_stacking_dataset_v0.2/small/*.h5f"
+```
+
 Notes on flags:
   - The default optimizer setting is `--optimizer adam`.
   - `--lr` sets the learning rate.
