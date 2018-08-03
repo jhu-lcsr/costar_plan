@@ -792,16 +792,36 @@ def rotation_to_xyz_theta(rotation, verbose=0):
     return np.concatenate([aa.axis, [theta]], axis=-1)
 
 
-def normalize_axis(aaxyz):
+def normalize_axis(aaxyz, epsilon=1e-5, verbose=0):
     """ Normalize an axis in angle axis format data.
+
+    If axis is all zeros, epsilon is added to the final axis.
     """
+    if not np.any(aaxyz):
+        # source: https://stackoverflow.com/a/23567941/99379
+        # we checked if all values are zero, fix missing axis
+        aaxyz[-1] += epsilon
     arr = sklearn.preprocessing.normalize(np.array([aaxyz], dtype=np.float))
     aaxyz = np.squeeze(arr[0, :])
+    if verbose:
+        print('normalize_axis: ' + str(aaxyz))
     return aaxyz
 
 
-def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmentation=None):
+def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, rotation_weight=0.001, random_augmentation=None):
     """ Encode a translation + quaternion pose to an encoded xyz, axis, and an angle as sin(theta) cos(theta)
+
+    rescale_meters: Divide the number of meters by this number so
+        positions will be encoded between 0 and 1.
+        For example if you want to be able to reach forward and back by 2 meters, divide by 4.
+    rotation_weight: scale down rotation values by this factor to a smaller range
+        so mse gives similar weight to both rotations and translations.
+        Use 1.0 for no adjustment. Default of 0.001 makes 1 radian
+        about equal weight to 1 millimeter.
+    random_augmentation: default None means no data modification,
+        otherwise a value between 0.0 and 1.0 for the probability
+        of randomly modifying the data with a small translation and rotation.
+        Enabling random_augmentation is not recommended.
     """
     xyz = (xyz_qxyzw[:3] / rescale_meters) + 0.5
     length = len(xyz_qxyzw)
@@ -823,7 +843,9 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmen
 
         aaxyz_theta = rotation_to_xyz_theta(rotation)
         # encode the unit axis vector into the [0,1] range
-        aaxyz = aaxyz_theta[:-1] / 2 + 0.5
+        # rotation_weight makes it so mse applied to rotation values
+        # is on a similar scale to the translation values.
+        aaxyz = ((aaxyz_theta[:-1] / 2) * rotation_weight) + 0.5
         nsc = encode_theta(aaxyz_theta[-1])
         # print('nsc: ' + str(nsc))
         xyz_aaxyz_nsc = np.concatenate([xyz, aaxyz, nsc], axis=-1)
@@ -836,46 +858,73 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, random_augmen
 
         return xyz
     else:
-        raise ValueError('encode_xyz_qxyzw_to_xyz_aaxyz_nsc: unsupported input data length')
+        raise ValueError('encode_xyz_qxyzw_to_xyz_aaxyz_nsc: unsupported input data length of ' + str(length))
 
 
-def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, random_augmentation=None):
+def batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(batch_xyz_qxyzw, rescale_meters=4, rotation_weight=0.001, random_augmentation=None):
     """ Expects n by 7 batch with xyz_qxyzw
+
+    rescale_meters: Divide the number of meters by this number so
+        positions will be encoded between 0 and 1.
+        For example if you want to be able to reach forward and back by 2 meters, divide by 4.
+    rotation_weight: scale down rotation values by this factor to a smaller range
+        so mse gives similar weight to both rotations and translations.
+        Use 1.0 for no adjustment.
+    random_augmentation: default None means no data modification,
+        otherwise a value between 0.0 and 1.0 for the probability
+        of randomly modifying the data with a small translation and rotation.
+        Enabling random_augmentation is not recommended.
     """
     encoded_poses = []
     for xyz_qxyzw in batch_xyz_qxyzw:
         # print('xyz_qxyzw: ' + str(xyz_qxyzw))
         xyz_aaxyz_nsc = encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
-            xyz_qxyzw, rescale_meters=rescale_meters, random_augmentation=random_augmentation)
+            xyz_qxyzw, rescale_meters=rescale_meters, rotation_weight=rotation_weight, random_augmentation=random_augmentation)
         # print('xyz_aaxyz_nsc: ' + str(xyz_aaxyz_nsc))
         encoded_poses.append(xyz_aaxyz_nsc)
     return np.stack(encoded_poses, axis=0)
 
 
-def decode_xyz_aaxyz_nsc_to_xyz_qxyzw(xyz_aaxyz_nsc, rescale_meters=4):
+def decode_xyz_aaxyz_nsc_to_xyz_qxyzw(xyz_aaxyz_nsc, rescale_meters=4, rotation_weight=0.001):
     """ Encode a translation + quaternion pose to an encoded xyz, axis, and an angle as sin(theta) cos(theta)
+
+    rescale_meters: Divide the number of meters by this number so
+        positions will be encoded between 0 and 1.
+        For example if you want to be able to reach forward and back by 2 meters, divide by 4.
+    rotation_weight: scale down rotation values by this factor to a smaller range
+        so mse gives similar weight to both rotations and translations.
+        Use 1.0 for no adjustment.
     """
-    xyz = (xyz_aaxyz_nsc[:3] + 0.5) * rescale_meters
+    xyz = (xyz_aaxyz_nsc[:3] - 0.5) * rescale_meters
     length = len(xyz_aaxyz_nsc)
     if length == 8:
         theta = decode_sin_cos(xyz_aaxyz_nsc[-2:])
-        # decode [0, 1] range to [-1, 1] range
-        aaxyz = (xyz_aaxyz_nsc[3:-2] - 0.5) * 2
-        # aaxyz is axis component of angle axis format
+        # decode ([0, 1] * rotation_weight) range to [-1, 1] range
+        aaxyz = ((xyz_aaxyz_nsc[3:-2] - 0.5) * 2) / rotation_weight
+        # aaxyz is axis component of angle axis format,
+        # Note that rotation_weight is automatically removed by normalization step.
         aaxyz = normalize_axis(aaxyz)
-        q = Quaternion(axis=xyz, angle=theta)
+        q = Quaternion(axis=aaxyz, angle=theta)
         xyz_qxyzw = np.concatenate([xyz, q.elements], axis=-1)
         return xyz_qxyzw
     elif length != 3:
-        raise ValueError('decode_xyz_aaxyz_nsc_to_xyz_qxyzw: unsupported input data length')
+        raise ValueError('decode_xyz_aaxyz_nsc_to_xyz_qxyzw: unsupported input data length of ' + str(length))
     return xyz
 
 
 def grasp_acc(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, max_rotation=0.261799):
-    """ Calculate 3D grasp accuracy for a single result
-    grasp_accuracy_xyz_aaxyz_nsc
-    max_translation defaults to 0.01 meters, or 1cm.
-    max_rotation defaults to 15 degrees in radians.
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.01 meters, or 1cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 15 degrees in radians,
+       rotations must be less than this angular distance away.
     """
     # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
     [filter_result] = tf.py_func(
@@ -928,6 +977,15 @@ def absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xy
 
     This version is for a single pair of numpy arrays of length 8.
     """
+    length = len(y_true_xyz_aaxyz_nsc)
+    if length == 5:
+        # workaround rotation distance only,
+        # just use [0.5, 0.5, 0.5] for translation component
+        # so existing code can be utilized
+        fake_translation = np.array([0.5, 0.5, 0.5])
+        y_true_xyz_aaxyz_nsc = np.concatenate([fake_translation, y_true_xyz_aaxyz_nsc])
+        y_pred_xyz_aaxyz_nsc = np.concatenate([fake_translation, y_pred_xyz_aaxyz_nsc])
+
     y_true_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_true_xyz_aaxyz_nsc)
     y_pred_xyz_qxyzw = decode_xyz_aaxyz_nsc_to_xyz_qxyzw(y_pred_xyz_aaxyz_nsc)
     y_true_q = Quaternion(y_true_xyz_qxyzw[3:])
@@ -983,26 +1041,43 @@ def absolute_cart_distance_xyz_aaxyz_nsc_batch(y_true_xyz_aaxyz_nsc, y_pred_xyz_
 
 
 def grasp_accuracy_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, max_rotation=0.261799):
-    """ Calculate 3D grasp accuracy for a single result
+    """ Calculate 3D grasp accuracy for a single 1D numpy array for the ground truth and predicted value.
 
-    max_translation is 0.01 meters, or 1cm.
-    max_rotation is 15 degrees in radians.
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
 
-    This version is for a single pair of numpy arrays of length 8.
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.01 meters, or 1cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 15 degrees in radians,
+       rotations must be less than this angular distance away.
     """
-    # translation distance
-    translation = absolute_cart_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
     length = len(y_true_xyz_aaxyz_nsc)
+    if length == 3 or length == 8:
+        # translation distance
+        translation = absolute_cart_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
     if length == 3:
         # translation component only
         if translation < max_translation:
             return 1.
     # translation and rotation
-    if length == 8:
+    elif length == 8:
         # rotation distance
         angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc)
         if angle_distance < max_rotation and translation < max_translation:
             return 1.
+    elif length == 5:
+        # rotation distance only, just use [0.5, 0.5, 0.5] for translation component so existing code can be utilized
+        fake_translation = np.array([0.5, 0.5, 0.5])
+        angle_distance = absolute_angle_distance_xyz_aaxyz_nsc_single(
+            np.concatenate([fake_translation, y_true_xyz_aaxyz_nsc]),
+            np.concatenate([fake_translation, y_pred_xyz_aaxyz_nsc]))
+        if angle_distance < max_rotation:
+            return 1.
+    else:
+        raise ValueError('grasp_accuracy_xyz_aaxyz_nsc_single: unsupported label value format of length ' + str(length))
     return 0.
 
 
@@ -1016,7 +1091,8 @@ def grasp_accuracy_xyz_aaxyz_nsc_batch(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_ns
     # print('type of y_true_xyz_aaxyz_nsc: ' + str(type(y_true_xyz_aaxyz_nsc)))
     accuracies = []
     for y_true, y_pred in zip(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc):
-        one_accuracy = grasp_accuracy_xyz_aaxyz_nsc_single(y_true, y_pred)
+        one_accuracy = grasp_accuracy_xyz_aaxyz_nsc_single(
+            y_true, y_pred, max_translation=max_translation, max_rotation=max_rotation)
         # print('one grasp acc: ' + str(one_accuracy))
         accuracies.append(one_accuracy)
     accuracies = np.array(accuracies, np.float32)

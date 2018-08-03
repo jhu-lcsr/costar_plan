@@ -386,6 +386,23 @@ def run_training(
     run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
     callbacks = []
 
+    # don't return the whole dictionary of features, only the specific ones we want
+    val_all_features = False
+    # # # TODO(ahundt) check this more carefully, currently a hack
+    # # # Special case for jaccard regression
+    # if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
+    #         problem_name == 'grasp_regression'):
+    #     val_all_features = True
+
+    train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
+        train_filenames=train_filenames, train_size=train_size,
+        val_filenames=val_filenames, val_size=val_size,
+        test_filenames=test_filenames, test_size=test_size,
+        label_features=label_features, data_features=data_features, batch_size=batch_size,
+        train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
+        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name=dataset_name
+    )
+
     loss_weights = None
     # if image_model_name == 'nasnet_large':
     #     # TODO(ahundt) switch to keras_contrib NASNet model and enable aux network below when keras_contrib is updated with correct weights https://github.com/keras-team/keras/pull/10209.
@@ -395,7 +412,7 @@ def run_training(
     #     loss_weights = [1.0, 0.4]
     #     label_features += label_features
 
-    callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name)
+    callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps=train_steps)
 
     log_dir = os.path.join(log_dir, run_name)
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
@@ -424,14 +441,15 @@ def run_training(
     # stop models that make predictions that are close to all true or all false
     # this check works for both classification and sigmoid pose estimation
     callbacks += [InaccurateModelStopping(min_pred=0.01, max_pred=0.99)]
-    if 'costar' in dataset_name:
-        max_cart_error = 0.5
-        if epochs > 10:
-            # give extra time if it is a long run because
-            # it was probably manually configured
-            max_cart_error *= 2
-        # stop models that don't at least get within 40 cm after 300 batches.
-        callbacks += [InaccurateModelStopping(min_pred=0.0, max_pred=max_cart_error, metric='cart_error')]
+    # TODO(ahundt) some models good at angle are bad at cart & vice-versa, so don't stop models early
+    # if 'costar' in dataset_name:
+    #     max_cart_error = 1.0
+    #     if epochs > 10:
+    #         # give extra time if it is a long run because
+    #         # it was probably manually configured
+    #         max_cart_error *= 2
+    #     # stop models that don't at least get within 40 cm after 300 batches.
+    #     callbacks += [InaccurateModelStopping(min_pred=0.0, max_pred=max_cart_error, metric='cart_error')]
 
     if checkpoint:
         checkpoint = keras.callbacks.ModelCheckpoint(
@@ -453,9 +471,9 @@ def run_training(
         callbacks = callbacks + [progress_tracker]
 
     # make sure the TQDM callback is always the final one
-    callbacks += [keras_tqdm.TQDMCallback()]
+    callbacks += [keras_tqdm.TQDMCallback(metric_format="{name}: {value:0.6f}")]
 
-    #TODO(ahundt) enable when https://github.com/keras-team/keras/pull/9105 is resolved
+    # TODO(ahundt) enable when https://github.com/keras-team/keras/pull/9105 is resolved
     # callbacks += [FineTuningCallback(epoch=0)]
 
     # if num_gpus > 1:
@@ -468,22 +486,6 @@ def run_training(
         loss=loss,
         metrics=metrics,
         loss_weights=loss_weights)
-
-    val_all_features = False
-    # # # TODO(ahundt) check this more carefully, currently a hack
-    # # # Special case for jaccard regression
-    # if((feature_combo_name == 'image/preprocessed' or feature_combo_name == 'image_preprocessed') and
-    #         problem_name == 'grasp_regression'):
-    #     val_all_features = True
-
-    train_data, train_steps, validation_data, validation_steps, test_data, test_steps = load_dataset(
-        train_filenames=train_filenames, train_size=train_size,
-        val_filenames=val_filenames, val_size=val_size,
-        test_filenames=test_filenames, test_size=test_size,
-        label_features=label_features, data_features=data_features, batch_size=batch_size,
-        train_data=train_data, validation_data=validation_data, preprocessing_mode=preprocessing_mode,
-        success_only=success_only, val_batch_size=1, val_all_features=val_all_features, dataset_name=dataset_name
-    )
 
     # # TODO(ahundt) check this more carefully, currently a hack
     # # Special case for jaccard regression
@@ -524,6 +526,7 @@ def run_training(
             init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
             sess.run(init_op)
 
+        print('check 2 - train_steps: ' + str(train_steps) + ' validation_steps: ' + str(validation_steps) + ' test_steps: ' + str(test_steps))
         # fit the model
         # TODO(ahundt) may need to disable multiprocessing for cornell and enable it for costar stacking
         history = model.fit_generator(
@@ -703,7 +706,7 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
     return preprocessing_mode
 
 
-def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name):
+def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps):
     if optimizer_name == 'sgd':
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
     elif optimizer_name == 'adam':
@@ -716,8 +719,12 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
 
     if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
         callbacks = callbacks + [
+            # keras_contrib.callbacks.CyclicLR(
+            #     step_size=train_steps * 2, base_lr=1e-6, max_lr=learning_rate,
+            #     mode='exp_range', gamma=0.99994)
             # Reduce the learning rate if training plateaus.
-            keras.callbacks.ReduceLROnPlateau(patience=13, verbose=1, factor=0.5, monitor=monitor_loss_name)
+            # patience of 13 is a good option for the cornell datasets, 5 seems more appropriate for costar stack regression
+            keras.callbacks.ReduceLROnPlateau(patience=5, verbose=1, factor=0.5, monitor=monitor_loss_name)
         ]
     return callbacks, optimizer
 
@@ -1030,6 +1037,29 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # loss = keras.losses.mean_absolute_error
         loss = keras.losses.mean_squared_error
         model_name = '_semantic_translation_regression_model'
+    elif problem_name == 'semantic_rotation_regression':
+        # only the rotation component of semantic grasp regression
+        # this is the regression case with the costar block stacking dataset
+        # classes = 8
+        classes = 5
+        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae']
+        #  , grasp_loss.mean_pred, grasp_loss.mean_true]
+        monitor_metric_name = 'val_grasp_acc'
+        # this is the length of the state vector defined in block_stacking_reader.py
+        # label with translation and orientation
+        vector_shapes = [(49,)]
+        # data with translation and orientation
+        data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
+        # label with translation and orientation
+        # label_features = ['grasp_goal_xyz_aaxyz_nsc_8']
+        label_features = ['grasp_goal_aaxyz_nsc_5']
+        monitor_loss_name = 'val_loss'
+        shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
+        image_shapes = [shape, shape]
+        # loss = keras.losses.mean_absolute_error
+        loss = keras.losses.mean_squared_error
+        model_name = '_semantic_rotation_regression_model'
     elif problem_name == 'semantic_grasp_regression':
         # this is the regression case with the costar block stacking dataset
         classes = 8
@@ -1184,9 +1214,13 @@ def load_dataset(
         val_test_size = 128
         # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
         # videos are at 10hz and there are about 25 seconds of video in each:
-        # estimated_images_per_example = 250
+        # estimated_time_steps_per_example = 250
         # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
-        estimated_images_per_example = 5
+        # Only visit 5 images in val/test datasets so it doesn't take an unreasonable amount of time & for historical reasons.
+
+
+        # We are multiplying by batch size as a hacky workaround because we want the sizing reduction from steps_per_epoch to
+        estimated_time_steps_per_example = 8 * batch_size
         test_data = file_names[:val_test_size]
         with open('test.txt', mode='w') as myfile:
             myfile.write('\n'.join(test_data))
@@ -1205,16 +1239,20 @@ def load_dataset(
         output_shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         train_data = CostarBlockStackingSequence(
             train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
-            data_features_to_extract=data_features, label_features_to_extract=label_features)
-        test_data = CostarBlockStackingSequence(
-            test_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
-            data_features_to_extract=data_features, label_features_to_extract=label_features)
+            data_features_to_extract=data_features, label_features_to_extract=label_features,
+            estimated_time_steps_per_example=estimated_time_steps_per_example)
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
-            data_features_to_extract=data_features, label_features_to_extract=label_features)
-        train_size = len(train_data) * batch_size * estimated_images_per_example
-        val_size = len(validation_data) * batch_size * estimated_images_per_example
-        test_size = len(test_data) * batch_size * estimated_images_per_example
+            data_features_to_extract=data_features, label_features_to_extract=label_features,
+            estimated_time_steps_per_example=estimated_time_steps_per_example)
+        test_data = CostarBlockStackingSequence(
+            test_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
+            data_features_to_extract=data_features, label_features_to_extract=label_features,
+            estimated_time_steps_per_example=estimated_time_steps_per_example)
+        train_size = len(train_data) * train_data.get_estimated_time_steps_per_example()
+        val_size = len(validation_data) * validation_data.get_estimated_time_steps_per_example()
+        test_size = len(test_data) * test_data.get_estimated_time_steps_per_example()
+        print('check 1 - train size: ' + str(train_size) + ' val_size: ' + str(val_size) + ' test size: ' + str(test_size))
         # train_data = block_stacking_generator(train_data)
         # test_data = block_stacking_generator(test_data)
         # validation_data = block_stacking_generator(validation_data)
@@ -1224,6 +1262,8 @@ def load_dataset(
         train_steps, val_steps, test_steps = steps_per_epoch(
             train_batch=batch_size, val_batch=batch_size, test_batch=batch_size,
             samples_train=train_size, samples_val=val_size, samples_test=test_size)
+
+        print('check 1.5 - train_steps: ' + str(train_steps) + ' val_steps: ' + str(val_steps) + ' test_steps: ' + str(test_steps))
         # print("--------", train_steps, val_steps, test_steps)
         # enqueuer = OrderedEnqueuer(
         #             train_data,

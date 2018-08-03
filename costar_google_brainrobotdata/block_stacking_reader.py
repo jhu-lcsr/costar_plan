@@ -9,6 +9,7 @@ from PIL import Image
 from skimage.transform import resize
 
 import numpy as np
+from numpy.random import RandomState
 import json
 import keras
 from keras.utils import Sequence
@@ -98,6 +99,81 @@ def concat_images_with_tiled_vector_np(images, vector):
     return combined
 
 
+def blend_images_np(image, image2, alpha=0.5):
+    """Draws image2 on an image.
+    Args:
+      image: uint8 numpy array with shape (img_height, img_height, 3)
+      image2: a uint8 numpy array of shape (img_height, img_height) with
+        values between either 0 or 1.
+      color: color to draw the keypoints with. Default is red.
+      alpha: transparency value between 0 and 1. (default: 0.4)
+    Raises:
+      ValueError: On incorrect data type for image or image2s.
+    """
+    if image.dtype != np.uint8:
+        raise ValueError('`image` not of type np.uint8')
+    if image2.dtype != np.uint8:
+        raise ValueError('`image2` not of type np.uint8')
+    if image.shape[:2] != image2.shape[:2]:
+        raise ValueError('The image has spatial dimensions %s but the image2 has '
+                         'dimensions %s' % (image.shape[:2], image2.shape[:2]))
+    pil_image = Image.fromarray(image)
+    pil_image2 = Image.fromarray(image2)
+
+    pil_image = Image.blend(pil_image, pil_image2, alpha)
+    np.copyto(image, np.array(pil_image.convert('RGB')))
+    return image
+
+
+def blend_image_sequence(images, alpha=0.5, verbose=0):
+    """ Blend past goal images
+    """
+    blended_image = images[0]
+    if len(images) > 1:
+        for image in images[1:]:
+            if verbose > 1:
+                print('image type: ' + str(type(image)) + ' dtype: ' + str(image.dtype))
+            blended_image = blend_images_np(blended_image, image)
+    return blended_image
+
+
+def get_past_goal_indices(current_robot_time_index, goal_indices, filename='', verbose=0):
+    """ get past goal image indices, including the initial image
+
+    # Arguments
+
+    current_robot_time_index: the index of the current "robot time" being simulated
+    goal_indices: a list of goal time indices for every robot time
+
+    # Returns
+
+    A list of indicies representing all the goal time steps
+    """
+    image_indices = [0]
+    total_goal_indices = len(goal_indices)
+    if verbose:
+        print('total images: ' + str(total_goal_indices))
+    image_index = 1
+    while image_index < current_robot_time_index and image_index < total_goal_indices:
+        if verbose > 0:
+            print('image_index: ' + str(image_index))
+        goal_image_index = goal_indices[image_index]
+        if goal_image_index < current_robot_time_index and goal_image_index < total_goal_indices:
+            if verbose > 0:
+                print('goal_indices[goal_image_index]: ' + str(goal_indices[goal_image_index]))
+            image_indices += [goal_image_index]
+            if goal_image_index <= goal_indices[goal_image_index]:
+                image_index += 1
+        # TODO(ahundt) understand the cause of the warning below, modify the preprocessing script to correct it
+        elif goal_image_index >= total_goal_indices and verbose > 0:
+            print('block_stacking_reader.py::get_past_goal_indices(): warning, goal index equals '
+                  'or exceeds total_goal_indices. filename: ' + str(filename) +
+                  ' goal_image_index: ' + str(goal_image_index) +
+                  ' total_goal_indices: ' + str(total_goal_indices))
+        image_index = goal_image_index
+    return image_indices
+
+
 class CostarBlockStackingSequence(Sequence):
     '''Generates a batch of data from the stacking dataset.
 
@@ -107,7 +183,10 @@ class CostarBlockStackingSequence(Sequence):
                  label_features_to_extract=None, data_features_to_extract=None,
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
-                 is_training=True, random_augmentation=None, output_shape=None, verbose=0):
+                 random_state=None,
+                 is_training=True, random_augmentation=None, output_shape=None,
+                 blend_previous_goal_images=False,
+                 estimated_time_steps_per_example=250, verbose=0):
         '''Initialization
 
         #Arguments
@@ -116,27 +195,38 @@ class CostarBlockStackingSequence(Sequence):
         batch_size: specifies the size of each batch
         shuffle: boolean to specify shuffle after each epoch
         seed: a random seed to use. If seed is None it will be in order!
+        random_state: A numpy RandomState object, if not provided one will be generated from the seed.
+            Used exclusively for example data ordering and the indices to visit within an example.
         # TODO(ahundt) better notes about the two parameters below. See choose_features_and_metrics() in cornell_grasp_trin.py.
         label_features_to_extract: defaults to regression options, classification options are also available
         data_features_to_extract: defaults to regression options, classification options are also available
             Options include 'image_0_image_n_vec_xyz_aaxyz_nsc_15' which is a giant NHWC cube of image and pose data,
             'current_xyz_aaxyz_nsc_8', 'proposed_goal_xyz_aaxyz_nsc_8'.
         random_augmentation: None or a float value between 0 and 1 indiciating how frequently random augmentation should be applied.
+        estimated_time_steps_per_example: The number of images in each example varies,
+            so we simply sample in proportion to an estimated number of images per example.
+            Due to random sampling, there is no guarantee that every image will be visited once!
+            However, the images can be visited in a fixed order, particularly when is_training=False.
         '''
+        if random_state is None:
+            random_state = RandomState(seed)
         self.batch_size = batch_size
         self.list_example_filenames = list_example_filenames
         self.shuffle = shuffle
         self.seed = seed
+        self.random_state = random_state
         self.output_shape = output_shape
         self.is_training = is_training
         self.verbose = verbose
         self.on_epoch_end()
-        self.output_shape = output_shape
         self.label_features_to_extract = label_features_to_extract
         # TODO(ahundt) total_actions_available can probably be extracted from the example hdf5 files and doesn't need to be a param
         self.data_features_to_extract = data_features_to_extract
         self.total_actions_available = total_actions_available
         self.random_augmentation = random_augmentation
+
+        self.blend = blend_previous_goal_images
+        self.estimated_time_steps_per_example = estimated_time_steps_per_example
         # if crop_shape is None:
         #     # height width 3
         #     crop_shape = (224, 224, 3)
@@ -161,40 +251,23 @@ class CostarBlockStackingSequence(Sequence):
 
         return X, y
 
+    def get_estimated_time_steps_per_example(self):
+        """ Get the estimated images per example,
+
+        Run extra steps in proportion to this if you want to get close to visiting every image.
+        """
+        return self.estimated_time_steps_per_example
+
     def on_epoch_end(self):
         """ Updates indexes after each epoch
         """
         if self.seed is not None and not self.is_training:
             # repeat the same order if we're validating or testing
             # continue the large random sequence for training
-            np.random.seed(self.seed)
+            self.random_state.seed(self.seed)
         self.indexes = np.arange(len(self.list_example_filenames))
         if self.shuffle is True:
-            np.random.shuffle(self.indexes)
-
-    def encode_pose(self, pose):
-        """ Encode n x 7 array of poses to something that might be regressed by 7 sigmoid values
-        """
-        # change unit quaternion to be in range [0, 1]
-        # change x y z to be in what should hopefully be [0, 1]
-        xyz = (pose[:, :3] / 5) + 0.5
-        quat = (pose[:, 3:] / 2) + 0.5
-        if self.verbose > 0:
-            print('encode xyz: ' + str(xyz) + '\n encode quat: ' + str(quat))
-        encoded_pose = np.concatenate([xyz, quat], axis=-1)
-        return encoded_pose
-
-    def decode_pose(self, pose):
-        """ Decode n x 7 array of poses encoding in encode_pose
-        """
-        # change unit quaternion to be in range [-1, 1]
-        # change x y z to be in what should hopefully be [-2.5, 2.5]
-        xyz = (pose[:, :3] - 0.5) * 5
-        quat = (pose[:, 3:] - 0.5) * 2
-        if self.verbose > 0:
-            print('decode xyz: ' + str(xyz) + '\n decode quat: ' + str(quat))
-        encoded_pose = np.concatenate([xyz, quat], axis=-1)
-        return encoded_pose
+            self.random_state.shuffle(self.indexes)
 
     def __data_generation(self, list_Ids):
         """ Generates data containing batch_size samples
@@ -265,15 +338,27 @@ class CostarBlockStackingSequence(Sequence):
                         # indices = [0]
                         # len of goal indexes is the same as the number of images, so this saves loading all the images
                         all_goal_ids = np.array(data['gripper_action_goal_idx'])
+                        if len(all_goal_ids) == 0:
+                            print('block_stacking_reader.py: no goal indices in this file, skipping: ' + example_filename)
                         if self.seed is not None:
-                            image_indices = np.random.randint(1, len(all_goal_ids)-1, 1)
+                            image_indices = self.random_state.randint(1, len(all_goal_ids)-1, 1)
                         else:
                             raise NotImplementedError
                         indices = [0] + list(image_indices)
+                        if self.blend:
+                            img_indices = get_past_goal_indices(image_indices, all_goal_ids, filename=example_filename)
+                        else:
+                            img_indices = indices
                         if self.verbose > 0:
                             print("Indices --", indices)
-                        rgb_images = list(data['image'][indices])
-                        rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='numpy')
+                            print('img_indices: ' + str(img_indices))
+                        rgb_images = list(data['image'][img_indices])
+                        rgb_images = ConvertImageListToNumpy(rgb_images, format='numpy')
+
+                        if self.blend:
+                            # TODO(ahundt) move this to after the resize loop for a speedup
+                            blended_image = blend_image_sequence(rgb_images)
+                            rgb_images = [rgb_images[0], blended_image]
                         # resize using skimage
                         rgb_images_resized = []
                         for k, images in enumerate(rgb_images):
@@ -377,13 +462,13 @@ class CostarBlockStackingSequence(Sequence):
             if (self.data_features_to_extract is None or
                     'current_xyz_3' in self.data_features_to_extract or
                     'image_0_image_n_vec_xyz_10' in self.data_features_to_extract):
-                # default, regression input case
+                # regression input case for translation only
                 action_poses_vec = np.concatenate([encoded_poses[:, :3], action_labels], axis=-1)
                 X = [init_images, current_images, action_poses_vec]
             elif (self.data_features_to_extract is None or
                     'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract or
                     'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
-                # default, regression input case
+                # default, regression input case for translation and rotation
                 action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
                 X = [init_images, current_images, action_poses_vec]
             elif 'proposed_goal_xyz_aaxyz_nsc_8' in self.data_features_to_extract:
@@ -403,9 +488,13 @@ class CostarBlockStackingSequence(Sequence):
 
             # determine the label
             if self.label_features_to_extract is None or 'grasp_goal_xyz_3' in self.label_features_to_extract:
-                # default, regression to translation case, see semantic_translation_regression in cornell_grasp_train.py
+                # regression to translation case, see semantic_translation_regression in cornell_grasp_train.py
                 y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.random_augmentation)
                 y = y[:, :3]
+            elif self.label_features_to_extract is None or 'grasp_goal_aaxyz_nsc_5' in self.label_features_to_extract:
+                # regression to rotation case, see semantic_rotation_regression in cornell_grasp_train.py
+                y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.random_augmentation)
+                y = y[:, 3:]
             elif self.label_features_to_extract is None or 'grasp_goal_xyz_aaxyz_nsc_8' in self.label_features_to_extract:
                 # default, regression label case
                 y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=self.random_augmentation)
@@ -426,7 +515,9 @@ class CostarBlockStackingSequence(Sequence):
 
             if self.verbose > 0:
                 # diff should be nonzero for most timesteps except just before the gripper closes!
-                print('encoded current poses: ' + str(poses) + ' labels: ' + str(y) + ' diff: ' + str(poses - y))
+                print('encoded current poses: ' + str(poses) + ' labels: ' + str(y))
+                # commented next line due to dimension issue
+                # + ' diff: ' + str(poses - y))
                 print("generated batch: " + str(list_Ids))
         except Exception as ex:
             print('CostarBlockStackingSequence: Keras will often swallow exceptions without a stack trace, '
@@ -462,10 +553,11 @@ if __name__ == "__main__":
     filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'))
     # print(filenames)
     training_generator = CostarBlockStackingSequence(
-        filenames, batch_size=1, verbose=0,
+        filenames, batch_size=1, verbose=1,
         output_shape=output_shape,
         label_features_to_extract='grasp_goal_xyz_aaxyz_nsc_8',
-        data_features_to_extract=['current_xyz_aaxyz_nsc_8'])
+        data_features_to_extract=['current_xyz_aaxyz_nsc_8'],
+        blend_previous_goal_images=True)
     num_batches = len(training_generator)
 
     bsg = block_stacking_generator(training_generator)

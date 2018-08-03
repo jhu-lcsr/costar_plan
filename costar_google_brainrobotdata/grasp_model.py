@@ -491,7 +491,7 @@ def choose_hypertree_model(
         use_auxiliary_branch=True,
         weights='imagenet',
         trunk_hidden_activation='relu',
-        vector_hidden_activation='none',
+        vector_hidden_activation='linear',
         top_block_hidden_activation='relu',
         trunk_normalization='none',
         coordinate_data=None,
@@ -755,10 +755,8 @@ def choose_hypertree_model(
 
             This function helps set up the weights.
             """
-            if (coordinate_data is not None and
-                    coordinate_data is not 'none' and
-                    coordinate_data is 'coord_conv_img'):
-                # tensor = Input(tensor=tensor)
+            if coordinate_data is not None and coordinate_data == 'coord_conv_img':
+                print('Hypertree applying coord_conv.CoordinateChannel2D before creating the image model to ' + str(tensor))
                 tensor = coord_conv.CoordinateChannel2D()(tensor)
             if image_model_weights == 'shared':
                 ImageModelCarrier.image_models += [image_model]
@@ -815,7 +813,7 @@ def choose_hypertree_model(
                 raise ValueError('vector_branch_dense called with '
                                  'unsupported model name %s, options '
                                  'are dense and dense_block.' % model_name)
-            print('Hypertree create_image_model completed for tensor: ' + str(tensor))
+            print('Hypertree vector_branch_dense completed for tensor: ' + str(tensor))
             return x
 
         def create_tree_trunk(tensor, filters=trunk_filters, num_layers=trunk_layers, coordinate_data=coordinate_data):
