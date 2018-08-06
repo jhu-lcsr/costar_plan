@@ -59,7 +59,7 @@ def main(_):
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     load_weights = None
-    FLAGS.batch_size = 64
+    FLAGS.batch_size = 32
     optimizer_name = 'sgd'
     # FLAGS.crop_height = 480
     # FLAGS.crop_width = 640
