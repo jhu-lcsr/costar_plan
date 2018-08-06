@@ -417,9 +417,6 @@ def run_training(
     log_dir = os.path.join(log_dir, run_name)
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     log_dir_run_name = os.path.join(log_dir, run_name)
-    csv_logger = CSVLogger(log_dir_run_name + '.csv')
-    callbacks = callbacks + [csv_logger]
-    callbacks += [PrintLogsCallback()]
     grasp_utilities.mkdir_p(log_dir)
 
     # Save the hyperparams to a json string so it is human readable
@@ -480,6 +477,12 @@ def run_training(
     #     model = keras.utils.multi_gpu_model(model, num_gpus)
     # else:
     #     model = model
+
+    # Order matters, so keep the csv logger at the end
+    # of the list of callbacks.
+    csv_logger = CSVLogger(log_dir_run_name + '.csv')
+    callbacks = callbacks + [csv_logger]
+    callbacks += [PrintLogsCallback()]
 
     model.compile(
         optimizer=optimizer,
