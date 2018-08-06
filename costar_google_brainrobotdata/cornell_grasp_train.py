@@ -420,14 +420,16 @@ def run_training(
     callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps=train_steps)
 
     log_dir = os.path.join(log_dir, run_name)
-    if hyperparameters_filename is not None:
-        # save the original hyperparams path to a file for tracing data pipelines
-        with open(log_dir_run_name + '_source_hyperparameters_filename.txt', 'w') as fp:
-            fp.write(hyperparams_path)
 
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     log_dir_run_name = os.path.join(log_dir, run_name)
     grasp_utilities.mkdir_p(log_dir)
+
+    # If this is based on some other past hyperparams configuration,
+    # save the original hyperparams path to a file for tracing data pipelines.
+    if hyperparameters_filename is not None:
+        with open(log_dir_run_name + '_source_hyperparameters_filename.txt', 'w') as fp:
+            fp.write(hyperparams_path)
 
     # Save the hyperparams to a json string so it is human readable
     if hyperparams is not None:
