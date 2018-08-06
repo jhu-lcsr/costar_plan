@@ -49,8 +49,8 @@ FLAGS = flags.FLAGS
 
 def main(_):
     use_best_model = True
-    problem_type = 'semantic_translation_regression'
-    # problem_type = 'semantic_rotation_regression'
+    # problem_type = 'semantic_translation_regression'
+    problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
@@ -86,7 +86,16 @@ def main(_):
     run_histories = {}
     history_dicts = {}
 
+    # load the hyperparameter optimization ranking csv file created by hyperopt_rank.py
     dataframe = pandas.read_csv(FLAGS.rank_csv, index_col=None, header=0)
+    if FLAGS.problem_type == 'semantic_rotation_regression':
+        # sort by val_angle_error from low to high
+        dataframe = dataframe.sort_values('val_angle_error', ascending=True)
+    elif FLAGS.problem_type == 'semantic_translation_regression':
+        # sort by val_cart_error from low to high
+        dataframe = dataframe.sort_values('val_cart_error', ascending=True)
+
+    # loop over the ranked models
     row_progress = tqdm(dataframe.iterrows())
     for index, row in row_progress:
         history = None
