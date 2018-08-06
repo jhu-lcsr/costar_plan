@@ -18,9 +18,11 @@ import traceback
 import tensorflow as tf
 import pandas
 import json
+import keras
+from tensorflow.python.platform import flags
+
 import grasp_utilities
 import cornell_grasp_train
-from tensorflow.python.platform import flags
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
