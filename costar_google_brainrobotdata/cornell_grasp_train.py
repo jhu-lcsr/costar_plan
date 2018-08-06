@@ -880,46 +880,9 @@ def train_k_fold(split_type=None,
     # find the k-fold average and save it out to a json file
     # Warning: this file will massively underestimate scores for jaccard distance metrics!
     json_summary_path = os.path.join(log_dir, kfold_run_name + '_summary.json')
-    k_fold_run_histories_average(run_histories, json_summary_path)
+    grasp_utilities.multi_run_histories_summary(run_histories, json_summary_path)
 
     return run_histories
-
-
-def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_binary_accuracy', verbose=1):
-    """ Find the k_fold average of the best model weights on each fold, and save the results.
-
-    Please note that currently this should only be utilized with classification models,
-    it will not calculated grasp_jaccard regression models' scores correctly.
-
-    # Returns
-
-    results disctionary including the max value of metric for each fold,
-    plus the average of all folds in a dictionary.
-    """
-    if isinstance(metrics, str):
-        metrics = [metrics]
-    results = {}
-    for metric in metrics:
-        best_metric_scores = []
-        for history_description, history_object in six.iteritems(run_histories):
-            if 'loss' in metric:
-                best_score = np.min(history_object.history[metric])
-                results[history_description + '_min_' + metric] = best_score
-            else:
-                best_score = np.max(history_object.history[metric])
-                results[history_description + '_max_' + metric] = best_score
-            best_metric_scores += [best_score]
-        k_fold_average = np.mean(best_metric_scores)
-        results['k_fold_average_' + metric] = k_fold_average
-
-    if verbose:
-        print('k_fold_results:\n ' + str(results))
-
-    if save_filename is not None:
-        with open(save_filename, 'w') as fp:
-            # save out all kfold params so they can be reloaded in the future
-            json.dump(results, fp)
-    return results
 
 
 def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=None, loss=None):

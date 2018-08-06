@@ -6,6 +6,7 @@ import json
 import datetime
 import errno
 import json
+import six
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -177,3 +178,63 @@ def make_model_description(run_name, model_name, hyperparams, dataset_names_str,
 
     run_name = timeStamped(model_description)
     return run_name
+
+
+def multi_run_histories_summary(
+        run_histories,
+        save_filename=None,
+        metrics='val_binary_accuracy',
+        description_prefix='k_fold_average_',
+        results_prefix='k_fold_results',
+        multi_history_metric='mean',
+        verbose=1):
+    """ Find the k_fold average of the best model weights on each fold, and save the results.
+
+    This can be used to summarize multiple runs, be they on different models or the same model.
+
+    Please note that currently this should only be utilized with classification models,
+    or regression models with absolute thresholds.
+    it will not calculated grasp_jaccard regression models' scores correctly.
+
+    # Arguments
+
+    multi_history_metric: 'mean', 'min', 'max'.
+
+    # Returns
+
+    results disctionary including the max value of metric for each fold,
+    plus the average of all folds in a dictionary.
+    """
+    if isinstance(metrics, str):
+        metrics = [metrics]
+    results = {}
+    for metric in metrics:
+        best_metric_scores = []
+        for history_description, history_object in six.iteritems(run_histories):
+            if 'loss' in metric:
+                best_score = np.min(history_object.history[metric])
+                results[history_description + '_min_' + metric] = best_score
+            else:
+                best_score = np.max(history_object.history[metric])
+                results[history_description + '_max_' + metric] = best_score
+            best_metric_scores += [best_score]
+        if multi_history_metric == 'mean':
+            k_fold_average = np.mean(best_metric_scores)
+        elif multi_history_metric == 'min':
+            k_fold_average = np.min(best_metric_scores)
+        elif multi_history_metric == 'max':
+            k_fold_average = np.max(best_metric_scores)
+        else:
+            raise ValueError(
+                'multi_run_histories_summary(): Unsupported multi_history_metric: ' +
+                str(multi_history_metric))
+        results[description_prefix + metric] = k_fold_average
+
+    if verbose:
+        print(str(results_prefix) + ':\n ' + str(results))
+
+    if save_filename is not None:
+        with open(save_filename, 'w') as fp:
+            # save out all kfold params so they can be reloaded in the future
+            json.dump(results, fp)
+    return results
