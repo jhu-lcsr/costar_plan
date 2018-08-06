@@ -147,6 +147,7 @@ def main(_):
     hyperparams['loss'] = 'mse'
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
+    hyperparams['batch_size'] = FLAGS.batch_size
     # hyperparams['learning_rate'] = 1.0
     if load_weights is not None:
         # For training from scratch
