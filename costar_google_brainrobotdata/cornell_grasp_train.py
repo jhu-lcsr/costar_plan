@@ -739,7 +739,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
             #     mode='exp_range', gamma=0.99994)
             # Reduce the learning rate if training plateaus.
             # patience of 13 is a good option for the cornell datasets, 5 seems more appropriate for costar stack regression
-            keras.callbacks.ReduceLROnPlateau(patience=5, verbose=1, factor=0.5, monitor=monitor_loss_name)
+            keras.callbacks.ReduceLROnPlateau(patience=5, verbose=1, factor=0.5, monitor=monitor_loss_name, min_delta=1e-6)
         ]
     return callbacks, optimizer
 
