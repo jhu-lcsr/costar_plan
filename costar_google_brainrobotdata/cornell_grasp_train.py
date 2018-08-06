@@ -429,7 +429,7 @@ def run_training(
     # save the original hyperparams path to a file for tracing data pipelines.
     if hyperparameters_filename is not None:
         with open(log_dir_run_name + '_source_hyperparameters_filename.txt', 'w') as fp:
-            fp.write(hyperparams_path)
+            fp.write(hyperparameters_filename)
 
     # Save the hyperparams to a json string so it is human readable
     if hyperparams is not None:
