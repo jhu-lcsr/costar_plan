@@ -198,6 +198,7 @@ def main(_):
             dataset_name=dataset_name,
             optimizer_name=optimizer_name,
             load_weights=load_weights,
+            hyperparameters_filename=FLAGS.load_hyperparams,
             **hyperparams)
         if problem_type2 is not None:
             print('\n---------------------\ntraining problem type2: ' + str(problem_type2) + '\n---------------------')
@@ -207,6 +208,7 @@ def main(_):
                 hyperparams=hyperparams,
                 dataset_name=dataset_name,
                 optimizer_name=optimizer_name,
+                hyperparameters_filename=FLAGS.load_hyperparams,
                 **hyperparams)
 
 if __name__ == '__main__':
