@@ -3,7 +3,11 @@ Training a network on cornell grasping dataset for regression of grasping positi
 This will go through sorted hyperopt results from best to worst and train each model,
 ranking the best final results.
 
-In other words, this network tries to predict a grasp rectangle from an input image.
+In other words, this network tries to predict a grasp pose from an input image, current pose, and action vector.
+
+Example run:
+
+    export CUDA_VISIBLE_DEVICES="2" && python2 costar_block_stacking_train_ranked_regression.py --log_dir hyperopt_logs_costar_block_stacking_train_ranked_regression
 
 Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 
