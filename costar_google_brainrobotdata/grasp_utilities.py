@@ -186,7 +186,7 @@ def multi_run_histories_summary(
         metrics='val_binary_accuracy',
         description_prefix='k_fold_average_',
         results_prefix='k_fold_results',
-        multi_history_metric='mean',
+        multi_history_metrics='mean',
         verbose=1):
     """ Find the k_fold average of the best model weights on each fold, and save the results.
 
@@ -198,7 +198,9 @@ def multi_run_histories_summary(
 
     # Arguments
 
-    multi_history_metric: 'mean', 'min', 'max'.
+    run_histories: A dictionary from training run description strings to keras history objects.
+    multi_history_metric: 'mean', 'min', 'max',
+        used to summarize the data from multiple training runs.
 
     # Returns
 
@@ -207,18 +209,20 @@ def multi_run_histories_summary(
     """
     if isinstance(metrics, str):
         metrics = [metrics]
+    if isinstance(multi_history_metrics, str):
+        multi_history_metrics = [multi_history_metrics]
     results = {}
-    for metric in metrics:
+    for metric, multi_history_metric in zip(metrics, multi_history_metrics):
         best_metric_scores = []
         for history_description, history_object in six.iteritems(run_histories):
-            if 'loss' in metric:
+            if 'loss' in metric or 'error' in metric:
                 best_score = np.min(history_object.history[metric])
                 results[history_description + '_min_' + metric] = best_score
             else:
                 best_score = np.max(history_object.history[metric])
                 results[history_description + '_max_' + metric] = best_score
             best_metric_scores += [best_score]
-        if multi_history_metric == 'mean':
+        if multi_history_metric == 'mean' or multi_history_metric == 'average':
             k_fold_average = np.mean(best_metric_scores)
         elif multi_history_metric == 'min':
             k_fold_average = np.min(best_metric_scores)
@@ -228,7 +232,8 @@ def multi_run_histories_summary(
             raise ValueError(
                 'multi_run_histories_summary(): Unsupported multi_history_metric: ' +
                 str(multi_history_metric))
-        results[description_prefix + metric] = k_fold_average
+        result_key = description_prefix + '_' + multi_history_metric + '_' + metric
+        results[result_key] = k_fold_average
 
     if verbose:
         print(str(results_prefix) + ':\n ' + str(results))

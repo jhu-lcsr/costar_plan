@@ -276,6 +276,7 @@ def run_training(
         checkpoint=True,
         dataset_name=None,
         should_initialize=False,
+        hyperparameters_filename=None,
         **kwargs):
     """
 
@@ -297,6 +298,10 @@ def run_training(
     should_initialize: Workaround for some combined tf/keras bug (Maybe fixed in tf 1.8?)
        see https://github.com/keras-team/keras/issues/4875#issuecomment-313166165,
        TODO(ahundt) remove should_initialize and the corresponding code below if it has been False for a while without issue.
+    hyperparameters_filename: Write a file '*source_hyperparameters_filename.txt' to a txt file with a path to baseline hyperparams
+        on which this training run is based. The file will not be loaded, only the filename will be copied for
+        purposes of tracing where models were generated from, such as if they are the product of hyperparmeter optimization.
+        Specify the actual hyperparams using the argument "hyperparams".
     """
     if epochs is None:
         epochs = FLAGS.epochs
@@ -415,6 +420,11 @@ def run_training(
     callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps=train_steps)
 
     log_dir = os.path.join(log_dir, run_name)
+    if hyperparameters_filename is not None:
+        # save the original hyperparams path to a file for tracing data pipelines
+        with open(log_dir_run_name + '_source_hyperparameters_filename.txt', 'w') as fp:
+            fp.write(hyperparams_path)
+
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     log_dir_run_name = os.path.join(log_dir, run_name)
     grasp_utilities.mkdir_p(log_dir)

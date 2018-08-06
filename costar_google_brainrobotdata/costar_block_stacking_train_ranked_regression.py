@@ -90,14 +90,14 @@ def main(_):
     row_progress = tqdm(dataframe.iterrows())
     for index, row in row_progress:
         history = None
-        hyperparams_filename = row['hyperparameters_filename']
+        hyperparameters_filename = row['hyperparameters_filename']
 
         hyperparams = grasp_utilities.load_hyperparams_json(
-            hyperparams_filename, FLAGS.fine_tuning, FLAGS.learning_rate,
+            hyperparameters_filename, FLAGS.fine_tuning, FLAGS.learning_rate,
             feature_combo_name=feature_combo)
 
         row_progress.write('-' * 80)
-        row_progress.write('Training with hyperparams at index ' + str(index) + ' from: ' + str(hyperparams_filename) + '\n\n' + str(hyperparams))
+        row_progress.write('Training with hyperparams at index ' + str(index) + ' from: ' + str(hyperparameters_filename) + '\n\n' + str(hyperparams))
         row_progress.write('-' * 80)
         hyperparams['loss'] = 'mse'
         # save weights at checkpoints as the model's performance improves
@@ -112,10 +112,11 @@ def main(_):
                 dataset_name=dataset_name,
                 optimizer_name=optimizer_name,
                 load_weights=load_weights,
+                hyperparameters_filename=hyperparameters_filename,
                 **hyperparams)
 
-            run_histories[hyperparams_filename] = history
-            history_dicts[hyperparams_filename] = history.history
+            run_histories[hyperparameters_filename] = history
+            history_dicts[hyperparameters_filename] = history.history
             # save the histories so far, overwriting past updates
             with open(json_histories_path, 'w') as fp:
                 # save out all kfold params so they can be reloaded in the future
@@ -123,10 +124,11 @@ def main(_):
 
             results = grasp_utilities.multi_run_histories_summary(
                 run_histories,
+                metrics=['val_cart_error', 'val_angle_error', 'val_grasp_acc'],
+                multi_history_metrics=['min', 'min', 'max'],
                 save_filename=json_histories_summary_path,
-                description_prefix=problem_type + 'min_',
+                description_prefix=problem_type,
                 results_prefix='ranked_regression_min_results',
-                multi_history_metric='max'
             )
         except tf.errors.ResourceExhaustedError as exception:
             print('Hyperparams caused algorithm to run out of resources, '
