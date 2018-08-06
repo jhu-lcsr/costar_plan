@@ -59,7 +59,7 @@ def main(_):
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     load_weights = None
-    FLAGS.batch_size = 256
+    FLAGS.batch_size = 64
     optimizer_name = 'sgd'
     # FLAGS.crop_height = 480
     # FLAGS.crop_width = 640
@@ -77,7 +77,7 @@ def main(_):
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
-          'you will need to modify cornell_grasp_train_regression.py directly.')
+          'you will need to modify costar_block_stacking_train_ranked_regression.py directly.')
 
     dataset_name = 'costar_block_stacking'
 
@@ -103,6 +103,7 @@ def main(_):
         # save weights at checkpoints as the model's performance improves
         hyperparams['checkpoint'] = True
         hyperparams['learning_rate'] = 1.0
+        hyperparams['batch_size'] = FLAGS.batch_size
 
         try:
             history = cornell_grasp_train.run_training(

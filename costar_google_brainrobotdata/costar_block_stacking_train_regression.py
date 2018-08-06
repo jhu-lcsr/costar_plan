@@ -118,7 +118,7 @@ def main(_):
             FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
     FLAGS.epochs = 300
-    FLAGS.batch_size = 256
+    FLAGS.batch_size = 64
     optimizer_name = 'sgd'
     # FLAGS.crop_height = 480
     # FLAGS.crop_width = 640
