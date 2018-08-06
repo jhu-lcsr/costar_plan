@@ -49,9 +49,9 @@ FLAGS = flags.FLAGS
 
 def main(_):
     use_best_model = True
-    # problem_type = 'semantic_translation_regression'
+    problem_type = 'semantic_translation_regression'
     # problem_type = 'semantic_rotation_regression'
-    problem_type = 'semantic_grasp_regression'
+    # problem_type = 'semantic_grasp_regression'
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
     # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
