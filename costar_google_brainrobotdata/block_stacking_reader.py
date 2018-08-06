@@ -445,7 +445,7 @@ class CostarBlockStackingSequence(Sequence):
 
             # print('poses shape: ' + str(poses.shape))
             encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
-                poses, random_augmentation=self.is_training)
+                poses, random_augmentation=self.random_augmentation)
 
             epsilon = 1e-3
             if np.any(encoded_poses < 0 - epsilon) or np.any(encoded_poses > 1 + epsilon):
