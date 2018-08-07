@@ -298,7 +298,7 @@ def optimize(
     hyperoptions.add_param('image_model_name', ['vgg', 'nasnet_mobile'],
                            enable=False, required=True, default='nasnet_mobile')
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
-    hyperoptions.add_param('trunk_filters', [2**x for x in range(min_top_block_filter_multiplier - 1, 14)])
+    hyperoptions.add_param('trunk_filters', [2**x for x in range(min_top_block_filter_multiplier - 1, 12)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 11)])
     # Choose the model for the trunk, options are 'vgg_conv_block', 'dense_block', 'nasnet_normal_a_cell', 'resnet_conv_identity_block'
     # an additional option is 'resnet_conv_identity_block', but it never really did well.
