@@ -38,9 +38,15 @@ except ImportError:
 
 flags.DEFINE_string(
     'rank_csv',
-    'hyperopt_logs_costar_grasp_regression/hyperopt_rank.csv',
+    'hyperopt_logs_costar_block_stacking_train_ranked_regression/hyperopt_rank.csv',
     """Sorted csv ranking models on which to perform full runs after hyperparameter optimization.
-    See cornell_hyperopt.py to perform hyperparameter optimization, and then hyperopt_rank.py to generate the ranking csv file."""
+
+    See cornell_hyperopt.py to perform hyperparameter optimization,
+    and then hyperopt_rank.py to generate the ranking csv file.
+
+    Example file path:
+        hyperopt_logs_costar_grasp_regression/hyperopt_rank.csv
+    """
 )
 
 
@@ -89,7 +95,7 @@ def main(_):
 
     FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f')
     FLAGS.fine_tuning_epochs = 0
-    FLAGS.epochs = 1
+    FLAGS.epochs = 20
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
@@ -107,6 +113,7 @@ def main(_):
     if FLAGS.problem_type == 'semantic_rotation_regression':
         # sort by val_angle_error from low to high
         dataframe = dataframe.sort_values('val_angle_error', ascending=True)
+        dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
     elif FLAGS.problem_type == 'semantic_translation_regression':
         # sort by val_cart_error from low to high
         dataframe = dataframe.sort_values('val_cart_error', ascending=True)
