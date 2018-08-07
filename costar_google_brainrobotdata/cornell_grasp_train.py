@@ -197,7 +197,7 @@ flags.DEFINE_string(
     ' Options are: cornell_grasping and costar_block_stacking.'
 )
 
-flagd.DEFINE_string(
+flags.DEFINE_string(
     'learning_rate_schedule',
     'reduce_lr_on_plateau',
     """Options are: reduce_lr_on_plateau, triangle, triangle2, exp_range.
