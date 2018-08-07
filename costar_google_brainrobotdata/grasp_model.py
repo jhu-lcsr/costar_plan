@@ -495,6 +495,7 @@ def choose_hypertree_model(
         top_block_hidden_activation='relu',
         trunk_normalization='none',
         coordinate_data=None,
+        hidden_activation=None,
         vector_normalization='batch_norm'):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
@@ -509,11 +510,17 @@ def choose_hypertree_model(
             Setting the parameters to None or 0 will use the number of cannels in the
             input data provided.
         trunk_normalization: options are 'batch_norm', 'group_norm', and None or 'none'
-        trunk_hidden_activation: the activation to use for hidden layers in configurations that support it
+        trunk_hidden_activation:
+            Deprecated, use hidden_activation instead.
+            The activation to use for hidden layers in configurations that support it
             the vgg trunk is the only option at the time of writing.
         vector_normalization: options are 'batch_norm', 'group_norm', and None or 'none'
-        vector_hidden_activation: the activation to use for hidden layers in configurations that support it
+        vector_hidden_activation: Deprecated, use hidden_activation instead.
+            the activation to use for hidden layers in configurations that support it
             the vgg trunk is the only option at the time of writing.
+        top_block_hidden_activation: Deprecated, use hidden_activation instead.
+        hidden_activation: override vector, trunk, and top_block hidden activation,
+            setting them all to this value. Example values include 'relu', 'elu', and 'linear'.
 
     # Notes
 
@@ -569,6 +576,11 @@ def choose_hypertree_model(
     """
     if trainable is None:
         trainable = False
+
+    if hidden_activation is not None:
+        trunk_hidden_activation = hidden_activation
+        vector_hidden_activation = hidden_activation
+        top_block_hidden_activation = hidden_activation
 
     if top == 'segmentation':
         name_prefix = 'dilated_'
