@@ -197,6 +197,16 @@ flags.DEFINE_string(
     ' Options are: cornell_grasping and costar_block_stacking.'
 )
 
+flagd.DEFINE_string(
+    'learning_rate_schedule',
+    'reduce_lr_on_plateau',
+    """Options are: reduce_lr_on_plateau, triangle, triangle2, exp_range.
+
+    For details see the keras callback ReduceLROnPlateau and the
+    keras_contrib callback CyclicLR.
+    """
+)
+
 FLAGS = flags.FLAGS
 
 
@@ -721,7 +731,7 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
     return preprocessing_mode
 
 
-def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps):
+def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps, learning_rate_schedule='reduce_lr_on_plateau'):
     if optimizer_name == 'sgd':
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
     elif optimizer_name == 'adam':
@@ -733,14 +743,18 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
                          'try adam or sgd.')
 
     if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
-        callbacks = callbacks + [
-            # keras_contrib.callbacks.CyclicLR(
-            #     step_size=train_steps * 2, base_lr=1e-6, max_lr=learning_rate,
-            #     mode='exp_range', gamma=0.99994)
-            # Reduce the learning rate if training plateaus.
-            # patience of 13 is a good option for the cornell datasets, 5 seems more appropriate for costar stack regression
-            keras.callbacks.ReduceLROnPlateau(patience=5, verbose=1, factor=0.5, monitor=monitor_loss_name, min_delta=1e-6)
-        ]
+        if learning_rate_schedule == 'reduce_lr_on_plateau':
+            callbacks = callbacks + [
+                # Reduce the learning rate if training plateaus.
+                # patience of 13 is a good option for the cornell datasets, 5 seems more appropriate for costar stack regression
+                keras.callbacks.ReduceLROnPlateau(patience=5, verbose=1, factor=0.5, monitor=monitor_loss_name, min_delta=1e-6)
+            ]
+        else:
+            callbacks = callbacks + [
+                keras_contrib.callbacks.CyclicLR(
+                    step_size=train_steps * 4, base_lr=1e-6, max_lr=learning_rate,
+                    mode=learning_rate_schedule, gamma=0.99995)
+            ]
     return callbacks, optimizer
 
 
