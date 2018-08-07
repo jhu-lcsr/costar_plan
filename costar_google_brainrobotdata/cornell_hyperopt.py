@@ -42,7 +42,7 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
         FLAGS.crop_height = 224
         FLAGS.crop_width = 224
     elif problem_type in ['grasp_regression', 'regression', 'semantic_grasp_regression',
-                          'semantic_translation_regression', 'semantic_angle_regression']:
+                          'semantic_translation_regression', 'semantic_rotation_regression']:
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
         # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
@@ -64,8 +64,8 @@ def main(_):
     # FLAGS.dataset_name = 'cornell_grasping'
     FLAGS.dataset_name = 'costar_block_stacking'
     # FLAGS.problem_type = 'semantic_grasp_regression'
-    FLAGS.log_dir = 'hyperopt_logs_costar_angle_regression'
-    FLAGS.problem_type = 'semantic_angle_regression'
+    FLAGS.log_dir = 'hyperopt_logs_costar_rotation_regression'
+    FLAGS.problem_type = 'semantic_rotation_regression'
     FLAGS.batch_size = 16
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
