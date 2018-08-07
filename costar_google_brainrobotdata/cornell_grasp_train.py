@@ -731,7 +731,10 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
     return preprocessing_mode
 
 
-def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps, learning_rate_schedule='reduce_lr_on_plateau'):
+def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps, learning_rate_schedule=None):
+    if learning_rate_schedule is None:
+        learning_rate_schedule = FLAGS.learning_rate_schedule
+
     if optimizer_name == 'sgd':
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
     elif optimizer_name == 'adam':
@@ -740,7 +743,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
         optimizer = keras.optimizers.RMSprop()
     else:
         raise ValueError('Unsupported optimizer ' + str(optimizer_name) +
-                         'try adam or sgd.')
+                         'try adam, sgd, or rmsprop.')
 
     if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
         if learning_rate_schedule == 'reduce_lr_on_plateau':
