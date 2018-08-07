@@ -71,9 +71,25 @@ def main(_):
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
     # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f'
 
+    # We generate a summary of the best algorithms as the program runs,
+    # so here we configure the summary metrics for the problem type.
+    if problem_type == 'semantic_grasp_regression':
+        histories_metrics = ['val_cart_error', 'val_angle_error', 'val_grasp_acc']
+        histories_summary_metrics = ['min', 'min', 'max']
+    elif problem_type == 'semantic_rotation_regression':
+        histories_metrics = ['val_angle_error', 'val_grasp_acc']
+        histories_summary_metrics = ['min', 'max']
+    elif problem_type == 'semantic_translation_regression':
+        histories_metrics = ['val_cart_error', 'val_grasp_acc']
+        histories_summary_metrics = ['min', 'max']
+    else:
+        raise ValueError(
+            'costar_block_stacking_train_ranked_regression.py::main(): '
+            'unsupported problem_type ' + str(problem_type))
+
     FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f')
     FLAGS.fine_tuning_epochs = 0
-    FLAGS.epochs = 20
+    FLAGS.epochs = 1
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
@@ -132,13 +148,14 @@ def main(_):
                 # save out all kfold params so they can be reloaded in the future
                 json.dump(history_dicts, fp, cls=grasp_utilities.NumpyEncoder)
 
+            # generate the summary results
             results = grasp_utilities.multi_run_histories_summary(
                 run_histories,
-                metrics=['val_cart_error', 'val_angle_error', 'val_grasp_acc'],
-                multi_history_metrics=['min', 'min', 'max'],
+                metrics=histories_metrics,
+                multi_history_metrics=histories_summary_metrics,
                 save_filename=json_histories_summary_path,
                 description_prefix=problem_type,
-                results_prefix='ranked_regression_min_results',
+                results_prefix='ranked_results',
             )
         except tf.errors.ResourceExhaustedError as exception:
             print('Hyperparams caused algorithm to run out of resources, '
