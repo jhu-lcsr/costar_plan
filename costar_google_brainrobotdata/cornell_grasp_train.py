@@ -200,7 +200,7 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'learning_rate_schedule',
     'reduce_lr_on_plateau',
-    """Options are: reduce_lr_on_plateau, triangle, triangle2, exp_range.
+    """Options are: reduce_lr_on_plateau, triangular, triangular2, exp_range.
 
     For details see the keras callback ReduceLROnPlateau and the
     keras_contrib callback CyclicLR.
