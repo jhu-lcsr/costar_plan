@@ -149,8 +149,10 @@ def main(_):
             results_df = results_df.drop_duplicates(subset='csv_filename')
 
     if FLAGS.print_results:
-        with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
-            print(results_df)
+        # with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
+        with pandas.option_context('display.max_rows', 3, 'display.max_columns', 3):
+            # print(results_df)
+            print(results_df[FLAGS.sort_by])
 
     if FLAGS.save_dir is None:
         FLAGS.save_dir = FLAGS.log_dir
