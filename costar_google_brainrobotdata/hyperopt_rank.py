@@ -141,10 +141,10 @@ def main(_):
 
     results_df = pandas.DataFrame()
     results_df = pandas.concat(dataframe_list)
-    results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending)
+    results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending, kind='mergesort')
 
     if FLAGS.filter_unique:
-            dataframe = dataframe.drop_duplicates(subset='csv_filename')
+            results_df = results_df.drop_duplicates(subset='csv_filename')
 
     if FLAGS.print_results:
         with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
