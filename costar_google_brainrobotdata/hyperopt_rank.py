@@ -140,7 +140,7 @@ def main(_):
             pass
 
     results_df = pandas.DataFrame()
-    results_df = pandas.concat(dataframe_list)
+    results_df = pandas.concat(dataframe_list, ignore_index=True)
     results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending, kind='mergesort')
 
     if FLAGS.filter_unique:
