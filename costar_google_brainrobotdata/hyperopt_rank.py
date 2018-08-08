@@ -86,13 +86,19 @@ flags.DEFINE_string(
 flags.DEFINE_boolean(
     'filter_epoch',
     True,
-    'Filter results, dropping everything except a single epoch'
+    'Filter results, dropping everything except a single specific epoch specified by --epoch'
 )
 
 flags.DEFINE_integer(
     'epoch',
     0,
-    'Results should only belong to this epoch if filter_epoch is True'
+    'Results should only belong to this epoch if --filter_epoch=True'
+)
+
+flags.DEFINE_boolean(
+    'filter_unique',
+    False,
+    'Filter unique results. This will retain only the best epoch for each model.'
 )
 
 FLAGS = flags.FLAGS
@@ -136,9 +142,14 @@ def main(_):
     results_df = pandas.DataFrame()
     results_df = pandas.concat(dataframe_list)
     results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending)
+
+    if FLAGS.filter_unique:
+            dataframe = dataframe.drop_duplicates(subset='csv_filename')
+
     if FLAGS.print_results:
         with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
             print(results_df)
+
     if FLAGS.save_dir is None:
         FLAGS.save_dir = FLAGS.log_dir
     output_filename = os.path.join(FLAGS.save_dir, FLAGS.save_csv)
