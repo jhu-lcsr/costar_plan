@@ -141,7 +141,9 @@ def main(_):
 
     results_df = pandas.DataFrame()
     results_df = pandas.concat(dataframe_list, ignore_index=True)
+    print('results_df.shape before sort: ' + str(results_df.shape))
     results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending, kind='mergesort')
+    print('results_df.shape after sort: ' + str(results_df.shape))
 
     if FLAGS.filter_unique:
             results_df = results_df.drop_duplicates(subset='csv_filename')
