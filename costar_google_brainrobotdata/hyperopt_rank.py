@@ -141,20 +141,16 @@ def main(_):
 
     results_df = pandas.DataFrame()
     results_df = pandas.concat(dataframe_list, ignore_index=True)
-    print('results_df.shape before sort: ' + str(results_df.shape))
     results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending, kind='mergesort')
     # re-number the row indices according to the sorted order
     results_df = results_df.reset_index(drop=True)
-    print('results_df.shape after sort: ' + str(results_df.shape))
 
     if FLAGS.filter_unique:
             results_df = results_df.drop_duplicates(subset='csv_filename')
 
     if FLAGS.print_results:
-        # with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
-        with pandas.option_context('display.max_rows', 3, 'display.max_columns', 3):
-            # print(results_df)
-            print(results_df[FLAGS.sort_by])
+        with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
+            print(results_df)
 
     if FLAGS.save_dir is None:
         FLAGS.save_dir = FLAGS.log_dir
