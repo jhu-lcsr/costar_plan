@@ -107,6 +107,7 @@ def main(_):
     json_histories_summary_path = os.path.join(FLAGS.log_dir, FLAGS.run_name + '_' + problem_type + '_histories_summary.json')
     run_histories = {}
     history_dicts = {}
+    sort_by = None
 
     # load the hyperparameter optimization ranking csv file created by hyperopt_rank.py
     dataframe = pandas.read_csv(FLAGS.rank_csv, index_col=None, header=0)
@@ -114,9 +115,14 @@ def main(_):
         # sort by val_angle_error from low to high
         dataframe = dataframe.sort_values('val_angle_error', ascending=True)
         dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
+        sort_by = 'val_grasp_acc'
     elif FLAGS.problem_type == 'semantic_translation_regression':
         # sort by val_cart_error from low to high
         dataframe = dataframe.sort_values('val_cart_error', ascending=True)
+        sort_by = 'val_cart_error'
+    elif FLAGS.problem_type == 'semantic_grasp_regression':
+        dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
+        sort_by = 'val_grasp_acc'
 
     # loop over the ranked models
     row_progress = tqdm(dataframe.iterrows())
@@ -130,6 +136,8 @@ def main(_):
 
         row_progress.write('-' * 80)
         row_progress.write('Training with hyperparams at index ' + str(index) + ' from: ' + str(hyperparameters_filename) + '\n\n' + str(hyperparams))
+        if sort_by is not None:
+            row_progress.write('Sorting by: ' + str(sort_by) + ', the value in the rank_csv is: ' + row[sort_by])
         row_progress.write('-' * 80)
         hyperparams['loss'] = 'mse'
         # save weights at checkpoints as the model's performance improves
