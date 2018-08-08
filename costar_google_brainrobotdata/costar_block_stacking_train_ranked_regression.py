@@ -95,7 +95,7 @@ def main(_):
 
     FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f')
     FLAGS.fine_tuning_epochs = 0
-    FLAGS.epochs = 20
+    FLAGS.epochs = 200
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
@@ -137,7 +137,7 @@ def main(_):
         row_progress.write('-' * 80)
         row_progress.write('Training with hyperparams at index ' + str(index) + ' from: ' + str(hyperparameters_filename) + '\n\n' + str(hyperparams))
         if sort_by is not None:
-            row_progress.write('Sorting by: ' + str(sort_by) + ', the value in the rank_csv is: ' + row[sort_by])
+            row_progress.write('Sorting by: ' + str(sort_by) + ', the value in the rank_csv is: ' + str(row[sort_by]))
         row_progress.write('-' * 80)
         hyperparams['loss'] = 'mse'
         # save weights at checkpoints as the model's performance improves
