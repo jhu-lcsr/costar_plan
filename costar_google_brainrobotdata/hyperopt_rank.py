@@ -142,6 +142,8 @@ def main(_):
     results_df = pandas.DataFrame()
     results_df = pandas.concat(dataframe_list, ignore_index=True)
     results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending, kind='mergesort')
+    # re-number the row indices according to the sorted order
+    results_df = results_df.reset_index(drop=True)
 
     if FLAGS.filter_unique:
             results_df = results_df.drop_duplicates(subset='csv_filename')
