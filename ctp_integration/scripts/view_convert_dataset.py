@@ -3,7 +3,7 @@ View and Convert dataset lets you look at the video data in a costar stacking da
 
 show a video from an h5f file:
 
-    python view_convert_dataset --path <path/to/data/folder/or/file> --preview True
+    python view_convert_dataset.py --path <path/to/data/folder/or/file> --preview True
 
 Convert video from an h5f file into a gif:
 
@@ -125,6 +125,7 @@ def _parse_args():
     parser.add_argument("--ignore_success", type=bool, default=False, help='skip grasp success cases')
     parser.add_argument("--ignore_error", type=bool, default=False, help='skip grasp attempts that are both failures and contain errors')
     parser.add_argument("--preview", action='store_true', help='pop open a preview window to view the video data')
+    parser.add_argument("--label_correction", action='store_true', help='pop open a preview window to view the video data and correct labels using key presses')
     parser.add_argument("--gripper", type=bool, default=False, help='print gripper data channel')
     parser.add_argument("--depth", type=bool, default=True, help='process depth data')
     parser.add_argument("--rgb", type=bool, default=True, help='process rgb data')
@@ -149,6 +150,27 @@ def draw_matplotlib(depth_images, fps):
         plt.imshow(image)
         plt.pause(1.0 / fps)
         plt.draw()
+
+def wait_for_key():
+    print("\nWaiting for key press...")
+    flag = 0
+    while flag == 0:
+        # pygame.event.pump()
+        events = pygame.event.get()
+        # if len(events) > 0:
+        #     print(events)
+        for event in events:
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    print("label set as success")
+                    flag = 1
+                    return "success"
+                elif event.key == pygame.K_2:
+                    print("label set as failure")
+                    flag = 1
+                    return "failure"
 
 def main(args, root="root"):
 
@@ -259,6 +281,17 @@ def main(args, root="root"):
                     if args['preview']:
                         clip.preview()
 
+                    if args['label_correction']:
+                        rgb_images_short = rgb_images[-10:-1]
+                        clip = mpye.ImageSequenceClip(rgb_images_short, fps=fps)
+                        clip.preview()
+                        label = wait_for_key()
+                        rename_bool = False
+                        if label in example_filename:
+                            print("Label unchanged.")
+                        else:
+                            rename_bool = True
+
                     save_filename = example_filename.replace('.h5f', '.' + args['convert'])
                     if 'gif' in args['convert']:
                         clip.write_gif(save_filename, fps=fps)
@@ -271,6 +304,11 @@ def main(args, root="root"):
                     progress_bar.write(
                         'Warning: Skipping File. Exception encountered while processing ' + example_filename +
                         ' please edit the code to debug the specifics: ' + str(ex))
+            if rename_bool:
+                if label == 'success':
+                    os.rename(example_filename, example_filename.replace('failure', label))
+                if label == 'failure':
+                    os.rename(example_filename, example_filename.replace('success', label))
 
         except IOError as ex:
             progress_bar.write(
