@@ -125,7 +125,8 @@ def _parse_args():
     parser.add_argument("--ignore_success", type=bool, default=False, help='skip grasp success cases')
     parser.add_argument("--ignore_error", type=bool, default=False, help='skip grasp attempts that are both failures and contain errors')
     parser.add_argument("--preview", action='store_true', help='pop open a preview window to view the video data')
-    parser.add_argument("--label_correction", action='store_true', help='pop open a preview window to view the video data and correct labels using key presses')
+    parser.add_argument("--label_correction", action='store_true', help='preview last frames and choose label')
+    parser.add_argument("--write_labels", action='store_true', help='Rename files with new labels')
     parser.add_argument("--gripper", type=bool, default=False, help='print gripper data channel')
     parser.add_argument("--depth", type=bool, default=True, help='process depth data')
     parser.add_argument("--rgb", type=bool, default=True, help='process rgb data')
@@ -152,7 +153,7 @@ def draw_matplotlib(depth_images, fps):
         plt.draw()
 
 def wait_for_key():
-    print("\nWaiting for key press...")
+    print("\nWaiting for input...\nPress 1 for success \nPress 2 for failure")
     flag = 0
     while flag == 0:
         # pygame.event.pump()
@@ -180,6 +181,10 @@ def main(args, root="root"):
         filenames = os.listdir(os.path.expanduser(args['path']))
 
     # Read data
+    processed_files = []
+    if args['label_correction']:
+        rename_store = open('rename_dataset_labels.csv', 'w')
+        rename_store.write("original_filename, corrected_filename\n")
     progress_bar = tqdm(filenames)
     for filename in progress_bar:
         # skip certain files based on command line parameters
@@ -304,17 +309,30 @@ def main(args, root="root"):
                     progress_bar.write(
                         'Warning: Skipping File. Exception encountered while processing ' + example_filename +
                         ' please edit the code to debug the specifics: ' + str(ex))
+            processed_files.append(example_filename)
             if rename_bool:
                 if label == 'success':
-                    os.rename(example_filename, example_filename.replace('failure', label))
+                    new_name = example_filename.replace('failure', label)
                 if label == 'failure':
-                    os.rename(example_filename, example_filename.replace('success', label))
+                    new_name = example_filename.replace('success', label)
+                if args['write_labels']:
+                    os.rename(example_filename, new_name)
+                processed_files.append(new_name)
+            else:
+                processed_files.append(example_filename)
+            if args['label_correction']:
+                print("writing to file....")
+                # print(processed_files)
+                rename_store.write("{0}, {1}\n".format(processed_files[-1], processed_files[-2]))
 
         except IOError as ex:
             progress_bar.write(
                 'Error: Skipping file due to IO error when opening ' +
                 example_filename + ': ' + str(ex))
             continue
+    if args['label_correction']:
+        rename_store.close()
+
 
 
 def generate_gripper_action_label(data):
