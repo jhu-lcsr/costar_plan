@@ -192,7 +192,7 @@ def wait_for_keypress_to_select_label(progress_bar):
       description, comment.
     """
     progress_bar.write(
-        "\nPress a key to label the file: 1. success, 2. failure, 4. skip, 5. Extra Cool Example, 0. whoops! make previous file unconfirmed \n"
+        "\nPress a key to label the file: 1. success, 2. failure, 4. skip, 5. Extra Cool Example, 6. Problem with this Example 0. whoops! make previous file unconfirmed \n"
         "What to look for:\n"
         " - A successful stack is 3 blocks tall or 4 blocks tall with the gripper completely removed from the field of view.\n"
         " - When the robot doesn't move but there is already a visible successful stack, that's an error.success, so press 1 for success!\n"
@@ -227,6 +227,8 @@ def wait_for_keypress_to_select_label(progress_bar):
                     return 'skip', comment, mark_previous_unconfirmed
                 elif event.key == pygame.K_5:
                     comment = 'extra_cool_example'
+                elif event.key == pygame.K_6:
+                    comment = 'problem_with_example'
                 elif event.key == pygame.K_0:
                     mark_previous_unconfirmed = True
 
