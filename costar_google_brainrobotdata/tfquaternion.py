@@ -31,7 +31,12 @@ def q_matrix(q):
     Expects batch of quaternions in xyzw format of shape (n, 4).
     Note that this function and ROS quaternions use xyzw order, other code in this file is wxyz.
 
-    TODO(ahundt) WORK IN PROGRESS, not complete or tested, see # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py and https://github.com/moble/quaternion for reference.
+    TODO(ahundt) WORK IN PROGRESS, not complete or tested, see the following links for reference code:
+    # http://kieranwynn.github.io/pyquaternion/
+    # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py
+    # https://github.com/moble/quaternion
+    # https://github.com/ClementPinard/SfmLearner-Pytorch
+    # https://github.com/bistromath/gr-air-modes/blob/master/python/Quaternion.py
     """
     return tf.convert_to_tensor([
         [q[:, 3], -q[:, 0], -q[:, 1], -q[:, 2]],
