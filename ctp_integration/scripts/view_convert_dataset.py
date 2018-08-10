@@ -374,7 +374,7 @@ def main(args, root="root"):
                     end_frame = -1
                     if args['label_correction']:
                         # only show the last few frames when correcting labels
-                        start_frame = -40
+                        start_frame = -4
 
                     if load_depth:
                         depth_images = list(data['depth_image'][start_frame:end_frame])
