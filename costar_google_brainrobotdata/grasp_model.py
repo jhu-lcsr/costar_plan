@@ -258,7 +258,11 @@ def classifier_block(input_tensor, include_top=True, top='classification',
         x = Reshape((row * col, classes))(x)
         x = Activation(activation)(x)
         x = Reshape((row, col, classes))(x)
-
+    elif include_top and top == 'quaternion':
+        x = Dense(units=classes, activation='linear',
+                  kernel_initializer="he_normal", name=name + 'fc' + str(classes))(x)
+        # normalize the output so we have a unit quaternion
+        x = Lambda(lambda x: K.l2_normalize(x, axis=1))(x)
     elif final_pooling == 'avg':
         if verbose:
             print("    GlobalAveragePooling2D")
@@ -268,6 +272,8 @@ def classifier_block(input_tensor, include_top=True, top='classification',
         if verbose:
             print("    GlobalMaxPooling2D")
         x = GlobalMaxPooling2D()(x)
+    else:
+        raise ValueError('grasp_model.py::classifier_block() unsupported top: ' + str(top))
     return x
 
 
@@ -300,7 +306,7 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
     print('top block top: ' + str(top))
     # Extra Global Average Pooling allows more flexible input dimensions
     # but only use if necessary.
-    if top == 'classification':
+    if top == 'classification' or top == 'quaternion':
         feature_shape = K.int_shape(x)
         if len(feature_shape) == 4:
             x = GlobalMaxPooling2D()(x)
