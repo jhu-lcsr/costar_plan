@@ -231,10 +231,17 @@ def wait_for_keypress_to_select_label(progress_bar):
                     return 'skip', comment, mark_previous_unconfirmed
                 elif event.key == pygame.K_5:
                     comment = 'extra_cool_example'
+                    progress_bar.write('comment added: extra_cool_example (this note will remove past notes)')
                 elif event.key == pygame.K_6:
                     comment = 'problem_with_example'
+                    progress_bar.write('comment added: problem_with_example (this note will remove past notes)')
                 elif event.key == pygame.K_0:
                     mark_previous_unconfirmed = True
+                    progress_bar.write(
+                        'Thanks for mentioning there is a problem with the selection for the previous example.'
+                        'We will clear that data so the example will appear again when you re-run the label correction.'
+                        'Jut to be extra safe, we also suggest you write down the exact filename '
+                        'of the previous example so you can check it manually, ')
 
 
 def save_label_correction_csv_file(label_correction_csv_path, label_correction_table):
@@ -457,8 +464,8 @@ def label_correction(label_correction_table, i, example_filename, args, progress
             '    (3) Edit the code to handle this situation by perhaps adding any missing files to the list and re-sorting.')
 
     if not args['write']:
-        progress_bar.write('-' * 80)
         if status_string == 'unconfirmed' or args['label_correction_reconfirm']:
+            progress_bar.write('-' * 80)
             progress_bar.write('Current row ' + str(i) + ' [original, corrected, status, comment]:\n    ' + str(label_correction_table[i, :]) + '\n')
             # show the clip
             clip.preview()
@@ -488,7 +495,8 @@ def label_correction(label_correction_table, i, example_filename, args, progress
             # save the updated csv file
             save_label_correction_csv_file(label_correction_csv_path, label_correction_table)
             progress_bar.write('Updated row ' + str(i) + ' [original, corrected, status, comment]:\n    ' + str(label_correction_table[i, :]) + '\n')
-        elif error_encountered is not None:
+            progress_bar.write('-' * 80)
+        elif error_encountered is not None and error_encountered != label_correction_table[i, status_idx]:
             label_correction_table[i, status_idx] = error_encountered
             # save the updated csv file
             save_label_correction_csv_file(label_correction_csv_path, label_correction_table)
