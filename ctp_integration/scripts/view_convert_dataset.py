@@ -7,8 +7,12 @@ show a video from an h5f file:
 
 Convert video from an h5f file into a gif:
 
-python plot_graph --path 'data/'
     python view_convert_dataset --path <path/to/data/folder/or/file> --preview --convert gif
+
+Relabel "success" data in a dataset:
+
+    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --label_correction --fps 60 --ignore_failure True --ignore_error True
+
 '''
 import argparse
 import os
@@ -394,7 +398,7 @@ def main(args, root="root"):
                     if load_depth and load_rgb:
                         clip = mpye.clips_array([[rgb_clip, depth_clip]])
 
-                    if args['preview'] or (args['label_correction'] and not args['write']):
+                    if args['preview'] and not args['label_correction']:
                         clip.preview()
 
                     save_filename = example_filename.replace('.h5f', '.' + args['convert'])
@@ -420,13 +424,14 @@ def main(args, root="root"):
         if args['label_correction']:
             label_correction_table = label_correction(
                 label_correction_table, i, example_filename, args,
-                progress_bar, label_correction_csv_path, error_encountered)
+                progress_bar, label_correction_csv_path, error_encountered,
+                clip)
 
     if args['label_correction']:
         progress_bar.write('Run complete! Label correction csv:\n' + str(label_correction_csv_path))
 
 
-def label_correction(label_correction_table, i, example_filename, args, progress_bar, label_correction_csv_path, error_encountered):
+def label_correction(label_correction_table, i, example_filename, args, progress_bar, label_correction_csv_path, error_encountered, clip):
     original_idx = 0
     corrected_idx = 1
     status_idx = 2
@@ -455,6 +460,8 @@ def label_correction(label_correction_table, i, example_filename, args, progress
         progress_bar.write('-' * 80)
         if status_string == 'unconfirmed' or args['label_correction_reconfirm']:
             progress_bar.write('Current row ' + str(i) + ' [original, corrected, status, comment]:\n    ' + str(label_correction_table[i, :]) + '\n')
+            # show the clip
+            clip.preview()
             # Get the human corrected label
             label, comment, mark_previous_unconfirmed = wait_for_keypress_to_select_label(progress_bar)
             if mark_previous_unconfirmed and i > 0:
