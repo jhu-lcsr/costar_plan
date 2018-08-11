@@ -103,7 +103,7 @@ def concat_unit_meshgrid_np(tensor):
     """ Concat unit meshgrid onto the tensor.
 
     This is roughly equivalent to the input in uber's coordconv.
-    TODO(ahundt) this is untested.
+    TODO(ahundt) concat_unit_meshgrid_np is untested.
     """
     y_size = tensor.shape[0]
     x_size = tensor.shape[1]
