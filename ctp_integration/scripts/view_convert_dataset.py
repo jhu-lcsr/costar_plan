@@ -465,7 +465,7 @@ def label_correction(label_correction_table, i, example_filename, args, progress
             # Get the human corrected label
             label, comment, mark_previous_unconfirmed = wait_for_keypress_to_select_label(progress_bar)
             if mark_previous_unconfirmed and i > 0:
-                label_correction_table[i, status_idx] = 'unconfirmed'
+                label_correction_table[i - 1, status_idx] = 'unconfirmed'
             original_filename = label_correction_table[i, original_idx]
             if label not in original_filename:
                 if label == 'success':
