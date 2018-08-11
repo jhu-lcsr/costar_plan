@@ -99,6 +99,22 @@ def concat_images_with_tiled_vector_np(images, vector):
     return combined
 
 
+def concat_unit_meshgrid_np(tensor):
+    """ Concat unit meshgrid onto the tensor.
+
+    This is roughly equivalent to the input in uber's coordconv.
+    TODO(ahundt) this is untested.
+    """
+    y_size = tensor.shape[0]
+    x_size = tensor.shape[1]
+    y, x = np.meshgrid(np.arange(y_size),
+                       np.arange(x_size),
+                       indexing='ij')
+    y = y / y_size
+    x = x / x_size
+    return np.concatenate([tensor, y, x], axis=-1)
+
+
 def blend_images_np(image, image2, alpha=0.5):
     """Draws image2 on an image.
     Args:
