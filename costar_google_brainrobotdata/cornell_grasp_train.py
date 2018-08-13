@@ -1236,7 +1236,8 @@ def load_dataset(
         train_data = CostarBlockStackingSequence(
             train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
-            estimated_time_steps_per_example=estimated_time_steps_per_example)
+            estimated_time_steps_per_example=estimated_time_steps_per_example,
+            random_augmentation=0.25)
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
