@@ -200,7 +200,9 @@ class CostarBlockStackingSequence(Sequence):
                  total_actions_available=41,
                  batch_size=32, shuffle=False, seed=0,
                  random_state=None,
-                 is_training=True, random_augmentation=None, output_shape=None,
+                 is_training=True, random_augmentation=None,
+                 random_shift=False,
+                 output_shape=None,
                  blend_previous_goal_images=False,
                  estimated_time_steps_per_example=250, verbose=0):
         '''Initialization
@@ -240,6 +242,7 @@ class CostarBlockStackingSequence(Sequence):
         self.data_features_to_extract = data_features_to_extract
         self.total_actions_available = total_actions_available
         self.random_augmentation = random_augmentation
+        self.random_shift = random_shift
 
         self.blend = blend_previous_goal_images
         self.estimated_time_steps_per_example = estimated_time_steps_per_example
@@ -379,7 +382,7 @@ class CostarBlockStackingSequence(Sequence):
                         rgb_images_resized = []
                         for k, images in enumerate(rgb_images):
                             if (self.is_training and self.random_augmentation is not None and
-                                    np.random.random() > self.random_augmentation):
+                                    self.random_shift and np.random.random() > self.random_augmentation):
                                 # apply random shift to the images before resizing
                                 images = keras_preprocessing.image.random_shift(
                                     images,

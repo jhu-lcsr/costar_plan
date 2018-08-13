@@ -268,7 +268,8 @@ def main(args, root="root"):
     progress_bar = tqdm(filenames)
 
     # Report ignored files to the user
-    progress_bar.write('Ignoring the following files which do not contain ".h5f": \n\n' + str(ignored_files) + '\n\n')
+    if ignored_files:
+        progress_bar.write('Ignoring the following files which do not contain ".h5f": \n\n' + str(ignored_files) + '\n\n')
 
     # label_correction_reconfirm forces all label_correction steps
     if args['label_correction_reconfirm']:
