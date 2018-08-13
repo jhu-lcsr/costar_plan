@@ -755,7 +755,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
         else:
             callbacks = callbacks + [
                 keras_contrib.callbacks.CyclicLR(
-                    step_size=train_steps * 4, base_lr=1e-6, max_lr=learning_rate,
+                    step_size=train_steps * 8, base_lr=1e-6, max_lr=learning_rate,
                     mode=learning_rate_schedule, gamma=0.99995)
             ]
     return callbacks, optimizer
