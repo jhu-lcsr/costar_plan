@@ -110,8 +110,9 @@ def concat_unit_meshgrid_np(tensor):
     y, x = np.meshgrid(np.arange(y_size),
                        np.arange(x_size),
                        indexing='ij')
-    y = y / y_size
-    x = x / x_size
+    max_value = np.max(x_size, y_size)
+    y = y / max_value
+    x = x / max_value
     return np.concatenate([tensor, y, x], axis=-1)
 
 
@@ -163,7 +164,7 @@ def get_past_goal_indices(current_robot_time_index, goal_indices, filename='', v
 
     # Returns
 
-    A list of indicies representing all the goal time steps
+    A list of indices representing all the goal time steps
     """
     image_indices = [0]
     total_goal_indices = len(goal_indices)
@@ -219,7 +220,10 @@ class CostarBlockStackingSequence(Sequence):
         label_features_to_extract: defaults to regression options, classification options are also available
         data_features_to_extract: defaults to regression options, classification options are also available
             Options include 'image_0_image_n_vec_xyz_aaxyz_nsc_15' which is a giant NHWC cube of image and pose data,
-            'current_xyz_aaxyz_nsc_8', 'proposed_goal_xyz_aaxyz_nsc_8'.
+            'current_xyz_aaxyz_nsc_8' a vector with the current pose,
+            'proposed_goal_xyz_aaxyz_nsc_8' a pose at the end of the current action (for classification cases),
+            'image_0_image_n_vec_xyz_xygrid_12' another giant cube without rotation and with explicit normalized xy coordinates,
+            'image_0_image_n_vec_xyz_aaxyz_nsc_xygrid_17' another giant cube with rotation and explicit normalized xy coordinates.
         random_augmentation: None or a float value between 0 and 1 indiciating how frequently random augmentation should be applied.
         estimated_time_steps_per_example: The number of images in each example varies,
             so we simply sample in proportion to an estimated number of images per example.
@@ -480,13 +484,15 @@ class CostarBlockStackingSequence(Sequence):
             # X = init_images
             if (self.data_features_to_extract is None or
                     'current_xyz_3' in self.data_features_to_extract or
-                    'image_0_image_n_vec_xyz_10' in self.data_features_to_extract):
+                    'image_0_image_n_vec_xyz_10' in self.data_features_to_extract or
+                    'image_0_image_n_vec_xyz_xygrid_12' in self.data_features_to_extract):
                 # regression input case for translation only
                 action_poses_vec = np.concatenate([encoded_poses[:, :3], action_labels], axis=-1)
                 X = [init_images, current_images, action_poses_vec]
             elif (self.data_features_to_extract is None or
                     'current_xyz_aaxyz_nsc_8' in self.data_features_to_extract or
-                    'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
+                    'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract or
+                    'image_0_image_n_vec_xyz_aaxyz_nsc_xygrid_17' in self.data_features_to_extract):
                 # default, regression input case for translation and rotation
                 action_poses_vec = np.concatenate([encoded_poses, action_labels], axis=-1)
                 X = [init_images, current_images, action_poses_vec]
@@ -501,6 +507,9 @@ class CostarBlockStackingSequence(Sequence):
             if (self.data_features_to_extract is not None and 'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
                 # make the giant data cube if it is requested
                 X = concat_images_with_tiled_vector_np(X[:2], X[2:])
+
+            if (self.data_features_to_extract is not None and [s for s in self.data_features_to_extract if 'xygrid' in s]):
+                X = concat_unit_meshgrid_np(X)
 
             # print("type=======",type(X))
             # print("shape=====",X.shape)
