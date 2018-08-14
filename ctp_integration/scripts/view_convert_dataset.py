@@ -371,22 +371,34 @@ def generate_gripper_action_label(data):
             gripper_action_label[i] = unique_actions[action_ind]
 
     gripper_ind = 0
-    #print(gripper_action_goal_idx)
     goal_list = []
-    for i in range(len(gripper_action_label)):
+    goal_state = False
+    if len(gripper_action_goal_idx) == 0:
+        goal_to_add = 0
+    else:
+        goal_to_add = gripper_action_goal_idx[0] - 1
+    if goal_to_add != 0:
+        for i in range(len(gripper_action_label)):
+            # print(i)
+            if(i < goal_to_add):
+                # print("goal_len", len(goal_list))
+                goal_state = False
+                goal_list.append(goal_to_add)
 
-        if gripper_ind < len(gripper_action_goal_idx):
-            goal_to_add = gripper_action_goal_idx[gripper_ind] - 1
-        else:
-            goal_to_add = len(gripper_status)-1
+            else:
+                gripper_ind += 1
+                goal_state = True
 
-        if(i < goal_to_add):
-            goal_list.append(goal_to_add)
+            if gripper_ind < len(gripper_action_goal_idx):
+                goal_to_add = gripper_action_goal_idx[gripper_ind] - 1
+            else:
+                goal_to_add = len(gripper_status)-1
+            if goal_state is True:
+                goal_list.append(goal_to_add)
+    else:
+        goal_list = [goal_state]
 
-        else:
-            gripper_ind += 1
     gripper_action_goal_idx = goal_list
-    #print(gripper_action_goal_idx)
 
     return gripper_action_label, gripper_action_goal_idx
 
