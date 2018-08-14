@@ -394,6 +394,7 @@ def main(args, root="root"):
                         status_string = label_correction_table[i, status_idx]
                         if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
                             # loading the data would take a long time, so skip
+                            clip = None
                             continue
                         # only show the last few frames when correcting labels
                         start_frame = args['label_correction_initial_frame']
