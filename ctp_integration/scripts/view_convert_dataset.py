@@ -164,9 +164,9 @@ def _parse_args():
     parser.add_argument("--label_correction_csv", type=str, default='rename_dataset_labels.csv',
                         help='File from which to load & update the label correction csv file, expected to be in --path folder.')
     parser.add_argument("--label_correction_initial_frame", type=int, default=-4,
-        help='initial frame to view in video, negative numbers are the distance in frames from the final frame.')
+                        help='labinitial frame to view in video, negative numbers are the distance in frames from the final frame.')
     parser.add_argument("--label_correction_final_frame", type=int, default=-1,
-        help='final frame to view in video, negative numbers are the distance in frames from the final frame.')
+                        help='final frame to view in video, negative numbers are the distance in frames from the final frame.')
     parser.add_argument("--gripper", type=bool, default=False, help='print gripper data channel')
     parser.add_argument("--depth", type=bool, default=True, help='process depth data')
     parser.add_argument("--rgb", type=bool, default=True, help='process rgb data')
@@ -389,6 +389,12 @@ def main(args, root="root"):
                     start_frame = 0
                     end_frame = -1
                     if args['label_correction']:
+                        # Label correction needs some special data loading logic
+                        status_idx = 2
+                        status_string = label_correction_table[i, status_idx]
+                        if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
+                            # loading the data would take a long time, so skip
+                            continue
                         # only show the last few frames when correcting labels
                         start_frame = args['label_correction_initial_frame']
                         end_frame = args['label_correction_final_frame']
