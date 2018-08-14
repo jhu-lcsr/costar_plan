@@ -123,7 +123,7 @@ def main(_):
             # 2018-08-12 EXCELLENT ROTATION MODEL #5 of 730 models for rotation 58% val accuracy for angles within 15 degrees.
             FLAGS.load_hyperparams = 'hyperparams/semantic_rotation_regression/2018-08-09-03-05-18_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json'
             if use_best_model:
-                FLAGS.load_hyperparams = 'hyperopt_logs_costar_block_stacking_train_ranked_regression/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-041-val_loss-0.007-val_grasp_acc-0.581.h5'
+                load_weights = 'hyperopt_logs_costar_block_stacking_train_ranked_regression/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-041-val_loss-0.007-val_grasp_acc-0.581.h5'
 
     FLAGS.epochs = 300
     FLAGS.batch_size = 32
