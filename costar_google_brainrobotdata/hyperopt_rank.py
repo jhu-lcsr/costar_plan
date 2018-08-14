@@ -126,7 +126,11 @@ def main(_):
             if len(hyperparam_filename) > 1:
                 progress.write('Unexpectedly got more than hyperparam file match, '
                                'only keeping the first one: ' + str(hyperparam_filename))
-            hyperparam_filename = hyperparam_filename[0]
+            if hyperparam_filename:
+                hyperparam_filename = hyperparam_filename[0]
+            else:
+                progress.write('No hyperparameters in directory, skipping: ' + str(csv_dir))
+                continue
             dataframe['hyperparameters_filename'] = hyperparam_filename
             if FLAGS.load_hyperparams and len(hyperparam_filename) > 0:
                 hyperparams = grasp_utilities.load_hyperparams_json(hyperparam_filename)

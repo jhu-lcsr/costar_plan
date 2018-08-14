@@ -26,6 +26,101 @@ import numpy as np
 import tensorflow as tf
 import math
 
+def q_matrix(q):
+    """ Matrix representation of quaternion xyzw for multiplication purposes.
+    Expects batch of quaternions in xyzw format of shape (n, 4).
+    Note that this function and ROS quaternions use xyzw order, other code in this file is wxyz.
+
+    TODO(ahundt) WORK IN PROGRESS, not complete or tested, see the following links for reference code:
+    # http://kieranwynn.github.io/pyquaternion/
+    # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py
+    # https://github.com/moble/quaternion
+    # https://github.com/ClementPinard/SfmLearner-Pytorch
+    # https://github.com/bistromath/gr-air-modes/blob/master/python/Quaternion.py
+    """
+    return tf.convert_to_tensor([
+        [q[:, 3], -q[:, 0], -q[:, 1], -q[:, 2]],
+        [q[:, 0],  q[:, 3], -q[:, 2],  q[:, 1]],
+        [q[:, 1],  q[:, 2],  q[:, 3], -q[:, 0]],
+        [q[:, 2], -q[:, 1],  q[:, 0],  q[:, 3]]])
+
+def q_bar_matrix(q):
+    """Matrix representation of quaternion xyzw for multiplication purposes.
+    Expects batch of quaternions in xyzw format of shape (n, 4).
+    Note that this function and ROS quaternions use xyzw order, other code in this file is wxyz.
+
+    TODO(ahundt) WORK IN PROGRESS, not complete or tested, see # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py and https://github.com/moble/quaternion for reference.
+    """
+    return tf.convert_to_tensor([
+        [q[:, 3], -q[:, 0], -q[:, 1], -q[:, 2]],
+        [q[:, 0],  q[:, 3],  q[:, 2], -q[:, 1]],
+        [q[:, 1], -q[:, 2],  q[:, 3],  q[:, 0]],
+        [q[:, 2],  q[:, 1], -q[:, 0],  q[:, 3]]])
+
+def q_norm(q):
+    """ Get the scalar norm length of a batch of quaternion.
+    Expects batch of quaternions in xyzw format of shape (n, 4).
+    Note that this function and ROS quaternions use xyzw order, other code in this file is wxyz.
+
+    TODO(ahundt) WORK IN PROGRESS, not complete or tested, see # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py and https://github.com/moble/quaternion for reference.
+    """
+    return tf.linalg.norm(q, axis=1)
+
+def q_log(q, epsilon=1e-14):
+    """ Logarithm of a batch of quaternions.
+    Expects batch of quaternions in xyzw format of shape (n, 4).
+    Note that this function and ROS quaternions use xyzw order, other code in this file is wxyz.
+
+    TODO(ahundt) WORK IN PROGRESS, not complete or tested, see # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py and https://github.com/moble/quaternion for reference.
+    """
+    # https://www.tensorflow.org/versions/r1.8/api_docs/python/tf/norm
+    v_norm = tf.linalg.norm(q[:, :3], axis=1)
+    quat_norm = q_norm(q)
+    # assuming not a 0 quaternion
+    vec = q[:, :3] / v_norm
+    # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py#L645
+    # https://math.stackexchange.com/a/2554/80218
+    # TODO(ahundt) for each quaternion, if v_norm < tolerance, the quaternion is real only quaternion should be tf.concatenate(tf.log(quat_norm[:]) tf.zeros(tf.shape(q)[0], 3)
+    return K.stack([tf.log(quat_norm[:, 0]), tf.acos(q[:, 0] / tf.max(quat_norm[:, 0], epsilon)) * vec], axis=-1)
+
+def q_exp(q, epsilon=1e-12):
+    """
+    Expects batch of quaternions in xyzw format of shape (n, 4).
+    Note that this function and ROS quaternions use xyzw order, other code in this file is wxyz.
+
+    TODO(ahundt) WORK IN PROGRESS, not complete or tested, see # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py.
+    """
+    # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py#L622
+    # https://www.tensorflow.org/versions/r1.8/api_docs/python/tf/norm
+    v_norm = tf.linalg.norm(q[:, :3], axis=1)
+    quat_norm = q_norm(q)
+    vec = q[:, :3] / tf.max(quat_norm[:, 0], epsilon)
+    magnitude = tf.exp(q[:, 0])
+    return K.stack([magnitude * tf.cos(v_norm), magnitude * tf.sin(v_norm) * vec[:]])
+
+def q_sym_log_map(q0, q1):
+    """
+    Expects batch of quaternions in xyzw format of shape (n, 4).
+    Note that this function and ROS quaternions use xyzw order, other code in this file is wxyz.
+
+    TODO(ahundt) WORK IN PROGRESS, not complete or tested, see # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py.
+
+    # Note
+        Information on the symmetrized formulations given in [Source](https://www.researchgate.net/publication/267191489_Riemannian_L_p_Averaging_on_Lie_Group_of_Nonzero_Quaternions
+    """
+    # collector quaternion format: xyzw
+    # pyquaternion format: wxyz
+    inv_sqrt_q = (q ** (-0.5))
+return Quaternion.log(inv_sqrt_q * p * inv_sqrt_q)
+
+def quaternion_symmetrized_distance(q0, q1):
+    """
+    Expects batch of quaternions in xyzw format of shape (n, 4).
+    Note that this function and ROS quaternions use xyzw order, other code in this file is wxyz.
+
+    TODO(ahundt) WORK IN PROGRESS, not complete or tested, see # https://github.com/KieranWynn/pyquaternion/blob/master/pyquaternion/quaternion.py.
+    """
+    return K.l2_normalize(q, axis=1)
 
 def quat_scope(func, *args, **kwargs):
     def scoped_func(*args, **kwargs):

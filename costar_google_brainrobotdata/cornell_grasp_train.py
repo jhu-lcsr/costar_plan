@@ -755,7 +755,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
         else:
             callbacks = callbacks + [
                 keras_contrib.callbacks.CyclicLR(
-                    step_size=train_steps * 4, base_lr=1e-6, max_lr=learning_rate,
+                    step_size=train_steps * 8, base_lr=1e-6, max_lr=learning_rate,
                     mode=learning_rate_schedule, gamma=0.99995)
             ]
     return callbacks, optimizer
@@ -1012,7 +1012,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # classes = 8
         classes = 3
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae']
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg, grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1039,7 +1039,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # classes = 8
         classes = 5
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae']
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg, grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1060,7 +1060,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # this is the regression case with the costar block stacking dataset
         classes = 8
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae']
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg, grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1236,7 +1236,8 @@ def load_dataset(
         train_data = CostarBlockStackingSequence(
             train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
-            estimated_time_steps_per_example=estimated_time_steps_per_example)
+            estimated_time_steps_per_example=estimated_time_steps_per_example,
+            random_augmentation=0.25)
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
