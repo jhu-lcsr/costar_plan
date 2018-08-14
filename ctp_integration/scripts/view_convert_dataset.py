@@ -327,7 +327,7 @@ def main(args, root="root"):
             status_idx = 2
             status_string = label_correction_table[i, status_idx]
             progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
-            if 'confirmed' in status_string and not args['label_correction_reconfirm']:
+            if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
                 clip = None
                 # loading the data would take a long time, so skip
                 continue
