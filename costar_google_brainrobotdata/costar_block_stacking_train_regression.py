@@ -147,9 +147,15 @@ def main(_):
 
     dataset_name = 'costar_block_stacking'
 
+    print('-' * 80)
+    print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams))
+
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
         feature_combo_name=feature_combo)
+
+    print('n' + str(hyperparams))
+    print('-' * 80)
 
     # TODO: remove loss if it doesn't work or make me the default in the other files if it works really well
     hyperparams['loss'] = 'mse'
@@ -165,9 +171,6 @@ def main(_):
         # For resuming translation model training
         # hyperparams['learning_rate'] = 1e-3
     # hyperparams['trainable'] = True
-    print('-' * 80)
-    print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams) + '\n\n' + str(hyperparams))
-    print('-' * 80)
 
     if 'k_fold' in FLAGS.pipeline_stage:
         cornell_grasp_train.train_k_fold(
