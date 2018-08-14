@@ -81,6 +81,11 @@ flags.DEFINE_float(
     'Initial learning rate.'
 )
 flags.DEFINE_float(
+    'random_augmentation',
+    0.25,
+    'Frequency from 0.0 to 1.0 with which random augmentation is performed. Currently for block stacking dataset only.'
+)
+flags.DEFINE_float(
     'fine_tuning_learning_rate',
     0.001,
     'Initial learning rate, this is the learning rate used if load_weights is passed.'
@@ -1232,12 +1237,16 @@ def load_dataset(
         # validation_data = file_names[10:15]
         # print(train_data)
         # TODO(ahundt) use cornell & google dataset data augmentation / preprocessing for block stacking.
+        random_augmentation = FLAGS.random_augmentation
+        if random_augmentation == 0.0:
+            random_augmentation = None
+
         output_shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         train_data = CostarBlockStackingSequence(
             train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
             estimated_time_steps_per_example=estimated_time_steps_per_example,
-            random_augmentation=0.25)
+            random_augmentation=random_augmentation)
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
