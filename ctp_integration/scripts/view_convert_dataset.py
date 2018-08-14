@@ -325,8 +325,8 @@ def main(args, root="root"):
             # Label correction needs some special data loading logic
             # so we can skip data that already has human confirmation
             status_idx = 2
-            progress_bar.write('i: ' + str(i))
             status_string = label_correction_table[i, status_idx]
+            progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
             if 'confirmed' in status_string and not args['label_correction_reconfirm']:
                 clip = None
                 # loading the data would take a long time, so skip
