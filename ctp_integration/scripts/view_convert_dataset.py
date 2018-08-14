@@ -326,7 +326,8 @@ def main(args, root="root"):
             # so we can skip data that already has human confirmation
             status_idx = 2
             status_string = label_correction_table[i, status_idx]
-            progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
+            # next commented line is for debug
+            # progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
             if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
                 # loading the data would take a long time, so skip
                 continue
