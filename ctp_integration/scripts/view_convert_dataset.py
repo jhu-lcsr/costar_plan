@@ -402,7 +402,9 @@ def main(args, root="root"):
                         # only show the last few frames when correcting labels
                         start_frame = args['label_correction_initial_frame']
                         end_frame = args['label_correction_final_frame']
-                        progress_bar.write('label_correction i: ' + str(i) + ' start ' + str(start_frame) + ' end ' + str(end_frame) + 'd,rgb' + str(load_depth) + str(load_rgb))
+                        if len(data['image']) == 0:
+                            clip = None
+                            error_encountered = 'no_images'
 
                     if load_depth:
                         depth_images = list(data['depth_image'][start_frame:end_frame])
@@ -481,7 +483,7 @@ def label_correction(label_correction_table, i, example_filename, args, progress
             '    (3) Edit the code to handle this situation by perhaps adding any missing files to the list and re-sorting.')
 
     if not args['write']:
-        if status_string == 'unconfirmed' or args['label_correction_reconfirm']:
+        if error_encountered is None and (status_string == 'unconfirmed' or args['label_correction_reconfirm']):
             progress_bar.write('-' * 80)
             progress_bar.write('Current row ' + str(i) + ' [original, corrected, status, comment]:\n    ' + str(label_correction_table[i, :]) + '\n')
             # show the clip
