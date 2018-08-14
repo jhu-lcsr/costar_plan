@@ -321,6 +321,15 @@ def main(args, root="root"):
         else:
             example_filename = filename
 
+        if args['label_correction']:
+            # Label correction needs some special data loading logic
+            # so we can skip data that already has human confirmation
+            status_idx = 2
+            status_string = label_correction_table[i, status_idx]
+            if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
+                # loading the data would take a long time, so skip
+                continue
+
         # We haven't run into any errors yet for this file,
         # if we do, this will identify files with errors
         # in logs and the label correction csv
@@ -389,13 +398,6 @@ def main(args, root="root"):
                     start_frame = 0
                     end_frame = -1
                     if args['label_correction']:
-                        # Label correction needs some special data loading logic
-                        status_idx = 2
-                        status_string = label_correction_table[i, status_idx]
-                        if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
-                            # loading the data would take a long time, so skip
-                            clip = None
-                            continue
                         # only show the last few frames when correcting labels
                         start_frame = args['label_correction_initial_frame']
                         end_frame = args['label_correction_final_frame']
