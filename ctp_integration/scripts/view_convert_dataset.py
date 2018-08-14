@@ -400,9 +400,9 @@ def main(args, root="root"):
                     end_frame = -1
                     if args['label_correction']:
                         # only show the last few frames when correcting labels
-                        progress_bar.write('label_correction i: ' + str(i))
                         start_frame = args['label_correction_initial_frame']
                         end_frame = args['label_correction_final_frame']
+                        progress_bar.write('label_correction i: ' + str(i) + ' start ' + str(start_frame) + ' end ' + str(end_frame) + 'd,rgb' + str(load_depth) + str(load_rgb))
 
                     if load_depth:
                         depth_images = list(data['depth_image'][start_frame:end_frame])
