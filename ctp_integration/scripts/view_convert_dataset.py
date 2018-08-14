@@ -326,7 +326,8 @@ def main(args, root="root"):
             # so we can skip data that already has human confirmation
             status_idx = 2
             status_string = label_correction_table[i, status_idx]
-            if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
+            if 'confirmed' in status_string and not args['label_correction_reconfirm']:
+                clip = None
                 # loading the data would take a long time, so skip
                 continue
 
@@ -483,7 +484,8 @@ def label_correction(label_correction_table, i, example_filename, args, progress
             progress_bar.write('-' * 80)
             progress_bar.write('Current row ' + str(i) + ' [original, corrected, status, comment]:\n    ' + str(label_correction_table[i, :]) + '\n')
             # show the clip
-            clip.preview()
+            if clip is not None:
+                clip.preview()
             # Get the human corrected label
             label, comment, mark_previous_unconfirmed = wait_for_keypress_to_select_label(progress_bar)
             if mark_previous_unconfirmed and i > 0:
