@@ -95,7 +95,7 @@ def main(_):
 
     FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f')
     FLAGS.fine_tuning_epochs = 0
-    FLAGS.epochs = 400
+    FLAGS.epochs = 600
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
@@ -116,6 +116,8 @@ def main(_):
         dataframe = dataframe.sort_values('val_angle_error', ascending=True)
         dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
         sort_by = 'val_grasp_acc'
+        # DISABLE RANDOM AUGMENTATION FOR ROTATION
+        FLAGS.random_augmentation = None
     elif FLAGS.problem_type == 'semantic_translation_regression':
         # sort by val_cart_error from low to high
         dataframe = dataframe.sort_values('val_cart_error', ascending=True)
@@ -125,7 +127,7 @@ def main(_):
         sort_by = 'val_grasp_acc'
 
     # loop over the ranked models
-    row_progress = tqdm(dataframe.iterrows())
+    row_progress = tqdm(dataframe.iterrows(), ncols=240)
     for index, row in row_progress:
         history = None
         hyperparameters_filename = row['hyperparameters_filename']
