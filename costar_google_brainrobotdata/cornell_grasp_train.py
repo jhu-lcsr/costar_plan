@@ -216,15 +216,15 @@ FLAGS = flags.FLAGS
 
 
 def save_user_flags(save_filename, line_limit=80, verbose=1):
-    """ print and save the tf FLAGS, based on https://github.com/melodyguan/enas
+    """ print and save the tf FLAGS
+
+    based on https://github.com/melodyguan/enas
     """
-    print("-" * 80)
+    if verbose > 0:
+        print("-" * 80)
+    flags_dict = FLAGS.flag_values_dict()
 
-    global user_flags
-    FLAGS = tf.app.flags.FLAGS
-    flags_dict = {}
-
-    for flag_name in sorted(user_flags):
+    for flag_name, flag_value in six.iteritems(flags_dict):
         value = "{}".format(getattr(FLAGS, flag_name))
         flags_dict[flag_name] = value
         log_string = flag_name
