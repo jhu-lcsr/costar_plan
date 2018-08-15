@@ -18,8 +18,8 @@ FLAGS = flags.FLAGS
 
 def main(_):
     use_best_model = True
-    # problem_type = 'semantic_translation_regression'
-    problem_type = 'semantic_rotation_regression'
+    problem_type = 'semantic_translation_regression'
+    #problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
     # problem_type2 = 'semantic_grasp_regression'
     problem_type2 = None
@@ -101,6 +101,8 @@ def main(_):
                 # use these weights for both xyz and axis angle input data
                 # TODO(ahundt) are these the wrong weights? "ValueError: You are trying to load a weight file containing 13 layers into a model with 11 layers."
                 # load_weights = './logs_cornell/2018-08-09-11-26-03_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-08-09-11-26-03_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-003-val_loss-0.000-val_grasp_acc-0.160.h5'
+                # weights below are trained with data augmentation, weights 2018-07-31-21-40-50 above are actual best so far for translation as of 2018-08-12
+                load_weights = 'logs_cornell/2018-08-12-22-45-00_train_200_epochs-nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-08-12-22-45-00_train_200_epochs-nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-198-val_loss-0.000-val_grasp_acc-0.158.h5'
             # weights for TRANSLATION + ROTATION PROBLEM:
             if problem_type == 'semantic_grasp_regression':
                 # same hyperparams as above, just also the same folder as the weights below it
@@ -165,9 +167,9 @@ def main(_):
     hyperparams['learning_rate'] = 1.0
     if load_weights is not None:
         # For training from scratch
-        hyperparams['learning_rate'] = 1.0
+        #hyperparams['learning_rate'] = 1.0
         # For resuming translation + rotation model training
-        # hyperparams['learning_rate'] = 1e-2
+        hyperparams['learning_rate'] = 1e-2
         # For resuming translation model training
         # hyperparams['learning_rate'] = 1e-3
     # hyperparams['trainable'] = True
