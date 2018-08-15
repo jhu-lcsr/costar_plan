@@ -215,6 +215,29 @@ flags.DEFINE_string(
 FLAGS = flags.FLAGS
 
 
+def save_user_flags(save_filename, line_limit=80, verbose=1):
+    """ print and save the tf FLAGS, based on https://github.com/melodyguan/enas
+    """
+    print("-" * 80)
+
+    global user_flags
+    FLAGS = tf.app.flags.FLAGS
+    flags_dict = {}
+
+    for flag_name in sorted(user_flags):
+        value = "{}".format(getattr(FLAGS, flag_name))
+        flags_dict[flag_name] = value
+        log_string = flag_name
+        log_string += "." * (line_limit - len(flag_name) - len(value))
+        log_string += value
+        if save_filename is not None:
+            with open(save_filename, 'w') as fp:
+                # save out all flags params so they can be reloaded in the future
+                json.dump(flags_dict, fp)
+        if verbose > 0:
+            print(log_string)
+
+
 class GraspJaccardEvaluateCallback(keras.callbacks.Callback):
     """ Validate a model which needs custom numpy metrics during training.
 
@@ -454,6 +477,8 @@ def run_training(
     # Save the current model to a json string so it is human readable
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
+
+    save_user_flags(log_dir_run_name + '_flags.json')
 
     # Stop when models are extremely slow
     max_batch_time_seconds = 1.0
