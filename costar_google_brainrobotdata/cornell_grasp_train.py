@@ -1370,7 +1370,7 @@ def model_predict_k_fold(
 
     metric_fold_averages = np.zeros((num_fold))
     loss_fold_averages = np.zeros((num_fold))
-    with tqdm(range(num_fold), desc='kfold prediction') as progbar_folds:
+    with tqdm(range(num_fold), desc='kfold prediction', ncols=240) as progbar_folds:
         for i in progbar_folds:
             # This is a special string,
             # make sure to maintain backwards compatibility
