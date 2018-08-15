@@ -81,6 +81,11 @@ flags.DEFINE_float(
     'Initial learning rate.'
 )
 flags.DEFINE_float(
+    'random_augmentation',
+    0.25,
+    'Frequency from 0.0 to 1.0 with which random augmentation is performed. Currently for block stacking dataset only.'
+)
+flags.DEFINE_float(
     'fine_tuning_learning_rate',
     0.001,
     'Initial learning rate, this is the learning rate used if load_weights is passed.'
@@ -208,6 +213,29 @@ flags.DEFINE_string(
 )
 
 FLAGS = flags.FLAGS
+
+
+def save_user_flags(save_filename, line_limit=80, verbose=1):
+    """ print and save the tf FLAGS, based on https://github.com/melodyguan/enas
+    """
+    print("-" * 80)
+
+    global user_flags
+    FLAGS = tf.app.flags.FLAGS
+    flags_dict = {}
+
+    for flag_name in sorted(user_flags):
+        value = "{}".format(getattr(FLAGS, flag_name))
+        flags_dict[flag_name] = value
+        log_string = flag_name
+        log_string += "." * (line_limit - len(flag_name) - len(value))
+        log_string += value
+        if save_filename is not None:
+            with open(save_filename, 'w') as fp:
+                # save out all flags params so they can be reloaded in the future
+                json.dump(flags_dict, fp)
+        if verbose > 0:
+            print(log_string)
 
 
 class GraspJaccardEvaluateCallback(keras.callbacks.Callback):
@@ -449,6 +477,8 @@ def run_training(
     # Save the current model to a json string so it is human readable
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
+
+    save_user_flags(log_dir_run_name + '_flags.json')
 
     # Stop when models are extremely slow
     max_batch_time_seconds = 1.0
@@ -1012,7 +1042,11 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # classes = 8
         classes = 3
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg, grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg]
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
+                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
+                   grasp_metrics.grasp_acc_4cm_30deg, grasp_metrics.grasp_acc_8cm_60deg,
+                   grasp_metrics.grasp_acc_16cm_120deg, grasp_metrics.grasp_acc_32cm_240deg,
+                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1039,7 +1073,11 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # classes = 8
         classes = 5
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg, grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg]
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
+                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
+                   grasp_metrics.grasp_acc_4cm_30deg, grasp_metrics.grasp_acc_8cm_60deg,
+                   grasp_metrics.grasp_acc_16cm_120deg, grasp_metrics.grasp_acc_32cm_240deg,
+                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1060,7 +1098,11 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # this is the regression case with the costar block stacking dataset
         classes = 8
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg, grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg]
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
+                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
+                   grasp_metrics.grasp_acc_4cm_30deg, grasp_metrics.grasp_acc_8cm_60deg,
+                   grasp_metrics.grasp_acc_16cm_120deg, grasp_metrics.grasp_acc_32cm_240deg,
+                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1232,12 +1274,16 @@ def load_dataset(
         # validation_data = file_names[10:15]
         # print(train_data)
         # TODO(ahundt) use cornell & google dataset data augmentation / preprocessing for block stacking.
+        random_augmentation = FLAGS.random_augmentation
+        if random_augmentation == 0.0:
+            random_augmentation = None
+
         output_shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         train_data = CostarBlockStackingSequence(
             train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
             estimated_time_steps_per_example=estimated_time_steps_per_example,
-            random_augmentation=0.25)
+            random_augmentation=random_augmentation)
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
@@ -1336,7 +1382,7 @@ def model_predict_k_fold(
 
     metric_fold_averages = np.zeros((num_fold))
     loss_fold_averages = np.zeros((num_fold))
-    with tqdm(range(num_fold), desc='kfold prediction') as progbar_folds:
+    with tqdm(range(num_fold), desc='kfold prediction', ncols=240) as progbar_folds:
         for i in progbar_folds:
             # This is a special string,
             # make sure to maintain backwards compatibility

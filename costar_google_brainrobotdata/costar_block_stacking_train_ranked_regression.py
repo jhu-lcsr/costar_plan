@@ -65,7 +65,7 @@ def main(_):
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     load_weights = None
-    FLAGS.batch_size = 16
+    FLAGS.batch_size = 64
     optimizer_name = 'sgd'
     # FLAGS.crop_height = 480
     # FLAGS.crop_width = 640
@@ -95,7 +95,7 @@ def main(_):
 
     FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f')
     FLAGS.fine_tuning_epochs = 0
-    FLAGS.epochs = 200
+    FLAGS.epochs = 400
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
