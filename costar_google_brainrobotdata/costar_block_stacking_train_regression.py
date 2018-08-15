@@ -167,9 +167,9 @@ def main(_):
     hyperparams['learning_rate'] = 1.0
     if load_weights is not None:
         # For training from scratch
-        #hyperparams['learning_rate'] = 1.0
+        hyperparams['learning_rate'] = 1.0
         # For resuming translation + rotation model training
-        hyperparams['learning_rate'] = 1e-2
+        # hyperparams['learning_rate'] = 1e-2
         # For resuming translation model training
         # hyperparams['learning_rate'] = 1e-3
     # hyperparams['trainable'] = True
