@@ -1083,7 +1083,7 @@ def grasp_acc_16cm_240deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_transl
     return filter_result
 
 
-def grasp_acc_32cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.32, max_rotation=6.28319):
+def grasp_acc_32cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.32, max_rotation=6.2832):
     """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
 
     Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
@@ -1107,7 +1107,7 @@ def grasp_acc_32cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_transl
     return filter_result
 
 
-def grasp_acc_64cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.64, max_rotation=6.28319):
+def grasp_acc_64cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.64, max_rotation=6.2832):
     """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
 
     Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
@@ -1131,7 +1131,7 @@ def grasp_acc_64cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_transl
     return filter_result
 
 
-def grasp_acc_128cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=1.28, max_rotation=6.28319):
+def grasp_acc_128cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=1.28, max_rotation=6.2832):
     """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
 
     Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
@@ -1155,7 +1155,7 @@ def grasp_acc_128cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_trans
     return filter_result
 
 
-def grasp_acc_256cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=2.56, max_rotation=6.28319):
+def grasp_acc_256cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=2.56, max_rotation=6.2832):
     """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
 
     Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
@@ -1179,7 +1179,7 @@ def grasp_acc_256cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_trans
     return filter_result
 
 
-def grasp_acc_512cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=2.56, max_rotation=6.28319):
+def grasp_acc_512cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=5.12, max_rotation=6.2832):
     """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
 
     Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
