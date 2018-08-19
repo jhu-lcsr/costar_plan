@@ -786,7 +786,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
             callbacks = callbacks + [
                 keras_contrib.callbacks.CyclicLR(
                     step_size=train_steps * 8, base_lr=1e-6, max_lr=learning_rate,
-                    mode=learning_rate_schedule, gamma=0.99999)
+                    mode=learning_rate_schedule, gamma=0.99997)
             ]
     return callbacks, optimizer
 
@@ -1051,12 +1051,12 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
         # label with translation and orientation
-        vector_shapes = [(49,)]
-        # vector_shapes = [(44,)]
+        # vector_shapes = [(49,)]
+        vector_shapes = [(44,)]
         # data with translation and orientation
-        data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
+        # data_features = ['image/preprocessed', 'current_xyz_aaxyz_nsc_8']
         # translation only
-        # data_features = ['image/preprocessed', 'current_xyz_3']
+        data_features = ['image/preprocessed', 'current_xyz_3']
         # label with translation and orientation
         # label_features = ['grasp_goal_xyz_aaxyz_nsc_8']
         # label with translation only
