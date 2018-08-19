@@ -86,10 +86,10 @@ def main(_):
 
         if (problem_type == 'semantic_translation_regression' or problem_type == 'semantic_grasp_regression') and use_best_model:
             # 2018-08-12 CURRENT BEST MODEL FOR TRANSLATION, 30% translation only validation accuracy
-            FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-06-22-34-31_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+            # FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-06-22-34-31_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
             # 2018-07-08 BEST of ~400 or maybe the one 2017-07-07?, 26% translation only validation accuracy, 17.5% combined translation + rotation validation accuracy.
             # BEST MODEL Results in: ./logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3
-            # FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+            FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
             # weights for TRANSLATION PROBLEM ONLY:
             if problem_type == 'semantic_translation_regression':
                 # TODO(ahundt) 2018-08-06 Re-enable best weights, currently disabling due to change in input vector which now includes angle. See commits 785eaf4a4501f2e6532ed59b0972d7b1aaa5784e, b78c3e558567c4b3388a99786549d23a2a1e060c, and 19f274c0d77deff533175692046e424165b821df
