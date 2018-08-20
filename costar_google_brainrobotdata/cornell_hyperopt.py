@@ -65,7 +65,8 @@ def main(_):
     FLAGS.dataset_name = 'costar_block_stacking'
     # FLAGS.problem_type = 'semantic_grasp_regression'
     FLAGS.log_dir = 'hyperopt_logs_costar_block_stacking_train_ranked_regression'
-    FLAGS.problem_type = 'semantic_rotation_regression'
+    # FLAGS.problem_type = 'semantic_rotation_regression'
+    FLAGS.problem_type = 'semantic_translation_regression'
     FLAGS.batch_size = 16
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
