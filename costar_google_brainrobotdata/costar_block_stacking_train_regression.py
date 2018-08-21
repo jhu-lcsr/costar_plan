@@ -17,7 +17,7 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    use_best_model = True
+    use_best_model = False
     problem_type = 'semantic_translation_regression'
     #problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
