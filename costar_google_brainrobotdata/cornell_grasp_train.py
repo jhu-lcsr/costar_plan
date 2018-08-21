@@ -771,6 +771,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
 
     if optimizer_name == 'sgd':
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
+        print('sgd initialized with learning rate: ' + str(learning_rate) + ' this might be overridden by callbacks later.')
     elif optimizer_name == 'adam':
         optimizer = keras.optimizers.Adam()
     elif optimizer_name == 'rmsprop':
