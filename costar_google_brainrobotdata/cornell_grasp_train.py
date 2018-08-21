@@ -549,7 +549,7 @@ def run_training(
     #     validation_data = None
     #     validation_steps = None
 
-    # TODO(ahundt) remove hack below
+    # TODO(ahundt) remove hack below or don't directly access flags and initialize it correctly above
     # hack to skip training so we can run
     # val + test steps evaluate without changing the model
     if FLAGS.override_train_steps is not None:
