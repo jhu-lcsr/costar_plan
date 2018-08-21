@@ -205,14 +205,16 @@ class SlowModelStopping(keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs if logs is not None else {}
-        self._epoch_elapsed = default_timer() - self._epoch_start
-        logs['epoch_elapsed'] = np.array(self._epoch_elapsed)
-        mean_batch = np.mean(self._batch_elapsed)
-        # keras will check for value.item(), so don't cast this to a float, leave it as a numpy array
-        logs['mean_batch_elapsed'] = mean_batch
-        if mean_batch > self._max_batch_time_seconds:
-            self.model.stop_training = True
-            self.stopped_epoch = epoch
+        # Only log results if there are more than 0 train steps
+        if self._batch_elapsed:
+            self._epoch_elapsed = default_timer() - self._epoch_start
+            logs['epoch_elapsed'] = np.array(self._epoch_elapsed)
+            mean_batch = np.mean(self._batch_elapsed)
+            # keras will check for value.item(), so don't cast this to a float, leave it as a numpy array
+            logs['mean_batch_elapsed'] = mean_batch
+            if mean_batch > self._max_batch_time_seconds:
+                self.model.stop_training = True
+                self.stopped_epoch = epoch
 
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
