@@ -203,7 +203,7 @@ def wait_for_keypress_to_select_label(progress_bar):
         "\nPress a key to label the file: 1. success, 2. failure, 4. skip, 5. Extra Cool Example, 6. Problem with this Example 0. whoops! make previous file unconfirmed \n"
         "What to look for:\n"
         " - A successful stack is 3 blocks tall or 4 blocks tall with the gripper completely removed from the field of view.\n"
-        " - When the robot doesn't move but there is already a visible successful stack, that's an error.success, so press 1 for success!\n"
+        " - When the robot doesn't move but there is already a visible successful stack, that's an error.failure.falsely_appears_correct, so press 1 for 'success'!\n"
         " - If you can see the gripper, the example is a failure even if the stack is tall enough!")
     # , 3: error.failure
     flag = 0
@@ -496,7 +496,15 @@ def label_correction(label_correction_table, i, example_filename, args, progress
             original_filename = label_correction_table[i, original_idx]
             if label not in original_filename:
                 if label == 'success':
-                    label_correction_table[i, corrected_idx] = original_filename.replace('failure', label)
+                    if 'error' in original_filename:
+                        # there was some sort of program/system error so the actions were not completed.
+                        # However for the purpose of detecting if there is a stack 3 tall present, this would be marked correct.
+                        # Therefore we have the special label error.failure.falsely_appears_correct!
+                        # Sorry it is complicated but I want to be specific so I don't have to go through all the examples again...
+                        label_correction_table[i, corrected_idx] = original_filename.replace('failure', 'failure.falsely_appears_correct')
+                    else:
+                        # replace failure with success
+                        label_correction_table[i, corrected_idx] = original_filename.replace('failure', label)
                     label_correction_table[i, status_idx] = 'confirmed_rename'
                 elif label == 'failure':
                     label_correction_table[i, corrected_idx] = original_filename.replace('success', label)
