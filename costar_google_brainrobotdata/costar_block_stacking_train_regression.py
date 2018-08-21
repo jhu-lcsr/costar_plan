@@ -167,7 +167,8 @@ def main(_):
     # temporary 0 learning rate for eval!
     hyperparams['learning_rate'] = 0.0
     # hyperparams['learning_rate'] = 1.0
-    # if load_weights is not None:
+    if load_weights is not None:
+        FLAGS.load_weights = load_weights
         # For training from scratch
         # hyperparams['learning_rate'] = 1.0
         # For resuming translation + rotation model training
