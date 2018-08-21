@@ -151,9 +151,10 @@ def main(_):
 
     print('-' * 80)
     print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams))
+    learning_rate = FLAGS.learning_rate
 
     hyperparams = grasp_utilities.load_hyperparams_json(
-        FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
+        FLAGS.load_hyperparams, FLAGS.fine_tuning, learning_rate,
         feature_combo_name=feature_combo)
 
     print('n' + str(hyperparams))
@@ -165,17 +166,23 @@ def main(_):
     hyperparams['checkpoint'] = True
     hyperparams['batch_size'] = FLAGS.batch_size
     # temporary 0 learning rate for eval!
+    learning_rate = 0.0
     hyperparams['learning_rate'] = 0.0
-    # hyperparams['learning_rate'] = 1.0
     if load_weights is not None:
         FLAGS.load_weights = load_weights
         # For training from scratch
-        # hyperparams['learning_rate'] = 1.0
+        # learning_rate = 1.0
         # For resuming translation + rotation model training
-        # hyperparams['learning_rate'] = 1e-2
+        # learning_rate = 1e-2
         # For resuming translation model training
-        # hyperparams['learning_rate'] = 1e-3
+        # learning_rate = 1e-3
     # hyperparams['trainable'] = True
+
+    # override all learning rate settings to make sure
+    # it is consistent with any modifications made above
+    hyperparams['learning_rate'] = learning_rate
+    FLAGS.learning_rate = learning_rate
+    FLAGS.fine_tuning_learning_rate = learning_rate
 
     if 'k_fold' in FLAGS.pipeline_stage:
         cornell_grasp_train.train_k_fold(
