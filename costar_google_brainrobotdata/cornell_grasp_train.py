@@ -779,7 +779,7 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
         raise ValueError('Unsupported optimizer ' + str(optimizer_name) +
                          'try adam, sgd, or rmsprop.')
 
-    if (optimizer_name == 'sgd' or optimizer_name == 'rmsprop' and
+    if ((optimizer_name == 'sgd' or optimizer_name == 'rmsprop') and
             learning_rate_schedule is not None and learning_rate_schedule and learning_rate_schedule != 'none'):
         if learning_rate_schedule == 'reduce_lr_on_plateau':
             callbacks = callbacks + [
