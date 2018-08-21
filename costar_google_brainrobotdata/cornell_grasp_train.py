@@ -208,7 +208,10 @@ flags.DEFINE_string(
     """Options are: reduce_lr_on_plateau, triangular, triangular2, exp_range.
 
     For details see the keras callback ReduceLROnPlateau and the
-    keras_contrib callback CyclicLR.
+    keras_contrib callback CyclicLR. With triangular, triangular2,
+    and exp_range the maximum learning rate
+    will be double the input learning rate you specify
+    so that the average initial learning rate is as specified..
     """
 )
 
@@ -784,8 +787,10 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
             ]
         else:
             callbacks = callbacks + [
+                # In this case the max learning rate is double the specified one,
+                # so that the average initial learning rate is as specified.
                 keras_contrib.callbacks.CyclicLR(
-                    step_size=train_steps * 8, base_lr=1e-6, max_lr=learning_rate,
+                    step_size=train_steps * 8, base_lr=1e-6, max_lr=learning_rate * 2,
                     mode=learning_rate_schedule, gamma=0.99997)
             ]
     return callbacks, optimizer
