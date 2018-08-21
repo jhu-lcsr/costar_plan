@@ -17,10 +17,10 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    use_best_model = True
-    # problem_type = 'semantic_translation_regression'
-    # problem_type = 'semantic_rotation_regression'
-    problem_type = 'semantic_grasp_regression'
+    use_best_model = False
+    problem_type = 'semantic_translation_regression'
+    #problem_type = 'semantic_rotation_regression'
+    # problem_type = 'semantic_grasp_regression'
     # problem_type2 = 'semantic_grasp_regression'
     problem_type2 = None
     feature_combo = 'image_preprocessed'
@@ -85,14 +85,24 @@ def main(_):
         # FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-06-22-34-31_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
         if (problem_type == 'semantic_translation_regression' or problem_type == 'semantic_grasp_regression') and use_best_model:
-            # 2018-07-30 CURRENT BEST MODEL FOR TRANSLATION
-            # 2018-07-08 BEST of ~400 or maybe the one 2017-07-07?, 26% translation only validation accuracy, 17.5% combined translation + rotation validation accuracy.
+            # 2018-08-12 CURRENT SECOND BEST MODEL FOR TRANSLATION, 22% translation only validation accuracy
+            # FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-06-22-34-31_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+            # 2018-07-08 BEST of ~400 or maybe the one 2017-07-07?, 30% translation only validation accuracy, 17.5% combined translation + rotation validation accuracy.
             # BEST MODEL Results in: ./logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3
             FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-07-15-05-32_nasnet_mobile_semantic_grasp_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
             # weights for TRANSLATION PROBLEM ONLY:
             if problem_type == 'semantic_translation_regression':
-                load_weights = './logs_cornell/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-016-val_loss-0.000-val_grasp_acc-0.273.h5'
+                # TODO(ahundt) 2018-08-06 Re-enable best weights, currently disabling due to change in input vector which now includes angle. See commits 785eaf4a4501f2e6532ed59b0972d7b1aaa5784e, b78c3e558567c4b3388a99786549d23a2a1e060c, and 19f274c0d77deff533175692046e424165b821df
+                load_weights = None
+                # use these weights if xyz is input but not axis/angle data
+                load_weights = './logs_cornell/2018-07-31-21-40-50_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-31-21-40-50_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-018-val_loss-0.000-val_grasp_acc-0.300.h5'
+                # load_weights = './logs_cornell/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-016-val_loss-0.000-val_grasp_acc-0.273.h5'
                 # load_weights = './logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-115-val_loss-0.000-val_grasp_acc-0.258.h5'
+                # use these weights for both xyz and axis angle input data
+                # TODO(ahundt) are these the wrong weights? "ValueError: You are trying to load a weight file containing 13 layers into a model with 11 layers."
+                # load_weights = './logs_cornell/2018-08-09-11-26-03_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-08-09-11-26-03_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-003-val_loss-0.000-val_grasp_acc-0.160.h5'
+                # weights below are trained with data augmentation, weights 2018-07-31-21-40-50 above are actual best so far for translation as of 2018-08-12
+                # load_weights = 'logs_cornell/2018-08-12-22-45-00_train_200_epochs-nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-08-12-22-45-00_train_200_epochs-nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-198-val_loss-0.000-val_grasp_acc-0.158.h5'
             # weights for TRANSLATION + ROTATION PROBLEM:
             if problem_type == 'semantic_grasp_regression':
                 # same hyperparams as above, just also the same folder as the weights below it
@@ -111,12 +121,14 @@ def main(_):
         # 2018-07-30 maybe worth a try, vgg model which did very well on rotation, #4 of 729, and fairly good on both val_grasp_acc and val_cart_error
         # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-24-07-43-45_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-24-07-43-45_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
-        if problem_type == 'semantic_rotation_regression' and use_best_model:
-            # 2018-07-30 EXCELLENT ROTATION MODEL #5 of 730 models for rotation 92% test accuracy for angles within 15 degrees.
-            FLAGS.load_hyperparams = 'hyperparams/semantic_grasp_regression/2018-07-16-02-02-53_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
+        if problem_type == 'semantic_rotation_regression':
+            # 2018-08-12 EXCELLENT ROTATION MODEL #5 of 730 models for rotation 58% val accuracy for angles within 15 degrees.
+            FLAGS.load_hyperparams = 'hyperparams/semantic_rotation_regression/2018-08-09-03-05-18_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json'
+            if use_best_model:
+                load_weights = 'hyperopt_logs_costar_block_stacking_train_ranked_regression/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-041-val_loss-0.007-val_grasp_acc-0.581.h5'
 
-    FLAGS.epochs = 300
-    FLAGS.batch_size = 256
+    FLAGS.epochs = 600
+    FLAGS.batch_size = 32
     optimizer_name = 'sgd'
     # FLAGS.crop_height = 480
     # FLAGS.crop_width = 640
@@ -137,15 +149,22 @@ def main(_):
 
     dataset_name = 'costar_block_stacking'
 
+    print('-' * 80)
+    print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams))
+
     hyperparams = grasp_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
         feature_combo_name=feature_combo)
+
+    print('n' + str(hyperparams))
+    print('-' * 80)
 
     # TODO: remove loss if it doesn't work or make me the default in the other files if it works really well
     hyperparams['loss'] = 'mse'
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
-    # hyperparams['learning_rate'] = 1.0
+    hyperparams['batch_size'] = FLAGS.batch_size
+    hyperparams['learning_rate'] = 1.0
     if load_weights is not None:
         # For training from scratch
         hyperparams['learning_rate'] = 1.0
@@ -154,9 +173,6 @@ def main(_):
         # For resuming translation model training
         # hyperparams['learning_rate'] = 1e-3
     # hyperparams['trainable'] = True
-    print('-' * 80)
-    print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams) + '\n\n' + str(hyperparams))
-    print('-' * 80)
 
     if 'k_fold' in FLAGS.pipeline_stage:
         cornell_grasp_train.train_k_fold(
@@ -196,6 +212,7 @@ def main(_):
             dataset_name=dataset_name,
             optimizer_name=optimizer_name,
             load_weights=load_weights,
+            hyperparameters_filename=FLAGS.load_hyperparams,
             **hyperparams)
         if problem_type2 is not None:
             print('\n---------------------\ntraining problem type2: ' + str(problem_type2) + '\n---------------------')
@@ -205,6 +222,7 @@ def main(_):
                 hyperparams=hyperparams,
                 dataset_name=dataset_name,
                 optimizer_name=optimizer_name,
+                hyperparameters_filename=FLAGS.load_hyperparams,
                 **hyperparams)
 
 if __name__ == '__main__':

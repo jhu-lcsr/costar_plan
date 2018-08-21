@@ -81,6 +81,11 @@ flags.DEFINE_float(
     'Initial learning rate.'
 )
 flags.DEFINE_float(
+    'random_augmentation',
+    0.25,
+    'Frequency from 0.0 to 1.0 with which random augmentation is performed. Currently for block stacking dataset only.'
+)
+flags.DEFINE_float(
     'fine_tuning_learning_rate',
     0.001,
     'Initial learning rate, this is the learning rate used if load_weights is passed.'
@@ -104,11 +109,6 @@ flags.DEFINE_string(
     'log_dir',
     './logs_cornell/',
     'Directory for tensorboard, model layout, model weight, csv, and hyperparam files'
-)
-flags.DEFINE_string(
-    'model_path',
-    '/tmp/tf/model.ckpt',
-    'Variables for the model.'
 )
 flags.DEFINE_string(
     'train_or_validation',
@@ -197,7 +197,43 @@ flags.DEFINE_string(
     ' Options are: cornell_grasping and costar_block_stacking.'
 )
 
+flags.DEFINE_string(
+    'learning_rate_schedule',
+    'reduce_lr_on_plateau',
+    """Options are: reduce_lr_on_plateau, triangular, triangular2, exp_range.
+
+    For details see the keras callback ReduceLROnPlateau and the
+    keras_contrib callback CyclicLR. With triangular, triangular2,
+    and exp_range the maximum learning rate
+    will be double the input learning rate you specify
+    so that the average initial learning rate is as specified..
+    """
+)
+
 FLAGS = flags.FLAGS
+
+
+def save_user_flags(save_filename, line_limit=80, verbose=1):
+    """ print and save the tf FLAGS
+
+    based on https://github.com/melodyguan/enas
+    """
+    if verbose > 0:
+        print("-" * 80)
+    flags_dict = FLAGS.flag_values_dict()
+
+    for flag_name, flag_value in six.iteritems(flags_dict):
+        value = "{}".format(getattr(FLAGS, flag_name))
+        flags_dict[flag_name] = value
+        log_string = flag_name
+        log_string += "." * (line_limit - len(flag_name) - len(value))
+        log_string += value
+        if save_filename is not None:
+            with open(save_filename, 'w') as fp:
+                # save out all flags params so they can be reloaded in the future
+                json.dump(flags_dict, fp)
+        if verbose > 0:
+            print(log_string)
 
 
 class GraspJaccardEvaluateCallback(keras.callbacks.Callback):
@@ -276,6 +312,7 @@ def run_training(
         checkpoint=True,
         dataset_name=None,
         should_initialize=False,
+        hyperparameters_filename=None,
         **kwargs):
     """
 
@@ -297,6 +334,10 @@ def run_training(
     should_initialize: Workaround for some combined tf/keras bug (Maybe fixed in tf 1.8?)
        see https://github.com/keras-team/keras/issues/4875#issuecomment-313166165,
        TODO(ahundt) remove should_initialize and the corresponding code below if it has been False for a while without issue.
+    hyperparameters_filename: Write a file '*source_hyperparameters_filename.txt' to a txt file with a path to baseline hyperparams
+        on which this training run is based. The file will not be loaded, only the filename will be copied for
+        purposes of tracing where models were generated from, such as if they are the product of hyperparmeter optimization.
+        Specify the actual hyperparams using the argument "hyperparams".
     """
     if epochs is None:
         epochs = FLAGS.epochs
@@ -415,12 +456,16 @@ def run_training(
     callbacks, optimizer = choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps=train_steps)
 
     log_dir = os.path.join(log_dir, run_name)
+
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     log_dir_run_name = os.path.join(log_dir, run_name)
-    csv_logger = CSVLogger(log_dir_run_name + '.csv')
-    callbacks = callbacks + [csv_logger]
-    callbacks += [PrintLogsCallback()]
     grasp_utilities.mkdir_p(log_dir)
+
+    # If this is based on some other past hyperparams configuration,
+    # save the original hyperparams path to a file for tracing data pipelines.
+    if hyperparameters_filename is not None:
+        with open(log_dir_run_name + '_source_hyperparameters_filename.txt', 'w') as fp:
+            fp.write(hyperparameters_filename)
 
     # Save the hyperparams to a json string so it is human readable
     if hyperparams is not None:
@@ -430,6 +475,8 @@ def run_training(
     # Save the current model to a json string so it is human readable
     with open(log_dir_run_name + '_model.json', 'w') as fp:
         fp.write(model.to_json())
+
+    save_user_flags(log_dir_run_name + '_flags.json')
 
     # Stop when models are extremely slow
     max_batch_time_seconds = 1.0
@@ -480,6 +527,12 @@ def run_training(
     #     model = keras.utils.multi_gpu_model(model, num_gpus)
     # else:
     #     model = model
+
+    # Order matters, so keep the csv logger at the end
+    # of the list of callbacks.
+    csv_logger = CSVLogger(log_dir_run_name + '.csv')
+    callbacks = callbacks + [csv_logger]
+    callbacks += [PrintLogsCallback()]
 
     model.compile(
         optimizer=optimizer,
@@ -706,7 +759,10 @@ def choose_preprocessing_mode(preprocessing_mode, image_model_name):
     return preprocessing_mode
 
 
-def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps):
+def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name, train_steps, learning_rate_schedule=None):
+    if learning_rate_schedule is None:
+        learning_rate_schedule = FLAGS.learning_rate_schedule
+
     if optimizer_name == 'sgd':
         optimizer = keras.optimizers.SGD(learning_rate * 1.0)
     elif optimizer_name == 'adam':
@@ -715,17 +771,23 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
         optimizer = keras.optimizers.RMSprop()
     else:
         raise ValueError('Unsupported optimizer ' + str(optimizer_name) +
-                         'try adam or sgd.')
+                         'try adam, sgd, or rmsprop.')
 
     if optimizer_name == 'sgd' or optimizer_name == 'rmsprop':
-        callbacks = callbacks + [
-            # keras_contrib.callbacks.CyclicLR(
-            #     step_size=train_steps * 2, base_lr=1e-6, max_lr=learning_rate,
-            #     mode='exp_range', gamma=0.99994)
-            # Reduce the learning rate if training plateaus.
-            # patience of 13 is a good option for the cornell datasets, 5 seems more appropriate for costar stack regression
-            keras.callbacks.ReduceLROnPlateau(patience=5, verbose=1, factor=0.5, monitor=monitor_loss_name)
-        ]
+        if learning_rate_schedule == 'reduce_lr_on_plateau':
+            callbacks = callbacks + [
+                # Reduce the learning rate if training plateaus.
+                # patience of 13 is a good option for the cornell datasets, 5 seems more appropriate for costar stack regression
+                keras.callbacks.ReduceLROnPlateau(patience=5, verbose=1, factor=0.5, monitor=monitor_loss_name, min_delta=1e-6)
+            ]
+        else:
+            callbacks = callbacks + [
+                # In this case the max learning rate is double the specified one,
+                # so that the average initial learning rate is as specified.
+                keras_contrib.callbacks.CyclicLR(
+                    step_size=train_steps * 8, base_lr=1e-6, max_lr=learning_rate * 2,
+                    mode=learning_rate_schedule, gamma=0.99997)
+            ]
     return callbacks, optimizer
 
 
@@ -880,46 +942,9 @@ def train_k_fold(split_type=None,
     # find the k-fold average and save it out to a json file
     # Warning: this file will massively underestimate scores for jaccard distance metrics!
     json_summary_path = os.path.join(log_dir, kfold_run_name + '_summary.json')
-    k_fold_run_histories_average(run_histories, json_summary_path)
+    grasp_utilities.multi_run_histories_summary(run_histories, json_summary_path)
 
     return run_histories
-
-
-def k_fold_run_histories_average(run_histories, save_filename=None, metrics='val_binary_accuracy', verbose=1):
-    """ Find the k_fold average of the best model weights on each fold, and save the results.
-
-    Please note that currently this should only be utilized with classification models,
-    it will not calculated grasp_jaccard regression models' scores correctly.
-
-    # Returns
-
-    results disctionary including the max value of metric for each fold,
-    plus the average of all folds in a dictionary.
-    """
-    if isinstance(metrics, str):
-        metrics = [metrics]
-    results = {}
-    for metric in metrics:
-        best_metric_scores = []
-        for history_description, history_object in six.iteritems(run_histories):
-            if 'loss' in metric:
-                best_score = np.min(history_object.history[metric])
-                results[history_description + '_min_' + metric] = best_score
-            else:
-                best_score = np.max(history_object.history[metric])
-                results[history_description + '_max_' + metric] = best_score
-            best_metric_scores += [best_score]
-        k_fold_average = np.mean(best_metric_scores)
-        results['k_fold_average_' + metric] = k_fold_average
-
-    if verbose:
-        print('k_fold_results:\n ' + str(results))
-
-    if save_filename is not None:
-        with open(save_filename, 'w') as fp:
-            # save out all kfold params so they can be reloaded in the future
-            json.dump(results, fp)
-    return results
 
 
 def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=None, loss=None):
@@ -1017,7 +1042,11 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # classes = 8
         classes = 3
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae']
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
+                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
+                   grasp_metrics.grasp_acc_4cm_60deg, grasp_metrics.grasp_acc_8cm_120deg,
+                   grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
+                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1030,6 +1059,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         data_features = ['image/preprocessed', 'current_xyz_3']
         # label with translation and orientation
         # label_features = ['grasp_goal_xyz_aaxyz_nsc_8']
+        # label with translation only
         label_features = ['grasp_goal_xyz_3']
         monitor_loss_name = 'val_loss'
         shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
@@ -1043,7 +1073,11 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # classes = 8
         classes = 5
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae']
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
+                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
+                   grasp_metrics.grasp_acc_4cm_60deg, grasp_metrics.grasp_acc_8cm_120deg,
+                   grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
+                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1064,7 +1098,11 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # this is the regression case with the costar block stacking dataset
         classes = 8
         # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae']
+        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
+                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
+                   grasp_metrics.grasp_acc_4cm_60deg, grasp_metrics.grasp_acc_8cm_120deg,
+                   grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
+                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1236,11 +1274,16 @@ def load_dataset(
         # validation_data = file_names[10:15]
         # print(train_data)
         # TODO(ahundt) use cornell & google dataset data augmentation / preprocessing for block stacking.
+        random_augmentation = FLAGS.random_augmentation
+        if random_augmentation == 0.0:
+            random_augmentation = None
+
         output_shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         train_data = CostarBlockStackingSequence(
             train_data, batch_size=batch_size, is_training=True, shuffle=True, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
-            estimated_time_steps_per_example=estimated_time_steps_per_example)
+            estimated_time_steps_per_example=estimated_time_steps_per_example,
+            random_augmentation=random_augmentation)
         validation_data = CostarBlockStackingSequence(
             validation_data, batch_size=batch_size, is_training=False, output_shape=output_shape,
             data_features_to_extract=data_features, label_features_to_extract=label_features,
@@ -1339,7 +1382,7 @@ def model_predict_k_fold(
 
     metric_fold_averages = np.zeros((num_fold))
     loss_fold_averages = np.zeros((num_fold))
-    with tqdm(range(num_fold), desc='kfold prediction') as progbar_folds:
+    with tqdm(range(num_fold), desc='kfold prediction', ncols=240) as progbar_folds:
         for i in progbar_folds:
             # This is a special string,
             # make sure to maintain backwards compatibility

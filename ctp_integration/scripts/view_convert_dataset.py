@@ -3,12 +3,16 @@ View and Convert dataset lets you look at the video data in a costar stacking da
 
 show a video from an h5f file:
 
-    python view_convert_dataset --path <path/to/data/folder/or/file> --preview True
+    python view_convert_dataset.py --path <path/to/data/folder/or/file> --preview True
 
 Convert video from an h5f file into a gif:
 
-python plot_graph --path 'data/'
     python view_convert_dataset --path <path/to/data/folder/or/file> --preview --convert gif
+
+Relabel "success" data in a dataset:
+
+    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --label_correction --fps 60 --ignore_failure True --ignore_error True
+
 '''
 import argparse
 import os
@@ -115,7 +119,9 @@ def npy_to_video(npy, filename, fps=10, preview=True, convert='gif'):
     elif convert:
         clip.write_videofile(filename)
 
+
 def _parse_args():
+    """Read the command line arguments"""
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", type=str, default=os.path.join(os.path.expanduser("~"), '.costar', 'data'),
                         help='path to dataset h5f file or folder containing many files')
@@ -125,6 +131,42 @@ def _parse_args():
     parser.add_argument("--ignore_success", type=bool, default=False, help='skip grasp success cases')
     parser.add_argument("--ignore_error", type=bool, default=False, help='skip grasp attempts that are both failures and contain errors')
     parser.add_argument("--preview", action='store_true', help='pop open a preview window to view the video data')
+    parser.add_argument("--label_correction", action='store_true',
+                        help="""Change dataset filenames which have incorrect success or failure labels.
+
+                                (1) You will be shown the last few frames for each file, just
+                                    press 1 for a success label, 2 for a failure label.
+                                (2) A csv defined by --label_correction_csv will be created
+                                    and re-saved with each new human label update.
+                                    If the csv already exists, that file will be loaded and edited.
+
+                                The csv will be formatted with the following columns:
+
+                                    original_filename, corrected_filename, human_labeling_status
+
+                                original_filename: Filename of the original example data file.
+                                corrected_filename: Either the same as the original filename, or defines the new corrected filename.
+                                human_labeling_status: One of 'unconfirmed', 'confirmed', or an underscore separated string
+                                   containing 'error' plus the type of error message. Example status values include
+                                   'error_file_ioerror_encountered' and 'error_exception_encountered'. Have a look at the code
+                                   for more details.
+
+                                Once you have a complete label_correction_csv ready, running this program
+                                with --write will load the csv file and immediately do an automatic
+                                rename of all the files containing a 'confirmed' human_labeling_status
+                                to the new corrected filenames.
+
+                                Warning: Make sure you have a backup for any existing label correction CSV file,
+                                because the csv may be modified even if you don't pass --write!
+                             """)
+    parser.add_argument("--label_correction_reconfirm", action='store_true',
+                        help='Same as --label_correction, but we will reconfirm every single row with you.')
+    parser.add_argument("--label_correction_csv", type=str, default='rename_dataset_labels.csv',
+                        help='File from which to load & update the label correction csv file, expected to be in --path folder.')
+    parser.add_argument("--label_correction_initial_frame", type=int, default=-4,
+                        help='labinitial frame to view in video, negative numbers are the distance in frames from the final frame.')
+    parser.add_argument("--label_correction_final_frame", type=int, default=-1,
+                        help='final frame to view in video, negative numbers are the distance in frames from the final frame.')
     parser.add_argument("--gripper", type=bool, default=False, help='print gripper data channel')
     parser.add_argument("--depth", type=bool, default=True, help='process depth data')
     parser.add_argument("--rgb", type=bool, default=True, help='process rgb data')
@@ -140,7 +182,7 @@ def _parse_args():
                                 gripper_action_label and gripper_action_goal_idx based on the timestep at which the gripper opened and closed,
                                 and inserts them directly into the hdf5 file.
                              """)
-    parser.add_argument("--write", action='store_true', help='Actually write out the changes specified in preprocess_inplace.')
+    parser.add_argument("--write", action='store_true', help='Actually write out the changes specified in preprocess_inplace, or label_correction.')
 
     return vars(parser.parse_args())
 
@@ -150,16 +192,116 @@ def draw_matplotlib(depth_images, fps):
         plt.pause(1.0 / fps)
         plt.draw()
 
+
+def wait_for_keypress_to_select_label(progress_bar):
+    """
+    # Returns
+
+      description, comment.
+    """
+    progress_bar.write(
+        "\nPress a key to label the file: 1. success, 2. failure, 4. skip, 5. Extra Cool Example, 6. Problem with this Example 0. whoops! make previous file unconfirmed \n"
+        "What to look for:\n"
+        " - A successful stack is 3 blocks tall or 4 blocks tall with the gripper completely removed from the field of view.\n"
+        " - When the robot doesn't move but there is already a visible successful stack, that's an error.failure.falsely_appears_correct, so press 1 for 'success'!\n"
+        " - If you can see the gripper, the example is a failure even if the stack is tall enough!")
+    # , 3: error.failure
+    flag = 0
+    comment = 'none'
+    mark_previous_unconfirmed = None
+    while flag == 0:
+        # pygame.event.pump()
+        events = pygame.event.get()
+        # if len(events) > 0:
+        #     print(events)
+        for event in events:
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    progress_bar.write("label set to success")
+                    flag = 1
+                    return "success", comment, mark_previous_unconfirmed
+                elif event.key == pygame.K_2:
+                    progress_bar.write("label set to failure")
+                    flag = 1
+                    return "failure", comment, mark_previous_unconfirmed
+                # elif event.key == pygame.K_3:
+                #     progress_bar.write("label set to error.failure")
+                #     flag = 1
+                #     return "error.failure"
+                elif event.key == pygame.K_4:
+                    flag = 1
+                    return 'skip', comment, mark_previous_unconfirmed
+                elif event.key == pygame.K_5:
+                    comment = 'extra_cool_example'
+                    progress_bar.write('comment added: extra_cool_example (this note will remove past notes)')
+                elif event.key == pygame.K_6:
+                    comment = 'problem_with_example'
+                    progress_bar.write('comment added: problem_with_example (this note will remove past notes)')
+                elif event.key == pygame.K_0:
+                    mark_previous_unconfirmed = True
+                    progress_bar.write(
+                        'Thanks for mentioning there is a problem with the selection for the previous example.'
+                        'We will clear that data so the example will appear again when you re-run the label correction.'
+                        'Jut to be extra safe, we also suggest you write down the exact filename '
+                        'of the previous example so you can check it manually, ')
+
+
+def save_label_correction_csv_file(label_correction_csv_path, label_correction_table):
+    """ Save the file with all corrections to filenames.
+    """
+    with open(label_correction_csv_path, 'wb') as label_correction_csv_file:
+        np.savetxt(label_correction_csv_file, label_correction_table, fmt='%s', delimiter=', ',
+                   header='original_filename, corrected_filename, human_labeling_status, comment')
+
+
 def main(args, root="root"):
 
-    if '.h5f' in args['path']:
+    path = os.path.expanduser(args['path'])
+    if '.h5f' in path:
         filenames = [args['path']]
     else:
-        filenames = os.listdir(os.path.expanduser(args['path']))
+        filenames = os.listdir(path)
+
+    # filter out files that aren't .h5f files
+    ignored_files = [filename for filename in filenames if '.h5f' not in filename]
+    filenames = [filename for filename in filenames if '.h5f' in filename]
 
     # Read data
     progress_bar = tqdm(filenames)
-    for filename in progress_bar:
+
+    # Report ignored files to the user
+    if ignored_files:
+        progress_bar.write('Ignoring the following files which do not contain ".h5f": \n\n' + str(ignored_files) + '\n\n')
+
+    # label_correction_reconfirm forces all label_correction steps
+    if args['label_correction_reconfirm']:
+        args['label_correction'] = True
+
+    if args['label_correction']:
+        label_correction_csv_path = os.path.join(path, args['label_correction_csv'])
+        if os.path.isfile(label_correction_csv_path):
+            progress_bar.write('Loading existing label correction csv file:\n    ' + str(label_correction_csv_path))
+            label_correction_table = np.genfromtxt(label_correction_csv_path, dtype='str', delimiter=', ')
+        else:
+            progress_bar.write('Creating new label correction csv file:\n    ' + str(label_correction_csv_path))
+            label_correction_table = np.column_stack([filenames, filenames, ['unconfirmed'] * len(filenames), ['none'] * len(filenames)])
+            save_label_correction_csv_file(label_correction_csv_path, label_correction_table)
+
+        if label_correction_table.shape[0] != len(filenames):
+            raise RuntimeError(
+                'The code cannot currently handle mismatched lists of files, so we will exit the program.\n'
+                'The the label correction table csv file:\n'
+                '    ' + str(label_correction_csv_path) +
+                '\n\nhas ' + str(label_correction_table.shape[0]) + ' rows, but there are ' + len(filenames) +
+                ' filenames containing .h5f in the list of filenames to be processed. '
+                'To solve this problem you might want to try one of the following options:\n'
+                '    (1) Start fresh with no CSV file and all unconfirmed values.\n'
+                '    (2) Manually edit the csv or file directories so the number of rows matches the number of .h5f files.\n'
+                '    (3) Edit the code to handle this situation by perhaps adding any missing files to the list and re-sorting.')
+
+    for i, filename in enumerate(progress_bar):
         # skip certain files based on command line parameters
         if filename.startswith('.') or '.h5' not in filename:
             continue
@@ -178,6 +320,22 @@ def main(args, root="root"):
             example_filename = os.path.join(args['path'], filename)
         else:
             example_filename = filename
+
+        if args['label_correction']:
+            # Label correction needs some special data loading logic
+            # so we can skip data that already has human confirmation
+            status_idx = 2
+            status_string = label_correction_table[i, status_idx]
+            # next commented line is for debug
+            # progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
+            if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
+                # loading the data would take a long time, so skip
+                continue
+
+        # We haven't run into any errors yet for this file,
+        # if we do, this will identify files with errors
+        # in logs and the label correction csv
+        error_encountered = None
 
         description = "Processing %s" % example_filename
         progress_bar.set_description(description)
@@ -238,15 +396,26 @@ def main(args, root="root"):
 
                 # Video display and conversion
                 try:
+                    # define where to start and end reading images
+                    start_frame = 0
+                    end_frame = -1
+                    if args['label_correction']:
+                        # only show the last few frames when correcting labels
+                        start_frame = args['label_correction_initial_frame']
+                        end_frame = args['label_correction_final_frame']
+                        if len(data['image']) == 0:
+                            clip = None
+                            error_encountered = 'no_images'
+
                     if load_depth:
-                        depth_images = list(data['depth_image'])
+                        depth_images = list(data['depth_image'][start_frame:end_frame])
                         depth_images = ConvertImageListToNumpy(np.squeeze(depth_images), format='list')
                         if args['matplotlib']:
                             draw_matplotlib(depth_images, fps)
                         depth_clip = mpye.ImageSequenceClip(depth_images, fps=fps)
                         clip = depth_clip
                     if load_rgb:
-                        rgb_images = list(data['image'])
+                        rgb_images = list(data['image'][start_frame:end_frame])
                         rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='list')
                         if args['matplotlib']:
                             draw_matplotlib(rgb_images, fps)
@@ -256,7 +425,7 @@ def main(args, root="root"):
                     if load_depth and load_rgb:
                         clip = mpye.clips_array([[rgb_clip, depth_clip]])
 
-                    if args['preview']:
+                    if args['preview'] and not args['label_correction']:
                         clip.preview()
 
                     save_filename = example_filename.replace('.h5f', '.' + args['convert'])
@@ -268,15 +437,131 @@ def main(args, root="root"):
                     progress_bar.write('Keyboard interrupt detected. Exiting')
                     break
                 except Exception as ex:
+                    error_encountered = 'error_exception_encountered'
                     progress_bar.write(
                         'Warning: Skipping File. Exception encountered while processing ' + example_filename +
-                        ' please edit the code to debug the specifics: ' + str(ex))
+                        ' please edit the code of view_convert_dataset.py to debug the specifics: ' + str(ex))
 
         except IOError as ex:
+            error_encountered = 'error_file_ioerror_encountered'
             progress_bar.write(
                 'Error: Skipping file due to IO error when opening ' +
                 example_filename + ': ' + str(ex))
-            continue
+
+        if args['label_correction']:
+            label_correction_table = label_correction(
+                label_correction_table, i, example_filename, args,
+                progress_bar, label_correction_csv_path, error_encountered,
+                clip)
+
+    if args['label_correction']:
+        progress_bar.write('Run complete! Label correction csv:\n' + str(label_correction_csv_path))
+
+
+def label_correction(label_correction_table, i, example_filename, args, progress_bar, label_correction_csv_path, error_encountered, clip):
+    original_idx = 0
+    corrected_idx = 1
+    status_idx = 2
+    comment_idx = 3
+    status_string = label_correction_table[i, status_idx]
+    example_filename_base = os.path.basename(example_filename)
+    # check that we are working with the right file
+    if example_filename_base not in label_correction_table[i, :status_idx]:
+        raise ValueError(
+            '\n' + ('-' * 80) + '\n\n'
+            'Files may have been added and/or removed from the dataset folder '
+            'but not updated in the label correction csv file:\n'
+            '    ' + str(label_correction_csv_path) + '\n\n'
+            'The code cannot currently handle mismatched lists of files, so we will exit the program.\n\n'
+            'The current example filename:\n'
+            '    ' + str(example_filename) +
+            '\ndoes not match the corresponding original entry at row ' + str(i) +
+            ' in the label correction csv:\n'
+            '    ' + str(label_correction_table[i, :]) + '\n\n'
+            'To solve this problem you might want to try one of the following options:\n'
+            '    (1) Start fresh with no CSV file and all unconfirmed values.\n'
+            '    (2) Manually edit the csv or file directories so the number of rows matches the number of .h5f files.\n'
+            '    (3) Edit the code to handle this situation by perhaps adding any missing files to the list and re-sorting.')
+
+    if not args['write']:
+        if error_encountered is None and (status_string == 'unconfirmed' or args['label_correction_reconfirm']):
+            progress_bar.write('-' * 80)
+            progress_bar.write('Current row ' + str(i) + ' [original, corrected, status, comment]:\n    ' + str(label_correction_table[i, :]) + '\n')
+            # show the clip
+            clip.preview()
+            # Get the human corrected label
+            label, comment, mark_previous_unconfirmed = wait_for_keypress_to_select_label(progress_bar)
+            if mark_previous_unconfirmed and i > 0:
+                label_correction_table[i - 1, status_idx] = 'unconfirmed'
+            original_filename = label_correction_table[i, original_idx]
+            if label not in original_filename:
+                if label == 'success':
+                    if 'error' in original_filename:
+                        # there was some sort of program/system error so the actions were not completed.
+                        # However for the purpose of detecting if there is a stack 3 tall present, this would be marked correct.
+                        # Therefore we have the special label error.failure.falsely_appears_correct!
+                        # Sorry it is complicated but I want to be specific so I don't have to go through all the examples again...
+                        label_correction_table[i, corrected_idx] = original_filename.replace('failure', 'failure.falsely_appears_correct')
+                    else:
+                        # replace failure with success
+                        label_correction_table[i, corrected_idx] = original_filename.replace('failure', label)
+                    label_correction_table[i, status_idx] = 'confirmed_rename'
+                elif label == 'failure':
+                    label_correction_table[i, corrected_idx] = original_filename.replace('success', label)
+                    label_correction_table[i, status_idx] = 'confirmed_rename'
+                elif label == 'skip':
+                    pass
+                else:
+                    raise ValueError(
+                        'Unsupported label: ' + str(label) +
+                        ' this should not happen so please consider having a look at the code.')
+            else:
+                label_correction_table[i, status_idx] = 'confirmed_no_change'
+
+            label_correction_table[i, comment_idx] = comment
+            # we've now confirmed this label with a human
+            # save the updated csv file
+            save_label_correction_csv_file(label_correction_csv_path, label_correction_table)
+            progress_bar.write('Updated row ' + str(i) + ' [original, corrected, status, comment]:\n    ' + str(label_correction_table[i, :]) + '\n')
+            progress_bar.write('-' * 80)
+        elif error_encountered is not None and error_encountered != label_correction_table[i, status_idx]:
+            label_correction_table[i, status_idx] = error_encountered
+            # save the updated csv file
+            save_label_correction_csv_file(label_correction_csv_path, label_correction_table)
+
+    elif (args['write'] and
+          example_filename == label_correction_table[i, original_idx] and
+          'error' not in status_string and
+          'unconfirmed' not in status_string and
+          'confirmed' in status_string and
+          label_correction_table[i, original_idx] != label_correction_table[i, corrected_idx]):
+
+        original = label_correction_table[i, original_idx]
+        corrected = label_correction_table[i, corrected_idx]
+
+        if os.path.isfile(corrected):
+            raise ValueError('Trying to rename a file, but the destination filename already exists!'
+                             '[source, destination, status] entry at row ' + str(i) +
+                             ' in the label correction csv:\n'
+                             '    ' + str(label_correction_table[i, :]))
+
+        if not os.path.isfile(original):
+            raise ValueError('Trying to rename a file, but the original filename either '
+                             'does not exist or is not a file!'
+                             '[source, destination, status] entry at row ' + str(i) +
+                             ' in the label correction csv:\n'
+                             '    ' + str(label_correction_table[i, :]))
+
+        # we've ensured the user wants to write the new filenames,
+        # there was no error in the human labeling stage,
+        # this rename has been confirmed by a human,
+        # the source and destination filenames aren't equal,
+        # and the destination filename doesn't already exist.
+        # All looks good so let's finally rename it!
+        os.rename(original, corrected)
+        progress_bar.write(original + ' -> ' + corrected)
+
+    return label_correction_table
 
 
 def generate_gripper_action_label(data):
@@ -315,22 +600,34 @@ def generate_gripper_action_label(data):
             gripper_action_label[i] = unique_actions[action_ind]
 
     gripper_ind = 0
-    #print(gripper_action_goal_idx)
     goal_list = []
-    for i in range(len(gripper_action_label)):
+    goal_state = False
+    if len(gripper_action_goal_idx) == 0:
+        goal_to_add = 0
+    else:
+        goal_to_add = gripper_action_goal_idx[0] - 1
+    if goal_to_add != 0:
+        for i in range(len(gripper_action_label)):
+            # print(i)
+            if(i < goal_to_add):
+                # print("goal_len", len(goal_list))
+                goal_state = False
+                goal_list.append(goal_to_add)
 
-        if gripper_ind < len(gripper_action_goal_idx):
-            goal_to_add = gripper_action_goal_idx[gripper_ind] - 1
-        else:
-            goal_to_add = len(gripper_status)-1
+            else:
+                gripper_ind += 1
+                goal_state = True
 
-        if(i < goal_to_add):
-            goal_list.append(goal_to_add)
+            if gripper_ind < len(gripper_action_goal_idx):
+                goal_to_add = gripper_action_goal_idx[gripper_ind] - 1
+            else:
+                goal_to_add = len(gripper_status)-1
+            if goal_state is True:
+                goal_list.append(goal_to_add)
+    else:
+        goal_list = [goal_state]
 
-        else:
-            gripper_ind += 1
     gripper_action_goal_idx = goal_list
-    #print(gripper_action_goal_idx)
 
     return gripper_action_label, gripper_action_goal_idx
 
