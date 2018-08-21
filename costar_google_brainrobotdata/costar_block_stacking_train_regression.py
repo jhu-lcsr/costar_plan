@@ -166,8 +166,8 @@ def main(_):
     hyperparams['checkpoint'] = True
     hyperparams['batch_size'] = FLAGS.batch_size
     # temporary 0 learning rate for eval!
-    learning_rate = 0.0
-    hyperparams['learning_rate'] = 0.0
+    # learning_rate = 0
+    learning_rate = 1.0
     if load_weights is not None:
         FLAGS.load_weights = load_weights
         # For training from scratch
