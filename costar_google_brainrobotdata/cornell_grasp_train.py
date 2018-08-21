@@ -111,11 +111,6 @@ flags.DEFINE_string(
     'Directory for tensorboard, model layout, model weight, csv, and hyperparam files'
 )
 flags.DEFINE_string(
-    'model_path',
-    '/tmp/tf/model.ckpt',
-    'Variables for the model.'
-)
-flags.DEFINE_string(
     'train_or_validation',
     'validation',
     'deprecated, does nothing. Train or evaluate the dataset'
