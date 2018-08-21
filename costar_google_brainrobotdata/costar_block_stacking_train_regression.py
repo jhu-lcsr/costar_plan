@@ -17,7 +17,7 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    use_best_model = False
+    use_best_model = True
     problem_type = 'semantic_translation_regression'
     #problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
@@ -164,10 +164,12 @@ def main(_):
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
     hyperparams['batch_size'] = FLAGS.batch_size
-    hyperparams['learning_rate'] = 1.0
-    if load_weights is not None:
+    # temporary 0 learning rate for eval!
+    hyperparams['learning_rate'] = 0.0
+    # hyperparams['learning_rate'] = 1.0
+    # if load_weights is not None:
         # For training from scratch
-        hyperparams['learning_rate'] = 1.0
+        # hyperparams['learning_rate'] = 1.0
         # For resuming translation + rotation model training
         # hyperparams['learning_rate'] = 1e-2
         # For resuming translation model training
