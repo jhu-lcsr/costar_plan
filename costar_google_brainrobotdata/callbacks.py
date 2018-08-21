@@ -176,6 +176,10 @@ class SlowModelStopping(keras.callbacks.Callback):
         self.stopped_epoch = 0
         self.current_epoch = 0
         self.max_epoch_to_check_batch_time = max_epoch_to_check_batch_time
+        # start timers on init just in case of
+        # atypical situations like 0 training steps
+        self._epoch_start = default_timer()
+        self._batch_start = default_timer()
 
     def on_epoch_begin(self, epoch, logs=None):
         self._epoch_start = default_timer()
