@@ -148,6 +148,11 @@ flags.DEFINE_string('load_hyperparams', None,
 flags.DEFINE_string('pipeline_stage', 'train_test',
                     """Choose to "train", "test", "train_test", or "train_test_kfold" with the grasp_dataset
                        data for training and grasp_dataset_test for testing.""")
+flags.DEFINE_integer(
+    'override_train_steps',
+    None,
+    'TODO(ahundt) REMOVE THIS HACK TO SKIP TRAINING BUT KEEP USING CALLBACKS.'
+)
 flags.DEFINE_string(
     'split_dataset', 'objectwise',
     """Options are imagewise and objectwise, this is the type of split chosen when the tfrecords were generated.""")
@@ -543,6 +548,12 @@ def run_training(
     #     callbacks = [GraspJaccardEvaluateCallback(example_generator=validation_data, steps=validation_steps)] + callbacks
     #     validation_data = None
     #     validation_steps = None
+
+    # TODO(ahundt) remove hack below
+    # hack to skip training so we can run
+    # val + test steps evaluate without changing the model
+    if FLAGS.override_train_steps is not None:
+        train_steps = FLAGS.override_train_steps
 
     # Get the validation dataset in one big numpy array for validation
     # This lets us take advantage of tensorboard visualization
