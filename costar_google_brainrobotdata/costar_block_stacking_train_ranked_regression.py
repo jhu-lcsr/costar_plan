@@ -38,17 +38,30 @@ except ImportError:
 
 flags.DEFINE_string(
     'rank_csv',
-    'hyperopt_logs_costar_translation_regression/hyperopt_rank.csv',
+    'hyperopt_rank.csv',
     """Sorted csv ranking models on which to perform full runs after hyperparameter optimization.
 
     See cornell_hyperopt.py to perform hyperparameter optimization,
     and then hyperopt_rank.py to generate the ranking csv file.
+    The file is expected to be in the directory specified by the log_dir flag.
 
     Example file path:
         hyperopt_logs_costar_grasp_regression/hyperopt_rank.csv
         hyperopt_logs_costar_translation_regression/hyperopt_rank.csv
         hyperopt_logs_costar_block_stacking_train_ranked_regression/hyperopt_rank.csv
     """
+)
+
+flags.DEFINE_boolean(
+    'filter_epoch',
+    True,
+    'Filter results, dropping everything except a single specific epoch specified by --epoch'
+)
+
+flags.DEFINE_integer(
+    'epoch',
+    0,
+    'Results should only belong to this epoch if --filter_epoch=True'
 )
 
 
@@ -58,7 +71,7 @@ FLAGS = flags.FLAGS
 def main(_):
     use_best_model = True
     # epoch to filter, or None if we should just take the best performing value ever
-    filter_epoch = 0
+    filter_epoch = FLAGS.filter_epoch
     problem_type = 'semantic_translation_regression'
     # problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
@@ -116,8 +129,10 @@ def main(_):
     history_dicts = {}
     sort_by = None
 
+    csv_file = os.path.join(os.path.expanduser(FLAGS.log_dir), FLAGS.rank_csv)
+
     # load the hyperparameter optimization ranking csv file created by hyperopt_rank.py
-    dataframe = pandas.read_csv(FLAGS.rank_csv, index_col=None, header=0)
+    dataframe = pandas.read_csv(csv_file, index_col=None, header=0)
     if problem_type == 'semantic_rotation_regression':
         # sort by val_angle_error from low to high
         dataframe = dataframe.sort_values('val_angle_error', ascending=True)
@@ -141,7 +156,7 @@ def main(_):
     
     # filter only the specified epoch so we don't redo longer runs
     if filter_epoch is not None:
-        dataframe = dataframe.loc[dataframe['epoch'] == filter_epoch
+        dataframe = dataframe.loc[dataframe['epoch'] == FLAGS.epoch]
 
     # loop over the ranked models
     row_progress = tqdm(dataframe.iterrows(), ncols=240)
