@@ -38,7 +38,7 @@ except ImportError:
 
 flags.DEFINE_string(
     'rank_csv',
-    'hyperopt_logs_costar_block_stacking_train_ranked_regression/hyperopt_rank.csv',
+    'hyperopt_logs_costar_translation_regression/hyperopt_rank.csv',
     """Sorted csv ranking models on which to perform full runs after hyperparameter optimization.
 
     See cornell_hyperopt.py to perform hyperparameter optimization,
@@ -46,6 +46,8 @@ flags.DEFINE_string(
 
     Example file path:
         hyperopt_logs_costar_grasp_regression/hyperopt_rank.csv
+        hyperopt_logs_costar_translation_regression/hyperopt_rank.csv
+        hyperopt_logs_costar_block_stacking_train_ranked_regression/hyperopt_rank.csv
     """
 )
 
