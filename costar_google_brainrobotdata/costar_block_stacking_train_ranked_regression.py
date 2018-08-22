@@ -55,6 +55,8 @@ FLAGS = flags.FLAGS
 
 def main(_):
     use_best_model = True
+    # epoch to filter, or None if we should just take the best performing value ever
+    filter_epoch = 0
     problem_type = 'semantic_translation_regression'
     # problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
@@ -114,23 +116,30 @@ def main(_):
 
     # load the hyperparameter optimization ranking csv file created by hyperopt_rank.py
     dataframe = pandas.read_csv(FLAGS.rank_csv, index_col=None, header=0)
-    if FLAGS.problem_type == 'semantic_rotation_regression':
+    if problem_type == 'semantic_rotation_regression':
         # sort by val_angle_error from low to high
         dataframe = dataframe.sort_values('val_angle_error', ascending=True)
         dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
         sort_by = 'val_grasp_acc'
         # DISABLE RANDOM AUGMENTATION FOR ROTATION
         FLAGS.random_augmentation = None
-    elif FLAGS.problem_type == 'semantic_translation_regression':
+    elif problem_type == 'semantic_translation_regression':
         # sort by val_cart_error from low to high
         sort_by = 'val_cart_error'
         dataframe = dataframe.sort_values(sort_by, ascending=True)
         # sort by cart_error from low to high
         sort_by = 'cart_error'
         dataframe = dataframe.sort_values(sort_by, ascending=True)
-    elif FLAGS.problem_type == 'semantic_grasp_regression':
+    elif problem_type == 'semantic_grasp_regression':
         dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
         sort_by = 'val_grasp_acc'
+    else:
+        raise ValueError('costar_block_stacking_train_ranked_regression.py: '
+                         'unsupported problem type: ' + str(problem_type))
+    
+    # filter only the specified epoch so we don't redo longer runs
+    if filter_epoch is not None:
+        dataframe = dataframe.loc[dataframe['epoch'] == filter_epoch
 
     # loop over the ranked models
     row_progress = tqdm(dataframe.iterrows(), ncols=240)
