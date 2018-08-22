@@ -55,8 +55,8 @@ FLAGS = flags.FLAGS
 
 def main(_):
     use_best_model = True
-    # problem_type = 'semantic_translation_regression'
-    problem_type = 'semantic_rotation_regression'
+    problem_type = 'semantic_translation_regression'
+    # problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
@@ -95,7 +95,10 @@ def main(_):
 
     FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f')
     FLAGS.fine_tuning_epochs = 0
-    FLAGS.epochs = 600
+    # final training run:
+    # FLAGS.epochs = 600
+    # evaluating top few models run:
+    FLAGS.epochs = 10
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
@@ -120,8 +123,11 @@ def main(_):
         FLAGS.random_augmentation = None
     elif FLAGS.problem_type == 'semantic_translation_regression':
         # sort by val_cart_error from low to high
-        dataframe = dataframe.sort_values('val_cart_error', ascending=True)
         sort_by = 'val_cart_error'
+        dataframe = dataframe.sort_values(sort_by, ascending=True)
+        # sort by cart_error from low to high
+        sort_by = 'cart_error'
+        dataframe = dataframe.sort_values(sort_by, ascending=True)
     elif FLAGS.problem_type == 'semantic_grasp_regression':
         dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
         sort_by = 'val_grasp_acc'
