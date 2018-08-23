@@ -54,7 +54,7 @@ flags.DEFINE_string(
 
 flags.DEFINE_boolean(
     'filter_epoch',
-    True,
+    False,
     'Filter results, dropping everything except a single specific epoch specified by --epoch'
 )
 
@@ -115,7 +115,7 @@ def main(_):
     # final training run:
     # FLAGS.epochs = 600
     # evaluating top few models run:
-    FLAGS.epochs = 10
+    FLAGS.epochs = 600
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
@@ -153,7 +153,7 @@ def main(_):
     else:
         raise ValueError('costar_block_stacking_train_ranked_regression.py: '
                          'unsupported problem type: ' + str(problem_type))
-    
+
     # filter only the specified epoch so we don't redo longer runs
     if filter_epoch is not None:
         dataframe = dataframe.loc[dataframe['epoch'] == FLAGS.epoch]
