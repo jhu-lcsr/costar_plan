@@ -155,7 +155,7 @@ def main(_):
                          'unsupported problem type: ' + str(problem_type))
 
     # filter only the specified epoch so we don't redo longer runs
-    if filter_epoch is not None:
+    if filter_epoch is not None and filter_epoch is True:
         dataframe = dataframe.loc[dataframe['epoch'] == FLAGS.epoch]
 
     # loop over the ranked models
