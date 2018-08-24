@@ -90,9 +90,8 @@ class PretrainImageCostar(PretrainImageAutoencoder):
             raise RuntimeError('did not make trainable model')
 
     # @image: array of image data for the experiment
-    def _getData(self, data, random_draw=None):
-        I = data["image"]
-        label = data["label"]
+    def _getData(self, image, label, random_draw=None, **kwargs):
+        I = image
 
         length = len(label)
         if length == 0:
@@ -107,8 +106,8 @@ class PretrainImageCostar(PretrainImageAutoencoder):
             I = np.array(I)
         else:
             # Randomly draw random_draw number of elements
-            # h5py is very picky with regard to needing unique, sorted indices
-            indexes = np.unique(np.random.randint(length, size=random_draw)).tolist()
+            indexes = self._genRandomIndexes(length, random_draw)
+
             o1 = label[indexes]
             o1 = np.array(o1)
             I = I[indexes]

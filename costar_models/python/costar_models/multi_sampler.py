@@ -584,7 +584,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         logCb = LogCallback(self.logName(),self.model_directory)
         saveCb = ModelSaveCallback(model=self)
 
-        cbf, cbt = self._getData(data)
+        cbf, cbt = self._getData(**data)
 
         for i, f in enumerate(cbf):
             if len(f.shape) < 1:

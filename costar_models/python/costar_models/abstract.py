@@ -283,6 +283,13 @@ class AbstractAgentBasedModel(object):
             self.validation_steps = len(dataset.test) + 1
         return self._yieldLoop(dataset.sampleTest)
 
+    def _genRandomIndexes(self, max_val, num):
+      ''' Common method to generate random indexes for getData '''
+      # h5py is very picky with regard to needing unique, sorted indices
+      indexes = np.unique(np.random.randint(max_val, size=num)).tolist()
+      return indexes
+
+
     def _yieldLoop(self, sampleFn):
       '''
       This helper function runs in a loop infinitely, executing some callable
@@ -310,7 +317,7 @@ class AbstractAgentBasedModel(object):
                     to_draw = np.random.randint(1, self.batch_size - drawn_samples + 1)
 
                     # Draw the random samples from the file
-                    ffeatures, ftargets = self._getData(filedata, random_draw=to_draw)
+                    ffeatures, ftargets = self._getData(random_draw=to_draw, **filedata)
 
                 if len(ffeatures) == 0 or len(ffeatures[0]) == 0:
                     #print("WARNING: ", filename, "was empty after getData.")
