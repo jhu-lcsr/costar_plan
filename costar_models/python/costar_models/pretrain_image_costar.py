@@ -89,13 +89,36 @@ class PretrainImageCostar(PretrainImageAutoencoder):
         if self.model is None:
             raise RuntimeError('did not make trainable model')
 
-    def _getData(self, image, label, *args, **kwargs):
-        o1 = np.array(label)
+    # @image: array of image data for the experiment
+    def _getData(self, data, random_draw=None):
+        I = data["image"]
+        label = data["label"]
+
+        length = len(label)
+        if length == 0:
+            return [], []
+
+        # debug
+        #print("Getdata: length =", length, "shape = ", I.shape, "dtype = ", I.dtype)
+
+        I0 = np.array(I[0])
+        if random_draw is None:
+            o1 = np.array(label)
+            I = np.array(I)
+        else:
+            # Randomly draw random_draw number of elements
+            # h5py is very picky with regard to needing unique, sorted indices
+            indexes = np.unique(np.random.randint(length, size=random_draw)).tolist()
+            o1 = label[indexes]
+            o1 = np.array(o1)
+            I = I[indexes]
+            I = np.array(I)
+
+
         #I = np.array(image) / 255.
-        I = image
-        I0 = I[0]
-        length = o1.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
+        created_length = o1.shape[0]
+        # Fill in with image 0 for every image we chose
+        I0 = np.tile(np.expand_dims(I0,axis=0),[created_length,1,1,1])
         if self.no_disc:
             return [I0, I], [I]
         else:

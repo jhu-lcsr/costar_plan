@@ -33,11 +33,12 @@ class NpzGeneratorDataset(object):
         # list of keys which contain lists of png files
         self.load_png = []
         self.file_extension = 'npz'
+        self.file = None
 
     def write(self, *args, **kwargs):
         raise NotImplementedError('this dataset does not save things')
 
-    def load(self, success_only=False, verbose=0):
+    def load(self, success_only=False, verbose=0, max_img_size=224):
         '''
         Read the file; get the list of acceptable entries; split into train and
         test sets.
@@ -62,24 +63,32 @@ class NpzGeneratorDataset(object):
                 # contained within. Note, this assumes the first is
                 # a good example to start with!
                 print('Extracting dataset structure from file: ' + str(filename))
-                fsample = self._load(filename)
-                for key, value in six.iteritems(fsample):
+                with self._load(filename) as fsample:
+                    for key, value in six.iteritems(fsample):
 
-                    if key in self.load_jpeg or key in self.load_png:
-                        value = ConvertImageListToNumpy(value)
+                        # Hack. shouldn't be duplicated here
+                        if key in self.load_jpeg or key in self.load_png:
+                            value = ConvertImageListToNumpy(value)
 
-                    if value.shape[0] == 0:
-                        print('key ' + str(key) + ' had 0 entries, skipping sample')
-                        # sample = {}
-                        continue
+                        # Hack. Resize for oversized data 
+                        shp = value.shape
+                        if len(shp) == 4 and shp[-1] == 3 and \
+                            (shp[1] > max_img_size or shp[2] > max_img_size):
+                                value = np.zeros((shp[0], 224, 224, 3), dtype=np.float32)
 
-                    if key not in sample:
-                        print('adding key to sample: ' + str(key))
-                        sample[key] = value
-                    else:
-                        # Note: do not collect multiple samples anymore; this
-                        # hould never be reached
-                        sample[key] = np.concatenate([sample[key], value], axis=0)
+
+                        if value.shape[0] == 0:
+                            print('key ' + str(key) + ' had 0 entries, skipping sample')
+                            # sample = {}
+                            continue
+
+                        if key not in sample:
+                            print('adding key to sample: ' + str(key))
+                            sample[key] = np.array(value)
+                        else:
+                            # Note: do not collect multiple samples anymore; this
+                            # hould never be reached
+                            sample[key] = np.concatenate([sample[key], value], axis=0)
             i += 1
             acceptable_files.append(filename)
         if verbose > 0:
@@ -108,7 +117,7 @@ class NpzGeneratorDataset(object):
                 nm = os.path.join(self.name, f)
                 self.preload_cache[nm] = self._load(nm)
 
-        return sample
+        return sample # return numpy list
 
     def sampleTrainFilename(self):
         return os.path.join(self.name,
@@ -163,7 +172,15 @@ class NpzGeneratorDataset(object):
         return sample, filename
 
     def _load(self, filename):
-        return np.load(filename)
+        self.file = filename
+        return self
+
+    # Interface for `with`
+    def __enter__(self):
+        return np.load(self.file)
+
+    def __exit__(self, *args):
+        self.file = None
 
     def loadFile(self, filename):
         full_filename = os.path.join(self.name, filename)
