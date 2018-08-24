@@ -283,10 +283,10 @@ class AbstractAgentBasedModel(object):
             self.validation_steps = len(dataset.test) + 1
         return self._yieldLoop(dataset.sampleTest)
 
-    def _genRandomIndexes(self, max_val, num):
+    def _genRandomIndexes(self, length, random_draw):
       ''' Common method to generate random indexes for getData '''
       # h5py is very picky with regard to needing unique, sorted indices
-      indexes = np.unique(np.random.randint(max_val, size=num)).tolist()
+      indexes = np.unique(np.random.randint(length, size=random_draw)).tolist()
       return indexes
 
 
@@ -317,7 +317,7 @@ class AbstractAgentBasedModel(object):
                     to_draw = np.random.randint(1, self.batch_size - drawn_samples + 1)
 
                     # Draw the random samples from the file
-                    ffeatures, ftargets = self._getData(random_draw=to_draw, **filedata)
+                    ffeatures, ftargets = self._getDataRandom(random_draw=to_draw, **filedata)
 
                 if len(ffeatures) == 0 or len(ffeatures[0]) == 0:
                     #print("WARNING: ", filename, "was empty after getData.")
@@ -362,6 +362,19 @@ class AbstractAgentBasedModel(object):
 
             # Yield so it's a generator
             yield features, targets
+
+    def _getDataRandom(self, random_draw, **kwargs):
+        '''
+        Default random method for when we haven't implemented one
+        Less efficient than creating a new implementation per model
+        '''
+        features, targets = self._getData(**kwargs)
+        length = len(features[0])
+        indexes = self._genRandomIndexes(length, random_draw)
+        features = [f[indexes] for f in features]
+        targets = [t[indexes] for t in targets]
+        return features, targets
+
 
     def _convert(self, features):
         if self.load_jpeg:
