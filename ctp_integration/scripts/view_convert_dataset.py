@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 View and Convert dataset lets you look at the video data in a costar stacking dataset.
 
