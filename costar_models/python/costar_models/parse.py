@@ -213,6 +213,9 @@ def GetModelParser():
                         help="Use dense layer for trasform",
                         default=False,
                         action='store_true')
+    parser.add_argument("--max_img_size",
+                        help="Set max size for frames to be resized into",
+                        default=224)
     return parser
 
 def GetSubmodelOptions():
