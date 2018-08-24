@@ -55,6 +55,10 @@ class NpzGeneratorDataset(object):
             if self.file_extension not in filename or filename[0] == '.':
                 continue
 
+            # Don't load error failures -- they're bad files
+            if 'error.failure' in filename:
+                continue
+
             if success_only and 'success' not in filename:
                 continue
 
