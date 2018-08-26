@@ -95,6 +95,12 @@ flags.DEFINE_integer(
     'Results should only belong to this epoch if --filter_epoch=True'
 )
 
+flags.DEFINE_integer(
+    'max_epoch',
+    None,
+    'Results should only belong to this epoch or lower, not enabled by default.'
+)
+
 flags.DEFINE_boolean(
     'filter_unique',
     False,
@@ -121,6 +127,9 @@ def main(_):
             # filter specific epochs
             if FLAGS.filter_epoch:
                 dataframe = dataframe.loc[dataframe['epoch'] == FLAGS.epoch]
+
+            if FLAGS.max_epoch is not None:
+                dataframe = dataframe.loc[dataframe['epoch'] <= FLAGS.max_epoch]
 
             # manage hyperparams
             if len(hyperparam_filename) > 1:
@@ -150,7 +159,7 @@ def main(_):
     results_df = results_df.reset_index(drop=True)
 
     if FLAGS.filter_unique:
-            results_df = results_df.drop_duplicates(subset='csv_filename')
+        results_df = results_df.drop_duplicates(subset='csv_filename')
 
     if FLAGS.print_results:
         with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
