@@ -114,8 +114,10 @@ def main(_):
     FLAGS.fine_tuning_epochs = 0
     # final training run:
     # FLAGS.epochs = 600
+    # FLAGS.random_augmentation = 0.25
     # evaluating top few models run:
     FLAGS.epochs = 10
+    FLAGS.random_augmentation = None
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
