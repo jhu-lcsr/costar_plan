@@ -115,7 +115,7 @@ def main(_):
     # final training run:
     # FLAGS.epochs = 600
     # evaluating top few models run:
-    FLAGS.epochs = 600
+    FLAGS.epochs = 10
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
           'training on mae loss so to change them '
@@ -157,6 +157,9 @@ def main(_):
     # filter only the specified epoch so we don't redo longer runs
     if filter_epoch is not None and filter_epoch is True:
         dataframe = dataframe.loc[dataframe['epoch'] == FLAGS.epoch]
+        # TODO(ahundt) we are really looking for "is this a hyperopt result?" not "checkpoint"
+        # hyperopt search results don't have checkpoints, but full training runs do
+        dataframe = dataframe.loc[dataframe['checkpoint'] != True]
 
     # loop over the ranked models
     row_progress = tqdm(dataframe.iterrows(), ncols=240)
