@@ -54,7 +54,7 @@ flags.DEFINE_string(
 
 flags.DEFINE_boolean(
     'filter_epoch',
-    False,
+    True,
     'Filter results, dropping everything except a single specific epoch specified by --epoch'
 )
 
@@ -159,7 +159,7 @@ def main(_):
         dataframe = dataframe.loc[dataframe['epoch'] == FLAGS.epoch]
         # TODO(ahundt) we are really looking for "is this a hyperopt result?" not "checkpoint"
         # hyperopt search results don't have checkpoints, but full training runs do
-        dataframe = dataframe.loc[dataframe['checkpoint'] != True]
+        dataframe = dataframe.loc[dataframe['checkpoint'] == False]
 
     # loop over the ranked models
     row_progress = tqdm(dataframe.iterrows(), ncols=240)
