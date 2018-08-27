@@ -54,7 +54,7 @@ flags.DEFINE_string(
 
 flags.DEFINE_boolean(
     'filter_epoch',
-    True,
+    False,
     'Filter results, dropping everything except a single specific epoch specified by --epoch'
 )
 
@@ -62,6 +62,12 @@ flags.DEFINE_integer(
     'epoch',
     0,
     'Results should only belong to this epoch if --filter_epoch=True'
+)
+
+flags.DEFINE_integer(
+    'max_epoch',
+    10,
+    'Results should only belong to this epoch or lower, not enabled by default.'
 )
 
 
@@ -116,7 +122,8 @@ def main(_):
     # FLAGS.epochs = 600
     # FLAGS.random_augmentation = 0.25
     # evaluating top few models run:
-    FLAGS.epochs = 10
+    # FLAGS.epochs = 10
+    FLAGS.epochs = 40
     FLAGS.random_augmentation = None
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
@@ -143,12 +150,15 @@ def main(_):
         # DISABLE RANDOM AUGMENTATION FOR ROTATION
         FLAGS.random_augmentation = None
     elif problem_type == 'semantic_translation_regression':
-        # sort by val_cart_error from low to high
-        sort_by = 'val_cart_error'
-        dataframe = dataframe.sort_values(sort_by, ascending=True)
         # sort by cart_error from low to high
         sort_by = 'cart_error'
         dataframe = dataframe.sort_values(sort_by, ascending=True)
+        # sort by val_cart_error from low to high
+        sort_by = 'val_cart_error'
+        dataframe = dataframe.sort_values(sort_by, ascending=True)
+        # sort by grasp accuracy within 4 cm and 60 degrees
+        sort_by = 'val_grasp_acc_4cm_60deg'
+        dataframe = dataframe.sort_values(sort_by, ascending=False)
     elif problem_type == 'semantic_grasp_regression':
         dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
         sort_by = 'val_grasp_acc'
@@ -156,6 +166,9 @@ def main(_):
         raise ValueError('costar_block_stacking_train_ranked_regression.py: '
                          'unsupported problem type: ' + str(problem_type))
 
+    # don't give really long runs an unfair advantage
+    if FLAGS.max_epoch is not None:
+        dataframe = dataframe.loc[dataframe['epoch'] <= FLAGS.max_epoch]
     # filter only the specified epoch so we don't redo longer runs
     if filter_epoch is not None and filter_epoch is True:
         dataframe = dataframe.loc[dataframe['epoch'] == FLAGS.epoch]
