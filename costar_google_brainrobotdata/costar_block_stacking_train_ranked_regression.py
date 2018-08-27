@@ -153,12 +153,12 @@ def main(_):
         # sort by cart_error from low to high
         sort_by = 'cart_error'
         dataframe = dataframe.sort_values(sort_by, ascending=True)
-        # sort by val_cart_error from low to high
-        sort_by = 'val_cart_error'
-        dataframe = dataframe.sort_values(sort_by, ascending=True)
-        # sort by grasp accuracy within 4 cm and 60 degrees
-        sort_by = 'val_grasp_acc_4cm_60deg'
-        dataframe = dataframe.sort_values(sort_by, ascending=False)
+        # # sort by val_cart_error from low to high
+        # sort_by = 'val_cart_error'
+        # dataframe = dataframe.sort_values(sort_by, ascending=True)
+        # # sort by grasp accuracy within 4 cm and 60 degrees
+        # sort_by = 'val_grasp_acc_4cm_60deg'
+        # dataframe = dataframe.sort_values(sort_by, ascending=False)
     elif problem_type == 'semantic_grasp_regression':
         dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
         sort_by = 'val_grasp_acc'
