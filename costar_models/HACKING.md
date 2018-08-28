@@ -45,6 +45,13 @@ MakeMultiPolicy, MakeImageDecoder, GetAllMultiData
 
 costar.py:
 MakeCostarImageClassifier
+
+
+ConditionalImage
+  ^
+  |
+ConditionalImageCostar (conditional_image_costar.py)
+_makeModel, _getData
 ```
 
 == Flow ==
@@ -56,7 +63,9 @@ MakeCostarImageClassifier
   - gen = model.trainGenerator(dataset) (abstract.py)
     - _yieldLoop(dataset.sampleTrain)
       - _getData()
-  - trainFromGenerator(gen)
+  - trainFromGenerators(gen)
+    - Feeds data (features) to PredictorCb
+      - The ImageCb will always use the same bit of data
 
 == Design Issues ==
 - There are multiple ways of reading from a data file: by keys, by a whole column, keeping the hp5 format, converting to ndarray.
