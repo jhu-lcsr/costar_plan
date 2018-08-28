@@ -74,12 +74,8 @@ class NpzGeneratorDataset(object):
                         if key in self.load_jpeg or key in self.load_png:
                             value = ConvertImageListToNumpy(value)
 
-                        # Hack. Resize for oversized data 
-                        shp = value.shape
-                        if len(shp) == 4 and shp[-1] == 3 and \
-                            (shp[1] > max_img_size or shp[2] > max_img_size):
-                                value = np.zeros((shp[0], 224, 224, 3), dtype=np.float32)
-
+                        # Resize for oversized data
+                        value = resize_imgs(value, max_img_size)
 
                         if value.shape[0] == 0:
                             print('key ' + str(key) + ' had 0 entries, skipping sample')

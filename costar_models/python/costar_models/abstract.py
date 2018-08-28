@@ -26,10 +26,6 @@ class AbstractAgentBasedModel(object):
     def _scale(self, img):
         return img / 255.
 
-    def _resize_img(self, img, size):
-        return transform.resize(img, (size, size),
-                mode='constant', preserve_range=True)
-
     def makeName(self, prefix, submodel=None, reqs_dir=False):
         dir = self.model_directory
         if reqs_dir and self.reqs_directory is not None:
@@ -385,12 +381,7 @@ class AbstractAgentBasedModel(object):
     def _resize(self, features):
         # Look for image features to make smaller if needed
         for i, feature in enumerate(features):
-            shp = feature.shape
-            # Check for img
-            if len(shp) == 4 and shp[-1] == 3 and \
-                    (shp[1] > self.max_img_size or shp[2] > self.max_img_size):
-                new_f = [self._resize_img(img, self.max_img_size) for img in feature]
-                features[i] = np.array(new_f)
+            features[i] = resize_imgs(feature, self.max_img_size)
 
     def save(self):
         '''

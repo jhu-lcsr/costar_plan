@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import numpy as np
 import io
 from PIL import Image
+import skimage.transform as transform
 try:
     # don't require tensorflow for reading
     #import tensorflow as tf
@@ -68,6 +69,17 @@ def JpegToNumpy(jpeg):
         image = Image.open(stream)
     return np.asarray(image, dtype=np.uint8)
 
+def _resize_img(img, size):
+    return transform.resize(img, (size, size), mode='constant')
+
+def resize_imgs(imgs, max_size):
+    ''' Resize an ndarray of images '''
+    shp = imgs.shape
+    if len(shp) == 4 and shp[-1] == 3 and \
+        (shp[1] > max_size or shp[2] > max_size):
+            imgs = [_resize_img(i, max_size) for i in imgs]
+            imgs = np.array(imgs)
+    return imgs
 
 def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC', dtype=np.uint8):
     """ Convert a list of binary jpeg or png files to numpy format.
