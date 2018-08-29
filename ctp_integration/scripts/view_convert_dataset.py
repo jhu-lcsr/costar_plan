@@ -354,6 +354,7 @@ def main(args, root="root"):
         if args['label_correction']:
             # Label correction needs some special data loading logic
             # so we can skip data that already has human confirmation
+            progress_bar.write('i: ' + str(i) + ' filename: ' + str(filename))
             original_idx = 0
             corrected_idx = 1
             status_idx = 2
