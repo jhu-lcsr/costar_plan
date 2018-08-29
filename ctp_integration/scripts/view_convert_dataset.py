@@ -88,7 +88,6 @@ def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC', dtype=np.u
     format: default 'numpy' returns a 4d numpy array,
         'list' returns a list of 3d numpy arrays
     """
-    length = len(data)
     images = []
     for raw in data:
         img = JpegToNumpy(raw)
@@ -163,13 +162,15 @@ def _parse_args():
                         help='Same as --label_correction, but we will reconfirm every single row with you.')
     parser.add_argument("--label_correction_csv", type=str, default='rename_dataset_labels.csv',
                         help='File from which to load & update the label correction csv file, expected to be in --path folder.')
-    parser.add_argument("--label_correction_initial_frame", type=int, default=-4,
+    parser.add_argument("--label_correction_initial_frame", type=int, default=-2,
                         help='labinitial frame to view in video, negative numbers are the distance in frames from the final frame.')
     parser.add_argument("--label_correction_final_frame", type=int, default=-1,
                         help='final frame to view in video, negative numbers are the distance in frames from the final frame.')
-    parser.add_argument("--gripper", type=bool, default=False, help='print gripper data channel')
-    parser.add_argument("--depth", type=bool, default=True, help='process depth data')
-    parser.add_argument("--rgb", type=bool, default=True, help='process rgb data')
+    parser.add_argument("--gripper", action='store_true', default=False, help='print gripper data channel')
+    parser.add_argument("--depth", action='store_true', default=True, help='process depth data', dest='depth')
+    parser.add_argument("--no-depth", action='store_false', default=True, help='do not process depth data', dest='depth')
+    parser.add_argument("--rgb", action='store_true', default=True, help='process rgb data')
+    parser.add_argument("--no-rgb", action='store_false', default=True, help='do not process rgb data', dest='rgb')
     parser.add_argument("--fps", type=int, default=10, help='framerate to process images in frames per second')
     parser.add_argument("--matplotlib", type=bool, default=False,
                         help='preview data with matplotlib, slower but you can do pixel lookups')
@@ -258,6 +259,7 @@ def save_label_correction_csv_file(label_correction_csv_path, label_correction_t
 
 def main(args, root="root"):
 
+    clip = None
     path = os.path.expanduser(args['path'])
     if '.h5f' in path:
         filenames = [args['path']]
@@ -353,6 +355,7 @@ def main(args, root="root"):
                 # check if the data is there to load
                 load_depth = args['depth'] and 'depth_image' in data and len(data['depth_image']) > 0
                 load_rgb = args['rgb'] and 'image' in data and len(data['image']) > 0
+                # print('load_depth: ' + str(load_depth) + ' load_rgb: ' + str(load_rgb))
 
                 if args['gripper']:
                     # print the gripper data channel
@@ -425,7 +428,7 @@ def main(args, root="root"):
                     if load_depth and load_rgb:
                         clip = mpye.clips_array([[rgb_clip, depth_clip]])
 
-                    if args['preview'] and not args['label_correction']:
+                    if (load_depth or load_rgb) and args['preview'] and not args['label_correction']:
                         clip.preview()
 
                     save_filename = example_filename.replace('.h5f', '.' + args['convert'])
@@ -501,6 +504,7 @@ def label_correction(label_correction_table, i, example_filename, args, progress
                         # However for the purpose of detecting if there is a stack 3 tall present, this would be marked correct.
                         # Therefore we have the special label error.failure.falsely_appears_correct!
                         # Sorry it is complicated but I want to be specific so I don't have to go through all the examples again...
+                        # TODO(ahundt) BUG!!! filenames are becoming something like: 2018-05-10-14-33-26_example000019.error.failure.fal instead of 2018-05-10-14-33-26_example000019.error.failure.falsely_appears_correct.h5f
                         label_correction_table[i, corrected_idx] = original_filename.replace('failure', 'failure.falsely_appears_correct')
                     else:
                         # replace failure with success
