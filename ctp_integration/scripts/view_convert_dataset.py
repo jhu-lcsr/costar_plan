@@ -354,7 +354,7 @@ def main(args, root="root"):
         if args['label_correction']:
             # Label correction needs some special data loading logic
             # so we can skip data that already has human confirmation
-            progress_bar.write('i: ' + str(i) + ' filename: ' + str(filename))
+            progress_bar.write('i: ' + str(i) + ' filename: ' + str(filename) + ' table: ' + str(str(label_correction_table[i, :])))
             original_idx = 0
             corrected_idx = 1
             status_idx = 2
@@ -405,6 +405,7 @@ def main(args, root="root"):
                             ' in the label correction csv:\n'
                             '    ' + str(label_correction_table[i, :]))
 
+                    progress_bar.write(original + ' -> ' + corrected)
                     # we've ensured the user wants to write the new filenames,
                     # there was no error in the human labeling stage,
                     # this rename has been confirmed by a human,
@@ -412,7 +413,7 @@ def main(args, root="root"):
                     # and the destination filename doesn't already exist.
                     # All looks good so let's finally rename it!
                     os.rename(original, corrected)
-                    progress_bar.write(original + ' -> ' + corrected)
+                    progress_bar.write('One rename completed!')
                 # loading the data would take a long time,
                 # plus the filename just changed so skip
                 continue
