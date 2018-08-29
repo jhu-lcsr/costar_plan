@@ -358,7 +358,7 @@ def main(args, root="root"):
             status_string = label_correction_table[i, status_idx]
             # next commented line is for debug
             # progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
-            if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
+            if not args['write'] and status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
                 # loading the data would take a long time, so skip
                 continue
 
@@ -471,6 +471,10 @@ def main(args, root="root"):
                         # only show the last few frames when correcting labels
                         start_frame = args['label_correction_initial_frame']
                         end_frame = args['label_correction_final_frame']
+                        if args['write']:
+                            # Don't show video to the user when writing.
+                            load_depth = False
+                            load_rgb = False
                         if len(data['image']) == 0:
                             clip = None
                             error_encountered = 'no_images'
