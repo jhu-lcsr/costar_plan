@@ -428,10 +428,12 @@ def main(args, root="root"):
                 if args['goal_to_jpeg']:
                     progress_bar.write('-' * 80)
                     goal_frames = np.unique(data['gripper_action_goal_idx'])
-                    goal_label_idx = np.unique(list(data['gripper_action_label']), return_index=True)[1]
-                    goal_label_idx = [list(data['gripper_action_label'])[index] for index in sorted(goal_label_idx)]
+                    data_gripper_action_label = list(data['gripper_action_label'])
+                    goal_label_idx = np.unique(data_gripper_action_label, return_index=True)[1]
+                    goal_label_idx = [data_gripper_action_label[index] for index in sorted(goal_label_idx)]
                     progress_bar.write('goal_label_idx: ' + str(goal_label_idx))
-                    goal_labels_name = np.array(list(data['labels_to_name']))[goal_label_idx]
+                    data_labels_to_name = list(data['labels_to_name'])
+                    goal_labels_name = np.array(data_labels_to_name)[goal_label_idx]
                     progress_bar.write('goal_labels_name: ' + str(goal_labels_name))
                     progress_bar.write("writing frames:" + str(goal_frames))
                     image_list = np.array(data['image'])[goal_frames]
@@ -444,7 +446,11 @@ def main(args, root="root"):
                         os.makedirs(example_folder_path)
                     for i, image in enumerate(images):
                         im = Image.fromarray(image)
-                        goal_image_path = os.path.join(example_folder_path, name + '_goal_frame_' + str(goal_frames[i]) + '_' + str(goal_labels_name[i]) + '.jpg')
+                        goal_label_name = 'unknown_label'
+                        if i < len(goal_labels_name):
+                            goal_label_name = str(goal_labels_name[i])
+
+                        goal_image_path = os.path.join(example_folder_path, name + '_goal_frame_' + str(goal_frames[i]) + '_' + goal_label_name + '.jpg')
                         progress_bar.write('Saving jpeg: ' + str(goal_image_path))
                         im.save(goal_image_path)
 
