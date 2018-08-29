@@ -47,6 +47,7 @@ try:
 except ImportError:
     tf = None
 
+
 def GetJpeg(img):
     '''
     Save a numpy array as a Jpeg, then get it out as a binary blob
@@ -98,6 +99,7 @@ def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC', dtype=np.u
     if format == 'numpy':
         images = np.array(images, dtype=dtype)
     return images
+
 
 def npy_to_video(npy, filename, fps=10, preview=True, convert='gif'):
     """Convert a numpy array into a gif file at the location specified by filename.
@@ -186,6 +188,7 @@ def _parse_args():
     parser.add_argument("--write", action='store_true', help='Actually write out the changes specified in preprocess_inplace, or label_correction.')
 
     return vars(parser.parse_args())
+
 
 def draw_matplotlib(depth_images, fps):
     for image in tqdm(depth_images):
@@ -292,7 +295,6 @@ def main(args, root="root"):
                 file_list.append(os.path.join(path, file_attr_list[0]))
         print(len(file_list))
         progress_bar = tqdm(file_list)
-
 
     if args['label_correction']:
         label_correction_csv_path = os.path.join(path, args['label_correction_csv'])
