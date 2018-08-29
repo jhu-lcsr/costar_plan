@@ -490,6 +490,10 @@ def main(args, root="root"):
                         goal_image_path = os.path.join(example_folder_path, name + '_goal_frame_' + str(goal_frames[i]) + '_' + goal_label_name + '.jpg')
                         progress_bar.write('Saving jpeg: ' + str(goal_image_path))
                         im.save(goal_image_path)
+                    image = ConvertImageListToNumpy(np.array(data['image'][0:1]), format='list')
+                    goal_image_path = os.path.join(example_folder_path, name + '_clear_view_' + "0" + '.jpg')
+                    progress_bar.write('Saving jpeg: ' + str(goal_image_path))
+                    im.save(goal_image_path)
 
                     # skip other steps like video viewing,
                     # so this conversion runs 1000x faster
