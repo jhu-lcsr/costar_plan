@@ -439,12 +439,12 @@ def main(args, root="root"):
                     example_folder_path, name = os.path.split(example_filename)
                     progress_bar.write(example_folder_path)
                     name = name.replace('.h5f', "")
-                    example_folder_path = os.path.join(example_folder_path, 'goal_images\\')
+                    example_folder_path = os.path.join(example_folder_path, 'goal_images')
                     if not os.path.exists(example_folder_path):
                         os.makedirs(example_folder_path)
                     for i, image in enumerate(images):
                         im = Image.fromarray(image)
-                        goal_image_path = os.path.join(example_folder_path, name + 'goal_' + str(goal_frames[i]) + str(goal_labels_name[i]) + '.jpg')
+                        goal_image_path = os.path.join(example_folder_path, name + '_goal_' + str(goal_frames[i]) + str(goal_labels_name[i]) + '.jpg')
                         progress_bar.write('Saving jpeg: ' + str(goal_image_path))
                         im.save()
 
