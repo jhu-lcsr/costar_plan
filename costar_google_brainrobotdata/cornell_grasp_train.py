@@ -156,7 +156,10 @@ flags.DEFINE_integer(
 flags.DEFINE_string(
     'split_dataset', 'objectwise',
     """Options are imagewise and objectwise, this is the type of split chosen when the tfrecords were generated.""")
-flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the dataset tfrecords and csv files')
+flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the cornell dataset tfrecords and csv files')
+flags.DEFINE_string('costar_filename_base', 'costar_block_stacking_v0.3_success_only',
+                    'base of the filename used for the costar block stacking dataset tfrecords and csv files, '
+                    'specifying None or empty string will generate a new file list from the files in FLAGS.data_dir')
 flags.DEFINE_string(
     'feature_combo', 'image_preprocessed_norm_sin2_cos2_width_3',
     """
@@ -1243,40 +1246,57 @@ def load_dataset(
                 # val_filenames, batch_size=1, is_training=False,
                 # shuffle=False, steps=1,
     elif dataset_name == 'costar_block_stacking':
-        if 'cornell' in FLAGS.data_dir:
-            if 'grasp_success' in label_features or 'action_success' in label_features:
-                # classification case
-                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*.h5f'
-            else:
-                # regression case
-                FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
-            print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
-        # temporarily hardcoded initialization
-        # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
-        file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
-        np.random.seed(0)
-        print("------------------------------------------------")
-        np.random.shuffle(file_names)
-        val_test_size = 128
-        # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
-        # videos are at 10hz and there are about 25 seconds of video in each:
-        # estimated_time_steps_per_example = 250
-        # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
-        # Only visit 5 images in val/test datasets so it doesn't take an unreasonable amount of time & for historical reasons.
+        if FLAGS.costar_filename_base is None or not FLAGS.costar_filename_base:
+            # Generate a new train/test/val split
+            if 'cornell' in FLAGS.data_dir:
+                # If the user hasn't specified a dir and it is the cornell default,
+                # switch to the costar block stacking dataset default
+                if 'grasp_success' in label_features or 'action_success' in label_features:
+                    # classification case
+                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*.h5f'
+                else:
+                    # regression case
+                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
+                print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
+            # temporarily hardcoded initialization
+            # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
+            file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
+            np.random.seed(0)
+            print("------------------------------------------------")
+            np.random.shuffle(file_names)
+            val_test_size = 128
+            # TODO(ahundt) actually reach all the images in one epoch, modify CostarBlockStackingSequence
+            # videos are at 10hz and there are about 25 seconds of video in each:
+            # estimated_time_steps_per_example = 250
+            # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
+            # Only visit 5 images in val/test datasets so it doesn't take an unreasonable amount of time & for historical reasons.
 
+            # We are multiplying by batch size as a hacky workaround because we want the sizing reduction
+            # from steps_per_epoch to not be affected by the batch size.
+            estimated_time_steps_per_example = 8 * batch_size
+            test_data = file_names[:val_test_size]
+            with open('test.txt', mode='w') as myfile:
+                myfile.write('\n'.join(test_data))
+            validation_data = file_names[val_test_size:val_test_size*2]
+            with open('val.txt', mode='w') as myfile:
+                myfile.write('\n'.join(validation_data))
+            train_data = file_names[val_test_size*2:]
+            with open('train.txt', mode='w') as myfile:
+                myfile.write('\n'.join(train_data))
+        else:
+            if 'cornell' in FLAGS.data_dir:
+                # If the user hasn't specified a dir and it is the cornell default,
+                # switch to the costar block stacking dataset default
+                FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/')
 
-        # We are multiplying by batch size as a hacky workaround because we want the sizing reduction from steps_per_epoch to
-        estimated_time_steps_per_example = 8 * batch_size
-        test_data = file_names[:val_test_size]
-        with open('test.txt', mode='w') as myfile:
-            myfile.write('\n'.join(test_data))
-        validation_data = file_names[val_test_size:val_test_size*2]
-        with open('val.txt', mode='w') as myfile:
-            myfile.write('\n'.join(validation_data))
-        train_data = file_names[val_test_size*2:]
-        with open('train.txt', mode='w') as myfile:
-            myfile.write('\n'.join(train_data))
+            test_data_filename = os.path.join(label_correction_csv_path, costar_filename_base + '_test_files.txt')
+            test_data = np.genfromtxt(test_data_filename, dtype='str', delimiter=', ')
 
+            validation_data_filename = os.path.join(label_correction_csv_path, costar_filename_base + '_val_files.txt')
+            validation_data = np.genfromtxt(validation_data_filename, dtype='str', delimiter=', ')
+
+            train_data_filename = os.path.join(label_correction_csv_path, costar_filename_base + '_train_files.txt')
+            train_data = np.genfromtxt(train_data_filename, dtype='str', delimiter=', ')
         # train_data = file_names[:5]
         # test_data = file_names[5:10]
         # validation_data = file_names[10:15]
