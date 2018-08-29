@@ -47,6 +47,7 @@ try:
 except ImportError:
     tf = None
 
+
 def GetJpeg(img):
     '''
     Save a numpy array as a Jpeg, then get it out as a binary blob
@@ -97,6 +98,7 @@ def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC', dtype=np.u
     if format == 'numpy':
         images = np.array(images, dtype=dtype)
     return images
+
 
 def npy_to_video(npy, filename, fps=10, preview=True, convert='gif'):
     """Convert a numpy array into a gif file at the location specified by filename.
@@ -166,6 +168,7 @@ def _parse_args():
                         help='labinitial frame to view in video, negative numbers are the distance in frames from the final frame.')
     parser.add_argument("--label_correction_final_frame", type=int, default=-1,
                         help='final frame to view in video, negative numbers are the distance in frames from the final frame.')
+    parser.add_argument("--goal_to_jpeg", type=bool, default=False, help='reads the files and writes the goal images as jpeg')
     parser.add_argument("--gripper", action='store_true', default=False, help='print gripper data channel')
     parser.add_argument("--depth", action='store_true', default=True, help='process depth data', dest='depth')
     parser.add_argument("--no-depth", action='store_false', default=True, help='do not process depth data', dest='depth')
@@ -281,6 +284,19 @@ def main(args, root="root"):
     if args['label_correction_reconfirm']:
         args['label_correction'] = True
 
+    if args['goal_to_jpeg']:
+        label_correction_csv_path = os.path.join(path, args['label_correction_csv'])
+        print(label_correction_csv_path)
+        renamed_file_data = np.genfromtxt(label_correction_csv_path, dtype=str, delimiter=',')
+        path_to_goal = os.path.join(path, 'goal_images')
+        # print(renamed_file_data)
+        file_list = []
+        for i, file_attr_list in enumerate(renamed_file_data[1:]):
+            if 'extra_cool_example' in file_attr_list[-1]:
+                file_list.append(os.path.join(path, file_attr_list[0]))
+        print(len(file_list))
+        progress_bar = tqdm(file_list)
+
     if args['label_correction']:
         label_correction_csv_path = os.path.join(path, args['label_correction_csv'])
         if os.path.isfile(label_correction_csv_path):
@@ -392,6 +408,26 @@ def main(args, root="root"):
                         progress_bar.write(
                             'gripper_action_label test run, use --write to change the files in place. gripper_action_label: ' +
                             str(gripper_action_label) + ' gripper_action_goal_idx: ' + str(gripper_action_goal_idx))
+                if args['goal_to_jpeg']:
+                    print("------------------------------")
+                    goal_frames = np.unique(data['gripper_action_goal_idx'])
+                    goal_label_idx = np.unique(list(data['gripper_action_label']), return_index=True)[1]
+                    goal_label_idx = [list(data['gripper_action_label'])[index] for index in sorted(goal_label_idx)]
+                    print(goal_label_idx)
+                    goal_labels_name = np.array(list(data['labels_to_name']))[goal_label_idx]
+                    print(goal_labels_name)
+                    print("writing frames ", goal_frames)
+                    image_list = np.array(data['image'])[goal_frames]
+                    images = ConvertImageListToNumpy(image_list, format='list')
+                    path_, name = os.path.split(example_filename)
+                    print(path_)
+                    name = name.replace('.h5f', "")
+                    path_ = os.path.join(path_, 'goal_images\\')
+                    if not os.path.exists(path_):
+                        os.makedirs(path_)
+                    for i, image in enumerate(images):
+                        im = Image.fromarray(image)
+                        im.save(path_+name+'goal_'+str(goal_frames[i])+str(goal_labels_name[i])+'.jpg')
 
                     # skip other steps like video viewing,
                     # so this conversion runs 1000x faster
