@@ -447,7 +447,7 @@ def run_training(
     loss_weights = None
     # if image_model_name == 'nasnet_large':
     #     # TODO(ahundt) switch to keras_contrib NASNet model and enable aux network below when keras_contrib is updated with correct weights https://github.com/keras-team/keras/pull/10209.
-    #     # nasnet_large has an auxilliary network,
+    #     # nasnet_large has an auxiliary network,
     #     # so we apply the loss on both
     #     loss = [loss, loss]
     #     loss_weights = [1.0, 0.4]
