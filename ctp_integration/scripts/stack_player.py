@@ -194,6 +194,8 @@ def check_errors(file_list, index, action='next'):
     index: index of the file to check
     action: action to identify the button task
     """
+    if not file_list:
+        raise ValueError('List of files to load is empty! Quitting')
     file_list_copy = file_list[:]
     index_copy = index
     print(file_list[index])
@@ -221,7 +223,25 @@ renderer = hv.renderer('bokeh')
 #example_filename = "C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/2018-05-23-20-18-25_example000002.success.h5f"
 #file_name_list = glob.glob("C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f")
 
-file_name_list = glob.glob(os.path.expanduser(args.data_dir))
+path = os.path.expanduser(args.data_dir)
+
+if '.h5f' in path:
+    filenames = glob.glob(args.data_dir)
+else:
+    filenames = os.listdir(path)
+    # use the full path name
+    filenames = [os.path.join(path, filename) for filename in filenames]
+
+# filter out files that aren't .h5f files
+ignored_files = [filename for filename in filenames if '.h5f' not in filename]
+filenames = [filename for filename in filenames if '.h5f' in filename]
+
+# Report ignored files to the user
+if ignored_files:
+    print('Ignoring the following files which do not contain ".h5f": \n\n' + str(ignored_files) + '\n\n')
+
+file_name_list = filenames
+
 index = 0
 
 index = check_errors(file_name_list, index)
