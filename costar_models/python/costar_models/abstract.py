@@ -279,11 +279,11 @@ class AbstractAgentBasedModel(object):
             self.validation_steps = len(dataset.test) + 1
         return self._yieldLoop(dataset.sampleTest)
 
-    def _genRandomIndexes(self, length, random_draw):
+    def _genRandomIndexes(self, length, random_draw, as_list=True):
       ''' Common method to generate random indexes for getData '''
       # h5py is very picky with regard to needing unique, sorted indices
-      indexes = np.unique(np.random.randint(length, size=random_draw)).tolist()
-      return indexes
+      indexes = np.unique(np.random.randint(length, size=random_draw))
+      return indexes.tolist() if as_list else indexes
 
 
     def _yieldLoop(self, sampleFn):

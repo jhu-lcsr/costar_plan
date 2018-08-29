@@ -125,7 +125,8 @@ class ConditionalImageCostar(ConditionalImage):
         self.model = train_predictor
 
 
-    def _getData(self, image, label, goal_idx, q, gripper, labels_to_name, *args, **kwargs):
+    def _getData(self, image, label, goal_idx, q,
+            gripper, labels_to_name, *args, **kwargs):
         '''
         Parameters:
         -----------
@@ -179,11 +180,110 @@ class ConditionalImageCostar(ConditionalImage):
         lbls2_1h = np.squeeze(ToOneHot2D(goal_label2, self.num_options))
         if self.no_disc:
             return ([image0, image, label, goal_label, prev_label],
-                    [goal_image,
-                     goal_image2,])
+                    [goal_image, goal_image2])
         else:
             return ([image0, image, label, goal_label, prev_label],
-                    [goal_image,
-                     goal_image2,
-                     lbls2_1h,])
+                    [goal_image, goal_image2, lbls2_1h])
+
+    def _getDataRandom(self, random_draw, image, label, goal_idx, q,
+            gripper, labels_to_name, *args, **kwargs):
+        '''
+        @image: jpeg encoding of image
+        @label: integer code for which action is being performed
+        @goal_idx: index of the start of the next action
+        @q: joint states
+        @gripper: floating point gripper openness
+        @labels_to_name: list of high level actions (AKA options)
+        '''
+
+        # Null option to be set as the first option
+        # Verify this to make sure we aren't loading things with different
+        # numbers of available options/high-level actions
+        if len(labels_to_name) != self.null_option:
+            raise ValueError(
+                'labels_to_name must match the number of values in self.null_option. '
+                'self.null_option: {} labels_to_name len: {}'
+                'labels_to_name values: {}'
+                'If this is expected because you collected a dataset with new actions '
+                'or are using an old dataset, go to  '
+                'costar_models/python/costar_models/util.py '
+                'and change model_instance.null_option and model_instance.num_options '
+                'accordingly in the "costar" features case.'.format(
+                    self.null_option, len(labels_to_name), labels_to_name))
+        self.null_option = len(labels_to_name)
+        # Total number of options incl. null
+        self.num_options = len(labels_to_name) + 1
+
+        length = len(label)
+        if length == 0 or len(goal_idx) != length:
+            return [], []
+
+        image0 = np.array(image[0])
+
+        # Randomly draw random_draw number of elements
+        indexes = self._genRandomIndexes(length, random_draw, as_list=False)
+        prev_indexes = indexes - 1
+        prev_indexes = prev_indexes.tolist()
+        indexes = indexes.tolist()
+
+        image_out = np.array(image[indexes])
+
+        label_out = np.array(label[indexes])
+        prev_label_out = np.array(label[prev_indexes])
+        # If we selected the first frame, we need to give it the null option
+        if indexes[0] == 0:
+            prev_label_out[0] = self.null_option
+
+        # index into the goal_idx array to get goal_idxs for our random choices
+        goal_idx_out = np.array(goal_idx[indexes])
+
+        # We now have a problem to solve: h5py only likes sorted, unique indexes
+        # But our goal indexes can easily be repetitive and maybe unsorted
+        # So we get back an inverse array that can reconstruct the original
+        # We then index using the unique version, and reconstruct the full ndarrays
+        # using the 'rebuild' (reverse-index) arrays
+
+        goal_idx_out_uniq, goal_idx_out_rebuild = \
+                np.unique(goal_idx_out, return_inverse=True)
+        if goal_idx_out_uniq[-1] >= length:
+            goal_idx_out_uniq[-1] = length - 1
+        goal_idx_out_uniq_l = goal_idx_out_uniq.tolist()
+
+        # debug
+        #print("goal_idx =", np.array(goal_idx))
+        #print("goal_idx_len =", len(goal_idx), "uniq_l =", goal_idx_out_uniq) #debug
+
+
+        # index into the goal_idx with the chosen goal indexes, to get the next
+        # goal indexes (ie. the goals of the goals)
+        goal_idx_out2_squashed = np.array(goal_idx[goal_idx_out_uniq_l])
+        goal_idx_out2 = goal_idx_out2_squashed[goal_idx_out_rebuild]
+        goal_idx_out2_uniq, goal_idx_out2_rebuild = \
+                np.unique(goal_idx_out2, return_inverse=True)
+        if goal_idx_out2_uniq[-1] >= length:
+            goal_idx_out2_uniq[-1] = length - 1
+        goal_idx_out2_uniq_l = goal_idx_out2_uniq.tolist()
+
+        goal_label_out_squashed = np.array(label[goal_idx_out_uniq_l])
+        goal_label_out = goal_label_out_squashed[goal_idx_out_rebuild]
+        goal_image_out_squashed = np.array(image[goal_idx_out_uniq_l])
+        goal_image_out = goal_image_out_squashed[goal_idx_out_rebuild]
+        goal_label_out2_squashed = np.array(label[goal_idx_out2_uniq_l])
+        goal_label_out2 = goal_label_out2_squashed[goal_idx_out2_rebuild]
+        goal_image_out2_squashed = np.array(image[goal_idx_out2_uniq_l])
+        goal_image_out2 = goal_image_out2_squashed[goal_idx_out2_rebuild]
+
+        created_length = len(label_out)
+
+        # Extend image_0 to full length of sequence
+        image0_out = np.tile(np.expand_dims(image0, axis=0),[created_length,1,1,1])
+
+        #lbls_1h = np.squeeze(ToOneHot2D(label_out, self.num_options))
+        lbls2_1h = np.squeeze(ToOneHot2D(goal_label_out2, self.num_options))
+        if self.no_disc:
+            return ([image0_out, image_out, label_out, goal_label_out, prev_label_out],
+                    [goal_image_out, goal_image_out2])
+        else:
+            return ([image0_out, image_out, label_out, goal_label_out, prev_label_out],
+                    [goal_image_out, goal_image_out2, lbls2_1h])
 
