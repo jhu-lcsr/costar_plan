@@ -130,6 +130,10 @@ def _parse_args():
                         help='format to convert images to. Default empty string is no conversion, options are gif and mp4.')
     parser.add_argument("--ignore_failure", type=bool, default=False, help='skip grasp failure cases')
     parser.add_argument("--ignore_success", type=bool, default=False, help='skip grasp success cases')
+    parser.add_argument("--extra_cool_example", action='store_true', default=False,
+                        help='The human labeled label_correction_csv can store notes identifying particularly '
+                             'interesting examples with the string super_cool_example. With this flag we will '
+                             ' skip all except the examples which are particularly interesting')
     parser.add_argument("--ignore_error", type=bool, default=False, help='skip grasp attempts that are both failures and contain errors')
     parser.add_argument("--preview", action='store_true', help='pop open a preview window to view the video data')
     parser.add_argument("--label_correction", action='store_true',
@@ -168,7 +172,9 @@ def _parse_args():
                         help='labinitial frame to view in video, negative numbers are the distance in frames from the final frame.')
     parser.add_argument("--label_correction_final_frame", type=int, default=-1,
                         help='final frame to view in video, negative numbers are the distance in frames from the final frame.')
-    parser.add_argument("--goal_to_jpeg", type=bool, default=False, help='reads the files and writes the goal images as jpeg')
+    parser.add_argument("--goal_to_jpeg", action='store_true', default=False,
+                        help='Convert the rgb images from each goal time step to a jpeg saved in a folder called '
+                             'goal_images which will be created right next to the dataset files.')
     parser.add_argument("--gripper", action='store_true', default=False, help='print gripper data channel')
     parser.add_argument("--depth", action='store_true', default=True, help='process depth data', dest='depth')
     parser.add_argument("--no-depth", action='store_false', default=True, help='do not process depth data', dest='depth')
@@ -263,6 +269,7 @@ def save_label_correction_csv_file(label_correction_csv_path, label_correction_t
 def main(args, root="root"):
 
     clip = None
+    label_correction_table = None
     path = os.path.expanduser(args['path'])
     if '.h5f' in path:
         filenames = [args['path']]
@@ -284,20 +291,20 @@ def main(args, root="root"):
     if args['label_correction_reconfirm']:
         args['label_correction'] = True
 
-    if args['goal_to_jpeg']:
-        label_correction_csv_path = os.path.join(path, args['label_correction_csv'])
-        print(label_correction_csv_path)
-        renamed_file_data = np.genfromtxt(label_correction_csv_path, dtype=str, delimiter=',')
-        path_to_goal = os.path.join(path, 'goal_images')
-        # print(renamed_file_data)
-        file_list = []
-        for i, file_attr_list in enumerate(renamed_file_data[1:]):
-            if 'extra_cool_example' in file_attr_list[-1]:
-                file_list.append(os.path.join(path, file_attr_list[0]))
-        print(len(file_list))
-        progress_bar = tqdm(file_list)
+    # if args['goal_to_jpeg']:
+    #     label_correction_csv_path = os.path.join(path, args['label_correction_csv'])
+    #     print(label_correction_csv_path)
+    #     renamed_file_data = np.genfromtxt(label_correction_csv_path, dtype=str, delimiter=',')
+    #     path_to_goal = os.path.join(path, 'goal_images')
+    #     # print(renamed_file_data)
+    #     file_list = []
+    #     for i, file_attr_list in enumerate(renamed_file_data[1:]):
+    #         if 'extra_cool_example' in file_attr_list[-1]:
+    #             file_list.append(os.path.join(path, file_attr_list[0]))
+    #     print(len(file_list))
+    #     progress_bar = tqdm(file_list)
 
-    if args['label_correction']:
+    if args['label_correction'] or args['goal_to_jpeg']:
         label_correction_csv_path = os.path.join(path, args['label_correction_csv'])
         if os.path.isfile(label_correction_csv_path):
             progress_bar.write('Loading existing label correction csv file:\n    ' + str(label_correction_csv_path))
@@ -332,6 +339,11 @@ def main(args, root="root"):
         if args['ignore_success'] and 'success' in filename:
             progress_bar.write('Skipping example containing success: ' + filename)
             continue
+        if args['extra_cool_example']:
+            comment_idx = 3
+            if 'extra_cool_example' not in label_correction_table[i, comment_idx]:
+                progress_bar.write('Skipping since it is not an extra_cool_example: ' + filename)
+                continue
 
         if args['path'] not in filename:
             # prepend the path if it isn't already present
@@ -408,26 +420,33 @@ def main(args, root="root"):
                         progress_bar.write(
                             'gripper_action_label test run, use --write to change the files in place. gripper_action_label: ' +
                             str(gripper_action_label) + ' gripper_action_goal_idx: ' + str(gripper_action_goal_idx))
+
+                    # skip other steps like video viewing,
+                    # so this conversion runs 1000x faster
+                    continue
+
                 if args['goal_to_jpeg']:
-                    print("------------------------------")
+                    progress_bar.write('-' * 80)
                     goal_frames = np.unique(data['gripper_action_goal_idx'])
                     goal_label_idx = np.unique(list(data['gripper_action_label']), return_index=True)[1]
                     goal_label_idx = [list(data['gripper_action_label'])[index] for index in sorted(goal_label_idx)]
-                    print(goal_label_idx)
+                    progress_bar.write(goal_label_idx)
                     goal_labels_name = np.array(list(data['labels_to_name']))[goal_label_idx]
-                    print(goal_labels_name)
-                    print("writing frames ", goal_frames)
+                    progress_bar.write(goal_labels_name)
+                    progress_bar.write("writing frames ", goal_frames)
                     image_list = np.array(data['image'])[goal_frames]
                     images = ConvertImageListToNumpy(image_list, format='list')
-                    path_, name = os.path.split(example_filename)
-                    print(path_)
+                    example_folder_path, name = os.path.split(example_filename)
+                    progress_bar.write(example_folder_path)
                     name = name.replace('.h5f', "")
-                    path_ = os.path.join(path_, 'goal_images\\')
-                    if not os.path.exists(path_):
-                        os.makedirs(path_)
+                    example_folder_path = os.path.join(example_folder_path, 'goal_images\\')
+                    if not os.path.exists(example_folder_path):
+                        os.makedirs(example_folder_path)
                     for i, image in enumerate(images):
                         im = Image.fromarray(image)
-                        im.save(path_+name+'goal_'+str(goal_frames[i])+str(goal_labels_name[i])+'.jpg')
+                        goal_image_path = os.path.join(example_folder_path, name + 'goal_' + str(goal_frames[i]) + str(goal_labels_name[i]) + '.jpg')
+                        progress_bar.write('Saving jpeg: ' + str(goal_image_path))
+                        im.save()
 
                     # skip other steps like video viewing,
                     # so this conversion runs 1000x faster
