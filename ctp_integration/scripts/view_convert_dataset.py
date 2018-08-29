@@ -430,10 +430,10 @@ def main(args, root="root"):
                     goal_frames = np.unique(data['gripper_action_goal_idx'])
                     goal_label_idx = np.unique(list(data['gripper_action_label']), return_index=True)[1]
                     goal_label_idx = [list(data['gripper_action_label'])[index] for index in sorted(goal_label_idx)]
-                    progress_bar.write(goal_label_idx)
+                    # progress_bar.write('goal_label_idx: ' + str(goal_label_idx))
                     goal_labels_name = np.array(list(data['labels_to_name']))[goal_label_idx]
-                    progress_bar.write(goal_labels_name)
-                    progress_bar.write("writing frames ", goal_frames)
+                    # progress_bar.write('goal_labels_name: ' + str(goal_labels_name))
+                    # progress_bar.write("writing frames:" + str(goal_frames))
                     image_list = np.array(data['image'])[goal_frames]
                     images = ConvertImageListToNumpy(image_list, format='list')
                     example_folder_path, name = os.path.split(example_filename)
