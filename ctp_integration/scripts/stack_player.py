@@ -141,6 +141,8 @@ def generate_gripper_action_label(data, action_status, gripper_status, gripper_a
         gripper_action_goal_idx = list(data['gripper_action_goal_idx'])
         print(gripper_action_goal_idx)
         print("gripper_action_labels already exist..")
+        print("gripper_action_label length: " + str(len(gripper_action_label)))
+        print("gripper_action_goal_idx length: " + str(len(gripper_action_goal_idx)))
     else:
         # compute the gripper action label on the fly
         unique_actions, indices = np.unique(action_status, return_index=True)
@@ -250,7 +252,8 @@ rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, 
 print('images loaded')
 # Declare the HoloViews object
 start = 0
-end = len(rgb_images)
+end = len(rgb_images) - 1
+print(' End Index of RGB images: ' + str(end))
 # TODO(ahundt) resize image, all of this size code had no effect
 width = int(640*1.5)
 height = int(480*1.5)
@@ -313,8 +316,8 @@ def next_image(files, action):
     height = int(rgb_images[0].shape[0])
     width = int(rgb_images[0].shape[1])
     start = 0
-    end = len(rgb_images)
-    print(end)
+    end = len(rgb_images) - 1
+    print(' End Index of RGB images: ' + str(end))
 
     def slider_update(attrname, old, new):
         plot.update(slider.value)
