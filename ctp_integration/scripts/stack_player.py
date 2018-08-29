@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-An example of a simple player widget animating an Image demonstrating
-how to connnect a simple HoloViews plot with custom widgets and
-combine them into a bokeh layout.
+A simple player widget for visualizing an example in the dataset.
 
-The app can be served using:
+Start in the costar_plan directory:
+
+    ~/src/costar_plan/ctp_integration
+
+The app can be started (served) using the following line, it will use glob to find matching files:
 
     bokeh serve --show scripts/stack_player.py --args  --data-dir "~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f"
+
+Alternate command:
+
+    bokeh serve --show scripts/stack_player.py --args --data-dir ~/.keras/datasets/costar_block_stacking_dataset_v0.2/
 
 Note that the data dir with * uses glob syntax, so this example will only load the data which has been labeled as successful grasps.
 """
