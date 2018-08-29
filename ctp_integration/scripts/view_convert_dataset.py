@@ -354,11 +354,48 @@ def main(args, root="root"):
         if args['label_correction']:
             # Label correction needs some special data loading logic
             # so we can skip data that already has human confirmation
+            original_idx = 0
+            corrected_idx = 1
             status_idx = 2
+            comment_idx = 3
             status_string = label_correction_table[i, status_idx]
             # next commented line is for debug
             # progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
-            if not args['write'] and status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
+            if (args['write'] and
+                    example_filename == label_correction_table[i, original_idx] and
+                    'error' not in status_string and
+                    'unconfirmed' not in status_string and
+                    'confirmed' in status_string and
+                    label_correction_table[i, original_idx] != label_correction_table[i, corrected_idx]):
+
+                original = label_correction_table[i, original_idx]
+                corrected = label_correction_table[i, corrected_idx]
+
+                if os.path.isfile(corrected):
+                    raise ValueError('Trying to rename a file, but the destination filename already exists!'
+                                    '[source, destination, status] entry at row ' + str(i) +
+                                    ' in the label correction csv:\n'
+                                    '    ' + str(label_correction_table[i, :]))
+
+                if not os.path.isfile(original):
+                    raise ValueError('Trying to rename a file, but the original filename either '
+                                    'does not exist or is not a file!'
+                                    '[source, destination, status] entry at row ' + str(i) +
+                                    ' in the label correction csv:\n'
+                                    '    ' + str(label_correction_table[i, :]))
+
+                # we've ensured the user wants to write the new filenames,
+                # there was no error in the human labeling stage,
+                # this rename has been confirmed by a human,
+                # the source and destination filenames aren't equal,
+                # and the destination filename doesn't already exist.
+                # All looks good so let's finally rename it!
+                os.rename(original, corrected)
+                progress_bar.write(original + ' -> ' + corrected)
+                # loading the data would take a long time,
+                # plus the filename just changed so skip
+                continue
+            if status_string != 'unconfirmed' and not args['label_correction_reconfirm']:
                 # loading the data would take a long time, so skip
                 continue
 
@@ -597,38 +634,6 @@ def label_correction(label_correction_table, i, example_filename, args, progress
             label_correction_table[i, status_idx] = error_encountered
             # save the updated csv file
             save_label_correction_csv_file(label_correction_csv_path, label_correction_table)
-
-    elif (args['write'] and
-          example_filename == label_correction_table[i, original_idx] and
-          'error' not in status_string and
-          'unconfirmed' not in status_string and
-          'confirmed' in status_string and
-          label_correction_table[i, original_idx] != label_correction_table[i, corrected_idx]):
-
-        original = label_correction_table[i, original_idx]
-        corrected = label_correction_table[i, corrected_idx]
-
-        if os.path.isfile(corrected):
-            raise ValueError('Trying to rename a file, but the destination filename already exists!'
-                             '[source, destination, status] entry at row ' + str(i) +
-                             ' in the label correction csv:\n'
-                             '    ' + str(label_correction_table[i, :]))
-
-        if not os.path.isfile(original):
-            raise ValueError('Trying to rename a file, but the original filename either '
-                             'does not exist or is not a file!'
-                             '[source, destination, status] entry at row ' + str(i) +
-                             ' in the label correction csv:\n'
-                             '    ' + str(label_correction_table[i, :]))
-
-        # we've ensured the user wants to write the new filenames,
-        # there was no error in the human labeling stage,
-        # this rename has been confirmed by a human,
-        # the source and destination filenames aren't equal,
-        # and the destination filename doesn't already exist.
-        # All looks good so let's finally rename it!
-        os.rename(original, corrected)
-        progress_bar.write(original + ' -> ' + corrected)
 
     return label_correction_table
 
