@@ -785,8 +785,8 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
         if learning_rate_schedule == 'reduce_lr_on_plateau':
             callbacks = callbacks + [
                 # Reduce the learning rate if training plateaus.
-                # patience of 13 is a good option for the cornell datasets, 5 seems more appropriate for costar stack regression
-                keras.callbacks.ReduceLROnPlateau(patience=5, verbose=1, factor=0.5, monitor=monitor_loss_name, min_delta=1e-6)
+                # patience of 13 is a good option for the cornell datasets and costar stack regression
+                keras.callbacks.ReduceLROnPlateau(patience=13, verbose=1, factor=0.5, monitor=monitor_loss_name, min_delta=1e-6)
             ]
         else:
             callbacks = callbacks + [
