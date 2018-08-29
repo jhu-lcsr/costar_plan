@@ -469,8 +469,8 @@ def main(args, root="root"):
                         end_frame = args['label_correction_final_frame']
                         if args['write']:
                             # Don't show video to the user when writing.
-                            start_fame = 0
-                            end_frame = 0
+                            load_depth = False
+                            load_rgb = False
                         if len(data['image']) == 0:
                             clip = None
                             error_encountered = 'no_images'
