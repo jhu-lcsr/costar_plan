@@ -359,30 +359,48 @@ def main(args, root="root"):
             status_idx = 2
             comment_idx = 3
             status_string = label_correction_table[i, status_idx]
+            example_filename_base = os.path.basename(example_filename)
+            # check that we are working with the right file
+            if example_filename_base not in label_correction_table[i, :status_idx]:
+                raise ValueError(
+                    '\n' + ('-' * 80) + '\n\n'
+                    'Files may have been added and/or removed from the dataset folder '
+                    'but not updated in the label correction csv file:\n'
+                    '    ' + str(label_correction_csv_path) + '\n\n'
+                    'The code cannot currently handle mismatched lists of files, so we will exit the program.\n\n'
+                    'The current example filename:\n'
+                    '    ' + str(example_filename) +
+                    '\ndoes not match the corresponding original entry at row ' + str(i) +
+                    ' in the label correction csv:\n'
+                    '    ' + str(label_correction_table[i, :]) + '\n\n'
+                    'To solve this problem you might want to try one of the following options:\n'
+                    '    (1) Start fresh with no CSV file and all unconfirmed values.\n'
+                    '    (2) Manually edit the csv or file directories so the number of rows matches the number of .h5f files.\n'
+                    '    (3) Edit the code to handle this situation by perhaps adding any missing files to the list and re-sorting.')
             # next commented line is for debug
             # progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
-            if (args['write'] and
-                    example_filename == label_correction_table[i, original_idx] and
-                    'error' not in status_string and
-                    'unconfirmed' not in status_string and
-                    'confirmed' in status_string and
-                    label_correction_table[i, original_idx] != label_correction_table[i, corrected_idx]):
+            if args['write']:
+                if(example_filename == label_correction_table[i, original_idx] and
+                   'error' not in status_string and
+                   'unconfirmed' not in status_string and
+                   'confirmed' in status_string and
+                   label_correction_table[i, original_idx] != label_correction_table[i, corrected_idx]):
 
-                original = label_correction_table[i, original_idx]
-                corrected = label_correction_table[i, corrected_idx]
+                    original = label_correction_table[i, original_idx]
+                    corrected = label_correction_table[i, corrected_idx]
 
-                if os.path.isfile(corrected):
-                    raise ValueError('Trying to rename a file, but the destination filename already exists!'
-                                    '[source, destination, status] entry at row ' + str(i) +
-                                    ' in the label correction csv:\n'
-                                    '    ' + str(label_correction_table[i, :]))
+                    if os.path.isfile(corrected):
+                        raise ValueError('Trying to rename a file, but the destination filename already exists!'
+                                        '[source, destination, status] entry at row ' + str(i) +
+                                        ' in the label correction csv:\n'
+                                        '    ' + str(label_correction_table[i, :]))
 
-                if not os.path.isfile(original):
-                    raise ValueError('Trying to rename a file, but the original filename either '
-                                    'does not exist or is not a file!'
-                                    '[source, destination, status] entry at row ' + str(i) +
-                                    ' in the label correction csv:\n'
-                                    '    ' + str(label_correction_table[i, :]))
+                    if not os.path.isfile(original):
+                        raise ValueError('Trying to rename a file, but the original filename either '
+                                        'does not exist or is not a file!'
+                                        '[source, destination, status] entry at row ' + str(i) +
+                                        ' in the label correction csv:\n'
+                                        '    ' + str(label_correction_table[i, :]))
 
                 # we've ensured the user wants to write the new filenames,
                 # there was no error in the human labeling stage,
