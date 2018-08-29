@@ -444,9 +444,9 @@ def main(args, root="root"):
                         os.makedirs(example_folder_path)
                     for i, image in enumerate(images):
                         im = Image.fromarray(image)
-                        goal_image_path = os.path.join(example_folder_path, name + '_goal_' + str(goal_frames[i]) + str(goal_labels_name[i]) + '.jpg')
+                        goal_image_path = os.path.join(example_folder_path, name + '_goal_frame_' + str(goal_frames[i]) + '_' + str(goal_labels_name[i]) + '.jpg')
                         progress_bar.write('Saving jpeg: ' + str(goal_image_path))
-                        im.save()
+                        im.save(goal_image_path)
 
                     # skip other steps like video viewing,
                     # so this conversion runs 1000x faster
