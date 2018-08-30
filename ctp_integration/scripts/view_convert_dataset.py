@@ -312,7 +312,7 @@ def main(args, root="root"):
     #     print(len(file_list))
     #     progress_bar = tqdm(file_list)
 
-    if args['label_correction'] or args['goal_to_jpeg']:
+    if args['label_correction'] or args['goal_to_jpeg'] or args['extra_cool_example']:
         label_correction_csv_path = os.path.join(path, args['label_correction_csv'])
         if os.path.isfile(label_correction_csv_path):
             progress_bar.write('Loading existing label correction csv file:\n    ' + str(label_correction_csv_path))
