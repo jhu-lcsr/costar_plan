@@ -326,8 +326,10 @@ def main(args, root="root"):
                 '    (2) Manually edit the csv or file directories so the number of rows matches the number of .h5f files.\n'
                 '    (3) Edit the code to handle this situation by perhaps adding any missing files to the list and re-sorting.')
         # make sure they're sorted in the same order as filenames
-        filenames = np.array(filenames).sort(kind='mergesort')
-        label_correction_table = label_correction_table[label_correction_table[:, 1].argsort(kind='mergesort')]
+        filenames = np.expand_dims(np.array(filenames), -1)
+        filenames = filenames[filenames[:, 0].argsort(kind='mergesort')]
+        filenames = np.squeeze(filenames)
+        label_correction_table = label_correction_table[label_correction_table[:, 0].argsort(kind='mergesort')]
 
     for i, filename in enumerate(progress_bar):
         # skip certain files based on command line parameters
