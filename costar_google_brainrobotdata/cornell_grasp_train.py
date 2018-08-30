@@ -1289,6 +1289,7 @@ def load_dataset(
                 # switch to the costar block stacking dataset default
                 FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
             data_dir = FLAGS.data_dir
+            costar_filename_base = FLAGS.costar_filename_base
 
             test_data_filename = os.path.join(data_dir, costar_filename_base + '_test_files.txt')
             test_data = np.genfromtxt(test_data_filename, dtype='str', delimiter=', ')
