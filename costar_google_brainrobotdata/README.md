@@ -47,7 +47,7 @@ The Block stacking dataset is currently hosted on google drive. It can be downlo
 Follow the [google drive costar block stacking dataset v0.2 download link](https://drive.google.com/drive/folders/1k7N1EvxRh7GwS5tbax8RAeUU_dcPGWOw?usp=sharing), and add the folder to your drive. This should not use up any of your storage limit.
 
 ```
-rclone copy drive:costar_block_stacking_dataset_v0.2 ~/.keras/dataset/costar_block_stacking_dataset_v0.2 --exclude="*failure*"
+rclone copy drive:costar_block_stacking_dataset_v0.3 ~/.keras/dataset/costar_block_stacking_dataset_v0.3 --exclude="*failure*"
 ```
 
 Configure `cornell_hyperopt.py` to run on the problem you'd like, the script supports both the cornell and the costar block stacking ataset. Sorry for the bad naming, this a historical artifact that should be resolved at some point in the future.

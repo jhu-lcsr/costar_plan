@@ -138,9 +138,9 @@ def main(_):
     #       'for an experiment. '
     #       'crop + resize width/height have been set to 640x480.')
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
-    # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f'
+    # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.3/*success.h5f'
 
-    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f')
+    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/*success.h5f')
     FLAGS.fine_tuning_epochs = 40
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '

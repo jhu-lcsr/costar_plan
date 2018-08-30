@@ -11,7 +11,7 @@ Convert video from an h5f file into a gif:
 
 Relabel "success" data in a dataset:
 
-    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.2 --label_correction --fps 60 --ignore_failure True --ignore_error True
+    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.3 --label_correction --fps 60 --ignore_failure True --ignore_error True
 
 '''
 import argparse

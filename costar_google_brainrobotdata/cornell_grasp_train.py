@@ -1253,13 +1253,13 @@ def load_dataset(
                 # switch to the costar block stacking dataset default
                 if 'grasp_success' in label_features or 'action_success' in label_features:
                     # classification case
-                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*.h5f'
+                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.3/*.h5f'
                 else:
                     # regression case
-                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.2/*success.h5f'
+                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.3/*success.h5f'
                 print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
             # temporarily hardcoded initialization
-            # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.2/*success.h5f"))
+            # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.3/*success.h5f"))
             file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
             np.random.seed(0)
             print("------------------------------------------------")
@@ -1287,7 +1287,7 @@ def load_dataset(
             if 'cornell' in FLAGS.data_dir:
                 # If the user hasn't specified a dir and it is the cornell default,
                 # switch to the costar block stacking dataset default
-                FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.2/')
+                FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
 
             test_data_filename = os.path.join(label_correction_csv_path, costar_filename_base + '_test_files.txt')
             test_data = np.genfromtxt(test_data_filename, dtype='str', delimiter=', ')
