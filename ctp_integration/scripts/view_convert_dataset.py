@@ -279,6 +279,7 @@ def main(args, root="root"):
     # filter out files that aren't .h5f files
     ignored_files = [filename for filename in filenames if '.h5f' not in filename]
     filenames = [filename for filename in filenames if '.h5f' in filename]
+    filenames.sort()
 
     # Read data
     progress_bar = tqdm(filenames)
