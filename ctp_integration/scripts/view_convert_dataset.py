@@ -279,7 +279,6 @@ def main(args, root="root"):
     # filter out files that aren't .h5f files
     ignored_files = [filename for filename in filenames if '.h5f' not in filename]
     filenames = [filename for filename in filenames if '.h5f' in filename]
-    filenames.sort()
 
     # Read data
     progress_bar = tqdm(filenames)
@@ -326,6 +325,9 @@ def main(args, root="root"):
                 '    (1) Start fresh with no CSV file and all unconfirmed values.\n'
                 '    (2) Manually edit the csv or file directories so the number of rows matches the number of .h5f files.\n'
                 '    (3) Edit the code to handle this situation by perhaps adding any missing files to the list and re-sorting.')
+        # make sure they're sorted in the same order as filenames
+        filenames = np.array(filenames).argsort(kind='mergesort')
+        label_correction_table[label_correction_table[:, 1].argsort(kind='mergesort')]
 
     for i, filename in enumerate(progress_bar):
         # skip certain files based on command line parameters
