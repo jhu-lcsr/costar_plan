@@ -1288,14 +1288,15 @@ def load_dataset(
                 # If the user hasn't specified a dir and it is the cornell default,
                 # switch to the costar block stacking dataset default
                 FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+            data_dir = FLAGS.data_dir
 
-            test_data_filename = os.path.join(label_correction_csv_path, costar_filename_base + '_test_files.txt')
+            test_data_filename = os.path.join(data_dir, costar_filename_base + '_test_files.txt')
             test_data = np.genfromtxt(test_data_filename, dtype='str', delimiter=', ')
 
-            validation_data_filename = os.path.join(label_correction_csv_path, costar_filename_base + '_val_files.txt')
+            validation_data_filename = os.path.join(data_dir, costar_filename_base + '_val_files.txt')
             validation_data = np.genfromtxt(validation_data_filename, dtype='str', delimiter=', ')
 
-            train_data_filename = os.path.join(label_correction_csv_path, costar_filename_base + '_train_files.txt')
+            train_data_filename = os.path.join(data_dir, costar_filename_base + '_train_files.txt')
             train_data = np.genfromtxt(train_data_filename, dtype='str', delimiter=', ')
         # train_data = file_names[:5]
         # test_data = file_names[5:10]
