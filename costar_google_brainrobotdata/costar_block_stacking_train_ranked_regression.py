@@ -66,7 +66,7 @@ flags.DEFINE_integer(
 
 flags.DEFINE_integer(
     'max_epoch',
-    10,
+    40,
     'Results should only belong to this epoch or lower, not enabled by default.'
 )
 
@@ -152,8 +152,8 @@ def main(_):
         FLAGS.random_augmentation = None
     elif problem_type == 'semantic_translation_regression':
         # sort by cart_error from low to high
-        sort_by = 'cart_error'
-        dataframe = dataframe.sort_values(sort_by, ascending=True)
+        # sort_by = 'cart_error'
+        # dataframe = dataframe.sort_values(sort_by, ascending=True)
         # # sort by val_cart_error from low to high
         # sort_by = 'val_cart_error'
         # dataframe = dataframe.sort_values(sort_by, ascending=True)
