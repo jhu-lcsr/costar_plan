@@ -398,7 +398,7 @@ def main(args, root="root"):
                 if(example_filename_base == original and
                         'confirmed_rename' in status_string and
                         'unconfirmed' not in status_string):
-                    progress_bar.write('i: ' + str(i) + ' filename: ' + str(filename) + ' table: ' + str(str(label_correction_table[i, :])))
+                    progress_bar.write('Performing rename at row i: ' + str(i) + ' filename: ' + str(filename) + ' table: ' + str(str(label_correction_table[i, :])))
 
                     if original == corrected:
                         raise ValueError(
