@@ -394,7 +394,7 @@ def main(args, root="root"):
             # next commented line is for debug
             # progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
             if args['write']:
-                if(example_filename == original and
+                if(example_filename_base == original and
                         'confirmed_rename' in status_string and
                         'unconfirmed' not in status_string):
                     progress_bar.write('i: ' + str(i) + ' filename: ' + str(filename) + ' table: ' + str(str(label_correction_table[i, :])))
