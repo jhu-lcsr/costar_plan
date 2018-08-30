@@ -394,13 +394,19 @@ def main(args, root="root"):
             # progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
             if args['write']:
                 if(example_filename == label_correction_table[i, original_idx] and
-                   'error' not in status_string and
-                   'unconfirmed' not in status_string and
-                   'confirmed' in status_string and
-                   label_correction_table[i, original_idx] != label_correction_table[i, corrected_idx]):
+                   'confirmed_rename' in status_string and
+                   'unconfirmed' not in status_string):
 
                     original = label_correction_table[i, original_idx]
                     corrected = label_correction_table[i, corrected_idx]
+
+                    if original == corrected:
+                        raise ValueError(
+                            'Rename confirmed but filenames are identical '
+                            'please correct this entry. '
+                            '[source, destination, status] entry at row ' + str(i) +
+                            ' in the label correction csv:\n'
+                            '    ' + str(label_correction_table[i, :]))
 
                     if os.path.isfile(corrected):
                         raise ValueError(
