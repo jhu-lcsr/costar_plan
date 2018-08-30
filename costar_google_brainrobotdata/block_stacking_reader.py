@@ -405,7 +405,7 @@ class CostarBlockStackingSequence(Sequence):
                             rand_max = len(all_goal_ids) - 1
                             if rand_max <= 1:
                                 print('CostarBlockStackingSequence: not enough goal ids: ' + str(all_goal_ids) + ' file: ' + str(rand_max))
-                            image_indices = self.random_state.randint(0, rand_max, 1)
+                            image_indices = self.random_state.randint(1, rand_max, 1)
                         else:
                             raise NotImplementedError
                         indices = [0] + list(image_indices)
