@@ -2038,7 +2038,6 @@
 /home/ahundt/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-05-08-11-32-10_example000003.success.h5f
 /home/ahundt/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-05-08-11-53-44_example000001.success.h5f
 /home/ahundt/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-05-08-13-32-38_example000002.success.h5f
-/home/ahundt/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-05-08-13-37-02_example000005.success.h5f
 /home/ahundt/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-05-08-13-50-53_example000002.success.h5f
 /home/ahundt/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-05-08-14-43-05_example000006.success.h5f
 /home/ahundt/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-05-08-16-50-40_example000005.success.h5f
