@@ -371,7 +371,8 @@ def main(args, root="root"):
             status_idx = 2
             comment_idx = 3
             status_string = label_correction_table[i, status_idx]
-            example_filename_base = os.path.basename(example_filename)
+
+            example_filename_folder, example_filename_base = os.path.split(example_filename)
             original = label_correction_table[i, original_idx]
             corrected = label_correction_table[i, corrected_idx]
             # check that we are working with the right file
@@ -406,6 +407,9 @@ def main(args, root="root"):
                             '[source, destination, status] entry at row ' + str(i) +
                             ' in the label correction csv:\n'
                             '    ' + str(label_correction_table[i, :]))
+
+                    corrected = os.path.join(example_filename_folder, corrected)
+                    original = os.path.join(example_filename_folder, original)
 
                     if os.path.isfile(corrected):
                         raise ValueError(
