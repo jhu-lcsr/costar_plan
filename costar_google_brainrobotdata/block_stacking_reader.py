@@ -391,8 +391,8 @@ class CostarBlockStackingSequence(Sequence):
                             # TODO(ahundt) move this check out of the stacking reward case after files have been updated
                             if all_goal_ids[-1] > len(all_goal_ids):
                                 raise ValueError(' File contains goal id greater than total number of frames ' + str(example_filename))
-                        if len(all_goal_ids) == 0:
-                            print('block_stacking_reader.py: no goal indices in this file, skipping: ' + example_filename)
+                        if len(all_goal_ids) < 2:
+                            print('block_stacking_reader.py: ' + str(len(all_goal_ids)) + ' goal indices in this file, skipping: ' + example_filename)
                         if 'success' in example_filename:
                             label_constant = 1
                         else:
