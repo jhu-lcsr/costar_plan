@@ -327,7 +327,7 @@ def main(args, root="root"):
                 '    (3) Edit the code to handle this situation by perhaps adding any missing files to the list and re-sorting.')
         # make sure they're sorted in the same order as filenames
         filenames = np.array(filenames).argsort(kind='mergesort')
-        label_correction_table[label_correction_table[:, 1].argsort(kind='mergesort')]
+        label_correction_table = label_correction_table[label_correction_table[:, 1].argsort(kind='mergesort')]
 
     for i, filename in enumerate(progress_bar):
         # skip certain files based on command line parameters
