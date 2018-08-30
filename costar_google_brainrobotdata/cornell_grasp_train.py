@@ -1271,9 +1271,6 @@ def load_dataset(
             # TODO(ahundt) remove/parameterize lowered number of images visited per example (done temporarily for hyperopt):
             # Only visit 5 images in val/test datasets so it doesn't take an unreasonable amount of time & for historical reasons.
 
-            # We are multiplying by batch size as a hacky workaround because we want the sizing reduction
-            # from steps_per_epoch to not be affected by the batch size.
-            estimated_time_steps_per_example = 8 * batch_size
             test_data = file_names[:val_test_size]
             with open('test.txt', mode='w') as myfile:
                 myfile.write('\n'.join(test_data))
@@ -1301,6 +1298,10 @@ def load_dataset(
 
             train_data_filename = os.path.join(data_dir, costar_filename_base + '_train_files.txt')
             train_data = np.genfromtxt(train_data_filename, dtype='str', delimiter=', ')
+
+        # We are multiplying by batch size as a hacky workaround because we want the sizing reduction
+        # from steps_per_epoch to not be affected by the batch size.
+        estimated_time_steps_per_example = 8 * batch_size
         # train_data = file_names[:5]
         # test_data = file_names[5:10]
         # validation_data = file_names[10:15]
