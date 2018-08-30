@@ -330,6 +330,8 @@ def main(args, root="root"):
         filenames = filenames[filenames[:, 0].argsort(kind='mergesort')]
         filenames = np.squeeze(filenames)
         label_correction_table = label_correction_table[label_correction_table[:, 0].argsort(kind='mergesort')]
+        save_label_correction_csv_file('sorted_label_correction_filenames.csv', filenames)
+        save_label_correction_csv_file('sorted_label_correction.csv', label_correction_table)
 
     for i, filename in enumerate(progress_bar):
         # skip certain files based on command line parameters
