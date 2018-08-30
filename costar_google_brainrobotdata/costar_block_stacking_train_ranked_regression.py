@@ -116,14 +116,15 @@ def main(_):
             'costar_block_stacking_train_ranked_regression.py::main(): '
             'unsupported problem_type ' + str(problem_type))
 
-    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/*success.h5f')
+    # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/*success.h5f')
+    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
     FLAGS.fine_tuning_epochs = 0
     # final training run:
-    # FLAGS.epochs = 600
+    FLAGS.epochs = 600
     # FLAGS.random_augmentation = 0.25
     # evaluating top few models run:
     # FLAGS.epochs = 10
-    FLAGS.epochs = 40
+    # FLAGS.epochs = 40
     FLAGS.random_augmentation = None
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
@@ -159,6 +160,8 @@ def main(_):
         # # sort by grasp accuracy within 4 cm and 60 degrees
         # sort_by = 'val_grasp_acc_4cm_60deg'
         # dataframe = dataframe.sort_values(sort_by, ascending=False)
+        sort_by = 'val_grasp_acc'
+        dataframe = dataframe.sort_values(sort_by, ascending=False)
     elif problem_type == 'semantic_grasp_regression':
         dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
         sort_by = 'val_grasp_acc'
