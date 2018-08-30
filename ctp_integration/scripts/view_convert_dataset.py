@@ -280,6 +280,14 @@ def main(args, root="root"):
     ignored_files = [filename for filename in filenames if '.h5f' not in filename]
     filenames = [filename for filename in filenames if '.h5f' in filename]
 
+    if args['label_correction'] or args['goal_to_jpeg']:
+        # make sure they're sorted in sorted order
+        # this is done in a weird way to ensure it matches
+        # the label correction csv file
+        filenames = np.expand_dims(np.array(filenames), -1)
+        filenames = filenames[filenames[:, 0].argsort(kind='mergesort')]
+        filenames = np.squeeze(filenames)
+
     # Read data
     progress_bar = tqdm(filenames)
 
@@ -326,9 +334,6 @@ def main(args, root="root"):
                 '    (2) Manually edit the csv or file directories so the number of rows matches the number of .h5f files.\n'
                 '    (3) Edit the code to handle this situation by perhaps adding any missing files to the list and re-sorting.')
         # make sure they're sorted in the same order as filenames
-        filenames = np.expand_dims(np.array(filenames), -1)
-        filenames = filenames[filenames[:, 0].argsort(kind='mergesort')]
-        filenames = np.squeeze(filenames)
         label_correction_table = label_correction_table[label_correction_table[:, 0].argsort(kind='mergesort')]
         save_label_correction_csv_file('sorted_label_correction_filenames.csv', filenames)
         save_label_correction_csv_file('sorted_label_correction.csv', label_correction_table)
