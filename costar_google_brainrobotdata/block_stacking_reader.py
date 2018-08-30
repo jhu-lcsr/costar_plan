@@ -377,6 +377,8 @@ class CostarBlockStackingSequence(Sequence):
                 # X[i,] = np.load('data/' + example_filename + '.npy')
                 x = ()
                 try:
+                    if not os.path.isfile(example_filename):
+                        raise ValueError('CostarBlockStackingSequence: Trying to open something which is not a file: ' + str(example_filename))
                     with h5py.File(example_filename, 'r') as data:
                         if 'gripper_action_goal_idx' not in data or 'gripper_action_label' not in data:
                             raise ValueError('block_stacking_reader.py: You need to run preprocessing before this will work! \n' +
