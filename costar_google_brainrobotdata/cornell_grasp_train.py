@@ -1288,6 +1288,8 @@ def load_dataset(
                 # If the user hasn't specified a dir and it is the cornell default,
                 # switch to the costar block stacking dataset default
                 FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+            # TODO(ahundt) make the data dir user configurable again for costar_block stacking
+            FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
             data_dir = FLAGS.data_dir
             costar_filename_base = FLAGS.costar_filename_base
 
