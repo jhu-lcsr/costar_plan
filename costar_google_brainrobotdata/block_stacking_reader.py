@@ -401,9 +401,11 @@ class CostarBlockStackingSequence(Sequence):
                         stacking_reward = 0.999 * stacking_reward * label_constant
                         # print("reward estimates", stacking_reward)
 
-
                         if self.seed is not None:
-                            image_indices = self.random_state.randint(1, len(all_goal_ids)-1, 1)
+                            rand_max = len(all_goal_ids) - 1
+                            if rand_max <= 1:
+                                print('CostarBlockStackingSequence: not enough goal ids: ' + str(all_goal_ids) + ' file: ' + str(rand_max))
+                            image_indices = self.random_state.randint(0, rand_max, 1)
                         else:
                             raise NotImplementedError
                         indices = [0] + list(image_indices)
