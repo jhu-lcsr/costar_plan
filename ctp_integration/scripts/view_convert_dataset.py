@@ -366,13 +366,14 @@ def main(args, root="root"):
         if args['label_correction']:
             # Label correction needs some special data loading logic
             # so we can skip data that already has human confirmation
-            progress_bar.write('i: ' + str(i) + ' filename: ' + str(filename) + ' table: ' + str(str(label_correction_table[i, :])))
             original_idx = 0
             corrected_idx = 1
             status_idx = 2
             comment_idx = 3
             status_string = label_correction_table[i, status_idx]
             example_filename_base = os.path.basename(example_filename)
+            original = label_correction_table[i, original_idx]
+            corrected = label_correction_table[i, corrected_idx]
             # check that we are working with the right file
             if example_filename_base not in label_correction_table[i, :status_idx]:
                 raise ValueError(
@@ -393,12 +394,10 @@ def main(args, root="root"):
             # next commented line is for debug
             # progress_bar.write('i: ' + str(i) + ' status: ' + status_string)
             if args['write']:
-                if(example_filename == label_correction_table[i, original_idx] and
-                   'confirmed_rename' in status_string and
-                   'unconfirmed' not in status_string):
-
-                    original = label_correction_table[i, original_idx]
-                    corrected = label_correction_table[i, corrected_idx]
+                if(example_filename == original and
+                        'confirmed_rename' in status_string and
+                        'unconfirmed' not in status_string):
+                    progress_bar.write('i: ' + str(i) + ' filename: ' + str(filename) + ' table: ' + str(str(label_correction_table[i, :])))
 
                     if original == corrected:
                         raise ValueError(
