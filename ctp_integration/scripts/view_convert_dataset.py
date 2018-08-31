@@ -533,8 +533,8 @@ def main(args, root="root"):
                     # build up a tiled version of all the images and save that first
                     tiled_image = np.hstack(images)
                     # stick the clear view image on the front
-                    tiled_image = np.hstack([image, images])
-                    progress_bar.write('tiled_image shape: ' + str(tiled_image.shape))
+                    tiled_image = np.squeeze(np.hstack([image, images]))
+                    # progress_bar.write('tiled_image shape: ' + str(tiled_image.shape))
                     im = Image.fromarray(tiled_image)
                     goal_image_path = os.path.join(example_folder_path, name + '_tiled.jpg')
                     progress_bar.write('Saving jpeg: ' + str(goal_image_path))
