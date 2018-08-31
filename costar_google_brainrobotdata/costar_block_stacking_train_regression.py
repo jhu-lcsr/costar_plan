@@ -162,7 +162,7 @@ def main(_):
     print('-' * 80)
 
     # TODO: remove loss if it doesn't work or make me the default in the other files if it works really well
-    hyperparams['loss'] = 'mse'
+    hyperparams['loss'] = 'msle'
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
     hyperparams['batch_size'] = FLAGS.batch_size

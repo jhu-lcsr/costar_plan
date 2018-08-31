@@ -1076,7 +1076,8 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         image_shapes = [shape, shape]
         # loss = keras.losses.mean_absolute_error
-        loss = keras.losses.mean_squared_error
+        # loss = keras.losses.mean_squared_error
+        loss = keras.losses.msle
         model_name = '_semantic_translation_regression_model'
     elif problem_name == 'semantic_rotation_regression':
         # only the rotation component of semantic grasp regression
@@ -1103,7 +1104,8 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         image_shapes = [shape, shape]
         # loss = keras.losses.mean_absolute_error
-        loss = keras.losses.mean_squared_error
+        # loss = keras.losses.mean_squared_error
+        loss = keras.losses.msle
         model_name = '_semantic_rotation_regression_model'
     elif problem_name == 'semantic_grasp_regression':
         # this is the regression case with the costar block stacking dataset
@@ -1127,7 +1129,8 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         shape = (FLAGS.resize_height, FLAGS.resize_width, 3)
         image_shapes = [shape, shape]
         # loss = keras.losses.mean_absolute_error
-        loss = keras.losses.mean_squared_error
+        # loss = keras.losses.mean_squared_error
+        loss = keras.losses.msle
         model_name = '_semantic_grasp_regression_model'
     elif problem_name == 'semantic_grasp_classification':
         # this is the classification case with the costar block stacking dataset

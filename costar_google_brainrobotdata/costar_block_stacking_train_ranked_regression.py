@@ -194,7 +194,7 @@ def main(_):
         if sort_by is not None:
             row_progress.write('Sorting by: ' + str(sort_by) + ', the value in the rank_csv is: ' + str(row[sort_by]))
         row_progress.write('-' * 80)
-        hyperparams['loss'] = 'mse'
+        hyperparams['loss'] = 'msle'
         # save weights at checkpoints as the model's performance improves
         hyperparams['checkpoint'] = True
         hyperparams['learning_rate'] = 1.0
