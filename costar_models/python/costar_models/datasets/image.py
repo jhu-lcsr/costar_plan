@@ -69,16 +69,16 @@ def JpegToNumpy(jpeg):
         image = Image.open(stream)
     return np.asarray(image, dtype=np.uint8)
 
-def _resize_img(img, size):
-    return transform.resize(img, (size, size), mode='constant')
-
 def resize_imgs(imgs, max_size):
     ''' Resize an ndarray of images '''
     shp = imgs.shape
-    if len(shp) == 4 and shp[-1] == 3 and \
-        (shp[1] > max_size or shp[2] > max_size):
-            imgs = [_resize_img(i, max_size) for i in imgs]
-            imgs = np.array(imgs)
+    if len(shp) == 4 and int(shp[-1]) == 3 and \
+            (int(shp[1]) > max_size or int(shp[2]) > max_size):
+        #h, w = shp[1], shp[2]
+        #aspect = w / float(h)
+        #new_w = int(aspect * max_size)
+        imgs = [transform.resize(img, (max_size, max_size)) for img in imgs]
+        imgs = np.array(imgs)
     return imgs
 
 def ConvertImageListToNumpy(data, format='numpy', data_format='NHWC', dtype=np.uint8):

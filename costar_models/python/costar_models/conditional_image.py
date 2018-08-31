@@ -44,7 +44,7 @@ class ConditionalImage(RobotMultiPredictionSampler):
         '''
         super(ConditionalImage, self).__init__(*args, **kwargs)
         self.PredictorCb = ImageWithFirstCb
-        self.rep_size = 256
+        #self.rep_size = 256
         self.num_transforms = 3
         self.transform_model = None
         self.save_encoder_decoder = self.retrain
@@ -57,44 +57,44 @@ class ConditionalImage(RobotMultiPredictionSampler):
         # =====================================================================
         # Create many different image decoders
         (images, arm, gripper) = features
-        img_shape, image_size, arm_size, gripper_size = self._sizes(
-                images,
-                arm,
-                gripper)
+        img_shape, _, arm_size, gripper_size = self._sizes(
+                images, arm, gripper)
 
         # =====================================================================
         # Load the image decoders
-        img_in = Input(img_shape,name="predictor_img_in")
+        img_in  = Input(img_shape,name="predictor_img_in")
         img0_in = Input(img_shape,name="predictor_img0_in")
         #arm_in = Input((arm_size,))
         #gripper_in = Input((gripper_size,))
         #arm_gripper = Concatenate()([arm_in, gripper_in])
         label_in = Input((1,))
-        ins = [img0_in, img_in]
+
+        inputs = [img0_in, img_in]
 
         encoder = MakeImageEncoder(self, img_shape)
         decoder = MakeImageDecoder(self, self.hidden_shape)
 
         LoadEncoderWeights(self, encoder, decoder)
 
-        # =====================================================================
-        # Load the arm and gripper representation
         h = encoder([img0_in, img_in])
 
         if self.validate:
             self.loadValidationModels(arm_size, gripper_size, h0, h)
 
-        next_option_in = Input((1,), name="next_option_in")
+        next_option_in  = Input((1,), name="next_option_in")
         next_option_in2 = Input((1,), name="next_option_in2")
-        ins += [next_option_in, next_option_in2]
+
+        inputs += [next_option_in, next_option_in2]
 
         # =====================================================================
         # Apply transforms
-        y = Flatten()(OneHot(self.num_options)(next_option_in))
+        y  = Flatten()(OneHot(self.num_options)(next_option_in))
         y2 = Flatten()(OneHot(self.num_options)(next_option_in2))
 
-        tform = self._makeTransform() if not self.dense_transform else self._makeDenseTransform()
-        x = tform([h,y])
+        tform = self._makeDenseTransform() if self.dense_transform \
+                                           else self._makeTransform()
+        # Apply the same transform twice
+        x =  tform([h,y])
         x2 = tform([x,y2])
 
         image_out, image_out2 = decoder([x]), decoder([x2])
@@ -121,19 +121,16 @@ class ConditionalImage(RobotMultiPredictionSampler):
             img_loss_wt = 1.
 
         # Create models to train
+        disc_wt = 0. if self.no_disc else 1e-3
         if self.no_disc:
-            disc_wt = 0.
-        else:
-            disc_wt = 1e-3
-        if self.no_disc:
-            train_predictor = Model(ins + [label_in],
+            train_predictor = Model(inputs + [label_in],
                     [image_out, image_out2] + enc_outs)
             train_predictor.compile(
                     loss=[self.loss, self.loss,] + enc_losses,
                     loss_weights=[img_loss_wt, img_loss_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         else:
-            train_predictor = Model(ins + [label_in],
+            train_predictor = Model(inputs + [label_in],
                     #[image_out, image_out2, disc_out1, disc_out2] + enc_outs)
                     [image_out, image_out2, disc_out2] + enc_outs)
             train_predictor.compile(
@@ -142,7 +139,7 @@ class ConditionalImage(RobotMultiPredictionSampler):
                     loss_weights=[img_loss_wt, img_loss_wt, disc_wt] + enc_wts,
                     optimizer=self.getOptimizer())
         train_predictor.summary()
-        return None, train_predictor, None, ins, h
+        return None, train_predictor, None, inputs, h
 
     def _getData(self, *args, **kwargs):
         features, targets = GetAllMultiData(self.num_options, *args, **kwargs)
@@ -151,7 +148,7 @@ class ConditionalImage(RobotMultiPredictionSampler):
         I_target2, o2 = GetNextGoal(I_target, o1)
         I0 = I[0,:,:,:]
         length = I.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1]) 
+        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
         oin_1h = ToOneHot(oin, self.num_options)
         o1_1h = ToOneHot(o1, self.num_options)
         o2_1h = ToOneHot(o2, self.num_options)

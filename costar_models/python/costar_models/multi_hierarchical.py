@@ -350,11 +350,11 @@ class RobotMultiHierarchical(HierarchicalAgentBasedModel):
             gripper_size = gripper.shape[-1]
         else:
             gripper_size = 1
-        image_size = 1
+        total_size = 1
         for dim in img_shape:
-            image_size *= dim
-        image_size = int(image_size)
+            total_size *= dim
+        total_size = int(total_size)
 
-        return img_shape, image_size, arm_size, gripper_size
+        return img_shape, total_size, arm_size, gripper_size
 
 
