@@ -1059,7 +1059,8 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
                    grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
                    grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
-        monitor_metric_name = 'val_grasp_acc'
+        # monitor_metric_name = 'val_grasp_acc'
+        monitor_metric_name = 'val_cart_error'
         # this is the length of the state vector defined in block_stacking_reader.py
         # label with translation and orientation
         # vector_shapes = [(49,)]
@@ -1091,7 +1092,8 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
                    grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
                    grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
-        monitor_metric_name = 'val_grasp_acc'
+        # monitor_metric_name = 'val_grasp_acc'
+        monitor_metric_name = 'val_angle_error'
         # this is the length of the state vector defined in block_stacking_reader.py
         # label with translation and orientation
         vector_shapes = [(49,)]
