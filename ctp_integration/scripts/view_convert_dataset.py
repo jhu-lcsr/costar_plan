@@ -520,11 +520,27 @@ def main(args, root="root"):
                     images = ConvertImageListToNumpy(image_list, format='list')
                     example_folder_path, name = os.path.split(example_filename)
                     progress_bar.write(example_folder_path)
-                    name = name.replace('.h5f', "")
+                    name = name.replace('.h5f', '')
                     example_folder_path = os.path.join(example_folder_path, 'goal_images')
                     if not os.path.exists(example_folder_path):
                         os.makedirs(example_folder_path)
+                    # extract the clear view image
+                    image = ConvertImageListToNumpy(np.array(data['image'][0:1]), format='list')
+                    im = Image.fromarray(image)
+                    goal_image_path = os.path.join(example_folder_path, name + '_clear_view_' + "0" + '.jpg')
+                    progress_bar.write('Saving jpeg: ' + str(goal_image_path))
+                    im.save(goal_image_path)
+                    # build up a tiled version of all the images and save that first
+                    tiled_image = np.concatenate(images, axis=1)
+                    # stick the clear view image on the front
+                    tiled_image = np.concatenate([image, images], axis=1)
+                    im = Image.fromarray(tiled_image)
+                    goal_image_path = os.path.join(example_folder_path, name + '_tiled.jpg')
+                    progress_bar.write('Saving jpeg: ' + str(goal_image_path))
+                    im.save(goal_image_path)
+                    # save out each individual image
                     for i, image in enumerate(images):
+                        # write out this specific image
                         im = Image.fromarray(image)
                         goal_label_name = 'unknown_label'
                         if i < len(goal_labels_name):
@@ -533,10 +549,6 @@ def main(args, root="root"):
                         goal_image_path = os.path.join(example_folder_path, name + '_goal_frame_' + str(goal_frames[i]) + '_' + goal_label_name + '.jpg')
                         progress_bar.write('Saving jpeg: ' + str(goal_image_path))
                         im.save(goal_image_path)
-                    image = ConvertImageListToNumpy(np.array(data['image'][0:1]), format='list')
-                    goal_image_path = os.path.join(example_folder_path, name + '_clear_view_' + "0" + '.jpg')
-                    progress_bar.write('Saving jpeg: ' + str(goal_image_path))
-                    im.save(goal_image_path)
 
                     # skip other steps like video viewing,
                     # so this conversion runs 1000x faster
