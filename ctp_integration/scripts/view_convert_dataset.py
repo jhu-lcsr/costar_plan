@@ -531,9 +531,9 @@ def main(args, root="root"):
                     progress_bar.write('Saving jpeg: ' + str(goal_image_path))
                     im.save(goal_image_path)
                     # build up a tiled version of all the images and save that first
-                    tiled_image = np.concatenate(images, axis=1)
+                    tiled_image = np.hstack(images)
                     # stick the clear view image on the front
-                    tiled_image = np.concatenate([image, images], axis=1)
+                    tiled_image = np.hstack([image, images])
                     im = Image.fromarray(tiled_image)
                     goal_image_path = os.path.join(example_folder_path, name + '_tiled.jpg')
                     progress_bar.write('Saving jpeg: ' + str(goal_image_path))
