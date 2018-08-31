@@ -215,6 +215,7 @@ def GetModelParser():
                         action='store_true')
     parser.add_argument("--max_img_size",
                         help="Set max size for frames to be resized into",
+                        type=int,
                         default=224)
     return parser
 
