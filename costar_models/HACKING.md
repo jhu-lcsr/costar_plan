@@ -30,28 +30,29 @@ _makePredictor, _makeTransform, _getTransform, _makeDenseTransform, _makeModel
 _getData, trainFromGenerators, save, predict, _loadWeights, _makeGenerator,
 _makeEncoder, _makeDecoder, _makeActorPolicy, _makeStateEncoder
 _targetsFromTrainTargets, validate, encode, decode, transform
-               ^
-               |
-PretrainImageAutoEncoder (pretrain_image.py)
-_makePredictor, _getData
-               ^
-               |
-PretrainImageCostar (pretrain_image_costar.py)
-_makePredictor, _makeModel, _getData
-
-multi.py:
+               ^                                      ^
+               |                                      |
+PretrainImageAutoEncoder (pretrain_image.py)          |
+_makePredictor, _getData                              |
+               ^                                      |
+               |                                      |
+PretrainImageCostar (pretrain_image_costar.py)        |
+_makePredictor, _makeModel, _getData                  |
+                                                      |
+multi.py:                                             |
 MakeImageClassifier, MakeImageEncoder, GetPoseModel, GetActorModel
-MakeMultiPolicy, MakeImageDecoder, GetAllMultiData
-
-costar.py:
-MakeCostarImageClassifier
-
-
-ConditionalImage
-  ^
-  |
-ConditionalImageCostar (conditional_image_costar.py)
-_makeModel, _getData
+MakeMultiPolicy, MakeImageDecoder, GetAllMultiData    |
+                                                      |
+costar.py:                                            |
+MakeCostarImageClassifier                             |
+                                                      |
+                                                      |
+                  ConditionalImage (conditional_image.py)
+                  _makePredictor, _getData, loadValidationModels, value, act
+                    ^
+                    |
+                  ConditionalImageCostar (conditional_image_costar.py)
+                  _makeModel, _getData
 ```
 
 == Flow ==
