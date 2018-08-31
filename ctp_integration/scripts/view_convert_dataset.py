@@ -526,7 +526,7 @@ def main(args, root="root"):
                         os.makedirs(example_folder_path)
                     # extract the clear view image
                     image = ConvertImageListToNumpy(np.array(data['image'][0:1]), format='list')
-                    im = Image.fromarray(image)
+                    im = Image.fromarray(image[0])
                     goal_image_path = os.path.join(example_folder_path, name + '_clear_view_' + "0" + '.jpg')
                     progress_bar.write('Saving jpeg: ' + str(goal_image_path))
                     im.save(goal_image_path)
