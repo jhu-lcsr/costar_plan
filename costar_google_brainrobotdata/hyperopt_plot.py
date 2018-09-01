@@ -52,7 +52,8 @@ except ImportError:
 flags.DEFINE_string(
     'log_dir',
     '',
-    """"""
+    """Directory for tensorboard, model layout, model weight, csv, and hyperparam files
+    """
 )
 
 flags.DEFINE_string(
