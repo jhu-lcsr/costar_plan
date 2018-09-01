@@ -181,7 +181,9 @@ def main(_):
 
     # loop over the ranked models
     row_progress = tqdm(dataframe.iterrows(), ncols=240)
+    i = -1
     for index, row in row_progress:
+        i += 1
         history = None
         hyperparameters_filename = row['hyperparameters_filename']
 
@@ -199,6 +201,12 @@ def main(_):
         hyperparams['checkpoint'] = True
         hyperparams['learning_rate'] = 1.0
         hyperparams['batch_size'] = FLAGS.batch_size
+
+        if i > 0:
+            # only load weights for the first entry
+            # TODO(ahundt) allow automated loading of weights from past runs
+            load_weights = None
+            FLAGS.load_weights = None
 
         try:
             history = cornell_grasp_train.run_training(
