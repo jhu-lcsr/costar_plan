@@ -29,7 +29,7 @@ from keras.layers.merge import Add
 from keras.models import Model
 from keras.layers import Lambda
 from keras.layers import Reshape
-from keras.applications.imagenet_utils import _obtain_input_shape
+from keras_applications.imagenet_utils import _obtain_input_shape
 import keras_applications
 
 import keras_contrib
