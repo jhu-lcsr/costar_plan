@@ -120,7 +120,8 @@ def main(_):
     FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
     FLAGS.fine_tuning_epochs = 0
     # final training run:
-    FLAGS.epochs = 600
+    # FLAGS.epochs = 600
+    FLAGS.epochs = 200
     # FLAGS.random_augmentation = 0.25
     # evaluating top few models run:
     # FLAGS.epochs = 10
@@ -155,13 +156,13 @@ def main(_):
         # sort_by = 'cart_error'
         # dataframe = dataframe.sort_values(sort_by, ascending=True)
         # # sort by val_cart_error from low to high
-        # sort_by = 'val_cart_error'
-        # dataframe = dataframe.sort_values(sort_by, ascending=True)
+        sort_by = 'val_cart_error'
+        dataframe = dataframe.sort_values(sort_by, ascending=True)
         # # sort by grasp accuracy within 4 cm and 60 degrees
         # sort_by = 'val_grasp_acc_4cm_60deg'
         # dataframe = dataframe.sort_values(sort_by, ascending=False)
-        sort_by = 'val_grasp_acc'
-        dataframe = dataframe.sort_values(sort_by, ascending=False)
+        # sort_by = 'val_grasp_acc'
+        # dataframe = dataframe.sort_values(sort_by, ascending=False)
     elif problem_type == 'semantic_grasp_regression':
         dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
         sort_by = 'val_grasp_acc'
