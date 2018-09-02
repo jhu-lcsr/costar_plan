@@ -92,7 +92,7 @@ flags.DEFINE_integer(
 
 flags.DEFINE_integer(
     'max_epoch',
-    40,
+    None,
     'Results should only belong to this epoch or lower, not enabled by default.'
 )
 
@@ -108,12 +108,33 @@ flags.DEFINE_string(
     'Where to save the sorted output csv file with the results'
 )
 
+flags.DEFINE_string(
+    'problem_type',
+    'semantic_translation_regression',
+    'Options are semantic_translation_regression and semantic_rotation_regression,'
+)
+
+flags.DEFINE_string(
+    'sort_by',
+    None,
+    'Options are semantic_translation_regression and semantic_rotation_regression,'
+)
+
+flags.DEFINE_boolean(
+    'ascending',
+    None,
+    'Sort in ascending (1 to 100) or descending (100 to 1) order, '
+    'Defaults to True unless acc is in sort_by, then defaults to False.'
+)
+
+
 FLAGS = flags.FLAGS
 FLAGS(sys.argv)
 
 
-problem_type = 'semantic_translation_regression'
-sort_by = None
+problem_type = FLAGS.problem_type
+sort_by = FLAGS.sort_by
+ascending = FLAGS.ascending
 if FLAGS.log_dir:
     csv_file = os.path.join(os.path.expanduser(FLAGS.log_dir), FLAGS.rank_csv)
 else:
@@ -123,28 +144,63 @@ dataframe = pandas.read_csv(csv_file, index_col=None, header=0)
 if problem_type == 'semantic_rotation_regression':
     # sort by val_angle_error from low to high
     dataframe = dataframe.sort_values('val_angle_error', ascending=True)
-    dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
-    sort_by = 'val_grasp_acc'
-    # DISABLE RANDOM AUGMENTATION FOR ROTATION
-    FLAGS.random_augmentation = None
+    if sort_by is None:
+        sort_by = 'val_angle_error'
+
+    if sort_by is not None and ascending is None:
+        ascending = True
+        if 'acc' in sort_by:
+            ascending = False
+    dataframe = dataframe.sort_values(sort_by, ascending=ascending)
+    # sort_by = 'val_grasp_acc'
+    # dataframe = dataframe.sort_values(sort_by, ascending=False)
+    value_dimension_tuples_mm = [
+        ('grasp_acc_5mm_7_5deg', 7.5),
+        ('grasp_acc_1cm_15deg', 15),
+        ('grasp_acc_2cm_30deg', 30),
+        ('grasp_acc_4cm_60deg', 60),
+        ('grasp_acc_8cm_120deg', 120),
+        ('grasp_acc_16cm_240deg', 240),
+        ('grasp_acc_32cm_360deg', 360),
+    ]
+    units = '°'
 elif problem_type == 'semantic_translation_regression':
-    # sort by cart_error from low to high
-    # sort_by = 'cart_error'
-    # dataframe = dataframe.sort_values(sort_by, ascending=True)
-    # # sort by val_cart_error from low to high
-    sort_by = 'val_cart_error'
-    dataframe = dataframe.sort_values(sort_by, ascending=True)
+    dataframe = dataframe.sort_values('val_cart_error', ascending=True)
+    if sort_by is None:
+        sort_by = 'val_cart_error'
+
+    if sort_by is not None and ascending is None:
+        ascending = True
+        if 'acc' in sort_by:
+            ascending = False
+    dataframe = dataframe.sort_values(sort_by, ascending=ascending)
     # # sort by grasp accuracy within 4 cm and 60 degrees
     # sort_by = 'val_grasp_acc_4cm_60deg'
     # dataframe = dataframe.sort_values(sort_by, ascending=False)
     # sort_by = 'val_grasp_acc'
     # dataframe = dataframe.sort_values(sort_by, ascending=False)
+    value_dimension_tuples_mm = [
+        ('grasp_acc_5mm_7_5deg', 5),
+        ('grasp_acc_1cm_15deg', 10),
+        ('grasp_acc_2cm_30deg', 20),
+        ('grasp_acc_4cm_60deg', 40),
+        ('grasp_acc_8cm_120deg', 80),
+        ('grasp_acc_16cm_240deg', 160),
+        ('grasp_acc_32cm_360deg', 320),
+        ('grasp_acc_256cm_360deg', 2560),
+        ('grasp_acc_512cm_360deg', 5120),
+    ]
+    units = 'mm'
 elif problem_type == 'semantic_grasp_regression':
     dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
     sort_by = 'val_grasp_acc'
+    # we don't have plotting set up for full pose estimation yet
+    raise NotImplementedError
 else:
-    raise ValueError('costar_block_stacking_train_ranked_regression.py: '
-                     'unsupported problem type: ' + str(problem_type))
+    raise ValueError('hyperopt_plot.py: '
+                     'unsupported problem type: ' + str(problem_type) + ' '
+                     'Options are semantic_translation_regression and '
+                     'semantic_rotation_regression.')
 
 # epoch to filter, or None if we should just take the best performing value ever
 filter_epoch = FLAGS.filter_epoch
@@ -173,86 +229,80 @@ renderer = hv.renderer('bokeh')
 #     ('grasp_acc_256cm_360deg', '2560mm'),
 #     ('grasp_acc_512cm_360deg', '5120mm'),
 # ]
-value_dimension_tuples_mm = [
-    ('grasp_acc_5mm_7_5deg', 5),
-    ('grasp_acc_1cm_15deg', 10),
-    ('grasp_acc_2cm_30deg', 20),
-    ('grasp_acc_4cm_60deg', 40),
-    ('grasp_acc_8cm_120deg', 80),
-    ('grasp_acc_16cm_240deg', 160),
-    ('grasp_acc_32cm_360deg', 320),
-    ('grasp_acc_256cm_360deg', 2560),
-    ('grasp_acc_512cm_360deg', 5120),
-]
-units = 'mm'
-dataset_names_prefix = [
-    ('train', ''),
-    ('val', 'val_'),
-    ('test', 'test_')
-]
 
-value_dimension_strs = [vt[0] for vt in value_dimension_tuples_mm]
-value_dimension_ints = [vt[1] for vt in value_dimension_tuples_mm]
-value_dimension_int_as_str = [str(vt[1]) for vt in value_dimension_tuples_mm]
-accuracy_range_limits = []
-prev_acc_int = 0
-for name, acc_int in value_dimension_tuples_mm:
-    acc_range = str(prev_acc_int) + '-' + str(acc_int) + ' ' + units
-    prev_acc_int = acc_int
-    accuracy_range_limits = accuracy_range_limits + [acc_range]
-value_dimension_range_tuples_mm = [(vdt[0], vdt[1], ar) for vdt, ar in zip(value_dimension_tuples_mm, accuracy_range_limits)]
-print('accuracy_range_limits: ' + str(accuracy_range_limits))
 
-# first 20 characters of model name are the time, full names are too long
-number_of_time_characters = 19
-# loop over the ranked models
-row_progress = tqdm(dataframe.iterrows(), ncols=240)
-max_models_to_show = 5
-names = []
-acc_limits = []
-acc_range_limits = []
-values = []
-split_values = []
-tvts = []
-for index, row in row_progress:
-    if index < max_models_to_show:
-        # train, val, test datasets
-        for tvt, tvt_prefix in dataset_names_prefix:
-            prev_val = 0.0
-            # accuracy values & splits
-            for name, acc_limit, acc_range in value_dimension_range_tuples_mm:
-                val = row[tvt_prefix + name]
-                # split of accuracies within a range
-                split_val = val - prev_val
-                # print('split_val: ' + str(split_val))
-                prev_val = val
-                # vals.append((acc_int, split_val))
-                values = values + [val]
-                split_values = split_values + [split_val]
-                names = names + [row['basename'][:number_of_time_characters]]
-                acc_range_limits = acc_range_limits + [acc_range]
-                acc_limits = acc_limits + [acc_limit]
-                tvts = tvts + [tvt]
+def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type):
+    dataset_names_prefix = [
+        ('train', ''),
+        ('val', 'val_'),
+        ('test', 'test_')
+    ]
 
-dictionary = {'name': names,
-              'accuracy_range_limits': acc_range_limits,
-              'accuracy_range_value': split_values,
-              'train_val_test': tvts,
-              'accuracy_value': values,
-              'accuracy_value_limit': acc_limits}
+    value_dimension_strs = [vt[0] for vt in value_dimension_tuples_mm]
+    value_dimension_ints = [vt[1] for vt in value_dimension_tuples_mm]
+    value_dimension_int_as_str = [str(vt[1]) for vt in value_dimension_tuples_mm]
+    accuracy_range_limits = []
+    prev_acc_int = 0
+    for name, acc_int in value_dimension_tuples_mm:
+        acc_range = str(prev_acc_int) + '-' + str(acc_int) + ' ' + units
+        prev_acc_int = acc_int
+        accuracy_range_limits = accuracy_range_limits + [acc_range]
+    value_dimension_range_tuples_mm = [(vdt[0], vdt[1], ar) for vdt, ar in zip(value_dimension_tuples_mm, accuracy_range_limits)]
+    print('accuracy_range_limits: ' + str(accuracy_range_limits))
 
-rdf = pandas.DataFrame(dictionary)
-# for i, name in enumerate(value_dimension_int_as_str):
-#     rdf = rdf.rename(index={i : name})
-if FLAGS.verbose > 0:
-    print('rdf:')
-    print(rdf)
+    # first 20 characters of model name are the time, full names are too long
+    number_of_time_characters = 19
+    # loop over the ranked models
+    row_progress = tqdm(dataframe.iterrows(), ncols=240)
+    max_models_to_show = 5
+    names = []
+    acc_limits = []
+    acc_range_limits = []
+    values = []
+    split_values = []
+    tvts = []
+    for index, row in row_progress:
+        if index < max_models_to_show:
+            # train, val, test datasets
+            for tvt, tvt_prefix in dataset_names_prefix:
+                prev_val = 0.0
+                # accuracy values & splits
+                for name, acc_limit, acc_range in value_dimension_range_tuples_mm:
+                    val = row[tvt_prefix + name]
+                    # split of accuracies within a range
+                    split_val = val - prev_val
+                    # print('split_val: ' + str(split_val))
+                    prev_val = val
+                    # vals.append((acc_int, split_val))
+                    values = values + [val]
+                    split_values = split_values + [split_val]
+                    names = names + [row['basename'][:number_of_time_characters]]
+                    acc_range_limits = acc_range_limits + [acc_range]
+                    acc_limits = acc_limits + [acc_limit]
+                    tvts = tvts + [tvt]
 
-if FLAGS.save_dir is None:
-    FLAGS.save_dir = FLAGS.log_dir
-output_filename = os.path.join(FLAGS.save_dir, FLAGS.save_csv)
-rdf.to_csv(output_filename)
-print('Plotting CSV saved to: ' + output_filename)
+    dictionary = {'name': names,
+                  'accuracy_range_limits': acc_range_limits,
+                  'accuracy_range_value': split_values,
+                  'train_val_test': tvts,
+                  'accuracy_value': values,
+                  'accuracy_value_limit': acc_limits}
+
+    rdf = pandas.DataFrame(dictionary)
+    # for i, name in enumerate(value_dimension_int_as_str):
+    #     rdf = rdf.rename(index={i : name})
+    if FLAGS.verbose > 0:
+        print('rdf:')
+        print(rdf)
+
+    if FLAGS.save_dir is None:
+        FLAGS.save_dir = FLAGS.log_dir
+    output_filename = os.path.join(FLAGS.save_dir, FLAGS.save_csv)
+    rdf.to_csv(output_filename)
+    print('Plotting CSV saved to: ' + output_filename)
+    return rdf
+
+rdf = create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
 
 # key_dimensions = [('name', 'Model'), ('accuracy_range_limits', 'Accuracy Range'), ('train_val_test', 'Train Val Test')]
 key_dimensions = [('name', 'Model'), ('accuracy_range_limits', 'Accuracy Range')]
