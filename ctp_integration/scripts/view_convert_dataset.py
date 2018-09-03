@@ -378,6 +378,7 @@ def main(args, root="root"):
                 progress_bar.write('Skipping since it is not an extra_cool_example: ' + filename)
                 continue
 
+        progress_bar.write('Current File: ' + filename)
         # keep track of which indices we actually visit and which we skip
         previous_i_not_skipped = current_i_not_skipping
         current_i_not_skipping = i
