@@ -16,10 +16,11 @@ Relabel "success" data in a dataset:
 '''
 import argparse
 import os
+import sys
+import traceback
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-import traceback
 # https://github.com/tanyaschlusser/array2gif
 # from array2gif import write_gif
 
