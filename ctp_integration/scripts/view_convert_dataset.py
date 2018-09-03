@@ -225,8 +225,10 @@ def wait_for_keypress_to_select_label(progress_bar):
         "\nPress a key to label the file: 1. success, 2. failure, 4. skip, 5. Extra Cool Example, 6. Problem with this Example 0. whoops! make previous file unconfirmed \n"
         "What to look for:\n"
         " - A successful stack is 3 blocks tall or 4 blocks tall with the gripper completely removed from the field of view.\n"
+        " - If the tower is 3 blocks tall and blocks will clearly slide off if not for the wall press 2 for 'failure',\n"
+        "   if it is merely in contact with a wall, press 1 for 'success'."
         " - When the robot doesn't move but there is already a visible successful stack, that's an error.failure.falsely_appears_correct, so press 1 for 'success'!\n"
-        " - If you can see the gripper, the example is a failure even if the stack is tall enough!")
+        " - If you can see the gripper, the example is a failure even if the stack is tall enough!\n")
     # , 3: error.failure
     flag = 0
     comment = 'none'
@@ -421,7 +423,9 @@ def main(args, root="root"):
                 if(example_filename_base == original and
                         'confirmed_rename' in status_string and
                         'unconfirmed' not in status_string):
-                    progress_bar.write('Performing rename at row i: ' + str(i) + ' filename: ' + str(filename) + ' table: ' + str(str(label_correction_table[i, :])))
+                    progress_bar.write(
+                        'Performing rename at row i: ' + str(i) + ' filename: ' + str(filename) +
+                        ' table: ' + str(str(label_correction_table[i, :])))
 
                     if original == corrected:
                         raise ValueError(
@@ -655,7 +659,9 @@ def main(args, root="root"):
         progress_bar.write('Run complete! Label correction csv:\n' + str(label_correction_csv_path))
 
 
-def label_correction(label_correction_table, i, example_filename, args, progress_bar, label_correction_csv_path, error_encountered, clip, previous_i_not_skipped):
+def label_correction(
+        label_correction_table, i, example_filename, args, progress_bar,
+        label_correction_csv_path, error_encountered, clip, previous_i_not_skipped):
     original_idx = 0
     corrected_idx = 1
     status_idx = 2
