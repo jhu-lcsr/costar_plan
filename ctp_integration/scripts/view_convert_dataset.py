@@ -19,6 +19,7 @@ import os
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
+import traceback
 # https://github.com/tanyaschlusser/array2gif
 # from array2gif import write_gif
 
@@ -601,12 +602,22 @@ def main(args, root="root"):
                     break
                 except Exception as ex:
                     error_encountered = 'error_exception_encountered'
+                    ex_type, ex2, tb = sys.exc_info()
+                    traceback.print_tb(tb)
+                    # deletion must be explicit to prevent leaks
+                    # https://stackoverflow.com/a/16946886/99379
+                    del tb
                     progress_bar.write(
                         'Warning: Skipping File. Exception encountered while processing ' + example_filename +
                         ' please edit the code of view_convert_dataset.py to debug the specifics: ' + str(ex))
 
         except IOError as ex:
             error_encountered = 'error_file_ioerror_encountered'
+            ex_type, ex2, tb = sys.exc_info()
+            traceback.print_tb(tb)
+            # deletion must be explicit to prevent leaks
+            # https://stackoverflow.com/a/16946886/99379
+            del tb
             progress_bar.write(
                 'Error: Skipping file due to IO error when opening ' +
                 example_filename + ': ' + str(ex))
