@@ -9,6 +9,11 @@ Convert video from an h5f file into a gif:
 
     python view_convert_dataset --path <path/to/data/folder/or/file> --preview --convert gif
 
+Preprocess data that was just collected to include action labels
+'gripper_action_goal_idx' and 'gripper_action' based on when the gripper moves:
+
+    export CUDA_VISIBLE_DEVICES="" && python2 ctp_integration/scripts/view_convert_dataset.py --path "/home/ahundt/.keras/datasets/costar_plush_block_stacking_dataset_v0.1/" --preprocess_inplace gripper_action --write
+
 Relabel "success" data in a dataset:
 
     python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.3 --label_correction --fps 60 --ignore_failure True --ignore_error True
@@ -130,6 +135,7 @@ def _parse_args():
                         help='path to dataset h5f file or folder containing many files')
     parser.add_argument("--convert", type=str, default='',
                         help='format to convert images to. Default empty string is no conversion, options are gif and mp4.')
+    parser.add_argument("--success_only", action='store_true', default=False, help='only visit stacking data labeled as successful')
     parser.add_argument("--ignore_failure", type=bool, default=False, help='skip grasp failure cases')
     parser.add_argument("--ignore_success", type=bool, default=False, help='skip grasp success cases')
     parser.add_argument("--extra_cool_example", action='store_true', default=False,
@@ -343,6 +349,9 @@ def main(args, root="root"):
     for i, filename in enumerate(progress_bar):
         # skip certain files based on command line parameters
         if filename.startswith('.') or '.h5' not in filename:
+            continue
+        if args['success_only'] and 'success' not in filename:
+            progress_bar.write('Skipping example not labeled success: ' + filename)
             continue
         if args['ignore_error'] and 'error' in filename:
             progress_bar.write('Skipping example containing errors: ' + filename)
