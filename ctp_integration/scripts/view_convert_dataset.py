@@ -329,7 +329,7 @@ def main(args, root="root"):
                 'The code cannot currently handle mismatched lists of files, so we will exit the program.\n'
                 'The the label correction table csv file:\n'
                 '    ' + str(label_correction_csv_path) +
-                '\n\nhas ' + str(label_correction_table.shape[0]) + ' rows, but there are ' + len(filenames) +
+                '\n\nhas ' + str(label_correction_table.shape[0]) + ' rows, but there are ' + str(len(filenames)) +
                 ' filenames containing .h5f in the list of filenames to be processed. '
                 'To solve this problem you might want to try one of the following options:\n'
                 '    (1) Start fresh with no CSV file and all unconfirmed values.\n'
