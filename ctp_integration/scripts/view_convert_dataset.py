@@ -176,7 +176,7 @@ def _parse_args():
                         help='Same as --label_correction, but we will reconfirm every single row with you.')
     parser.add_argument("--label_correction_csv", type=str, default='rename_dataset_labels.csv',
                         help='File from which to load & update the label correction csv file, expected to be in --path folder.')
-    parser.add_argument("--label_correction_initial_frame", type=int, default=-2,
+    parser.add_argument("--label_correction_initial_frame", type=int, default=-3,
                         help='labinitial frame to view in video, negative numbers are the distance in frames from the final frame.')
     parser.add_argument("--label_correction_final_frame", type=int, default=-1,
                         help='final frame to view in video, negative numbers are the distance in frames from the final frame.')
@@ -517,6 +517,7 @@ def main(args, root="root"):
                     continue
 
                 if args['goal_to_jpeg']:
+                    # Visit all the goal timesteps and write out a jpeg file in the 'goal_images' folder
                     progress_bar.write('-' * 80)
                     goal_frames = np.unique(data['gripper_action_goal_idx'])
                     data_gripper_action_label = list(data['gripper_action_label'])
