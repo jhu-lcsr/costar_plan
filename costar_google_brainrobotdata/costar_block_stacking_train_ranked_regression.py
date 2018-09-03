@@ -70,6 +70,12 @@ flags.DEFINE_integer(
     'Results should only belong to this epoch or lower, not enabled by default.'
 )
 
+flags.DEFINE_integer(
+    'skip_models',
+    0,
+    'number of models to skip before starting to train, useful for resuming past runs'
+)
+
 
 FLAGS = flags.FLAGS
 
@@ -99,6 +105,7 @@ def main(_):
     #       'crop + resize width/height have been set to 640x480.')
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
     # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.3/*success.h5f'
+    skip_models = FLAGS.skip_models
 
     # We generate a summary of the best algorithms as the program runs,
     # so here we configure the summary metrics for the problem type.
@@ -185,6 +192,9 @@ def main(_):
     i = -1
     for index, row in row_progress:
         i += 1
+        if i < skip_models:
+            # we designated this model as one to skip, so continue on
+            continue
         history = None
         hyperparameters_filename = row['hyperparameters_filename']
 
