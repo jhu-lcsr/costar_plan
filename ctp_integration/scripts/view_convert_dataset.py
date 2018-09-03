@@ -136,13 +136,13 @@ def _parse_args():
     parser.add_argument("--convert", type=str, default='',
                         help='format to convert images to. Default empty string is no conversion, options are gif and mp4.')
     parser.add_argument("--success_only", action='store_true', default=False, help='only visit stacking data labeled as successful')
-    parser.add_argument("--ignore_failure", type=bool, default=False, help='skip grasp failure cases')
-    parser.add_argument("--ignore_success", type=bool, default=False, help='skip grasp success cases')
+    parser.add_argument("--ignore_failure", action='store_true', default=False, help='skip grasp failure cases')
+    parser.add_argument("--ignore_success", action='store_true', default=False, help='skip grasp success cases')
     parser.add_argument("--extra_cool_example", action='store_true', default=False,
                         help='The human labeled label_correction_csv can store notes identifying particularly '
                              'interesting examples with the string super_cool_example. With this flag we will '
                              ' skip all except the examples which are particularly interesting')
-    parser.add_argument("--ignore_error", type=bool, default=False, help='skip grasp attempts that are both failures and contain errors')
+    parser.add_argument("--ignore_error", action='store_true', default=False, help='skip grasp attempts that are both failures and contain errors')
     parser.add_argument("--preview", action='store_true', help='pop open a preview window to view the video data')
     parser.add_argument("--label_correction", action='store_true',
                         help="""Change dataset filenames which have incorrect success or failure labels.
