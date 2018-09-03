@@ -144,6 +144,10 @@ def _parse_args():
                              ' skip all except the examples which are particularly interesting')
     parser.add_argument("--ignore_error", action='store_true', default=False, help='skip grasp attempts that are both failures and contain errors')
     parser.add_argument("--preview", action='store_true', help='pop open a preview window to view the video data')
+    parser.add_argument("--preview_initial_frame", type=int, default=0,
+                        help='initial frame to view in video, negative numbers are the distance in frames from the final frame.')
+    parser.add_argument("--preview_final_frame", type=int, default=-1,
+                        help='final frame to view in video, negative numbers are the distance in frames from the final frame.')
     parser.add_argument("--label_correction", action='store_true',
                         help="""Change dataset filenames which have incorrect success or failure labels.
 
@@ -346,6 +350,10 @@ def main(args, root="root"):
         save_label_correction_csv_file('sorted_label_correction_filenames.csv', filenames)
         save_label_correction_csv_file('sorted_label_correction.csv', label_correction_table)
 
+    # keep track of the previous index that was not skipped when looping through the data
+    previous_i_not_skipped = None
+    current_i_not_skipping = None
+
     for i, filename in enumerate(progress_bar):
         # skip certain files based on command line parameters
         if filename.startswith('.') or '.h5' not in filename:
@@ -367,6 +375,10 @@ def main(args, root="root"):
             if 'extra_cool_example' not in label_correction_table[i, comment_idx]:
                 progress_bar.write('Skipping since it is not an extra_cool_example: ' + filename)
                 continue
+
+        # keep track of which indices we actually visit and which we skip
+        previous_i_not_skipped = current_i_not_skipping
+        current_i_not_skipping = i
 
         if args['path'] not in filename:
             # prepend the path if it isn't already present
@@ -568,8 +580,8 @@ def main(args, root="root"):
                 # Video display and conversion
                 try:
                     # define where to start and end reading images
-                    start_frame = 0
-                    end_frame = -1
+                    start_frame = args['preview_initial_frame']
+                    end_frame = args['preview_final_frame']
                     if args['label_correction']:
                         # only show the last few frames when correcting labels
                         start_frame = args['label_correction_initial_frame']
@@ -637,13 +649,13 @@ def main(args, root="root"):
             label_correction_table = label_correction(
                 label_correction_table, i, example_filename, args,
                 progress_bar, label_correction_csv_path, error_encountered,
-                clip)
+                clip, previous_i_not_skipped)
 
     if args['label_correction']:
         progress_bar.write('Run complete! Label correction csv:\n' + str(label_correction_csv_path))
 
 
-def label_correction(label_correction_table, i, example_filename, args, progress_bar, label_correction_csv_path, error_encountered, clip):
+def label_correction(label_correction_table, i, example_filename, args, progress_bar, label_correction_csv_path, error_encountered, clip, previous_i_not_skipped):
     original_idx = 0
     corrected_idx = 1
     status_idx = 2
@@ -677,7 +689,14 @@ def label_correction(label_correction_table, i, example_filename, args, progress
             # Get the human corrected label
             label, comment, mark_previous_unconfirmed = wait_for_keypress_to_select_label(progress_bar)
             if mark_previous_unconfirmed and i > 0:
-                label_correction_table[i - 1, status_idx] = 'unconfirmed'
+                if previous_i_not_skipped is not None:
+                    # If some labels are skipped such as in success only,
+                    # the previous label viewed by the user can be several indices back!
+                    label_correction_table[previous_i_not_skipped, status_idx] = 'unconfirmed'
+                else:
+                    progress_bar.write(
+                        'Sorry, we could not mark the previous value because none existed, '
+                        'you should manually fix whatever problem you encountered.')
             original_filename = label_correction_table[i, original_idx]
             if label not in original_filename:
                 if label == 'success':
