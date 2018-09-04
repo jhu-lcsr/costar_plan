@@ -546,7 +546,10 @@ def main(args, root="root"):
                     progress_bar.write('goal_labels_name: ' + str(goal_labels_name))
                     total_frames = len(data['image'])
                     progress_bar.write("writing frames:" + str(goal_frames) + ' total frames: ' + str(total_frames))
-                    image_list = np.array(data['image'])[goal_frames]
+                    if goal_frames:
+                        image_list = np.array(data['image'])[goal_frames]
+                    else:
+                        image_list = []
                     images = ConvertImageListToNumpy(image_list, format='list')
                     example_folder_path, name = os.path.split(example_filename)
                     progress_bar.write(example_folder_path)
@@ -560,8 +563,19 @@ def main(args, root="root"):
                     goal_image_path = os.path.join(example_folder_path, name + '_clear_view_' + "0" + '.jpg')
                     progress_bar.write('Saving jpeg: ' + str(goal_image_path))
                     im.save(goal_image_path)
+                    tiling_list = image + images
+                    # extract the final image
+                    final_frame = total_frames - 1
+                    image = ConvertImageListToNumpy(np.array(data['image'][final_frame:]), format='list')
+                    im = Image.fromarray(image[0])
+                    goal_image_path = os.path.join(example_folder_path, name + '_z_final_frame_' + str(final_frame) + '.jpg')
+                    progress_bar.write('Saving jpeg: ' + str(goal_image_path))
+                    im.save(goal_image_path)
+                    if not goal_frames or (goal_frames and final_frame != goal_frames[-1]):
+                        # only append the final frame if it isn't already the last goal frame
+                        tiling_list = tiling_list + image
                     # build up a tiled version of all the images and save that first
-                    tiled_image = np.squeeze(np.hstack(image + images))
+                    tiled_image = np.squeeze(np.hstack(tiling_list))
                     progress_bar.write('tiled_image shape 1: ' + str(tiled_image.shape))
                     im = Image.fromarray(tiled_image)
                     goal_image_path = os.path.join(example_folder_path, name + '_tiled.jpg')
