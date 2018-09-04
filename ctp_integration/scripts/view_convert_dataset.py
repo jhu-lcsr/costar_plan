@@ -547,7 +547,7 @@ def main(args, root="root"):
                     total_frames = len(data['image'])
                     progress_bar.write("writing frames:" + str(goal_frames) + ' total frames: ' + str(total_frames))
                     if len(goal_frames) > 0 and goal_frames[0] is not False:
-                        image_list = list(data['image'])[goal_frames]
+                        image_list = np.array(data['image'])[goal_frames]
                     else:
                         image_list = []
                     images = ConvertImageListToNumpy(image_list, format='list')
