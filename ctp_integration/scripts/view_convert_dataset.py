@@ -544,8 +544,9 @@ def main(args, root="root"):
                     data_labels_to_name = list(data['labels_to_name'])
                     goal_labels_name = np.array(data_labels_to_name)[goal_label_idx]
                     progress_bar.write('goal_labels_name: ' + str(goal_labels_name))
-                    progress_bar.write("writing frames:" + str(goal_frames))
-                    image_list = np.array(data['image'][goal_frames])
+                    total_frames = len(data['image'])
+                    progress_bar.write("writing frames:" + str(goal_frames) + ' total frames: ' + str(total_frames))
+                    image_list = np.array(data['image'])[goal_frames]
                     images = ConvertImageListToNumpy(image_list, format='list')
                     example_folder_path, name = os.path.split(example_filename)
                     progress_bar.write(example_folder_path)
