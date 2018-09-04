@@ -571,7 +571,7 @@ def main(args, root="root"):
                     goal_image_path = os.path.join(example_folder_path, name + '_z_final_frame_' + str(final_frame) + '.jpg')
                     progress_bar.write('Saving jpeg: ' + str(goal_image_path))
                     im.save(goal_image_path)
-                    if not goal_frames or (goal_frames and final_frame != goal_frames[-1]):
+                    if len(goal_frames) == 0 or (len(goal_frames) > 0 and final_frame != goal_frames[-1]):
                         # only append the final frame if it isn't already the last goal frame
                         tiling_list = tiling_list + image
                     # build up a tiled version of all the images and save that first
