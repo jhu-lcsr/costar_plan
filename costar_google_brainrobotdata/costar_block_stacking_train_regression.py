@@ -18,9 +18,9 @@ FLAGS = flags.FLAGS
 
 def main(_):
     use_best_model = True
-    load_best_weights = False
-    # problem_type = 'semantic_translation_regression'
-    problem_type = 'semantic_rotation_regression'
+    load_best_weights = True
+    problem_type = 'semantic_translation_regression'
+    # problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
     # problem_type2 = 'semantic_grasp_regression'
     problem_type2 = None
