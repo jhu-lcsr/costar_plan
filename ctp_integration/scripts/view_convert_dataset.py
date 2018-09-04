@@ -536,6 +536,12 @@ def main(args, root="root"):
                 if args['goal_to_jpeg']:
                     # Visit all the goal timesteps and write out a jpeg file in the 'goal_images' folder
                     progress_bar.write('-' * 80)
+                    image_list = []
+                    tiling_list = []
+                    total_frames = len(data['image'])
+                    if total_frames == 0:
+                        progress_bar.write('Skipping file without image frames: ' + filename)
+                        continue
                     goal_frames = np.unique(data['gripper_action_goal_idx'])
                     data_gripper_action_label = list(data['gripper_action_label'])
                     goal_label_idx = np.unique(data_gripper_action_label, return_index=True)[1]
@@ -544,7 +550,6 @@ def main(args, root="root"):
                     data_labels_to_name = list(data['labels_to_name'])
                     goal_labels_name = np.array(data_labels_to_name)[goal_label_idx]
                     progress_bar.write('goal_labels_name: ' + str(goal_labels_name))
-                    total_frames = len(data['image'])
                     progress_bar.write("writing frames:" + str(goal_frames) + ' total frames: ' + str(total_frames))
                     if len(goal_frames) > 1:
                         image_list = np.array(data['image'])[goal_frames]
@@ -567,7 +572,7 @@ def main(args, root="root"):
                     tiling_list = image + images
                     # extract the final image
                     final_frame = total_frames - 1
-                    image = ConvertImageListToNumpy(np.array(data['image'][final_frame:]), format='list')
+                    image = ConvertImageListToNumpy(np.array(data['image'][-2:]), format='list')
                     im = Image.fromarray(image[0])
                     goal_image_path = os.path.join(example_folder_path, name + '_z_final_frame_' + str(final_frame) + '.jpg')
                     progress_bar.write('Saving jpeg: ' + str(goal_image_path))
