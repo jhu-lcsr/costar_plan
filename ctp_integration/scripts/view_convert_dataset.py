@@ -546,9 +546,10 @@ def main(args, root="root"):
                     progress_bar.write('goal_labels_name: ' + str(goal_labels_name))
                     total_frames = len(data['image'])
                     progress_bar.write("writing frames:" + str(goal_frames) + ' total frames: ' + str(total_frames))
-                    if len(goal_frames) > 0 and len(data_labels_to_name) > 0:
+                    if len(goal_frames) > 1:
                         image_list = np.array(data['image'])[goal_frames]
                     else:
+                        progress_bar.write("WARNING: printing first and final frame, but 0 or 1 actual goal frames for: " + str(filename))
                         image_list = []
                     images = ConvertImageListToNumpy(image_list, format='list')
                     example_folder_path, name = os.path.split(example_filename)
