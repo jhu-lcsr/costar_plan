@@ -86,13 +86,25 @@ flags.DEFINE_string(
 flags.DEFINE_boolean(
     'filter_epoch',
     True,
-    'Filter results, dropping everything except a single epoch'
+    'Filter results, dropping everything except a single specific epoch specified by --epoch'
 )
 
 flags.DEFINE_integer(
     'epoch',
     0,
-    'Results should only belong to this epoch if filter_epoch is True'
+    'Results should only belong to this epoch if --filter_epoch=True'
+)
+
+flags.DEFINE_integer(
+    'max_epoch',
+    None,
+    'Results should only belong to this epoch or lower, not enabled by default.'
+)
+
+flags.DEFINE_boolean(
+    'filter_unique',
+    False,
+    'Filter unique results. This will retain only the best epoch for each model.'
 )
 
 FLAGS = flags.FLAGS
@@ -116,11 +128,18 @@ def main(_):
             if FLAGS.filter_epoch:
                 dataframe = dataframe.loc[dataframe['epoch'] == FLAGS.epoch]
 
+            if FLAGS.max_epoch is not None:
+                dataframe = dataframe.loc[dataframe['epoch'] <= FLAGS.max_epoch]
+
             # manage hyperparams
             if len(hyperparam_filename) > 1:
                 progress.write('Unexpectedly got more than hyperparam file match, '
                                'only keeping the first one: ' + str(hyperparam_filename))
-            hyperparam_filename = hyperparam_filename[0]
+            if hyperparam_filename:
+                hyperparam_filename = hyperparam_filename[0]
+            else:
+                progress.write('No hyperparameters in directory, skipping: ' + str(csv_dir))
+                continue
             dataframe['hyperparameters_filename'] = hyperparam_filename
             if FLAGS.load_hyperparams and len(hyperparam_filename) > 0:
                 hyperparams = grasp_utilities.load_hyperparams_json(hyperparam_filename)
@@ -134,11 +153,18 @@ def main(_):
             pass
 
     results_df = pandas.DataFrame()
-    results_df = pandas.concat(dataframe_list)
-    results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending)
+    results_df = pandas.concat(dataframe_list, ignore_index=True)
+    results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending, kind='mergesort')
+    # re-number the row indices according to the sorted order
+    results_df = results_df.reset_index(drop=True)
+
+    if FLAGS.filter_unique:
+        results_df = results_df.drop_duplicates(subset='csv_filename')
+
     if FLAGS.print_results:
         with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
             print(results_df)
+
     if FLAGS.save_dir is None:
         FLAGS.save_dir = FLAGS.log_dir
     output_filename = os.path.join(FLAGS.save_dir, FLAGS.save_csv)

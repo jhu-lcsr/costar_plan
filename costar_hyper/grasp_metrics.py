@@ -831,12 +831,12 @@ def encode_xyz_qxyzw_to_xyz_aaxyz_nsc(xyz_qxyzw, rescale_meters=4, rotation_weig
         # pose augmentation with no feedback or correspondingly adjusted transform poses
         if random_augmentation is not None and np.random.random() > random_augmentation:
             # random rotation change
-            random = Quaternion.random()
-            # only take rotations less than 5 degrees
-            while random.angle > np.pi / 36.:
-                # TODO(ahundt) make more efficient
-                random = Quaternion.random()
-            rotation = rotation * random
+            # random = Quaternion.random()
+            # # only take rotations less than 5 degrees
+            # while random.angle > np.pi / 36.:
+            #     # TODO(ahundt) make more efficient and re-enable
+            #     random = Quaternion.random()
+            # rotation = rotation * random
             # random translation change of up to 0.5 cm
             random = (np.random.random(3) - 0.5) / 10.
             xyz = xyz + random
@@ -916,6 +916,7 @@ def grasp_acc(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, 
     """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
 
     Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+    Limits default to 15 degrees and 1cm.
 
     Supported formats are translation xyz with length 3,
     aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
@@ -929,7 +930,273 @@ def grasp_acc(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, 
     # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
     [filter_result] = tf.py_func(
         grasp_accuracy_xyz_aaxyz_nsc_batch,
-        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc],
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_5mm_7_5deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.005, max_rotation=0.1308995):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+    Limits default to 7.5 degrees and 0.5cm.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.005 meters, which is 0.5cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 7.5 degrees, which is 0.1308995 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_1cm_15deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.01, max_rotation=0.261799):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+    Limits default to 15 degrees and 1cm.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.01 meters, which is 1cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 15 degrees in radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_2cm_30deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.02, max_rotation=0.523598):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.02 meters, which is 2cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 30 degrees, which is 0.523598 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_4cm_60deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.04, max_rotation=1.047196):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.02 meters, which is 2cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 30 degrees, which is 0.523598 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_8cm_120deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.08, max_rotation=2.094392):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.02 meters, which is 2cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 30 degrees, which is 0.523598 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_16cm_240deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.16, max_rotation=4.188784):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.02 meters, which is 2cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 30 degrees, which is 0.523598 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_32cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.32, max_rotation=6.2832):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.02 meters, which is 2cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 30 degrees, which is 0.523598 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_64cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=0.64, max_rotation=6.2832):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.02 meters, which is 2cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 30 degrees, which is 0.523598 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_128cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=1.28, max_rotation=6.2832):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.02 meters, which is 2cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 30 degrees, which is 0.523598 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_256cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=2.56, max_rotation=6.2832):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.02 meters, which is 2cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 30 degrees, which is 0.523598 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
+        [tf.float32], stateful=False,
+        name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
+    filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])
+    return filter_result
+
+
+def grasp_acc_512cm_360deg(y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation=5.12, max_rotation=6.2832):
+    """ Calculate 3D grasp accuracy for a single result with grasp_accuracy_xyz_aaxyz_nsc encoding.
+
+    Return 1 if the prediction meets both the translation and rotation accuracy criteria, 0 otherwise.
+
+    Supported formats are translation xyz with length 3,
+    aaxyz_nsc which is an axis and normalized sin(theta) cos(theta) with length 5,
+    or xyz_aaxyz_nsc which incorporates both of the above with length 8.
+
+    max_translation: defaults to 0.02 meters, which is 2cm,
+       translations must be less than this distance away.
+    max_rotation: defaults to 30 degrees, which is 0.523598 radians,
+       rotations must be less than this angular distance away.
+    """
+    # TODO(ahundt) make a single, simple call for grasp_accuracy_xyz_aaxyz_nsc, no py_func etc
+    [filter_result] = tf.py_func(
+        grasp_accuracy_xyz_aaxyz_nsc_batch,
+        [y_true_xyz_aaxyz_nsc, y_pred_xyz_aaxyz_nsc, max_translation, max_rotation],
         [tf.float32], stateful=False,
         name='py_func/grasp_accuracy_xyz_aaxyz_nsc_batch')
     filter_result.set_shape(y_true_xyz_aaxyz_nsc.get_shape()[0])

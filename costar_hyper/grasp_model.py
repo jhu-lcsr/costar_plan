@@ -29,7 +29,7 @@ from keras.layers.merge import Add
 from keras.models import Model
 from keras.layers import Lambda
 from keras.layers import Reshape
-from keras.applications.imagenet_utils import _obtain_input_shape
+from keras_applications.imagenet_utils import _obtain_input_shape
 import keras_applications
 
 import keras_contrib
@@ -258,7 +258,11 @@ def classifier_block(input_tensor, include_top=True, top='classification',
         x = Reshape((row * col, classes))(x)
         x = Activation(activation)(x)
         x = Reshape((row, col, classes))(x)
-
+    elif include_top and top == 'quaternion':
+        x = Dense(units=classes, activation='linear',
+                  kernel_initializer="he_normal", name=name + 'fc' + str(classes))(x)
+        # normalize the output so we have a unit quaternion
+        x = Lambda(lambda x: K.l2_normalize(x, axis=1))(x)
     elif final_pooling == 'avg':
         if verbose:
             print("    GlobalAveragePooling2D")
@@ -268,6 +272,8 @@ def classifier_block(input_tensor, include_top=True, top='classification',
         if verbose:
             print("    GlobalMaxPooling2D")
         x = GlobalMaxPooling2D()(x)
+    else:
+        raise ValueError('grasp_model.py::classifier_block() unsupported top: ' + str(top))
     return x
 
 
@@ -300,7 +306,7 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
     print('top block top: ' + str(top))
     # Extra Global Average Pooling allows more flexible input dimensions
     # but only use if necessary.
-    if top == 'classification':
+    if top == 'classification' or top == 'quaternion':
         feature_shape = K.int_shape(x)
         if len(feature_shape) == 4:
             x = GlobalMaxPooling2D()(x)
@@ -495,6 +501,7 @@ def choose_hypertree_model(
         top_block_hidden_activation='relu',
         trunk_normalization='none',
         coordinate_data=None,
+        hidden_activation=None,
         vector_normalization='batch_norm'):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
@@ -509,11 +516,17 @@ def choose_hypertree_model(
             Setting the parameters to None or 0 will use the number of cannels in the
             input data provided.
         trunk_normalization: options are 'batch_norm', 'group_norm', and None or 'none'
-        trunk_hidden_activation: the activation to use for hidden layers in configurations that support it
+        trunk_hidden_activation:
+            Deprecated, use hidden_activation instead.
+            The activation to use for hidden layers in configurations that support it
             the vgg trunk is the only option at the time of writing.
         vector_normalization: options are 'batch_norm', 'group_norm', and None or 'none'
-        vector_hidden_activation: the activation to use for hidden layers in configurations that support it
+        vector_hidden_activation: Deprecated, use hidden_activation instead.
+            the activation to use for hidden layers in configurations that support it
             the vgg trunk is the only option at the time of writing.
+        top_block_hidden_activation: Deprecated, use hidden_activation instead.
+        hidden_activation: override vector, trunk, and top_block hidden activation,
+            setting them all to this value. Example values include 'relu', 'elu', and 'linear'.
 
     # Notes
 
@@ -569,6 +582,11 @@ def choose_hypertree_model(
     """
     if trainable is None:
         trainable = False
+
+    if hidden_activation is not None:
+        trunk_hidden_activation = hidden_activation
+        vector_hidden_activation = hidden_activation
+        top_block_hidden_activation = hidden_activation
 
     if top == 'segmentation':
         name_prefix = 'dilated_'

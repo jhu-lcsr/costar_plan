@@ -1,4 +1,5 @@
 import tensorflow as tf
+from keras import backend as K
 from tensorflow.python.platform import flags
 
 import hyperopt
@@ -41,7 +42,8 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
         min_top_block_filter_multiplier = 6
         FLAGS.crop_height = 224
         FLAGS.crop_width = 224
-    elif problem_type in ['grasp_regression', 'regression', 'semantic_grasp_regression']:
+    elif problem_type in ['grasp_regression', 'regression', 'semantic_grasp_regression',
+                          'semantic_translation_regression', 'semantic_rotation_regression']:
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
         # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
@@ -58,11 +60,31 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
 
 
 def main(_):
+
+    # prevent errors from being printed for hours when memory runs out
+    # https://github.com/tensorflow/tensorflow/issues/20998
+    # commented because this approach doesn't work...
+    # config = tf.ConfigProto()
+    # config.gpu_options.allow_growth = True
+    # config.report_tensor_allocations_upon_oom = False
+    # # config.inter_op_parallelism_threads = 40
+    # tf_session = tf.Session(config=config)
+    # K.set_session(tf_session)
     # Edit these flags to choose your configuration:
     # FLAGS.problem_type = 'classification'
     # FLAGS.dataset_name = 'cornell_grasping'
     FLAGS.dataset_name = 'costar_block_stacking'
-    FLAGS.problem_type = 'semantic_grasp_regression'
+    # FLAGS.problem_type = 'semantic_grasp_regression'
+
+    # ----------------------------------------------------
+    # When ranking rotation use the following settings:
+    # FLAGS.log_dir = 'hyperopt_logs_costar_block_stacking_train_ranked_regression'
+    # FLAGS.problem_type = 'semantic_rotation_regression'
+    # ----------------------------------------------------
+    # When ranking translation use the following settings
+    FLAGS.log_dir = 'hyperopt_logs_costar_translation_regression'
+    FLAGS.problem_type = 'semantic_translation_regression'
+    # ----------------------------------------------------
     FLAGS.batch_size = 16
     FLAGS.num_validation = 1
     FLAGS.num_test = 1

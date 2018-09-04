@@ -278,11 +278,12 @@ def optimize(
     else:
         # There is no vector branch for grasp regression so we only add it in the other cases
         # Handle motion command inputs and search for the best configuration
-        hyperoptions.add_param('vector_dense_filters', [2**x for x in range(6, 13)])
+        hyperoptions.add_param('vector_dense_filters', [2**x for x in range(min_top_block_filter_multiplier - 1, 14)])
         hyperoptions.add_param('vector_branch_num_layers', [x for x in range(0, 5)])
         hyperoptions.add_param('vector_model_name', ['dense', 'dense_block'])
-        hyperoptions.add_param('vector_hidden_activation', ['linear', 'relu', 'elu'],
-                               default='linear', enable=True, required=True)
+        # Disabled, see hidden_activation instead of vector_hidden_activation.
+        # hyperoptions.add_param('vector_hidden_activation', ['linear', 'relu', 'elu'],
+        #                        default='linear', enable=True, required=True)
         hyperoptions.add_param('vector_normalization', ['none', 'batch_norm', 'group_norm'],
                                default='batch_norm', enable=True, required=True)
 
@@ -295,15 +296,15 @@ def optimize(
     # very large networks that don't train quickly, and may not currently be fast enough for a robot.
     # Please note that inception_resnet_v2 did quite well in both the cornell dataset and the costar dataset!
     hyperoptions.add_param('image_model_name', ['vgg', 'nasnet_mobile'],
-                           enable=True, required=True, default='vgg')
+                           enable=False, required=True, default='nasnet_mobile')
     # TODO(ahundt) map [0] to the None option for trunk_filters we need an option to automatically match the input data's filter count
-    hyperoptions.add_param('trunk_filters', [2**x for x in range(5, 13)])
+    hyperoptions.add_param('trunk_filters', [2**x for x in range(min_top_block_filter_multiplier - 1, 12)])
     hyperoptions.add_param('trunk_layers', [x for x in range(0, 11)])
     # Choose the model for the trunk, options are 'vgg_conv_block', 'dense_block', 'nasnet_normal_a_cell', 'resnet_conv_identity_block'
     # an additional option is 'resnet_conv_identity_block', but it never really did well.
     # dense_block does really well for the cornell dataset, vgg_conv_block for costar stacking dataset
     hyperoptions.add_param('trunk_model_name', ['vgg_conv_block', 'dense_block', 'nasnet_normal_a_cell'],
-                           default='dense_block', enable=True, required=True)
+                           default='nasnet_normal_a_cell', enable=True, required=True)
     # Enable or disable coordconv
     # https://eng.uber.com/coordconv/
     # https://github.com/titu1994/keras-coordconv
@@ -312,17 +313,19 @@ def optimize(
     # hyperoptions.add_param('coordinate_data', ['none', 'coord_conv_trunk'],
     hyperoptions.add_param('coordinate_data', ['none', 'coord_conv_trunk', 'coord_conv_img'],
                            default='none', enable=True, required=True)
+    # Disabled, see hidden_activation instead of trunk_hidden_activation.
     # trunk hidden activation currently only applies to the vgg case
-    hyperoptions.add_param('trunk_hidden_activation', ['relu', 'elu', 'linear'],
-                           default='relu', enable=True, required=True)
+    # hyperoptions.add_param('trunk_hidden_activation', ['relu', 'elu', 'linear'],
+    #                        default='relu', enable=True, required=True)
     # 'trunk_normalization' currently only applies in vgg case and after the first conv in the nasnet case
     hyperoptions.add_param('trunk_normalization', ['none', 'batch_norm', 'group_norm'],
                            default='batch_norm', enable=True, required=True)
     hyperoptions.add_param('top_block_filters', [2**x for x in range(min_top_block_filter_multiplier, 14)])
     # number of dense layers before the final dense layer that performs classification in the top block
     hyperoptions.add_param('top_block_dense_layers', [0, 1, 2, 3, 4])
-    hyperoptions.add_param('top_block_hidden_activation', ['relu', 'elu', 'linear'],
-                           default='relu', enable=True, required=True)
+    # Disabled, see hidden_activation instead of top_block_hidden_activation.
+    # hyperoptions.add_param('top_block_hidden_activation', ['relu', 'elu', 'linear'],
+    #                        default='relu', enable=True, required=True)
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
     # The appropriate preprocessing mode must be chosen for each model.
@@ -330,6 +333,13 @@ def optimize(
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
                            enable=False, required=False, default='tf')
 
+    # Hidden activation to use for all hidden layers,
+    # note that for the trunk and image portion of models
+    # this will only apply under limited circumstances
+    # due to the current choose_hypertree_model implementation.
+    # ['linear', 'relu', 'elu']
+    hyperoptions.add_param('hidden_activation', ['relu', 'elu'],
+                           default='relu', enable=True, required=True)
     # deep learning algorithms don't give exact results
     algorithm_gives_exact_results = False
     # how many optimization steps to take after the initial sampling

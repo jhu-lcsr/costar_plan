@@ -6,6 +6,7 @@ import json
 import datetime
 import errno
 import json
+import six
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -161,13 +162,13 @@ def make_model_description(run_name, model_name, hyperparams, dataset_names_str,
     if model_name:
         model_description += model_name + '-'
 
-    if hyperparams is not None:
-        if 'image_model_name' in hyperparams:
-            model_description += '_img_' + hyperparams['image_model_name']
-        if 'vector_model_name' in hyperparams:
-            model_description += '_vec_' + hyperparams['vector_model_name']
-        if 'trunk_model_name' in hyperparams:
-            model_description += '_trunk_' + hyperparams['trunk_model_name']
+    # if hyperparams is not None:
+    #     if 'image_model_name' in hyperparams:
+    #         model_description += '_img_' + hyperparams['image_model_name']
+    #     if 'vector_model_name' in hyperparams:
+    #         model_description += '_vec_' + hyperparams['vector_model_name']
+    #     if 'trunk_model_name' in hyperparams:
+    #         model_description += '_trunk_' + hyperparams['trunk_model_name']
     ########################################################
     # End tensor configuration, begin model configuration and training
     model_description += '-dataset_' + dataset_names_str
@@ -177,3 +178,68 @@ def make_model_description(run_name, model_name, hyperparams, dataset_names_str,
 
     run_name = timeStamped(model_description)
     return run_name
+
+
+def multi_run_histories_summary(
+        run_histories,
+        save_filename=None,
+        metrics='val_binary_accuracy',
+        description_prefix='k_fold_average_',
+        results_prefix='k_fold_results',
+        multi_history_metrics='mean',
+        verbose=1):
+    """ Find the k_fold average of the best model weights on each fold, and save the results.
+
+    This can be used to summarize multiple runs, be they on different models or the same model.
+
+    Please note that currently this should only be utilized with classification models,
+    or regression models with absolute thresholds.
+    it will not calculated grasp_jaccard regression models' scores correctly.
+
+    # Arguments
+
+    run_histories: A dictionary from training run description strings to keras history objects.
+    multi_history_metric: 'mean', 'min', 'max',
+        used to summarize the data from multiple training runs.
+
+    # Returns
+
+    results disctionary including the max value of metric for each fold,
+    plus the average of all folds in a dictionary.
+    """
+    if isinstance(metrics, str):
+        metrics = [metrics]
+    if isinstance(multi_history_metrics, str):
+        multi_history_metrics = [multi_history_metrics]
+    results = {}
+    for metric, multi_history_metric in zip(metrics, multi_history_metrics):
+        best_metric_scores = []
+        for history_description, history_object in six.iteritems(run_histories):
+            if 'loss' in metric or 'error' in metric:
+                best_score = np.min(history_object.history[metric])
+                results[history_description + '_min_' + metric] = best_score
+            else:
+                best_score = np.max(history_object.history[metric])
+                results[history_description + '_max_' + metric] = best_score
+            best_metric_scores += [best_score]
+        if multi_history_metric == 'mean' or multi_history_metric == 'average':
+            k_fold_average = np.mean(best_metric_scores)
+        elif multi_history_metric == 'min':
+            k_fold_average = np.min(best_metric_scores)
+        elif multi_history_metric == 'max':
+            k_fold_average = np.max(best_metric_scores)
+        else:
+            raise ValueError(
+                'multi_run_histories_summary(): Unsupported multi_history_metric: ' +
+                str(multi_history_metric))
+        result_key = description_prefix + '_' + multi_history_metric + '_' + metric
+        results[result_key] = k_fold_average
+
+    if verbose:
+        print(str(results_prefix) + ':\n ' + str(results))
+
+    if save_filename is not None:
+        with open(save_filename, 'w') as fp:
+            # save out all kfold params so they can be reloaded in the future
+            json.dump(results, fp)
+    return results
