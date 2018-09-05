@@ -101,6 +101,11 @@ flags.DEFINE_integer(
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
+    'initial_epoch',
+    0,
+    'the epoch from which you should start counting, use when loading existing weights.'
+)
+flags.DEFINE_integer(
     'batch_size',
     16,
     'Batch size.'
@@ -316,6 +321,7 @@ def run_training(
         dataset_name=None,
         should_initialize=False,
         hyperparameters_filename=None,
+        initial_epoch=None,
         **kwargs):
     """
 
@@ -368,6 +374,8 @@ def run_training(
         feature_combo_name = FLAGS.feature_combo
     if dataset_name is None:
         dataset_name = FLAGS.dataset_name
+    if initial_epoch is None:
+        initial_epoch = FLAGS.initial_epoch
 
     if image_model_name == 'nasnet_large':
         # set special dimensions for nasnet
@@ -600,7 +608,8 @@ def run_training(
             callbacks=callbacks,
             use_multiprocessing=False,
             workers=20,
-            verbose=0)
+            verbose=0,
+            initial_epoch=initial_epoch)
 
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
         if fine_tuning and fine_tuning_epochs is not None and fine_tuning_epochs > 0:
@@ -622,12 +631,12 @@ def run_training(
             history = model.fit_generator(
                 train_data,
                 steps_per_epoch=train_steps,
-                epochs=epochs + fine_tuning_epochs,
+                epochs=epochs + fine_tuning_epochs + initial_epoch,
                 validation_data=validation_data,
                 validation_steps=validation_steps,
                 callbacks=callbacks,
                 verbose=0,
-                initial_epoch=epochs)
+                initial_epoch=epochs + initial_epoch)
 
     elif 'test' in pipeline:
         if test_steps == 0:
