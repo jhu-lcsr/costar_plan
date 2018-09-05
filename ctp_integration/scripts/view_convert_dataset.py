@@ -12,7 +12,7 @@ Convert video from an h5f file into a gif:
 Preprocess data that was just collected to include action labels
 'gripper_action_goal_idx' and 'gripper_action' based on when the gripper moves:
 
-    export CUDA_VISIBLE_DEVICES="" && python2 ctp_integration/scripts/view_convert_dataset.py --path "/home/ahundt/.keras/datasets/costar_plush_block_stacking_dataset_v0.1/" --preprocess_inplace gripper_action --write
+    export CUDA_VISIBLE_DEVICES="" && python2 ctp_integration/scripts/view_convert_dataset.py --path "~/.keras/datasets/costar_plush_block_stacking_dataset_v0.1/" --preprocess_inplace gripper_action --write
 
 Relabel "success" data in a dataset:
 
