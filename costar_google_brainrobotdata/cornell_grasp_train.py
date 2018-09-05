@@ -628,6 +628,12 @@ def run_training(
                 loss=loss,
                 metrics=metrics)
 
+            # Write out the model summary so we can see statistics
+            with open(log_dir_run_name + '_summary.txt','w') as fh:
+                # Pass the file handle in as a lambda function to make it callable
+                model.summary(print_fn=lambda x: fh.write(x + '\n'))
+
+            # start training!
             history = model.fit_generator(
                 train_data,
                 steps_per_epoch=train_steps,
