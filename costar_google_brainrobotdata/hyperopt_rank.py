@@ -107,6 +107,12 @@ flags.DEFINE_boolean(
     'Filter unique results. This will retain only the best epoch for each model.'
 )
 
+flags.DEFINE_string(
+    'basename_contains',
+    None,
+    'Only include rows where the basename contains the string you specify, useful for extracting a single specific model.'
+)
+
 FLAGS = flags.FLAGS
 
 
@@ -155,6 +161,9 @@ def main(_):
     results_df = pandas.DataFrame()
     results_df = pandas.concat(dataframe_list, ignore_index=True)
     results_df = results_df.sort_values(FLAGS.sort_by, ascending=FLAGS.ascending, kind='mergesort')
+    if FLAGS.basename_contains is not None:
+        # match rows where the basename contains the string specified in basename_contains
+        results_df = results_df[results_df['basename'].str.contains(FLAGS.basename_contains)]
     # re-number the row indices according to the sorted order
     results_df = results_df.reset_index(drop=True)
 
