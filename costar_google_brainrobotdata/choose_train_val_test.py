@@ -90,9 +90,9 @@ def main(_):
 
     save_dir = os.path.expanduser(FLAGS.save_dir)
 
-    train_filename = os.path.join(save_dir, FLAGS.save_txt_prefix + 'train.txt')
-    val_filename = os.path.join(save_dir, FLAGS.save_txt_prefix + 'val.txt')
-    test_filename = os.path.join(save_dir, FLAGS.save_txt_prefix + 'test.txt')
+    train_filename = os.path.join(save_dir, FLAGS.save_txt_prefix + 'train_files.txt')
+    val_filename = os.path.join(save_dir, FLAGS.save_txt_prefix + 'val_files.txt')
+    test_filename = os.path.join(save_dir, FLAGS.save_txt_prefix + 'test_files.txt')
     with open(train_filename, mode='w') as set_file:
         set_file.write('\n'.join(train_data))
     with open(val_filename, mode='w') as set_file:
