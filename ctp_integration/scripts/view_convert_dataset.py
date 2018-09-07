@@ -26,6 +26,7 @@ import traceback
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
+import glob
 # https://github.com/tanyaschlusser/array2gif
 # from array2gif import write_gif
 
@@ -288,7 +289,10 @@ def main(args, root="root"):
     if '.h5f' in path:
         filenames = [args['path']]
     else:
-        filenames = os.listdir(path)
+        if os.path.isdir(path):
+            filenames = os.listdir(path)
+        else:
+            filenames = glob.glob(path)
 
     # filter out files that aren't .h5f files
     ignored_files = [filename for filename in filenames if '.h5f' not in filename]
