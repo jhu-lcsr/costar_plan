@@ -86,7 +86,7 @@ def main(_):
 
     # save the lists out to disk
     if FLAGS.save_dir is None:
-        FLAGS.save_dir = FLAGS.log_dir
+        FLAGS.save_dir = FLAGS.data_dir
 
     train_filename = os.path.join(FLAGS.save_dir, FLAGS.save_txt_prefix + 'train.txt')
     val_filename = os.path.join(FLAGS.save_dir, FLAGS.save_txt_prefix + 'val.txt')
