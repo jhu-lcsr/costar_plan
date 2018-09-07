@@ -88,9 +88,11 @@ def main(_):
     if FLAGS.save_dir is None:
         FLAGS.save_dir = FLAGS.data_dir
 
-    train_filename = os.path.join(FLAGS.save_dir, FLAGS.save_txt_prefix + 'train.txt')
-    val_filename = os.path.join(FLAGS.save_dir, FLAGS.save_txt_prefix + 'val.txt')
-    test_filename = os.path.join(FLAGS.save_dir, FLAGS.save_txt_prefix + 'test.txt')
+    save_dir = os.path.expanduser(FLAGS.save_dir)
+
+    train_filename = os.path.join(save_dir, FLAGS.save_txt_prefix + 'train.txt')
+    val_filename = os.path.join(save_dir, FLAGS.save_txt_prefix + 'val.txt')
+    test_filename = os.path.join(save_dir, FLAGS.save_txt_prefix + 'test.txt')
     with open(train_filename, mode='w') as set_file:
         set_file.write('\n'.join(train_data))
     with open(val_filename, mode='w') as set_file:
