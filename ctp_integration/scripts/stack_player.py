@@ -8,11 +8,11 @@ Start in the costar_plan directory:
 
 The app can be started (served) using the following line, it will use glob to find matching files:
 
-    bokeh serve --show scripts/stack_player.py --args  --data-dir "~/.keras/datasets/costar_block_stacking_dataset_v0.3/*success.h5f"
+    bokeh serve --show scripts/stack_player.py --args  --data-dir "~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f"
 
 Alternate command:
 
-    bokeh serve --show scripts/stack_player.py --args --data-dir ~/.keras/datasets/costar_block_stacking_dataset_v0.3/
+    bokeh serve --show scripts/stack_player.py --args --data-dir ~/.keras/datasets/costar_block_stacking_dataset_v0.4/
 
 Note that the data dir with * uses glob syntax, so this example will only load the data which has been labeled as successful grasps.
 """
@@ -50,7 +50,7 @@ except ImportError:
 
 parser = argparse.ArgumentParser(description='Process additional parameters for stack player')
 
-parser.add_argument('--data-dir', type=str, action='store', default='~/.keras/datasets/costar_block_stacking_dataset_v0.3',
+parser.add_argument('--data-dir', type=str, action='store', default='~/.keras/datasets/costar_block_stacking_dataset_v0.4',
                     help='directory path containing the data')
 
 args = parser.parse_args()
@@ -228,8 +228,8 @@ if tf is not None:
     tf.enable_eager_execution()
 renderer = hv.renderer('bokeh')
 
-#example_filename = "C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.3/2018-05-23-20-18-25_example000002.success.h5f"
-#file_name_list = glob.glob("C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.3/*success.h5f")
+#example_filename = "C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/2018-05-23-20-18-25_example000002.success.h5f"
+#file_name_list = glob.glob("C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f")
 
 path = os.path.expanduser(args.data_dir)
 

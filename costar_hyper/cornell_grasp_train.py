@@ -101,6 +101,11 @@ flags.DEFINE_integer(
     'Number of epochs to run trainer.'
 )
 flags.DEFINE_integer(
+    'initial_epoch',
+    0,
+    'the epoch from which you should start counting, use when loading existing weights.'
+)
+flags.DEFINE_integer(
     'batch_size',
     16,
     'Batch size.'
@@ -157,9 +162,10 @@ flags.DEFINE_string(
     'split_dataset', 'objectwise',
     """Options are imagewise and objectwise, this is the type of split chosen when the tfrecords were generated.""")
 flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the cornell dataset tfrecords and csv files')
-flags.DEFINE_string('costar_filename_base', 'costar_block_stacking_v0.3_success_only',
-                    'base of the filename used for the costar block stacking dataset tfrecords and csv files, '
-                    'specifying None or empty string will generate a new file list from the files in FLAGS.data_dir')
+flags.DEFINE_string('costar_filename_base', 'costar_block_stacking_v0.4_success_only',
+                    'base of the filename used for the costar block stacking dataset txt file containing the list of files to load for train val test, '
+                    'specifying None or empty string will generate a new file list from the files in FLAGS.data_dir.'
+                    'Options: costar_block_stacking_v0.4_success_only, costar_combined_block_plush_stacking_v0.4_success_only')
 flags.DEFINE_string(
     'feature_combo', 'image_preprocessed_norm_sin2_cos2_width_3',
     """
@@ -316,6 +322,7 @@ def run_training(
         dataset_name=None,
         should_initialize=False,
         hyperparameters_filename=None,
+        initial_epoch=None,
         **kwargs):
     """
 
@@ -368,6 +375,8 @@ def run_training(
         feature_combo_name = FLAGS.feature_combo
     if dataset_name is None:
         dataset_name = FLAGS.dataset_name
+    if initial_epoch is None:
+        initial_epoch = FLAGS.initial_epoch
 
     if image_model_name == 'nasnet_large':
         # set special dimensions for nasnet
@@ -600,7 +609,8 @@ def run_training(
             callbacks=callbacks,
             use_multiprocessing=False,
             workers=20,
-            verbose=0)
+            verbose=0,
+            initial_epoch=initial_epoch)
 
         #  TODO(ahundt) remove when FineTuningCallback https://github.com/keras-team/keras/pull/9105 is resolved
         if fine_tuning and fine_tuning_epochs is not None and fine_tuning_epochs > 0:
@@ -619,15 +629,21 @@ def run_training(
                 loss=loss,
                 metrics=metrics)
 
+            # Write out the model summary so we can see statistics
+            with open(log_dir_run_name + '_summary.txt','w') as fh:
+                # Pass the file handle in as a lambda function to make it callable
+                model.summary(print_fn=lambda x: fh.write(x + '\n'))
+
+            # start training!
             history = model.fit_generator(
                 train_data,
                 steps_per_epoch=train_steps,
-                epochs=epochs + fine_tuning_epochs,
+                epochs=epochs + fine_tuning_epochs + initial_epoch,
                 validation_data=validation_data,
                 validation_steps=validation_steps,
                 callbacks=callbacks,
                 verbose=0,
-                initial_epoch=epochs)
+                initial_epoch=epochs + initial_epoch)
 
     elif 'test' in pipeline:
         if test_steps == 0:
@@ -796,8 +812,8 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
                 # In this case the max learning rate is double the specified one,
                 # so that the average initial learning rate is as specified.
                 keras_contrib.callbacks.CyclicLR(
-                    step_size=train_steps * 8, base_lr=1e-6, max_lr=learning_rate * 2,
-                    mode=learning_rate_schedule, gamma=0.99998)
+                    step_size=train_steps * 8, base_lr=1e-5, max_lr=learning_rate * 2,
+                    mode=learning_rate_schedule, gamma=0.99999)
             ]
     return callbacks, optimizer
 
@@ -1258,13 +1274,13 @@ def load_dataset(
                 # switch to the costar block stacking dataset default
                 if 'grasp_success' in label_features or 'action_success' in label_features:
                     # classification case
-                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.3/*.h5f'
+                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.4/*.h5f'
                 else:
                     # regression case
-                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.3/*success.h5f'
+                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f'
                 print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
             # temporarily hardcoded initialization
-            # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.3/*success.h5f"))
+            # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f"))
             file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
             np.random.seed(0)
             print("------------------------------------------------")
@@ -1289,19 +1305,22 @@ def load_dataset(
             if 'cornell' in FLAGS.data_dir:
                 # If the user hasn't specified a dir and it is the cornell default,
                 # switch to the costar block stacking dataset default
-                FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+                FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
             # TODO(ahundt) make the data dir user configurable again for costar_block stacking
-            FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+            # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
             data_dir = FLAGS.data_dir
             costar_filename_base = FLAGS.costar_filename_base
 
             test_data_filename = os.path.join(data_dir, costar_filename_base + '_test_files.txt')
+            print('loading test data from: ' + str(test_data_filename))
             test_data = np.genfromtxt(test_data_filename, dtype='str', delimiter=', ')
 
             validation_data_filename = os.path.join(data_dir, costar_filename_base + '_val_files.txt')
+            print('loading val data from: ' + str(validation_data_filename))
             validation_data = np.genfromtxt(validation_data_filename, dtype='str', delimiter=', ')
 
             train_data_filename = os.path.join(data_dir, costar_filename_base + '_train_files.txt')
+            print('loading train data from: ' + str(train_data_filename))
             train_data = np.genfromtxt(train_data_filename, dtype='str', delimiter=', ')
 
         # We are multiplying by batch size as a hacky workaround because we want the sizing reduction

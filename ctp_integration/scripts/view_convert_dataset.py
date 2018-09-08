@@ -12,11 +12,11 @@ Convert video from an h5f file into a gif:
 Preprocess data that was just collected to include action labels
 'gripper_action_goal_idx' and 'gripper_action' based on when the gripper moves:
 
-    export CUDA_VISIBLE_DEVICES="" && python2 ctp_integration/scripts/view_convert_dataset.py --path "/home/ahundt/.keras/datasets/costar_plush_block_stacking_dataset_v0.1/" --preprocess_inplace gripper_action --write
+    export CUDA_VISIBLE_DEVICES="" && python2 ctp_integration/scripts/view_convert_dataset.py --path "~/.keras/datasets/costar_plush_block_stacking_dataset_v0.1/" --preprocess_inplace gripper_action --write
 
 Relabel "success" data in a dataset:
 
-    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.3 --label_correction --fps 60 --ignore_failure True --ignore_error True
+    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.4 --label_correction --fps 60 --ignore_failure True --ignore_error True
 
 '''
 import argparse
@@ -26,6 +26,7 @@ import traceback
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
+import glob
 # https://github.com/tanyaschlusser/array2gif
 # from array2gif import write_gif
 
@@ -288,7 +289,10 @@ def main(args, root="root"):
     if '.h5f' in path:
         filenames = [args['path']]
     else:
-        filenames = os.listdir(path)
+        if os.path.isdir(path):
+            filenames = os.listdir(path)
+        else:
+            filenames = glob.glob(path)
 
     # filter out files that aren't .h5f files
     ignored_files = [filename for filename in filenames if '.h5f' not in filename]
