@@ -377,6 +377,7 @@ class CostarBlockStackingSequence(Sequence):
                 # X[i,] = np.load('data/' + example_filename + '.npy')
                 x = ()
                 try:
+                    example_filename = os.path.expanduser(example_filename)
                     if not os.path.isfile(example_filename):
                         raise ValueError('CostarBlockStackingSequence: Trying to open something which is not a file: ' + str(example_filename))
                     with h5py.File(example_filename, 'r') as data:
