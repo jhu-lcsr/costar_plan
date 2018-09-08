@@ -162,10 +162,10 @@ flags.DEFINE_string(
     'split_dataset', 'objectwise',
     """Options are imagewise and objectwise, this is the type of split chosen when the tfrecords were generated.""")
 flags.DEFINE_string('tfrecord_filename_base', 'cornell-grasping-dataset', 'base of the filename used for the cornell dataset tfrecords and csv files')
-flags.DEFINE_string('costar_filename_base', 'costar_block_stacking_v0.3_success_only',
+flags.DEFINE_string('costar_filename_base', 'costar_block_stacking_v0.4_success_only',
                     'base of the filename used for the costar block stacking dataset txt file containing the list of files to load for train val test, '
                     'specifying None or empty string will generate a new file list from the files in FLAGS.data_dir.'
-                    'Options: costar_block_stacking_v0.3_success_only, costar_combined_block_plush_stacking_v0.3_success_only')
+                    'Options: costar_block_stacking_v0.4_success_only, costar_combined_block_plush_stacking_v0.4_success_only')
 flags.DEFINE_string(
     'feature_combo', 'image_preprocessed_norm_sin2_cos2_width_3',
     """
@@ -1274,13 +1274,13 @@ def load_dataset(
                 # switch to the costar block stacking dataset default
                 if 'grasp_success' in label_features or 'action_success' in label_features:
                     # classification case
-                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.3/*.h5f'
+                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.4/*.h5f'
                 else:
                     # regression case
-                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.3/*success.h5f'
+                    FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f'
                 print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
             # temporarily hardcoded initialization
-            # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.3/*success.h5f"))
+            # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f"))
             file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
             np.random.seed(0)
             print("------------------------------------------------")
@@ -1305,9 +1305,9 @@ def load_dataset(
             if 'cornell' in FLAGS.data_dir:
                 # If the user hasn't specified a dir and it is the cornell default,
                 # switch to the costar block stacking dataset default
-                FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+                FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
             # TODO(ahundt) make the data dir user configurable again for costar_block stacking
-            # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+            # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
             data_dir = FLAGS.data_dir
             costar_filename_base = FLAGS.costar_filename_base
 

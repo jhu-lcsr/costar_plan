@@ -1,5 +1,5 @@
 
-Costar stacking dataset v0.3
+Costar stacking dataset v0.4
 ----------------------------
 
 Authors:
@@ -12,7 +12,7 @@ Special Thanks To:
 - Chunting Jiao for starting & resetting the robot when needed.
 
 
-v0.3 is a **beta** version of the dataset.
+v0.4 is a **beta** version of the dataset.
 We are using an open source license which requires
 attribution, so we require that users do not publically
 release information based on this dataset until the paper

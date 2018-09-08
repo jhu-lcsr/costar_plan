@@ -28,7 +28,7 @@ except ImportError:
 
 flags.DEFINE_string(
     'data_dir',
-    '~/.keras/datasets/costar_plush_block_stacking_dataset_v0.3/',
+    '~/.keras/datasets/costar_plush_block_stacking_dataset_v0.4/',
     'Directory for collecting the dataset files'
 )
 
@@ -46,7 +46,7 @@ flags.DEFINE_boolean(
 
 flags.DEFINE_string(
     'save_txt_prefix',
-    'costar_block_stacking_v0.3_success_only_',
+    'costar_block_stacking_v0.4_success_only_',
     'Prefix with which to to save the sorted output txt file with the train test and validation sets'
 )
 

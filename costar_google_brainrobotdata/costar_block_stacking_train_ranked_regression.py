@@ -104,7 +104,7 @@ def main(_):
     #       'for an experiment. '
     #       'crop + resize width/height have been set to 640x480.')
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
-    # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.3/*success.h5f'
+    # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f'
     skip_models = FLAGS.skip_models
 
     # We generate a summary of the best algorithms as the program runs,
@@ -123,8 +123,8 @@ def main(_):
             'costar_block_stacking_train_ranked_regression.py::main(): '
             'unsupported problem_type ' + str(problem_type))
 
-    # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/*success.h5f')
-    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+    # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f')
+    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
     FLAGS.fine_tuning_epochs = 0
     # final training run:
     # FLAGS.epochs = 600

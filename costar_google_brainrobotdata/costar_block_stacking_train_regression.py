@@ -31,7 +31,7 @@ def main(_):
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     # uncomment when running on combined block only + block and plush datasets
-    FLAGS.costar_filename_base = 'costar_combined_block_plush_stacking_v0.3_success_only'
+    FLAGS.costar_filename_base = 'costar_combined_block_plush_stacking_v0.4_success_only'
     load_weights = None
     if FLAGS.load_hyperparams is None:
         # Results from classification hyperparameter run
@@ -128,9 +128,9 @@ def main(_):
             # 2018-08-12 EXCELLENT ROTATION MODEL #5 of 730 models for rotation 58% val accuracy for angles within 15 degrees.
             FLAGS.load_hyperparams = 'hyperparams/semantic_rotation_regression/2018-08-09-03-05-18_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json'
             if load_best_weights:
-                load_weights = 'hyperopt_logs_costar_rotation_regression/2018-09-04-20-17-25_train_v0.3_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-04-20-17-25_train_v0.3_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-412-val_loss-0.002-val_angle_error-0.279.h5'
+                load_weights = 'hyperopt_logs_costar_rotation_regression/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-412-val_loss-0.002-val_angle_error-0.279.h5'
                 FLAGS.initial_epoch = 413
-                # load_weights = 'hyperopt_logs_costar_rotation_regression/2018-08-31-20-35-15_train_v0.3_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-31-20-35-15_train_v0.3_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-237-val_loss-0.002-val_angle_error-0.281.h5'
+                # load_weights = 'hyperopt_logs_costar_rotation_regression/2018-08-31-20-35-15_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-31-20-35-15_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-237-val_loss-0.002-val_angle_error-0.281.h5'
                 # FLAGS.initial_epoch = 238
                 # load_weights = 'hyperopt_logs_costar_block_stacking_train_ranked_regression/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-041-val_loss-0.007-val_grasp_acc-0.581.h5'
             FLAGS.random_augmentation = None
@@ -146,9 +146,9 @@ def main(_):
     #       'for an experiment. '
     #       'crop + resize width/height have been set to 640x480.')
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
-    # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.3/*success.h5f'
+    # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f'
 
-    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
     FLAGS.fine_tuning_epochs = 40
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '

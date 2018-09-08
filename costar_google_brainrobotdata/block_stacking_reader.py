@@ -383,7 +383,7 @@ class CostarBlockStackingSequence(Sequence):
                     with h5py.File(example_filename, 'r') as data:
                         if 'gripper_action_goal_idx' not in data or 'gripper_action_label' not in data:
                             raise ValueError('block_stacking_reader.py: You need to run preprocessing before this will work! \n' +
-                                             '    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.3 --preprocess_inplace gripper_action --write'
+                                             '    python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.4 --preprocess_inplace gripper_action --write'
                                              '\n File with error: ' + str(example_filename))
                         # indices = [0]
                         # len of goal indexes is the same as the number of images, so this saves loading all the images
@@ -653,7 +653,7 @@ if __name__ == "__main__":
     output_shape = (224, 224, 3)
     # output_shape = None
     tf.enable_eager_execution()
-    filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/*success.h5f'))
+    filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f'))
     # print(filenames)
     training_generator = CostarBlockStackingSequence(
         filenames, batch_size=1, verbose=1,
