@@ -30,6 +30,8 @@ def main(_):
     FLAGS.problem_type = problem_type
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
+    # uncomment when running on combined block only + block and plush datasets
+    FLAGS.costar_filename_base = 'costar_combined_block_plush_stacking_v0.3_success_only'
     load_weights = None
     if FLAGS.load_hyperparams is None:
         # Results from classification hyperparameter run
