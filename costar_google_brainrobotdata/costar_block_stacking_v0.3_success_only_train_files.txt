@@ -2191,3 +2191,4 @@
 ~/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-06-01-17-58-27_example000008.success.h5f
 ~/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-06-01-18-16-15_example000019.success.h5f
 ~/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-06-01-18-47-39_example000034.success.h5f
+~/.keras/datasets/costar_block_stacking_dataset_v0.3/2018-05-31-12-35-09_example000002.success.h5f
