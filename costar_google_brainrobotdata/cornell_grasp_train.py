@@ -1311,12 +1311,15 @@ def load_dataset(
             costar_filename_base = FLAGS.costar_filename_base
 
             test_data_filename = os.path.join(data_dir, costar_filename_base + '_test_files.txt')
+            print('loading test data from: ' + str(test_data_filename))
             test_data = np.genfromtxt(test_data_filename, dtype='str', delimiter=', ')
 
             validation_data_filename = os.path.join(data_dir, costar_filename_base + '_val_files.txt')
+            print('loading val data from: ' + str(test_data_filename))
             validation_data = np.genfromtxt(validation_data_filename, dtype='str', delimiter=', ')
 
             train_data_filename = os.path.join(data_dir, costar_filename_base + '_train_files.txt')
+            print('loading train data from: ' + str(test_data_filename))
             train_data = np.genfromtxt(train_data_filename, dtype='str', delimiter=', ')
 
         # We are multiplying by batch size as a hacky workaround because we want the sizing reduction
