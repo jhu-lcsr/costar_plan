@@ -811,8 +811,8 @@ def choose_optimizer(optimizer_name, learning_rate, callbacks, monitor_loss_name
                 # In this case the max learning rate is double the specified one,
                 # so that the average initial learning rate is as specified.
                 keras_contrib.callbacks.CyclicLR(
-                    step_size=train_steps * 8, base_lr=1e-6, max_lr=learning_rate * 2,
-                    mode=learning_rate_schedule, gamma=0.99998)
+                    step_size=train_steps * 8, base_lr=1e-5, max_lr=learning_rate * 2,
+                    mode=learning_rate_schedule, gamma=0.99999)
             ]
     return callbacks, optimizer
 
@@ -1306,7 +1306,7 @@ def load_dataset(
                 # switch to the costar block stacking dataset default
                 FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
             # TODO(ahundt) make the data dir user configurable again for costar_block stacking
-            FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+            # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
             data_dir = FLAGS.data_dir
             costar_filename_base = FLAGS.costar_filename_base
 
