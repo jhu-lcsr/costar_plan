@@ -128,7 +128,7 @@ class CostarHyperPosePredictor(object):
         self.base_link = "base_link"
         self.rgb_time = None
         self.ee_frame = robot_config['end_link']
-        self.labels_topic = 'costar/action_labels'
+        self.labels_topic = '/costar/action_labels'
         self.current_label_topic = '/costar/current_action_label'
         self._labels_sub = rospy.Subscriber(
                 self.labels_topic,
