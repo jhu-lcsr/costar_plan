@@ -1,6 +1,7 @@
 
 import sys
 import os
+import json
 import numpy as np
 import tensorflow as tf
 import PyKDL as kdl
@@ -20,6 +21,7 @@ from sensor_msgs.msg import Image
 from ctp_integration.ros_geometry import pose_to_vec_quat_list
 from costar_task_plan.robotics.workshop import UR5_C_MODEL_CONFIG
 from skimage.transform import resize
+from std_msgs.msg import String
 
 FLAGS = flags.FLAGS
 
@@ -120,15 +122,73 @@ class CostarHyperPosePredictor(object):
         self.rgb_topic = "/camera/rgb/image_rect_color"
         # raw means it is in the format provided by the openi drivers, 16 bit int
         self.depth_topic = "/camera/depth_registered/hw_registered/image_rect"
+
         self._rgb_sub = rospy.Subscriber(self.rgb_topic, Image, self._rgbCb)
         self._bridge = CvBridge()
         self.base_link = "base_link"
         self.rgb_time = None
         self.ee_frame = robot_config['end_link']
+        self.labels_topic = 'costar/action_labels'
+        self.current_label_topic = '/costar/current_action_label'
+        self._labels_sub = rospy.Subscriber(
+                self.labels_topic,
+                String,
+                self._labels_Cb)
+        self._current_label_sub = rospy.Subscriber(
+                self.current_label_topic,
+                String,
+                self._current_label_Cb)
+
+    def _labels_Cb(self, msg):
+        """ Update the labels available for actions.
+
+        This also means we have a clear view,
+        save the next image as an update to the clear view image.
+        """
+        if msg is None:
+            rospy.logwarn("costar_hyper_prediction()::_rgbCb: msg is None !!!!!!!!!")
+        else:
+            with self.mutex:
+                self.labels = np.array(json.loads(msg.data))
+                self.need_clear_view_rgb_img = True
+                self.current_label = None
+
+    def _current_label_Cb(self, msg):
+        """ Get the list of actions, and encode the current action for the prediction step.
+        """
+        if msg is None:
+            rospy.logwarn("costar_hyper_prediction()::_current_label_Cb: msg is None !!!!!!!!!")
+        else:
+            with self.mutex:
+                self.current_label = msg.data
+                action_labels = []
+                # the index of the current action in the
+                # TODO(ahundt) set up a message to initialize & update the real action labels, this is not done yet
+                action_index = 0
+                if self.labels is None:
+                    rospy.logwarn("costar_hyper_prediction()::_current_label_Cb: labels list is None, can't update the current label yet")
+                return
+                action_index, = np.where(self.labels == self.current_label)
+                total_actions_available = len(self.labels)
+
+            if (self.data_features_to_extract is not None and
+                    'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
+                # normalized floating point encoding of action vector
+                # from 0 to 1 in a single float which still becomes
+                # a 2d array of dimension batch_size x 1
+                action = [float(action_index / total_actions_available)]
+                action_labels.append(action)
+            else:
+                # generate the action label one-hot encoding
+                action = np.zeros(total_actions_available)
+                action[action_index] = 1
+                action_labels.append(action)
+            with self.mutex:
+                self.action_labels = action_labels
 
     def _rgbCb(self, msg):
         if msg is None:
-            rospy.logwarn("_rgbCb: msg is None !!!!!!!!!")
+            rospy.logwarn("costar_hyper_prediction()::_rgbCb: msg is None !!!!!!!!!")
         try:
             # max out at 10 hz assuming 30hz data source
             if msg.header.seq % 3 == 0:
@@ -154,31 +214,6 @@ class CostarHyperPosePredictor(object):
 
         except CvBridgeError as e:
             rospy.logwarn(str(e))
-
-    def _actionCb(self, msg):
-        """ Get the list of actions, and encode the current action for the prediction step.
-        """
-        if msg is None:
-            rospy.logwarn("_actionCb")
-        else:
-            action_labels = []
-            # the index of the current action in the
-            # TODO(ahundt) set up a message to initialize & update the real action labels, this is not done yet
-            action_index = 1
-            if (self.data_features_to_extract is not None and
-                    'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
-                # normalized floating point encoding of action vector
-                # from 0 to 1 in a single float which still becomes
-                # a 2d array of dimension batch_size x 1
-                action = [float(action_index / self.total_actions_available)]
-                action_labels.append(action)
-            else:
-                # generate the action label one-hot encoding
-                action = np.zeros(self.total_actions_available)
-                action[action_index] = 1
-                action_labels.append(action)
-            with self.mutex:
-                self.action_labels = action_labels
 
     def _clearViewCb(self, msg):
         """ We have a clear view, save the next image as an update to the clear view image.
@@ -259,17 +294,18 @@ class CostarHyperPosePredictor(object):
         return prediction_xyz_qxyzw
 
 
-
-
 def main(_):
     """ Main function, starts predictor.
     """
     print('main')
+    rospy.init_node('costar_hyper_prediction')
     predictor = CostarHyperPosePredictor()
 
-    while True:
+
+    rate = rospy.Rate(10.0)
+    while not rospy.is_shutdown():
+        rate.sleep()
         prediction_xyz_qxyzw = predictor()
-        # TODO(ahundt) broadcast prediction on TF.
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
