@@ -2,6 +2,7 @@
 import sys
 import os
 import json
+import time
 import numpy as np
 import tensorflow as tf
 import PyKDL as kdl
@@ -19,6 +20,7 @@ from threading import Lock
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from ctp_integration.ros_geometry import pose_to_vec_quat_list
+from ctp_integration.ros_geometry import pose_to_vec_quat_pair
 from costar_task_plan.robotics.workshop import UR5_C_MODEL_CONFIG
 from skimage.transform import resize
 from std_msgs.msg import String
@@ -118,7 +120,7 @@ class CostarHyperPosePredictor(object):
         # http://wiki.ros.org/depth_image_proc
         # http://www.ros.org/reps/rep-0118.html
         # http://wiki.ros.org/rgbd_launch
-        # we will be getting 16 bit integer values in milimeters
+        # we will be getting 16 bit integer values in millimeters
         self.rgb_topic = "/camera/rgb/image_rect_color"
         # raw means it is in the format provided by the openi drivers, 16 bit int
         self.depth_topic = "/camera/depth_registered/hw_registered/image_rect"
@@ -291,7 +293,25 @@ class CostarHyperPosePredictor(object):
         # prediction_kdl = kdl.Frame(
         #         kdl.Rotation.Quaternion(prediction_xyz_qxyzw[3], prediction_xyz_qxyzw[4], prediction_xyz_qxyzw[5], prediction_xyz_qxyzw[6]),
         #         kdl.Vector(prediction_xyz_qxyzw[0], prediction_xyz_qxyzw[1], prediction_xyz_qxyzw[2]))
-        return prediction_xyz_qxyzw
+        return prediction_xyz_qxyzw, t
+
+
+def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rate_fraction_allowed=0.1, info=''):
+    """
+    make sure at least 10% of time is remaining when updates are performed.
+    we are converting to nanoseconds here since
+    that is the unit in which all reasonable
+    rates are expected to be measured
+    """
+    update_duration_sec = 1.0 / update_rate
+    minimum_allowed_remaining_time = update_duration_sec * minimum_update_rate_fraction_allowed
+    min_remaining_duration = rospy.Duration(minimum_allowed_remaining_time)
+    if update_time_remaining < min_remaining_duration:
+        rospy.logwarn_throttle(1.0, 'Not maintaining requested update rate, there may be gaps in the data log!\n'
+                               '    Update rate is: ' + str(update_rate) + 'Hz, Duration is '+ str(update_duration_sec) +' sec\n' +
+                               '    Minimum time allowed time remaining is: ' + str(minimum_allowed_remaining_time) + ' sec\n'  +
+                               '    Actual remaining on this update was: ' + str(float(str(update_time_remaining))/1.0e9) + ' sec\n' +
+                               '    ' + info)
 
 
 def main(_):
@@ -301,11 +321,31 @@ def main(_):
     rospy.init_node('costar_hyper_prediction')
     predictor = CostarHyperPosePredictor()
 
+    br = tf2.TransformBroadcaster()
+    transform_name = 'predicted_goal_' + predictor.ee_frame
+    update_rate = 10.0
+    rate = rospy.Rate(update_rate)
 
-    rate = rospy.Rate(10.0)
     while not rospy.is_shutdown():
         rate.sleep()
-        prediction_xyz_qxyzw = predictor()
+        start_time = time.clock()
+        prediction_xyz_qxyzw, prediction_time = predictor()
+        tick_time = time.clock()
+        vec, quat = pose_to_vec_quat_pair(prediction_xyz_qxyzw)
+        br.sendTransform(
+            vec,
+            quat,
+            prediction_time,
+            predictor.base_link,
+            transform_name)
+        update_time = time.clock()
+
+        # figure out where the time has gone
+        time_str = ('Total tick + log time: {:04} sec, '
+                    'Robot Prediction: {:04} sec, '
+                    'Sending Results: {:04} sec'.format(update_time - start_time, tick_time - start_time, update_time - tick_time))
+        verify_update_rate(update_time_remaining=rate.remaining(), update_rate=update_rate)
+
 
 if __name__ == '__main__':
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
