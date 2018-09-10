@@ -24,6 +24,19 @@ from ctp_integration.ros_geometry import pose_to_vec_quat_pair
 from costar_task_plan.robotics.workshop import UR5_C_MODEL_CONFIG
 from skimage.transform import resize
 from std_msgs.msg import String
+import keras
+
+
+flags.DEFINE_string('load_translation_weights', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-59-00_train_v0.3_msle_combined_plush_blocks-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-226-val_loss-0.000-val_cart_error-0.034.h5.zip',
+                    """Path to hdf5 file containing model weights to load and continue training.""")
+flags.DEFINE_string('load_translation_hyperparams', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-49-31_train_v0.3_msle_combined_plush_blocks-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json',
+                    """Load hyperparams from a json file.""")
+flags.DEFINE_string('load_rotation_weights', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-49-31_train_v0.3_msle_combined_plush_blocks-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-532-val_loss-0.002-val_angle_error-0.282.h5.zip',
+                    """Path to hdf5 file containing model weights to load and continue training.""")
+flags.DEFINE_string('load_rotation_hyperparams', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-59-00_train_v0.3_msle_combined_plush_blocks-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3_hyperparams.json',
+                    """Load hyperparams from a json file.""")
+flags.DEFINE_string('translation_problem_type', 'semantic_translation_regression', 'see problem_type parameter in other apis')
+flags.DEFINE_string('rotation_problem_type', 'semantic_rotation_regression', 'see problem_type parameter in other apis')
 
 FLAGS = flags.FLAGS
 
@@ -36,9 +49,12 @@ class CostarHyperPosePredictor(object):
             data_features_to_extract=None,
             total_actions_available=41,
             feature_combo_name='image_preprocessed',
-            problem_name='semantic_grasp_regression',
-            load_weights=None,
-            load_hyperparams=None,
+            rotation_problem_type=None,
+            translation_problem_type=None,
+            load_rotation_weights=None,
+            load_rotation_hyperparams=None,
+            load_translation_weights=None,
+            load_translation_hyperparams=None,
             top='classification',
             robot_config=UR5_C_MODEL_CONFIG,
             tf_buffer=None,
@@ -46,16 +62,42 @@ class CostarHyperPosePredictor(object):
             image_shape=(224, 224, 3),
             verbose=0):
 
+        if load_rotation_weights is None:
+            load_rotation_weights = FLAGS.load_rotation_weights
+        if load_rotation_hyperparams is None:
+            load_rotation_hyperparams = FLAGS.load_rotation_hyperparams
+        if load_translation_weights is None:
+            load_translation_weights = FLAGS.load_translation_weights
+        if load_translation_hyperparams is None:
+            load_translation_hyperparams = FLAGS.load_translation_hyperparams
+        if rotation_problem_type is None:
+            load_translation_hyperparams = FLAGS.load_translation_hyperparams
+        if translation_problem_type is None:
+            translation_problem_type = FLAGS.translation_problem_type
+        if rotation_problem_type is None:
+            rotation_problem_type = FLAGS.rotation_problem_type
+
+        rotation_hyperparams_path = keras.utils.get_file('costar_block_stacking_rotation_hyperparams.json', load_rotation_hyperparams, extract=True)
+        rotation_weights_path = keras.utils.get_file('costar_block_stacking_rotation_weights.h5', load_rotation_weights, extract=False)
+        translation_hyperparams_path = keras.utils.get_file('costar_block_stacking_translation_hyperparams.json', load_translation_hyperparams, extract=False)
+        translation_weights_path = keras.utils.get_file('costar_block_stacking_translation_weights.h5', load_translation_weights, extract=True)
+
         self.total_actions_available = total_actions_available
         self.label_features_to_extract = label_features_to_extract
         self.data_features_to_extract = data_features_to_extract
         self.need_clear_view_rgb_img = True
         self.clear_view_rgb_img = None
-        self._initialize_hypertree_model_for_inference(
+        self.rotation_model = self._initialize_hypertree_model_for_inference(
                 feature_combo_name=feature_combo_name,
-                problem_name=problem_name,
-                load_weights=load_weights,
-                load_hyperparams=load_hyperparams,
+                problem_type=rotation_problem_type,
+                load_weights=rotation_weights_path,
+                load_hyperparams=rotation_hyperparams_path,
+                top=top)
+        self.translation_model = self._initialize_hypertree_model_for_inference(
+                feature_combo_name=feature_combo_name,
+                problem_type=translation_problem_type,
+                load_weights=translation_weights_path,
+                load_hyperparams=translation_hyperparams_path,
                 top=top)
         self.verbose = verbose
         self.mutex = Lock()
@@ -65,7 +107,7 @@ class CostarHyperPosePredictor(object):
     def _initialize_hypertree_model_for_inference(
             self,
             feature_combo_name='image_preprocessed',
-            problem_name='semantic_grasp_regression',
+            problem_type='semantic_grasp_regression',
             load_weights=None,
             load_hyperparams=None,
             top='classification'):
@@ -87,7 +129,7 @@ class CostarHyperPosePredictor(object):
 
         [image_shapes, vector_shapes, data_features, model_name,
          monitor_loss_name, label_features, monitor_metric_name,
-         loss, metrics, classes, success_only] = cornell_grasp_train.choose_features_and_metrics(feature_combo_name, problem_name)
+         loss, metrics, classes, success_only] = cornell_grasp_train.choose_features_and_metrics(feature_combo_name, problem_type)
 
         # TODO(ahundt) may need to strip out hyperparams that don't affect the model
 
@@ -105,7 +147,7 @@ class CostarHyperPosePredictor(object):
             loss=loss,
             metrics=metrics)
 
-        self.model = model
+        return model
 
     def _initialize_ros(self, robot_config, tf_buffer, tf_listener):
         if tf_buffer is None:
@@ -158,6 +200,7 @@ class CostarHyperPosePredictor(object):
             with self.mutex:
                 if msg.data == 'STARTING ATTEMPT':
                     self.need_clear_view_rgb_img = True
+                    # TODO(ahundt) default starting current label?
                     self.current_label = None
 
     def _labels_Cb(self, msg):
@@ -304,7 +347,7 @@ class CostarHyperPosePredictor(object):
                 init_images=clear_view_rgb_images,
                 current_images=rgb_images)
 
-        predictions = self.model.predict_on_batch(X)
+        predictions = self.translation_model.predict_on_batch(X)
         prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(predictions[0])
 
         # prediction_kdl = kdl.Frame(
