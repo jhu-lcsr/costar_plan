@@ -8,6 +8,7 @@ See license for details
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import skimage.transform as transform
 
 import keras.backend as K
 import keras.optimizers as optimizers
@@ -22,8 +23,12 @@ class AbstractAgentBasedModel(object):
     will also provide the model with a way to collect data or whatever.
     '''
 
-    def scale(self, img):
+    def _scale(self, img):
         return img / 255.
+
+    def _resize_img(self, img, size):
+        return transform.resize(img, (size, size),
+                mode='constant', preserve_range=True)
 
     def makeName(self, prefix, submodel=None, reqs_dir=False):
         dir = self.model_directory
@@ -98,6 +103,7 @@ class AbstractAgentBasedModel(object):
             model="",
             model_directory="./",
             reqs_directory=None,
+            max_img_size=224,
             *args, **kwargs):
 
         if lr == 0 or lr < 1e-30:
@@ -166,6 +172,7 @@ class AbstractAgentBasedModel(object):
         self.hidden_size = hidden_size
         self.option_num = option_num
         self.load_jpeg = False
+        self.max_img_size = max_img_size
 
         if self.noise_dim < 1:
             self.use_noise = False
@@ -276,6 +283,13 @@ class AbstractAgentBasedModel(object):
             self.validation_steps = len(dataset.test) + 1
         return self._yieldLoop(dataset.sampleTest)
 
+    def _genRandomIndexes(self, length, random_draw):
+      ''' Common method to generate random indexes for getData '''
+      # h5py is very picky with regard to needing unique, sorted indices
+      indexes = np.unique(np.random.randint(length, size=random_draw)).tolist()
+      return indexes
+
+
     def _yieldLoop(self, sampleFn):
       '''
       This helper function runs in a loop infinitely, executing some callable
@@ -284,90 +298,99 @@ class AbstractAgentBasedModel(object):
 
       Parameters:
       -----------
-      sampleFn: callable to receive a feature dict
+      sampleFn: callable to receive a feature dict and file name
       '''
+      # Infinite loop for yielding (generator)
       while True:
+            drawn_samples = 0
             features, targets = [], []
-            idx = 0
-            while True:
-                fdata, fn = sampleFn()
-                if len(fdata.keys()) == 0:
-                    print("WARNING: ", fn, "was empty.")
-                    continue
-                ffeatures, ftargets = self._getData(**fdata)
+            while drawn_samples < self.batch_size:
+
+                # Sample one random file to read and its name
+                sampler, filename = sampleFn()
+                with sampler as filedata:
+                    if len(filedata.keys()) == 0:
+                        print("WARNING: ", filename, "has no keys")
+                        continue
+
+                    # Randomly choose how many to draw from this file
+                    to_draw = np.random.randint(1, self.batch_size - drawn_samples + 1)
+
+                    # Draw the random samples from the file
+                    ffeatures, ftargets = self._getDataRandom(random_draw=to_draw, **filedata)
 
                 if len(ffeatures) == 0 or len(ffeatures[0]) == 0:
-                    #print("WARNING: ", fn, "was empty after getData.")
+                    #print("WARNING: ", filename, "was empty after getData.")
                     continue
 
-                # --------------------------------------------------------------
-                # Compute the features and aggregate
-                for i, value in enumerate(ffeatures):
-                    if len(value.shape) < 1 or value.shape[0] == 0:
-                        continue
-                    if idx == 0:
-                        features.append(value)
-                    else:
-                        try:
-                            features[i] = np.concatenate([features[i],value],axis=0)
-                        except ValueError as e:
-                            print("index", i)
-                            print ("filename =", fn)
-                            print ("Data shape =", features[i].shape)
-                            print ("value shape =", value.shape)
-                            print(features[i].shape, value.shape)
-                            raise e
-                        #print ("feature data shape =", features[i].shape, i)
-                    # --------------------------------------------------------------
-                # Compute the targets and aggregate
-                for i, value in enumerate(ftargets):
-                    if len(value.shape) < 1 or value.shape[0] == 0:
-                        continue
-                    if idx == 0:
-                        targets.append(value)
-                    else:
-                        try:
-                            targets[i] = np.concatenate([targets[i],value],axis=0)
-                        except ValueError as e:
-                            print("index", i)
-                            print (targets[i])
-                            print(value)
-                            print ("filename =", fn)
-                            print ("Data shape =", targets[i].shape)
-                            print ("value shape =", value.shape)
-                            raise e
-                        #print ("target data shape =", targets[i].shape, i)
+                actually_drawn = len(ffeatures[0])
+                drawn_samples += actually_drawn
 
-                idx += 1
-                # --------------------------------------------------------------
-                if idx > self.num_generator_files and \
-                        features[0].shape[0] >= self.batch_size:
-                            break
+                # Concatenate
+                if features == []:
+                    features = [[x] for x in ffeatures]
+                else:
+                    for old, new in zip(features, ffeatures):
+                        old.append(new)
 
+                if targets == []:
+                    targets = [[x] for x in ftargets]
+                else:
+                    for old, new in zip(targets, ftargets):
+                        old.append(new)
+
+            # Concatenate every feature/target with numpy
+            features = [np.concatenate(f) for f in features]
+            targets = [np.concatenate(t) for t in targets]
+
+            # Sanity check
             n_samples = features[0].shape[0]
             for f in features:
                 if f.shape[0] != n_samples:
                     print(f.shape, n_samples)
                     raise ValueError("Feature lengths are not equal!")
 
-            #print("Collected ", n_samples, " samples")
-            idx = np.random.randint(n_samples,size=(self.batch_size,))
-            features, targets = ([f[idx] for f in features],
-                                 [t[idx] for t in targets])
+            #print("Collected ", n_samples, " samples") #debug
 
-            self.convert(features, targets)              
+            # Final conversion for some kinds of data
+            self._convert(features)
+            self._convert(targets)
+
+            # Resize if necessary
+            self._resize(features)
+            self._resize(targets)
+
+            # Yield so it's a generator
             yield features, targets
 
-    def convert(self, features, targets):
+    def _getDataRandom(self, random_draw, **kwargs):
+        '''
+        Default random method for when we haven't implemented one
+        Less efficient than creating a new implementation per model
+        '''
+        features, targets = self._getData(**kwargs)
+        length = len(features[0])
+        indexes = self._genRandomIndexes(length, random_draw)
+        features = [f[indexes] for f in features]
+        targets = [t[indexes] for t in targets]
+        return features, targets
+
+
+    def _convert(self, features):
         if self.load_jpeg:
             for i, f in enumerate(features):
                 if str(f.dtype)[:2] == "|S":
-                    f = ConvertImageListToNumpy(np.squeeze(f))
-                    #print("converted", type(f), f.shape, f.dtype)
-                    features[i] = self.scale(f)
-            for i, f in enumerate(targets):
-                if str(f.dtype)[:2] == "|S":
-                    targets[i] = self.scale(ConvertImageListToNumpy(np.squeeze(f)))
+                    features[i] = self._scale(ConvertImageListToNumpy(np.squeeze(f)))
+
+    def _resize(self, features):
+        # Look for image features to make smaller if needed
+        for i, feature in enumerate(features):
+            shp = feature.shape
+            # Check for img
+            if len(shp) == 4 and shp[-1] == 3 and \
+                    (shp[1] > self.max_img_size or shp[2] > self.max_img_size):
+                new_f = [self._resize_img(img, self.max_img_size) for img in feature]
+                features[i] = np.array(new_f)
 
     def save(self):
         '''

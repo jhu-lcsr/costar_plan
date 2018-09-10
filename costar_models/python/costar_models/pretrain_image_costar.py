@@ -89,13 +89,42 @@ class PretrainImageCostar(PretrainImageAutoencoder):
         if self.model is None:
             raise RuntimeError('did not make trainable model')
 
-    def _getData(self, image, label, *args, **kwargs):
-        o1 = np.array(label)
-        #I = np.array(image) / 255.
+    # @image: array of image data for the experiment
+    def _getData(self, image, label, **kwargs):
         I = image
-        I0 = I[0]
-        length = o1.shape[0]
-        I0 = np.tile(np.expand_dims(I0,axis=0),[length,1,1,1])
+        I0 = np.array(I[0])
+        o1 = np.array(label)
+        I = np.array(I)
+
+        #I = np.array(image) / 255.
+        created_length = o1.shape[0]
+        # Fill in with image 0 for every image we chose
+        I0 = np.tile(np.expand_dims(I0,axis=0),[created_length,1,1,1])
+        if self.no_disc:
+            return [I0, I], [I]
+        else:
+            o1_1h = np.squeeze(ToOneHot2D(o1, self.num_options))
+            return [I0, I], [I, o1_1h]
+
+    def _getDataRandom(self, random_draw, image, label, **kwargs):
+        I = image
+
+        length = len(label)
+        if length == 0:
+            return [], []
+
+        I0 = np.array(I[0])
+        # Randomly draw random_draw number of elements
+        indexes = self._genRandomIndexes(length, random_draw)
+
+        o1 = label[indexes]
+        o1 = np.array(o1)
+        I = I[indexes]
+        I = np.array(I)
+
+        created_length = o1.shape[0]
+        # Fill in with image_0 for every image we chose
+        I0 = np.tile(np.expand_dims(I0,axis=0),[created_length,1,1,1])
         if self.no_disc:
             return [I0, I], [I]
         else:
