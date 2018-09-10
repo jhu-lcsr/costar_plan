@@ -30,7 +30,8 @@ import io
 from PIL import Image
 try:
     # don't require tensorflow for reading
-    import tensorflow as tf
+    #import tensorflow as tf
+    tf = None
 except ImportError:
     tf = None
 

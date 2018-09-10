@@ -29,16 +29,16 @@ def main(args):
     print('Loading dataset from globbed directory: \n' + str(data_file))
     if ".npz" in data_file:
         dataset = NpzGeneratorDataset(data_file, preload=args['preload'])
-        data = dataset.load(success_only=args['success_only'])
+        sample = dataset.load(success_only=args['success_only'], max_img_size=args['max_img_size'])
     elif ".h5f" in data_file:
         dataset = H5fGeneratorDataset(data_file, preload=args['preload'])
-        data = dataset.load(success_only=args['success_only'])
+        sample = dataset.load(success_only=args['success_only'], max_img_size=args['max_img_size'])
     else:
         raise NotImplementedError('data type not implemented: %s' % data_type)
     if verbose > 0:
-        # print('num keys: ' + str(len(six.iteritems(data))))
-        debug_str = 'ctp_model_tool::main data.keys: '
-        for i, (key, value) in enumerate(six.iteritems(data)):
+        # print('num keys: ' + str(len(six.iteritems(sample))))
+        debug_str = 'ctp_model_tool::main sample.keys: '
+        for i, (key, value) in enumerate(six.iteritems(sample)):
             print(str(i) + ' ' + str(key))
             debug_str = debug_str + str(key) + ', '
         print(debug_str)
@@ -46,12 +46,12 @@ def main(args):
     if 'model' in args and args['model'] is not None:
         model = MakeModel(taskdef=None, **args)
         if 'load_model' in args and args['load_model']:
-            model.load(world=None, **data)
+            model.load(world=None, **sample)
         train_generator = model.trainGenerator(dataset)
         test_generator = model.testGenerator(dataset)
         interrupt=False
         try:
-            model.trainFromGenerators(train_generator, test_generator, data)
+            model.trainFromGenerators(train_generator, test_generator, sample)
         except KeyboardInterrupt:
             interrupt=True
         #except Exception as e:
