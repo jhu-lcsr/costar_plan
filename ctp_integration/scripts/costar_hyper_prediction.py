@@ -186,7 +186,7 @@ class CostarHyperPosePredictor(object):
                 action_index = 0
                 if self.labels is None:
                     rospy.logwarn("costar_hyper_prediction()::_current_label_Cb: labels list is None, can't update the current label yet")
-                return
+                    return
                 action_index, = np.where(self.labels == self.current_label)
                 total_actions_available = len(self.labels)
 
