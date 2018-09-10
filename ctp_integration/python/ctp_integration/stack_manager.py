@@ -44,7 +44,7 @@ class StackManager(object):
         self.update = self._update()
         self.previous_action = None
         self.labels_publisher = rospy.Publisher('/costar/action_labels', String)
-        self.current_label_publisher = rospy.Publisher('/costar/action_labels', String)
+        self.current_label_publisher = rospy.Publisher('/costar/action_label_current', String)
 
     def _update(self):
         pass
