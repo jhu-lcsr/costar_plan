@@ -43,6 +43,8 @@ class StackManager(object):
         self.labels = set()
         self.update = self._update()
         self.previous_action = None
+        self.start_publisher = rospy.Publisher('/costar/start_attempt', String)
+        self.costar_info = rospy.Publisher('/costar/info', String)
         self.labels_publisher = rospy.Publisher('/costar/action_labels', String)
         self.current_label_publisher = rospy.Publisher('/costar/action_label_current', String)
 
@@ -65,6 +67,8 @@ class StackManager(object):
         self.service.reset()
         labels_json = json.dumps(self.labels)
         self.labels_publisher.publish(labels_json)
+        self.start_publisher.publish('STARTING ATTEMPT')
+        self.costar_info.publish('STARTING ATTEMPT')
 
     def addRequest(self, parents, name, srv, req):
         '''

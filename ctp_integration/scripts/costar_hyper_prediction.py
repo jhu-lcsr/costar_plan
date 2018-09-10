@@ -131,15 +131,34 @@ class CostarHyperPosePredictor(object):
         self.rgb_time = None
         self.ee_frame = robot_config['end_link']
         self.labels_topic = '/costar/action_labels'
-        self.current_label_topic = '/costar/action_label_current'
         self._labels_sub = rospy.Subscriber(
                 self.labels_topic,
                 String,
                 self._labels_Cb)
+        self.current_label_topic = '/costar/action_label_current'
         self._current_label_sub = rospy.Subscriber(
                 self.current_label_topic,
                 String,
                 self._current_label_Cb)
+        self.info_topic = '/costar/info'
+        self._info_sub = rospy.Subscriber(
+                self.info_topic,
+                String,
+                self._info_CB)
+
+    def _info_CB(self, msg):
+        """ Update the labels available for actions.
+
+        This also means we have a clear view,
+        save the next image as an update to the clear view image.
+        """
+        if msg is None:
+            rospy.logwarn("costar_hyper_prediction()::_info_CB: msg is None !!!!!!!!!")
+        else:
+            with self.mutex:
+                if msg.data == 'STARTING ATTEMPT':
+                    self.need_clear_view_rgb_img = True
+                    self.current_label = None
 
     def _labels_Cb(self, msg):
         """ Update the labels available for actions.
@@ -152,8 +171,6 @@ class CostarHyperPosePredictor(object):
         else:
             with self.mutex:
                 self.labels = np.array(json.loads(msg.data))
-                self.need_clear_view_rgb_img = True
-                self.current_label = None
 
     def _current_label_Cb(self, msg):
         """ Get the list of actions, and encode the current action for the prediction step.
@@ -307,8 +324,8 @@ def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rat
     minimum_allowed_remaining_time = update_duration_sec * minimum_update_rate_fraction_allowed
     min_remaining_duration = rospy.Duration(minimum_allowed_remaining_time)
     if update_time_remaining < min_remaining_duration:
-        rospy.logwarn_throttle(1.0, 'Not maintaining requested update rate, there may be gaps in the data log!\n'
-                               '    Update rate is: ' + str(update_rate) + 'Hz, Duration is '+ str(update_duration_sec) +' sec\n' +
+        rospy.logwarn_throttle(1.0, 'Not maintaining requested update rate, there may be problems with the goal pose predictions!\n'
+                               '    Update rate is: ' + str(update_rate) + 'Hz, Duration is ' + str(update_duration_sec) + ' sec\n' +
                                '    Minimum time allowed time remaining is: ' + str(minimum_allowed_remaining_time) + ' sec\n'  +
                                '    Actual remaining on this update was: ' + str(float(str(update_time_remaining))/1.0e9) + ' sec\n' +
                                '    ' + info)
@@ -344,7 +361,7 @@ def main(_):
         time_str = ('Total tick + log time: {:04} sec, '
                     'Robot Prediction: {:04} sec, '
                     'Sending Results: {:04} sec'.format(update_time - start_time, tick_time - start_time, update_time - tick_time))
-        verify_update_rate(update_time_remaining=rate.remaining(), update_rate=update_rate)
+        verify_update_rate(update_time_remaining=rate.remaining(), update_rate=update_rate, info=time_str)
 
 
 if __name__ == '__main__':
