@@ -43,7 +43,7 @@ class StackManager(object):
         self.labels = set()
         self.update = self._update()
         self.previous_action = None
-        self.start_publisher = rospy.Publisher('/costar/start_attempt', String)
+        self.start_publisher = rospy.Publisher('/costar/attempt', String)
         self.costar_info = rospy.Publisher('/costar/info', String)
         self.labels_publisher = rospy.Publisher('/costar/action_labels', String)
         self.current_label_publisher = rospy.Publisher('/costar/action_label_current', String)
