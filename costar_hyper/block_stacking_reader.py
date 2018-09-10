@@ -313,7 +313,7 @@ class CostarBlockStackingSequence(Sequence):
                  random_shift=False,
                  output_shape=None,
                  blend_previous_goal_images=False,
-                 estimated_time_steps_per_example=250, verbose=0):
+                 estimated_time_steps_per_example=250, verbose=0, inference_mode=False, one_hot_encoding=False):
         '''Initialization
 
         # Arguments
@@ -337,6 +337,7 @@ class CostarBlockStackingSequence(Sequence):
             so we simply sample in proportion to an estimated number of images per example.
             Due to random sampling, there is no guarantee that every image will be visited once!
             However, the images can be visited in a fixed order, particularly when is_training=False.
+        one_hot_encoding flag triggers one hot encoding and thus numbers at the end of labels might not correspond to the actual size.
 
         # Explanation of abbreviations:
 
@@ -365,13 +366,29 @@ class CostarBlockStackingSequence(Sequence):
         self.total_actions_available = total_actions_available
         self.random_augmentation = random_augmentation
         self.random_shift = random_shift
+        self.inference_mode = inference_mode
+        self.infer_index = 0
+        self.one_hot_encoding = one_hot_encoding
 
         self.blend = blend_previous_goal_images
         self.estimated_time_steps_per_example = estimated_time_steps_per_example
+        if self.inference_mode is True:
+            self.list_example_filenames = inference_mode_gen(self.list_example_filenames)
         # if crop_shape is None:
         #     # height width 3
         #     crop_shape = (224, 224, 3)
         # self.crop_shape = crop_shape
+
+    def inference_mode_gen(file_names):
+        file_list_updated = []
+        # print(len(file_names))
+        for f_name in file_names:
+            with h5py.File(f_name, 'r') as data:
+                file_len = len(data['gripper_action_goal_idx']) - 1
+                # print(file_len)
+                list_id = [f_name] * file_len
+            file_list_updated = file_list_updated + list_id
+        return file_list_updated
 
     def __len__(self):
         """Denotes the number of batches per epoch
@@ -388,7 +405,8 @@ class CostarBlockStackingSequence(Sequence):
         # Find list of example_filenames
         list_example_filenames_temp = [self.list_example_filenames[k] for k in indexes]
         # Generate data
-        X, y = self.__data_generation(list_example_filenames_temp)
+        self.infer_index = self.infer_index + 1
+        X, y = self.__data_generation(list_example_filenames_temp, self.infer_index)
 
         return X, y
 
@@ -410,7 +428,7 @@ class CostarBlockStackingSequence(Sequence):
         if self.shuffle is True:
             self.random_state.shuffle(self.indexes)
 
-    def __data_generation(self, list_Ids):
+    def __data_generation(self, list_Ids, images_index):
         """ Generates data containing batch_size samples
 
         # Arguments
@@ -466,13 +484,13 @@ class CostarBlockStackingSequence(Sequence):
 
             # Generate data
             for i, example_filename in enumerate(list_Ids):
+                example_filename = os.path.expanduser(example_filename)
                 if self.verbose > 0:
                     print('reading: ' + str(i) + ' path: ' + str(example_filename))
                 # Store sample
                 # X[i,] = np.load('data/' + example_filename + '.npy')
                 x = ()
                 try:
-                    example_filename = os.path.expanduser(example_filename)
                     if not os.path.isfile(example_filename):
                         raise ValueError('CostarBlockStackingSequence: Trying to open something which is not a file: ' + str(example_filename))
                     with h5py.File(example_filename, 'r') as data:
@@ -492,7 +510,7 @@ class CostarBlockStackingSequence(Sequence):
                         if 'success' in example_filename:
                             label_constant = 1
                         else:
-                            label_constal = 0
+                            label_constant = 0
                         stacking_reward = np.arange(len(all_goal_ids))
                         stacking_reward = 0.999 * stacking_reward * label_constant
                         # print("reward estimates", stacking_reward)
@@ -505,10 +523,23 @@ class CostarBlockStackingSequence(Sequence):
                         else:
                             raise NotImplementedError
                         indices = [0] + list(image_indices)
+
                         if self.blend:
                             img_indices = get_past_goal_indices(image_indices, all_goal_ids, filename=example_filename)
                         else:
                             img_indices = indices
+                        if self.inference_mode is True:
+                            if images_index >= len(data['gripper_action_goal_idx']):
+                                self.infer_index = 1
+                                image_idx = 1
+                                # image_idx = (images_index % (len(data['gripper_action_goal_idx']) - 1)) + 1
+                            else:
+                                image_idx = images_index
+
+                            img_indices = [0, image_idx]
+                            # print("image_index", image_idx)
+                            # print("image_true", images_index, len(data['gripper_action_goal_idx']))
+                            # print("new_indices-----", image_idx)
                         if self.verbose > 0:
                             print("Indices --", indices)
                             print('img_indices: ' + str(img_indices))
@@ -556,7 +587,7 @@ class CostarBlockStackingSequence(Sequence):
                                 ('image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract or
                                  'image_0_image_n_vec_xyz_nxygrid_12' in self.data_features_to_extract or
                                  'image_0_image_n_vec_xyz_aaxyz_nsc_nxygrid_17' in self.data_features_to_extract or
-                                 'image_0_image_n_vec_0_vec_n_xyz_aaxyz_nsc_nxygrid_25' in self.data_features_to_extract)):
+                                 'image_0_image_n_vec_0_vec_n_xyz_aaxyz_nsc_nxygrid_25' in self.data_features_to_extract) and not self.one_hot_encoding):
                             # normalized floating point encoding of action vector
                             # from 0 to 1 in a single float which still becomes
                             # a 2d array of dimension batch_size x 1
@@ -743,23 +774,30 @@ def block_stacking_generator(sequence):
             step = 0
             sequence.on_epoch_end()
         batch = sequence.__getitem__(step)
+        print(np.array(batch).shape)
+        print(np.array(batch[0][0]).shape)
+        exit()
         step += 1
         yield batch
 
+
 if __name__ == "__main__":
-    visualize = True
+    visualize = False
     output_shape = (224, 224, 3)
     # output_shape = None
     tf.enable_eager_execution()
     filenames = glob.glob(os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f'))
     # print(filenames)
+    # filenames_new = inference_mode_gen(filenames)
     training_generator = CostarBlockStackingSequence(
         filenames, batch_size=1, verbose=1,
         output_shape=output_shape,
         label_features_to_extract='grasp_goal_xyz_aaxyz_nsc_8',
         data_features_to_extract=['current_xyz_aaxyz_nsc_8'],
-        blend_previous_goal_images=True)
+        blend_previous_goal_images=False, inference_mode=False)
     num_batches = len(training_generator)
+    print(num_batches)
+    # print(len(filenames_new))
 
     bsg = block_stacking_generator(training_generator)
     iter(bsg)
