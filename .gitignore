@@ -57,3 +57,5 @@ slurm-*.out
 *.dylib
 *.dll
 
+# Installation files
+*.egg-info*
