@@ -373,12 +373,16 @@ class CostarHyperPosePredictor(object):
         with self.mutex:
             self.need_clear_view_rgb_img = True
     
-    def get_latest_transform(self, from_frame=None, to_frame=None, max_attempts=10, backup_timestamp_attempts=4):
+    def get_latest_transform(self, from_frame=None, to_frame=None, preferred_time=None, max_attempts=10, backup_timestamp_attempts=4):
         """
         # Arguments
 
         max_attempts: The maximum number of times to try getting the transform from ros.
         backup_timestamp_attempts: the number attempts that should use a backup timestamp.
+
+        # Returns
+        
+        transform, time
         """
         if from_frame is None:
             from_frame = self.base_link
@@ -391,8 +395,8 @@ class CostarHyperPosePredictor(object):
         ##### BEGIN MUTEX
         with self.mutex:
             # get the time for this data sample
-            if self.rgb_time is not None:
-                t = self.rgb_time
+            if preferred_time is not None:
+                t = preferred_time
             else:
                 t = local_time
 
@@ -432,22 +436,30 @@ class CostarHyperPosePredictor(object):
                     raise e
 
         ee_xyz_quat = pose_to_vec_quat_list(ee_pose)
-        return ee_xyz_quat
+        return ee_xyz_quat, t
 
     def __call__(self):
         """ Make the prediction and return the predicted pose
         """
-        ee_xyz_quat = self.get_latest_transform()
         with self.mutex:
             rgb_images = [self.rgb_img]
+            rgb_time = self.rgb_time
             clear_view_rgb_images = [self.clear_view_rgb_img]
             action_labels = np.copy(self.action_labels)
             if self.using_default_action:
                 rospy.logwarn_throttle(
                     10.0,
-                    'warning: no user specified action received, '
+                    'CostarHyperPosePredictor Warning: no user specified action received, '
                     'using default action: ' + str(self.action_labels))
 
+        ee_xyz_quat, input_example_time = self.get_latest_transform(preferred_time=rgb_time)
+        if input_example_time != rgb_time:
+                rospy.logwarn_throttle(
+                    10.0,
+                    'CostarHyperPosePredictor Warning: we could not use the time on the rgb image: ' + str(rgb_time) +
+                    ' so we are using the backup time: ' + str(input_example_time) +
+                    ' This means the data used in the costar_hyper_prediction may '
+                    ' be synchronized less accurately.')
         # encode the prediction information
         X = block_stacking_reader.encode_action_and_images(
                 self.translation_data_features,
@@ -467,13 +479,16 @@ class CostarHyperPosePredictor(object):
                 current_images=rgb_images)
 
         rotation_predictions = self.rotation_model.predict_on_batch(X)
-
-        prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(translation_predictions[0] + rotation_predictions[0])
+        rospy.loginfo_throttle(10.0, 
+            'encoded translation predictions: ' + str(translation_predictions) + 
+            ' encoded rotation predictions: ' + str(rotation_predictions))
+        tr_predictions = np.concatenate([translation_predictions[0], rotation_predictions[0]])
+        prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(tr_predictions)
 
         # prediction_kdl = kdl.Frame(
         #         kdl.Rotation.Quaternion(prediction_xyz_qxyzw[3], prediction_xyz_qxyzw[4], prediction_xyz_qxyzw[5], prediction_xyz_qxyzw[6]),
         #         kdl.Vector(prediction_xyz_qxyzw[0], prediction_xyz_qxyzw[1], prediction_xyz_qxyzw[2]))
-        return prediction_xyz_qxyzw, t
+        return prediction_xyz_qxyzw, time
 
 
 def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rate_fraction_allowed=0.1, info=''):
