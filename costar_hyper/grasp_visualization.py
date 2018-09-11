@@ -32,8 +32,6 @@ except ImportError:
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.ops import data_flow_ops
-from tensorflow.python.keras.utils import get_file
-from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
 import keras
 from keras import backend as K
 

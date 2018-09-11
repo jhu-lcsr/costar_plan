@@ -15,6 +15,7 @@ import tf2_ros as tf2
 import tf_conversions.posemath as pm
 import cv2
 from tensorflow.python.platform import flags
+import costar_hyper
 from costar_hyper import grasp_utilities
 from costar_hyper import cornell_grasp_train
 from costar_hyper import grasp_model
@@ -29,6 +30,17 @@ from costar_task_plan.robotics.workshop import UR5_C_MODEL_CONFIG
 from skimage.transform import resize
 from std_msgs.msg import String
 import keras
+
+# progress bars https://github.com/tqdm/tqdm
+# import tqdm without enforcing it as a dependency
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(*args, **kwargs):
+        if args:
+            return args[0]
+        return kwargs.get('iterable', None)
 
 
 flags.DEFINE_string('load_translation_weights', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-59-00_train_v0.3_msle_combined_plush_blocks-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-226-val_loss-0.000-val_cart_error-0.034.h5.zip',
@@ -52,7 +64,7 @@ class CostarHyperPosePredictor(object):
             label_features_to_extract=None,
             data_features_to_extract=None,
             total_actions_available=41,
-            feature_combo_name='image_preprocessed',
+            feature_combo_name=None,
             rotation_problem_type=None,
             translation_problem_type=None,
             load_rotation_weights=None,
@@ -113,7 +125,7 @@ class CostarHyperPosePredictor(object):
 
     def _initialize_hypertree_model_for_inference(
             self,
-            feature_combo_name='image_preprocessed',
+            feature_combo_name=None,
             problem_type='semantic_grasp_regression',
             load_weights=None,
             load_hyperparams=None,
@@ -134,11 +146,19 @@ class CostarHyperPosePredictor(object):
             load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
             feature_combo_name=feature_combo_name)
 
+        # strip out hyperparams that don't affect the model
+        hyperparams.pop('loss', None)
+        hyperparams.pop('learning_rate', None)
+        hyperparams.pop('checkpoint', None)
+        hyperparams.pop('batch_size', None)
+        hfcn = hyperparams.pop('feature_combo_name', None)
+        if feature_combo_name is None:
+            feature_combo_name = hfcn
+
         [image_shapes, vector_shapes, data_features, model_name,
          monitor_loss_name, label_features, monitor_metric_name,
          loss, metrics, classes, success_only] = cornell_grasp_train.choose_features_and_metrics(feature_combo_name, problem_type)
 
-        # TODO(ahundt) may need to strip out hyperparams that don't affect the model
 
         model = grasp_model.choose_hypertree_model(
             image_shapes=image_shapes,
@@ -147,6 +167,7 @@ class CostarHyperPosePredictor(object):
             classes=classes,
             **hyperparams)
 
+        print('problem: ' + problem_type + ' loading weights: ' + load_weights)
         model.load_weights(load_weights)
         # we don't use the optimizer, so just choose a default
         model.compile(
@@ -403,6 +424,7 @@ def main(_):
     transform_name = 'predicted_goal_' + predictor.ee_frame
     update_rate = 10.0
     rate = rospy.Rate(update_rate)
+    progbar = tqdm()
 
     while not rospy.is_shutdown():
         rate.sleep()
@@ -423,6 +445,7 @@ def main(_):
                     'Robot Prediction: {:04} sec, '
                     'Sending Results: {:04} sec'.format(update_time - start_time, tick_time - start_time, update_time - tick_time))
         verify_update_rate(update_time_remaining=rate.remaining(), update_rate=update_rate, info=time_str)
+        progbar.update()
 
 
 if __name__ == '__main__':

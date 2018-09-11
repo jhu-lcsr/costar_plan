@@ -9,17 +9,24 @@ Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 These instructions are with minimal dependencies where you'll be training & predicting on the datasetas.
 
 ```
+# make sure your python2 is up to date. python3 probably works but is not tested
+python2 -m pip install --upgrade 2 setuptools wheel --user
+# create the installation directory
 mkdir -p ~/src
 cd ~/src
+# install the custom keras-contrib version with specific costar_plan APIs
 git clone https://github.com/ahundt/keras-contrib -b costar_plan
 cd keras-contrib
-pip install -e . --user --upgrade
+python2 -m pip install -e . --user --upgrade
+# install costar_hyper and its dependencies
 cd ~/src
 git clone https://github.com/cpaxton/costar_plan
-cd costar_plan/costar_hyper
-pip install -e . --user --upgrade
+cd costar_plan
+# this will run the costar_hyper setup
+python2 -m pip install -e . --user --upgrade
 
 ```
+costar_plan setup is run separately via the ros catkin package
 
 ## Costar Block Stacking Dataset
 
