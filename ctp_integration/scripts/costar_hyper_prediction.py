@@ -1,4 +1,8 @@
+#!/usr/bin/env python
+""" Run neural network predictions on a real robot, particularly CoSTAR and a block stacking task.
 
+License: Apache v2
+"""
 import sys
 import os
 import json

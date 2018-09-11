@@ -1,5 +1,8 @@
 #!/usr/bin/env python
+""" Run experiments on a real robot, particularly CoSTAR and a block stacking task.
 
+License: Apache v2
+"""
 import os
 import sys
 import copy
