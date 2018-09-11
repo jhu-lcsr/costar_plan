@@ -29,6 +29,7 @@ from ctp_integration.ros_geometry import pose_to_vec_quat_pair
 from costar_task_plan.robotics.workshop import UR5_C_MODEL_CONFIG
 from skimage.transform import resize
 from std_msgs.msg import String
+from geometry_msgs.msg import TransformStamped
 import keras
 
 # progress bars https://github.com/tqdm/tqdm
@@ -484,6 +485,8 @@ class CostarHyperPosePredictor(object):
             ' encoded rotation predictions: ' + str(rotation_predictions))
         tr_predictions = np.concatenate([translation_predictions[0], rotation_predictions[0]])
         prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(tr_predictions)
+        rospy.loginfo_throttle(10.0, 
+            'decoded prediction_xyz_qxyzw: ' + str(prediction_xyz_qxyzw))
 
         # prediction_kdl = kdl.Frame(
         #         kdl.Rotation.Quaternion(prediction_xyz_qxyzw[3], prediction_xyz_qxyzw[4], prediction_xyz_qxyzw[5], prediction_xyz_qxyzw[6]),
@@ -516,8 +519,9 @@ def main(_):
     rospy.init_node('costar_hyper_prediction')
     predictor = CostarHyperPosePredictor()
 
-    br = tf2.TransformBroadcaster()
+    broadcaster = tf2.TransformBroadcaster()
     transform_name = 'predicted_goal_' + predictor.ee_frame
+    rospy.loginfo('costar_hyper_prediction transform predictions will be broadcast as: ' + str(transform_name))
     update_rate = 10.0
     rate = rospy.Rate(update_rate)
     progbar = tqdm()
@@ -525,15 +529,21 @@ def main(_):
     while not rospy.is_shutdown():
         rate.sleep()
         start_time = time.clock()
-        prediction_xyz_qxyzw, prediction_time = predictor()
+        prediction_xyz_qxyzw, prediction_input_data_time = predictor()
         tick_time = time.clock()
-        vec, quat = pose_to_vec_quat_pair(prediction_xyz_qxyzw)
-        br.sendTransform(
-            vec,
-            quat,
-            prediction_time,
-            predictor.base_link,
-            transform_name)
+        
+        b_to_e = TransformStamped()
+        b_to_e.header.stamp = prediction_input_data_time
+        b_to_e.header.frame_id = predictor.base_link
+        b_to_e.child_frame_id = transform_name
+        b_to_e.transform.translation.x = prediction_xyz_qxyzw[0]
+        b_to_e.transform.translation.y = prediction_xyz_qxyzw[1]
+        b_to_e.transform.translation.z = prediction_xyz_qxyzw[2]
+        b_to_e.transform.rotation.x = prediction_xyz_qxyzw[3]
+        b_to_e.transform.rotation.y = prediction_xyz_qxyzw[4]
+        b_to_e.transform.rotation.z = prediction_xyz_qxyzw[5]
+        b_to_e.transform.rotation.w = prediction_xyz_qxyzw[6]
+        broadcaster.sendTransform(b_to_e)
         update_time = time.clock()
 
         # figure out where the time has gone
