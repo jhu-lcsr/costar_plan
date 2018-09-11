@@ -235,6 +235,44 @@ def encode_label(label_features_to_extract, y, action_successes=None, random_aug
         raise ValueError('Unsupported label_features_to_extract: ' + str(label_features_to_extract))
     return y
 
+def is_string_an_int(s):
+    s = s.strip()
+    if s[0] in ('-', '+'):
+        return s[1:].isdigit()
+    return s.isdigit()
+
+
+def encode_action(
+        action, possible_actions=None, data_features_to_extract=None, 
+        total_actions_available=41, one_hot_encoding=True):
+    """ Encode an action for feeding to the neural network.
+    """
+    if isinstance(action, str) and is_string_an_int(action):
+        action_index = int(action)
+    elif isinstance(action, int):
+        action_index = action
+    elif possible_actions is not None:
+        action_index, = np.where(action == possible_actions)
+    else:
+        raise ValueError(
+            'encode_action() called with action ' + str(action) + ' which is not supported. Try an int, '
+            'a string containing an int, or a string matching a list of actions')
+    if (data_features_to_extract is not None and
+            ('image_0_image_n_vec_xyz_aaxyz_nsc_15' in data_features_to_extract or
+             'image_0_image_n_vec_xyz_nxygrid_12' in data_features_to_extract or
+             'image_0_image_n_vec_xyz_aaxyz_nsc_nxygrid_17' in data_features_to_extract or
+             'image_0_image_n_vec_0_vec_n_xyz_aaxyz_nsc_nxygrid_25' in data_features_to_extract) and not one_hot_encoding):
+        # normalized floating point encoding of action vector
+        # from 0 to 1 in a single float which still becomes
+        # a 2d array of dimension batch_size x 1
+        # np.expand_dims(data['gripper_action_label'][indices[1:]], axis=-1) / self.total_actions_available
+        action = [float(action_index / total_actions_available)]
+    else:
+        # generate the action label one-hot encoding
+        action = np.zeros(total_actions_available)
+        action[action_index] = 1
+    return action
+
 
 def encode_action_and_images(
         data_features_to_extract,
@@ -617,6 +655,7 @@ class CostarBlockStackingSequence(Sequence):
                         # x = x + tuple([rgb_images[indices]])
                         # x = x + tuple([np.array(data['pose'])[indices]])
 
+                        # WARNING: IF YOU CHANGE THIS ACTION ENCODING CODE BELOW, ALSO CHANGE encode_action() function ABOVE
                         if (self.data_features_to_extract is not None and
                                 ('image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract or
                                  'image_0_image_n_vec_xyz_nxygrid_12' in self.data_features_to_extract or
