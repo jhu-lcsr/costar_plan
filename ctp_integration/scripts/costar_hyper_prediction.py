@@ -45,17 +45,55 @@ except ImportError:
 
 flags.DEFINE_string('load_translation_weights', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-59-00_train_v0.3_msle_combined_plush_blocks-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-226-val_loss-0.000-val_cart_error-0.034.h5.zip',
                     """Path to hdf5 file containing model weights to load and continue training.""")
-flags.DEFINE_string('load_translation_hyperparams', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-49-31_train_v0.3_msle_combined_plush_blocks-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json',
+flags.DEFINE_string('load_translation_hyperparams', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-59-00_train_v0.3_msle_combined_plush_blocks-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3_hyperparams.json',
                     """Load hyperparams from a json file.""")
 flags.DEFINE_string('load_rotation_weights', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-49-31_train_v0.3_msle_combined_plush_blocks-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-532-val_loss-0.002-val_angle_error-0.282.h5.zip',
                     """Path to hdf5 file containing model weights to load and continue training.""")
-flags.DEFINE_string('load_rotation_hyperparams', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-59-00_train_v0.3_msle_combined_plush_blocks-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3_hyperparams.json',
+flags.DEFINE_string('load_rotation_hyperparams', 'https://github.com/ahundt/costar_dataset/releases/download/v0.1/2018-09-07-22-49-31_train_v0.3_msle_combined_plush_blocks-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json',
                     """Load hyperparams from a json file.""")
+
 flags.DEFINE_string('translation_problem_type', 'semantic_translation_regression', 'see problem_type parameter in other apis')
 flags.DEFINE_string('rotation_problem_type', 'semantic_rotation_regression', 'see problem_type parameter in other apis')
+flags.DEFINE_string('force_action', None, 'force predicting only a single action, accepts a string or integer id')
+flags.DEFINE_string('default_action', '1', 
+    'default action if no action has been'
+    ' received from ROS the topic /costar/action_label_current')
 
 FLAGS = flags.FLAGS
 
+def extract_filename_from_url(url):
+    # note this is almost certainly insecure, 
+    # and the url has to exactly match a filename, 
+    # no extra string contents at the end
+    filename = url[url.rfind("/")+1:]
+    return filename
+
+def get_file_from_url(url, extract=True, file_hash=None, cache_subdir='models'):
+    filename = extract_filename_from_url(url)
+
+    found_extension = None
+    if extract:
+        for extension in ['.tar', '.tar.gz', '.tar.bz', '.zip']:
+            if extension in filename:
+                found_extension = extension
+
+    path = keras.utils.get_file(filename, url, extract=extract, file_hash=file_hash, cache_subdir=cache_subdir)
+    if found_extension is not None: 
+        # strip the file extension
+        path = path.replace(found_extension, '')
+
+    if not os.path.isfile(path):
+        raise ValueError(
+            'get_file_from_url() tried extracting the url: ' + str(url) +
+            ' and we expected this compression option: ' + str(found_extension) +
+            ' and the file directly at the url to match this hash option: ' + str(file_hash) +
+            ' . However, the final file is not at the expected location: ' + str(path) +
+            ' One possible problem is with compression, it is optional'
+            ' but when there is compression we expect'
+            ' a filename in the archive that matches the filename in the url.'
+            ' You may need to debug the code, or if your use case is different'
+            ' try get_file() in Keras.')
+    return path
 
 class CostarHyperPosePredictor(object):
 
@@ -76,6 +114,8 @@ class CostarHyperPosePredictor(object):
             tf_buffer=None,
             tf_listener=None,
             image_shape=(224, 224, 3),
+            force_action=None,
+            default_action=None,
             verbose=0):
 
         if load_rotation_weights is None:
@@ -92,17 +132,39 @@ class CostarHyperPosePredictor(object):
             translation_problem_type = FLAGS.translation_problem_type
         if rotation_problem_type is None:
             rotation_problem_type = FLAGS.rotation_problem_type
+        if force_action is None:
+            force_action = FLAGS.force_action
 
-        rotation_hyperparams_path = keras.utils.get_file('costar_block_stacking_rotation_hyperparams.json', load_rotation_hyperparams, extract=True)
-        rotation_weights_path = keras.utils.get_file('costar_block_stacking_rotation_weights.h5', load_rotation_weights, extract=False)
-        translation_hyperparams_path = keras.utils.get_file('costar_block_stacking_translation_hyperparams.json', load_translation_hyperparams, extract=False)
-        translation_weights_path = keras.utils.get_file('costar_block_stacking_translation_weights.h5', load_translation_weights, extract=True)
+        self.using_default_action = True
+        if force_action is not None:
+            # TODO(ahundt) make this work if the user passes a label string instead of an int
+            default_action = force_action
+            self.using_default_action = False
+        else:
+            if default_action is None:
+                default_action = FLAGS.default_action
+
+        self.action_labels = [block_stacking_reader.encode_action(default_action, total_actions_available=total_actions_available)]
+        self.force_action = force_action
 
         self.total_actions_available = total_actions_available
         self.label_features_to_extract = label_features_to_extract
         self.data_features_to_extract = data_features_to_extract
         self.need_clear_view_rgb_img = True
         self.clear_view_rgb_img = None
+
+        self.rotation_problem_type = rotation_problem_type
+        self.translation_problem_type = translation_problem_type
+        self.verbose = verbose
+        self.mutex = Lock()
+        self.image_shape = image_shape
+        self._initialize_ros(robot_config, tf_buffer, tf_listener)
+
+        rotation_hyperparams_path = get_file_from_url(load_rotation_hyperparams)
+        rotation_weights_path = get_file_from_url(load_rotation_weights)
+        translation_hyperparams_path = get_file_from_url(load_translation_hyperparams)
+        translation_weights_path = get_file_from_url(load_translation_weights)
+
         self.rotation_model, self.rotation_data_features = self._initialize_hypertree_model_for_inference(
                 feature_combo_name=feature_combo_name,
                 problem_type=rotation_problem_type,
@@ -115,13 +177,6 @@ class CostarHyperPosePredictor(object):
                 load_weights=translation_weights_path,
                 load_hyperparams=translation_hyperparams_path,
                 top=top)
-
-        self.rotation_problem_type = rotation_problem_type
-        self.translation_problem_type = translation_problem_type
-        self.verbose = verbose
-        self.mutex = Lock()
-        self._initialize_ros(robot_config, tf_buffer, tf_listener)
-        self.image_shape = image_shape
 
     def _initialize_hypertree_model_for_inference(
             self,
@@ -167,19 +222,25 @@ class CostarHyperPosePredictor(object):
             classes=classes,
             **hyperparams)
 
-        print('problem: ' + problem_type + ' loading weights: ' + load_weights)
-        model.load_weights(load_weights)
         # we don't use the optimizer, so just choose a default
         model.compile(
             optimizer='sgd',
             loss=loss,
             metrics=metrics)
+        
+        model.summary()
+
+        is_file = os.path.isfile(load_weights)
+        if not is_file:
+            raise RuntimeError('costar_hyper_prediction.py: Weights file does not exist: ' + load_weights) 
+        print(problem_type + ' loading weights: ' + load_weights)
+        model.load_weights(load_weights)
 
         return model, data_features
 
     def _initialize_ros(self, robot_config, tf_buffer, tf_listener):
         if tf_buffer is None:
-            self.tf_buffer = tf2.Buffer()
+            self.tf_buffer = tf2.Buffer(rospy.Duration(120))
         else:
             self.tf_buffer = tf_buffer
         if tf_listener is None:
@@ -215,6 +276,12 @@ class CostarHyperPosePredictor(object):
                 self.info_topic,
                 String,
                 self._info_CB)
+        
+        # we sleep for 1 second so that
+        # the buffer can collect some transforms
+        rospy.sleep(1)
+        # make sure we can get the transforms we will need to run
+        self.get_latest_transform()
 
     def _info_CB(self, msg):
         """ Update the labels available for actions.
@@ -240,8 +307,11 @@ class CostarHyperPosePredictor(object):
         if msg is None:
             rospy.logwarn("costar_hyper_prediction()::_rgbCb: msg is None !!!!!!!!!")
         else:
+            labels = np.array(json.loads(msg.data))
+            if self.verbose:
+                print('_labels_Cb() got labels:' + str(labels))
             with self.mutex:
-                self.labels = np.array(json.loads(msg.data))
+                self.labels = labels
 
     def _current_label_Cb(self, msg):
         """ Get the list of actions, and encode the current action for the prediction step.
@@ -249,32 +319,23 @@ class CostarHyperPosePredictor(object):
         if msg is None:
             rospy.logwarn("costar_hyper_prediction()::_current_label_Cb: msg is None !!!!!!!!!")
         else:
+            current_label = msg.data
+            try:
+                # TODO(ahundt) incorporate data_features_to_extract, so we use the right encoding method 
+                # encode the action
+                action_labels = [block_stacking_reader.encode_action(current_label, possible_actions=self.labels)]
+            except ValueError as ve:
+                rospy.logwarn(
+                    "costar_hyper_prediction()::_current_label_Cb: labels list is None,"
+                    " can't update the current label yet. Error: " + str(ve))
             with self.mutex:
-                self.current_label = msg.data
-                action_labels = []
-                # the index of the current action in the
-                # TODO(ahundt) set up a message to initialize & update the real action labels, this is not done yet
-                action_index = 0
-                if self.labels is None:
-                    rospy.logwarn("costar_hyper_prediction()::_current_label_Cb: labels list is None, can't update the current label yet")
-                    return
-                action_index, = np.where(self.labels == self.current_label)
-                total_actions_available = len(self.labels)
-
-            if (self.data_features_to_extract is not None and
-                    'image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract):
-                # normalized floating point encoding of action vector
-                # from 0 to 1 in a single float which still becomes
-                # a 2d array of dimension batch_size x 1
-                action = [float(action_index / total_actions_available)]
-                action_labels.append(action)
-            else:
-                # generate the action label one-hot encoding
-                action = np.zeros(total_actions_available)
-                action[action_index] = 1
-                action_labels.append(action)
-            with self.mutex:
-                self.action_labels = action_labels
+                self.current_label = current_label
+                # only update the action labels if we aren't forcing the action to a particular value
+                if self.force_action is None:
+                    self.action_labels = action_labels
+                    self.using_default_action = False
+            if self.verbose:
+                print('_current_label_Cb() got:' + str(current_label))
 
     def _rgbCb(self, msg):
         if msg is None:
@@ -296,6 +357,7 @@ class CostarHyperPosePredictor(object):
 
                 with self.mutex:
                     self.rgb_time = msg.header.stamp
+                    # print('rgb_time stamp: ' + str(msg.header.stamp))
                     self.rgb_img = rgb_img
                     if self.need_clear_view_rgb_img or self.clear_view_rgb_img is None:
                         self.clear_view_rgb_img = rgb_img
@@ -310,9 +372,18 @@ class CostarHyperPosePredictor(object):
         """
         with self.mutex:
             self.need_clear_view_rgb_img = True
+    
+    def get_latest_transform(self, from_frame=None, to_frame=None, max_attempts=10, backup_timestamp_attempts=4):
+        """
+        # Arguments
 
-    def __call__(self):
-
+        max_attempts: The maximum number of times to try getting the transform from ros.
+        backup_timestamp_attempts: the number attempts that should use a backup timestamp.
+        """
+        if from_frame is None:
+            from_frame = self.base_link
+        if to_frame is None:
+            to_frame = self.ee_frame
         local_time = rospy.Time.now()
         # this will get the latest available time
         latest_available_time_lookup = rospy.Time(0)
@@ -328,13 +399,10 @@ class CostarHyperPosePredictor(object):
         have_data = False
         # how many times have we tried to get the transforms
         attempts = 0
-        max_attempts = 10
-        # the number attempts that should
-        # use the backup timestamps
-        backup_timestamp_attempts = 4
+        # print('all frames: ', self.tf_buffer.all_frames_as_yaml())
         while not have_data:
             try:
-                ee_pose = self.tf_buffer.lookup_transform(self.base_link, self.ee_frame, t)
+                ee_pose = self.tf_buffer.lookup_transform(from_frame, to_frame, t)
 
                 have_data = True
             except (tf2.LookupException, tf2.ExtrapolationException, tf2.ConnectivityException) as e:
@@ -353,7 +421,9 @@ class CostarHyperPosePredictor(object):
                         10.0,
                         'CostarHyperPosePredictor failed to use the rgb image rosmsg timestamp, '
                         'trying latest available time as backup. '
-                        'Note: This message may print >1000x less often than the problem occurs.')
+                        'Note: This message may print >1000x less often than the problem occurs.'
+                        ' We checked time t: ' + str(t) + 
+                        ', and will now try the latest available: ' + str(latest_available_time_lookup) )
                     # try the backup timestamp even though it will be less accurate
                     t = latest_available_time_lookup
                 if attempts > max_attempts:
@@ -362,10 +432,21 @@ class CostarHyperPosePredictor(object):
                     raise e
 
         ee_xyz_quat = pose_to_vec_quat_list(ee_pose)
+        return ee_xyz_quat
+
+    def __call__(self):
+        """ Make the prediction and return the predicted pose
+        """
+        ee_xyz_quat = self.get_latest_transform()
         with self.mutex:
             rgb_images = [self.rgb_img]
             clear_view_rgb_images = [self.clear_view_rgb_img]
             action_labels = np.copy(self.action_labels)
+            if self.using_default_action:
+                rospy.logwarn_throttle(
+                    10.0,
+                    'warning: no user specified action received, '
+                    'using default action: ' + str(self.action_labels))
 
         # encode the prediction information
         X = block_stacking_reader.encode_action_and_images(
@@ -385,7 +466,7 @@ class CostarHyperPosePredictor(object):
                 init_images=clear_view_rgb_images,
                 current_images=rgb_images)
 
-        rotation_predictions = self.translation_model.predict_on_batch(X)
+        rotation_predictions = self.rotation_model.predict_on_batch(X)
 
         prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(translation_predictions[0] + rotation_predictions[0])
 
