@@ -4,6 +4,23 @@
 
 Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 
+## Installation
+
+These instructions are with minimal dependencies where you'll be training & predicting on the datasetas.
+
+```
+mkdir -p ~/src
+cd ~/src
+git clone https://github.com/ahundt/keras-contrib -b costar_plan
+cd keras-contrib
+pip install -e . --user --upgrade
+cd ~/src
+git clone https://github.com/cpaxton/costar_plan
+cd costar_plan/costar_hyper
+pip install -e . --user --upgrade
+
+```
+
 ## Costar Block Stacking Dataset
 
 The Block stacking dataset is currently hosted on google drive. It can be downloaded with [rclone](https://github.com/ncw/rclone).
