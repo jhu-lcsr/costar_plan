@@ -87,18 +87,21 @@ class CostarHyperPosePredictor(object):
         self.data_features_to_extract = data_features_to_extract
         self.need_clear_view_rgb_img = True
         self.clear_view_rgb_img = None
-        self.rotation_model = self._initialize_hypertree_model_for_inference(
+        self.rotation_model, self.rotation_data_features = self._initialize_hypertree_model_for_inference(
                 feature_combo_name=feature_combo_name,
                 problem_type=rotation_problem_type,
                 load_weights=rotation_weights_path,
                 load_hyperparams=rotation_hyperparams_path,
                 top=top)
-        self.translation_model = self._initialize_hypertree_model_for_inference(
+        self.translation_model, self.translation_data_features = self._initialize_hypertree_model_for_inference(
                 feature_combo_name=feature_combo_name,
                 problem_type=translation_problem_type,
                 load_weights=translation_weights_path,
                 load_hyperparams=translation_hyperparams_path,
                 top=top)
+
+        self.rotation_problem_type = rotation_problem_type
+        self.translation_problem_type = translation_problem_type
         self.verbose = verbose
         self.mutex = Lock()
         self._initialize_ros(robot_config, tf_buffer, tf_listener)
@@ -124,7 +127,7 @@ class CostarHyperPosePredictor(object):
 
         # load hyperparams from a file
         hyperparams = grasp_utilities.load_hyperparams_json(
-            FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
+            load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
             feature_combo_name=feature_combo_name)
 
         [image_shapes, vector_shapes, data_features, model_name,
@@ -147,7 +150,7 @@ class CostarHyperPosePredictor(object):
             loss=loss,
             metrics=metrics)
 
-        return model
+        return model, data_features
 
     def _initialize_ros(self, robot_config, tf_buffer, tf_listener):
         if tf_buffer is None:
@@ -341,14 +344,25 @@ class CostarHyperPosePredictor(object):
 
         # encode the prediction information
         X = block_stacking_reader.encode_action_and_images(
-                self.data_features_to_extract,
+                self.translation_data_features,
                 poses=[ee_xyz_quat],
                 action_labels=action_labels,
                 init_images=clear_view_rgb_images,
                 current_images=rgb_images)
 
-        predictions = self.translation_model.predict_on_batch(X)
-        prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(predictions[0])
+        translation_predictions = self.translation_model.predict_on_batch(X)
+
+        # encode the prediction information
+        X = block_stacking_reader.encode_action_and_images(
+                self.rotation_data_features,
+                poses=[ee_xyz_quat],
+                action_labels=action_labels,
+                init_images=clear_view_rgb_images,
+                current_images=rgb_images)
+
+        rotation_predictions = self.translation_model.predict_on_batch(X)
+
+        prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(translation_predictions[0] + rotation_predictions[0])
 
         # prediction_kdl = kdl.Frame(
         #         kdl.Rotation.Quaternion(prediction_xyz_qxyzw[3], prediction_xyz_qxyzw[4], prediction_xyz_qxyzw[5], prediction_xyz_qxyzw[6]),
@@ -369,7 +383,7 @@ def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rat
     if update_time_remaining < min_remaining_duration:
         rospy.logwarn_throttle(1.0, 'Not maintaining requested update rate, there may be problems with the goal pose predictions!\n'
                                '    Update rate is: ' + str(update_rate) + 'Hz, Duration is ' + str(update_duration_sec) + ' sec\n' +
-                               '    Minimum time allowed time remaining is: ' + str(minimum_allowed_remaining_time) + ' sec\n'  +
+                               '    Minimum time allowed time remaining is: ' + str(minimum_allowed_remaining_time) + ' sec\n' +
                                '    Actual remaining on this update was: ' + str(float(str(update_time_remaining))/1.0e9) + ' sec\n' +
                                '    ' + info)
 
