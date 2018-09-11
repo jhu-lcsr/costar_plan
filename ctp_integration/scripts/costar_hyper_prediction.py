@@ -491,7 +491,7 @@ class CostarHyperPosePredictor(object):
         # prediction_kdl = kdl.Frame(
         #         kdl.Rotation.Quaternion(prediction_xyz_qxyzw[3], prediction_xyz_qxyzw[4], prediction_xyz_qxyzw[5], prediction_xyz_qxyzw[6]),
         #         kdl.Vector(prediction_xyz_qxyzw[0], prediction_xyz_qxyzw[1], prediction_xyz_qxyzw[2]))
-        return prediction_xyz_qxyzw, time
+        return prediction_xyz_qxyzw, input_example_time
 
 
 def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rate_fraction_allowed=0.1, info=''):
