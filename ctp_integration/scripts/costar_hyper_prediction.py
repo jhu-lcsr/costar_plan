@@ -56,9 +56,10 @@ flags.DEFINE_string('load_rotation_hyperparams', 'https://github.com/ahundt/cost
 flags.DEFINE_string('translation_problem_type', 'semantic_translation_regression', 'see problem_type parameter in other apis')
 flags.DEFINE_string('rotation_problem_type', 'semantic_rotation_regression', 'see problem_type parameter in other apis')
 flags.DEFINE_string('force_action', None, 'force predicting only a single action, accepts a string or integer id')
-flags.DEFINE_string('default_action', '1', 
+flags.DEFINE_string('default_action', '5', 
     'default action if no action has been'
-    ' received from ROS the topic /costar/action_label_current')
+    ' received from ROS on the topic /costar/action_label_current.'
+    ' The default 5 means grab_blue.')
 
 FLAGS = flags.FLAGS
 
@@ -145,6 +146,7 @@ class CostarHyperPosePredictor(object):
             if default_action is None:
                 default_action = FLAGS.default_action
 
+        self.labels = None
         self.action_labels = [block_stacking_reader.encode_action(default_action, total_actions_available=total_actions_available)]
         self.force_action = force_action
 
@@ -294,10 +296,12 @@ class CostarHyperPosePredictor(object):
             rospy.logwarn("costar_hyper_prediction()::_info_CB: msg is None !!!!!!!!!")
         else:
             with self.mutex:
-                if msg.data == 'STARTING ATTEMPT':
-                    self.need_clear_view_rgb_img = True
-                    # TODO(ahundt) default starting current label?
-                    self.current_label = None
+                info_str = str(msg.data)
+                print('/costar/info: ' + info_str)
+                # if info_str == 'STARTING ATTEMPT':
+                #     self.need_clear_view_rgb_img = True
+                #     # TODO(ahundt) default starting current label?
+                #     self.current_label = None
 
     def _labels_Cb(self, msg):
         """ Update the labels available for actions.
@@ -308,7 +312,8 @@ class CostarHyperPosePredictor(object):
         if msg is None:
             rospy.logwarn("costar_hyper_prediction()::_rgbCb: msg is None !!!!!!!!!")
         else:
-            labels = np.array(json.loads(msg.data))
+            labels = str(msg.data)
+            labels = np.array(json.loads(labels))
             if self.verbose:
                 print('_labels_Cb() got labels:' + str(labels))
             with self.mutex:
@@ -320,11 +325,14 @@ class CostarHyperPosePredictor(object):
         if msg is None:
             rospy.logwarn("costar_hyper_prediction()::_current_label_Cb: msg is None !!!!!!!!!")
         else:
-            current_label = msg.data
+            current_label = str(msg.data)
+            with self.mutex:
+                # get possible labels, or None if not specified yet
+                labels = self.labels
             try:
                 # TODO(ahundt) incorporate data_features_to_extract, so we use the right encoding method 
                 # encode the action
-                action_labels = [block_stacking_reader.encode_action(current_label, possible_actions=self.labels)]
+                action_labels = [block_stacking_reader.encode_action(current_label, possible_actions=labels)]
             except ValueError as ve:
                 rospy.logwarn(
                     "costar_hyper_prediction()::_current_label_Cb: labels list is None,"
