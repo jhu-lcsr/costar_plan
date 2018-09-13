@@ -37,8 +37,11 @@ from ctp_integration.stack import GetHome
 from ctp_integration.stack import GetRandomHome
 from ctp_integration.stack import GetUpdate
 from ctp_integration.stack import GetStackManager
+from ctp_integration.stack import GetHomePoseKDL
 from ctp_integration.constants import GetHomeJointSpace
 from ctp_integration.launcher import launch_main
+from ctp_integration.ros_geometry import pose_to_vec_quat_pair
+from ctp_integration.ros_geometry import pose_to_vec_quat_list
 
 import faulthandler
 
@@ -91,6 +94,12 @@ def getArgs():
                         default=10,
                         type=int,
                         help="rate at which data will be collected in hertz")
+    parser.add_argument("--one_nn_action",
+                        action="store_true",
+                        help="Go to one neural network proposed pose, close the gripper, then go home.")
+    parser.add_argument("--go_home",
+                        action="store_true",
+                        help="Go home then exit, don't change the gripper at all.")
 
     return parser.parse_args()
 
@@ -194,6 +203,13 @@ def collect_data(args):
     start = max(0, args.start-1)
     i = start
     idx = i + 1
+    if args.one_nn_action:
+        one_nn_action(move_to_pose, close_gripper, open_gripper, collector.tf_buffer)
+        return
+    
+    if args.go_home:
+        go_home(move_to_pose)
+        return
     # go home on startup outside of try block so program
     # won't save files if ROS is not active and ready
     home()
@@ -372,6 +388,30 @@ def collect_data(args):
         # re-raise the caught exception https://stackoverflow.com/a/4825279/99379
         raise
 
+def one_nn_action(move_to_pose, close_gripper, open_gripper, tf_buffer):
+    """ Execute one simplified action based on the neural network proposed pose
+    """
+    home = GetHomePoseKDL()
+    move_to_pose(home)
+    open_gripper()
+    rospy.sleep(10)
+    t = rospy.Time(0)
+    goal_pose_name = 'predicted_goal_ee_link'
+    pose = tf_buffer.lookup_transform('base_link', goal_pose_name, t)
+    pose = pm.fromTf(pose_to_vec_quat_pair(pose))
+
+    move_to_pose(pose)
+    close_gripper()
+    move_to_pose(home)
+    move_to_pose(pose)
+    open_gripper()
+    move_to_pose(home)
+
+def go_home(move_to_pose):
+    # the regular home action also opens the gripper
+    # so this one just goes to the standard default home pose with no randomness
+    home = GetHomePoseKDL()
+    move_to_pose(home)
 
 def verify_update_rate(update_time_remaining, update_rate=10, minimum_update_rate_fraction_allowed=0.1, info=''):
     """
@@ -476,6 +516,7 @@ def initialize_collection_objects(args, observe, collector, stack_task):
 
 def main():
     args = getArgs()
+    # get a traceback on segfault
     faulthandler.enable()
 
     if args.launch:
