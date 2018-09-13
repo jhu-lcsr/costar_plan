@@ -392,10 +392,10 @@ def one_nn_action(move_to_pose, close_gripper, open_gripper, tf_buffer):
     """ Execute one simplified action based on the neural network proposed pose
     """
     home = GetHomePoseKDL()
-    move_to_pose(home)
+    # move_to_pose(home)
     open_gripper()
-    rospy.sleep(10)
     t = rospy.Time(0)
+    rospy.sleep(1)
     goal_pose_name = 'predicted_goal_ee_link'
     pose = tf_buffer.lookup_transform('base_link', goal_pose_name, t)
     pose = pm.fromTf(pose_to_vec_quat_pair(pose))
