@@ -65,10 +65,10 @@ class StackManager(object):
         self.ok = True
         self.finished_action = False
         self.service.reset()
-        labels_json = json.dumps(self.labels)
-        self.labels_publisher.publish(labels_json)
-        self.start_publisher.publish('STARTING ATTEMPT')
-        self.costar_info.publish('STARTING ATTEMPT')
+        # labels_json = json.dumps(self.labels)
+        # self.labels_publisher.publish(labels_json)
+        # self.start_publisher.publish('STARTING ATTEMPT')
+        # self.costar_info.publish('STARTING ATTEMPT')
 
     def addRequest(self, parents, name, srv, req):
         '''
@@ -148,7 +148,7 @@ class StackManager(object):
             # choose which action to take out of the set of possible actions
             idx = np.random.randint(len(children))
             next_action = children[idx]
-            self.current_label_publisher.publish(next_action)
+            # self.current_label_publisher.publish(next_action)
             rospy.logwarn("next action = " + str(next_action))
             srv, req = self.reqs[next_action]
             # Go home and use vision to update all the object poses.
