@@ -31,6 +31,7 @@ from skimage.transform import resize
 from std_msgs.msg import String
 from geometry_msgs.msg import TransformStamped
 import keras
+import faulthandler
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -279,12 +280,31 @@ class CostarHyperPosePredictor(object):
                 self.info_topic,
                 String,
                 self._info_CB)
+        self.info_topic = '/costar/clear_view'
+        self._info_sub = rospy.Subscriber(
+                self.info_topic,
+                String,
+                self._clear_view_CB)
         
         # we sleep for 1 second so that
         # the buffer can collect some transforms
         rospy.sleep(1)
         # make sure we can get the transforms we will need to run
         self.get_latest_transform()
+
+    def _clear_view_CB(self, msg):
+        """ Update the labels available for actions.
+
+        This also means we have a clear view,
+        save the next image as an update to the clear view image.
+        """
+        if msg is None:
+            rospy.logwarn("costar_hyper_prediction()::_info_CB: msg is None !!!!!!!!!")
+        else:
+            with self.mutex:
+                self.need_clear_view_rgb_img = True
+                # TODO(ahundt) default starting current label?
+                # self.current_label = None
 
     def _info_CB(self, msg):
         """ Update the labels available for actions.
@@ -298,10 +318,10 @@ class CostarHyperPosePredictor(object):
             with self.mutex:
                 info_str = str(msg.data)
                 print('/costar/info: ' + info_str)
-                # if info_str == 'STARTING ATTEMPT':
-                #     self.need_clear_view_rgb_img = True
-                #     # TODO(ahundt) default starting current label?
-                #     self.current_label = None
+                if info_str == 'STARTING ATTEMPT':
+                    self.need_clear_view_rgb_img = True
+                    # TODO(ahundt) default starting current label?
+                    # self.current_label = None
 
     def _labels_Cb(self, msg):
         """ Update the labels available for actions.
@@ -530,7 +550,7 @@ def main(_):
     broadcaster = tf2.TransformBroadcaster()
     transform_name = 'predicted_goal_' + predictor.ee_frame
     rospy.loginfo('costar_hyper_prediction transform predictions will be broadcast as: ' + str(transform_name))
-    update_rate = 10.0
+    update_rate = 0.25
     rate = rospy.Rate(update_rate)
     progbar = tqdm()
 
@@ -563,6 +583,8 @@ def main(_):
 
 
 if __name__ == '__main__':
+    # get a traceback on segfault
+    faulthandler.enable()
     # next FLAGS line might be needed in tf 1.4 but not tf 1.5
     # FLAGS._parse_flags()
     tf.app.run(main=main)
