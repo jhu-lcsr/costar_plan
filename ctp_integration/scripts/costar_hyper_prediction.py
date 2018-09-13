@@ -330,7 +330,7 @@ class CostarHyperPosePredictor(object):
         save the next image as an update to the clear view image.
         """
         if msg is None:
-            rospy.logwarn("costar_hyper_prediction()::_rgbCb: msg is None !!!!!!!!!")
+            rospy.logwarn("costar_hyper_prediction()::_labels_Cb: msg is None !!!!!!!!!")
         else:
             labels = str(msg.data)
             labels = np.array(json.loads(labels))
@@ -394,7 +394,7 @@ class CostarHyperPosePredictor(object):
                         self.need_clear_view_rgb_img = False
 
         except CvBridgeError as e:
-            rospy.logwarn(str(e))
+            rospy.logwarn('costar_hyper_prediction.py Error converting image: ' + str(e))
 
     def _clearViewCb(self, msg):
         """ We have a clear view, save the next image as an update to the clear view image.
