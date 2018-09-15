@@ -306,10 +306,6 @@ def encode_action_and_images(
     else:
         raise ValueError('Unsupported data input: ' + str(data_features_to_extract))
 
-    if (data_features_to_extract is not None and 'image_0_image_n_vec_xyz_aaxyz_nsc_15' in data_features_to_extract):
-        # make the giant data cube if it is requested
-        X = concat_images_with_tiled_vector_np(X[:2], X[2:])
-
     if (data_features_to_extract is not None and
             ('image_0_image_n_vec_xyz_10' in data_features_to_extract or
              'image_0_image_n_vec_xyz_aaxyz_nsc_15' in data_features_to_extract or
@@ -358,7 +354,7 @@ class CostarBlockStackingSequence(Sequence):
                  random_shift=False,
                  output_shape=None,
                  blend_previous_goal_images=False,
-                 estimated_time_steps_per_example=250, verbose=0, inference_mode=False, one_hot_encoding=False):
+                 estimated_time_steps_per_example=250, verbose=0, inference_mode=False, one_hot_encoding=True):
         '''Initialization
 
         # Arguments
@@ -708,7 +704,10 @@ class CostarBlockStackingSequence(Sequence):
             # print("shape=====",X.shape)
 
             # determine the label
-            y = encode_label(self.label_features_to_extract, y, action_successes, self.random_augmentation, current_stacking_reward)
+            if('stacking_reward' in self.label_features_to_extract):
+                y = encode_label(self.label_features_to_extract, y, action_successes, self.random_augmentation, current_stacking_reward)
+            else:
+                y = encode_label(self.label_features_to_extract, y, action_successes, self.random_augmentation, None)
 
             # Debugging checks
             if X is None:
