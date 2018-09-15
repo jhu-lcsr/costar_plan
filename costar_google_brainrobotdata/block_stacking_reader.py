@@ -275,6 +275,11 @@ def encode_action_and_images(
     # print('poses shape: ' + str(poses.shape))
     encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
         poses, random_augmentation=random_augmentation)
+    if data_features_to_extract is None or 'image_0_image_n_vec_0_vec_n_xyz_aaxyz_nsc_nxygrid_25':
+        # TODO(ahundt) This should actually encode two poses like the commented encoded_poses line below because it is for grasp proposal success/failure classification. First need to double check all code that uses it in enas and costar_plan
+        encoded_goal_pose = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
+            poses, random_augmentation=random_augmentation)
+        # encoded_poses = np.array([encoded_poses, encoded_goal_pose])
 
     if np.any(encoded_poses < 0 - epsilon) or np.any(encoded_poses > 1 + epsilon):
         raise ValueError('An encoded pose was outside the [0,1] range! Update your encoding. poses: ' +
@@ -354,7 +359,8 @@ class CostarBlockStackingSequence(Sequence):
                  random_shift=False,
                  output_shape=None,
                  blend_previous_goal_images=False,
-                 estimated_time_steps_per_example=250, verbose=0, inference_mode=False, one_hot_encoding=True):
+                 estimated_time_steps_per_example=250, verbose=0, inference_mode=False, one_hot_encoding=True,
+                 force_random_training_pose_augmentation=None):
         '''Initialization
 
         # Arguments
@@ -379,6 +385,7 @@ class CostarBlockStackingSequence(Sequence):
             Due to random sampling, there is no guarantee that every image will be visited once!
             However, the images can be visited in a fixed order, particularly when is_training=False.
         one_hot_encoding flag triggers one hot encoding and thus numbers at the end of labels might not correspond to the actual size.
+        force_random_training_pose_augmentation: override random_augmenation when training for pose data only.
 
         # Explanation of abbreviations:
 
@@ -410,6 +417,14 @@ class CostarBlockStackingSequence(Sequence):
         self.inference_mode = inference_mode
         self.infer_index = 0
         self.one_hot_encoding = one_hot_encoding
+
+        # the pose encoding augmentation can be specially added separately from all other augmentation
+        self.random_encoding_augmentation = None
+        if self.is_training:
+            if self.random_augmentation:
+                self.random_encoding_augmentation = self.random_augmentation
+            elif force_random_training_pose_augmentation is not None:
+                self.random_encoding_augmentation = force_random_training_pose_augmentation
 
         self.blend = blend_previous_goal_images
         self.estimated_time_steps_per_example = estimated_time_steps_per_example
@@ -678,14 +693,6 @@ class CostarBlockStackingSequence(Sequence):
                 data_format='channels_last', mode='tf')
             poses = np.array(poses)
 
-            # print('poses shape: ' + str(poses.shape))
-            encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
-                poses, random_augmentation=self.random_augmentation)
-            if self.data_features_to_extract is None or 'image_0_image_n_vec_0_vec_n_xyz_aaxyz_nsc_nxygrid_25':
-                encoded_goal_pose = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
-                    poses, random_augmentation=self.random_augmentation)
-                # encoded_poses = np.array([encoded_poses, encoded_goal_pose])
-
             # print('encoded poses shape: ' + str(encoded_poses.shape))
             # print('action labels shape: ' + str(action_labels.shape))
             # print('encoded poses vec shape: ' + str(action_poses_vec.shape))
@@ -694,11 +701,12 @@ class CostarBlockStackingSequence(Sequence):
             # current_images = tf.image.resize_images(current_images,[224,224])
             # print("---",init_images.shape)
             # X = init_images
+
             X = encode_action_and_images(
-                    data_features_to_extract=self.data_features_to_extract,
-                    poses=poses, action_labels=action_labels,
-                    init_images=init_images, current_images=current_images,
-                    y=y, random_augmentation=self.is_training)
+                data_features_to_extract=self.data_features_to_extract,
+                poses=poses, action_labels=action_labels,
+                init_images=init_images, current_images=current_images,
+                y=y, random_augmentation=self.random_encoding_augmentation)
 
             # print("type=======",type(X))
             # print("shape=====",X.shape)
