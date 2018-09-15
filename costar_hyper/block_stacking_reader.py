@@ -243,7 +243,7 @@ def is_string_an_int(s):
 
 
 def encode_action(
-        action, possible_actions=None, data_features_to_extract=None, 
+        action, possible_actions=None, data_features_to_extract=None,
         total_actions_available=41, one_hot_encoding=True):
     """ Encode an action for feeding to the neural network.
     """
@@ -720,6 +720,8 @@ class CostarBlockStackingSequence(Sequence):
             # print('poses shape: ' + str(poses.shape))
             encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
                 poses, random_augmentation=self.random_augmentation)
+
+            encoded_goal_pose = None
             if self.data_features_to_extract is None or 'image_0_image_n_vec_0_vec_n_xyz_aaxyz_nsc_nxygrid_25':
                 encoded_goal_pose = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
                     poses, random_augmentation=self.random_augmentation)
@@ -737,7 +739,8 @@ class CostarBlockStackingSequence(Sequence):
                     data_features_to_extract=self.data_features_to_extract,
                     poses=poses, action_labels=action_labels,
                     init_images=init_images, current_images=current_images,
-                    y=y, random_augmentation=self.is_training)
+                    y=y, random_augmentation=self.random_augmentation,
+                    encoded_goal_pose=encoded_goal_pose)
 
             # print("type=======",type(X))
             # print("shape=====",X.shape)
