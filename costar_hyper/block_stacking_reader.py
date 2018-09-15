@@ -392,7 +392,7 @@ class CostarBlockStackingSequence(Sequence):
                  random_shift=False,
                  output_shape=None,
                  blend_previous_goal_images=False,
-                 estimated_time_steps_per_example=250, verbose=0, inference_mode=False, one_hot_encoding=False):
+                 estimated_time_steps_per_example=250, verbose=0, inference_mode=False, one_hot_encoding=True):
         '''Initialization
 
         # Arguments
