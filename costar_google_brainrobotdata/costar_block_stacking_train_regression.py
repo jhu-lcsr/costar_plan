@@ -19,6 +19,8 @@ FLAGS = flags.FLAGS
 def main(_):
     use_best_model = True
     load_best_weights = True
+    # a bit hacky pseudo-eval on training data
+    eval_on_training_data = True
     problem_type = 'semantic_translation_regression'
     # problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
@@ -177,9 +179,19 @@ def main(_):
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
     hyperparams['batch_size'] = FLAGS.batch_size
+    #------------------------------------
     # temporary 0 learning rate for eval!
-    # learning_rate = 0
-    learning_rate = 1.0
+    if eval_on_training_data:
+        print('EVAL on training data (well, a slightly hacky version) with 0 LR 0 dropout trainable False, no learning rate schedule')
+        learning_rate = 0
+        hyperparams['dropout'] = 0.0
+        hyperparams['trainable'] = False
+        FLAGS.learning_rate_schedule = 'none'
+    else:
+        print('manual initial 1.0 learning rate override applied')
+        learning_rate = 1.0
+    #------------------------------------
+    # learning_rate = 1.0
     if load_weights is not None:
         FLAGS.load_weights = load_weights
         # For training from scratch
