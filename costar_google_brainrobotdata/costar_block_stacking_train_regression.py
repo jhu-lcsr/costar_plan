@@ -31,7 +31,8 @@ def main(_):
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     # uncomment when running on combined block only + block and plush datasets
-    FLAGS.costar_filename_base = 'costar_combined_block_plush_stacking_v0.4_success_only'
+    # FLAGS.costar_filename_base = 'costar_combined_block_plush_stacking_v0.4_success_only'
+    FLAGS.costar_filename_base = 'costar_block_stacking_v0.3_success_only'
     load_weights = None
     if FLAGS.load_hyperparams is None:
         # Results from classification hyperparameter run
@@ -150,7 +151,8 @@ def main(_):
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
     # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f'
 
-    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
+    # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
+    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
     FLAGS.fine_tuning_epochs = 40
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
