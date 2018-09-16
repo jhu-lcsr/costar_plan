@@ -184,7 +184,7 @@ def main(_):
     if eval_on_training_data:
         print('EVAL on training data (well, a slightly hacky version) with 0 LR 0 dropout trainable False, no learning rate schedule')
         learning_rate = 0
-        hyperparams['dropout'] = 0.0
+        hyperparams['dropout_rate'] = 0.0
         hyperparams['trainable'] = False
         FLAGS.learning_rate_schedule = 'none'
     else:
