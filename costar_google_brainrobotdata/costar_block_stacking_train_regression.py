@@ -183,9 +183,10 @@ def main(_):
     # temporary 0 learning rate for eval!
     if eval_on_training_data:
         print('EVAL on training data (well, a slightly hacky version) with 0 LR 0 dropout trainable False, no learning rate schedule')
-        learning_rate = 0.0
-        hyperparams['dropout_rate'] = 0.0
-        hyperparams['trainable'] = 0.0
+        learning_rate = 0.000000000001
+        hyperparams['dropout_rate'] = 0.000000000001
+        # TODO(ahundt) it seems set_trainable_layers in grasp_model.py has a bug?
+        # hyperparams['trainable'] = 0.00000000001
         FLAGS.learning_rate_schedule = 'none'
     else:
         print('manual initial 1.0 learning rate override applied')
