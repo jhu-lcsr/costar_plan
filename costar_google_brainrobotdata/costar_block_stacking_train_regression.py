@@ -163,6 +163,7 @@ def main(_):
           'you will need to modify cornell_grasp_train_regression.py directly.')
 
     dataset_name = 'costar_block_stacking'
+    FLAGS.dataset_name = dataset_name
 
     print('-' * 80)
     print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams))
