@@ -34,7 +34,7 @@ def main(_):
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     # uncomment when running on combined block only + block and plush datasets
     # FLAGS.costar_filename_base = 'costar_combined_block_plush_stacking_v0.4_success_only'
-    FLAGS.costar_filename_base = 'costar_block_stacking_v0.3_success_only'
+    FLAGS.costar_filename_base = 'costar_block_stacking_v0.4_success_only'
     load_weights = None
     if FLAGS.load_hyperparams is None:
         # Results from classification hyperparameter run
@@ -101,7 +101,8 @@ def main(_):
                 # TODO(ahundt) 2018-08-06 Re-enable best weights, currently disabling due to change in input vector which now includes angle. See commits 785eaf4a4501f2e6532ed59b0972d7b1aaa5784e, b78c3e558567c4b3388a99786549d23a2a1e060c, and 19f274c0d77deff533175692046e424165b821df
                 load_weights = None
                 # use these weights if xyz is input but not axis/angle data
-                load_weights = './logs_cornell/2018-08-29-22-47-40_train_v0.3-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3/2018-08-29-22-47-40_train_v0.3-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-230-val_loss-0.000-val_grasp_acc-0.289.h5'
+                load_weights = './logs_cornell/2018-09-15-21-10-39_train_no_augmentation-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-003-val_loss-0.000-val_cart_error-0.031.h5'
+                # load_weights = './logs_cornell/2018-08-29-22-47-40_train_v0.3-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3/2018-08-29-22-47-40_train_v0.3-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-230-val_loss-0.000-val_grasp_acc-0.289.h5'
                 # weights from 2018-07-31-21-40-50 are technically the best for val_grasp_acc (1cm), but newer weights to better with respect to other metrics like val_cart_error and other grasp acc distance metrics
                 # load_weights = './logs_cornell/2018-07-31-21-40-50_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-31-21-40-50_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-018-val_loss-0.000-val_grasp_acc-0.300.h5'
                 # load_weights = './logs_cornell/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-016-val_loss-0.000-val_grasp_acc-0.273.h5'
@@ -153,8 +154,8 @@ def main(_):
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
     # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f'
 
-    # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
-    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
+    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/blocks_only/')
+    # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
     FLAGS.fine_tuning_epochs = 40
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
@@ -179,7 +180,7 @@ def main(_):
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
     hyperparams['batch_size'] = FLAGS.batch_size
-    #------------------------------------
+    # ------------------------------------
     # temporary 0 learning rate for eval!
     if eval_on_training_data:
         print('EVAL on training data (well, a slightly hacky version) with 0 LR 0 dropout trainable False, no learning rate schedule')

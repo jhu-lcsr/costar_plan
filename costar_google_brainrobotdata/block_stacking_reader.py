@@ -360,6 +360,7 @@ class CostarBlockStackingSequence(Sequence):
                  output_shape=None,
                  blend_previous_goal_images=False,
                  estimated_time_steps_per_example=250, verbose=0, inference_mode=False, one_hot_encoding=True,
+                 pose_name='pose_gripper_center',
                  force_random_training_pose_augmentation=None):
         '''Initialization
 
@@ -386,6 +387,11 @@ class CostarBlockStackingSequence(Sequence):
             However, the images can be visited in a fixed order, particularly when is_training=False.
         one_hot_encoding flag triggers one hot encoding and thus numbers at the end of labels might not correspond to the actual size.
         force_random_training_pose_augmentation: override random_augmenation when training for pose data only.
+        pose_name: Which pose to use as the robot 3D position in space. Options include:
+            'pose' is the end effector ee_link pose at the tip of the connector
+                of the robot, which is the base of the gripper wrist.
+            'pose_gripper_center' is a point in between the robotiq C type gripping plates when the gripper is open
+                with the same orientation as pose.
 
         # Explanation of abbreviations:
 
