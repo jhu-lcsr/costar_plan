@@ -254,7 +254,7 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
     number_of_time_characters = 19
     # loop over the ranked models
     row_progress = tqdm(dataframe.iterrows(), ncols=240)
-    max_models_to_show = 5
+    max_models_to_show = 12
     names = []
     acc_limits = []
     acc_range_limits = []
