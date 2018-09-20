@@ -20,7 +20,7 @@ def main(_):
     use_best_model = True
     load_best_weights = True
     # a bit hacky pseudo-eval on training data
-    eval_on_training_data = True
+    eval_on_training_data = False
     problem_type = 'semantic_translation_regression'
     # problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
