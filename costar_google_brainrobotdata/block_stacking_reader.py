@@ -423,6 +423,7 @@ class CostarBlockStackingSequence(Sequence):
         self.inference_mode = inference_mode
         self.infer_index = 0
         self.one_hot_encoding = one_hot_encoding
+        self.pose_name = pose_name
 
         # the pose encoding augmentation can be specially added separately from all other augmentation
         self.random_encoding_augmentation = None
@@ -624,15 +625,15 @@ class CostarBlockStackingSequence(Sequence):
 
                         init_images.append(rgb_images_resized[0])
                         current_images.append(rgb_images_resized[1])
-                        poses.append(np.array(data['pose'][indices[1:]])[0])
+                        poses.append(np.array(data[self.pose_name][indices[1:]])[0])
                         if(self.data_features_to_extract is not None and 'image_0_image_n_vec_0_vec_n_xyz_aaxyz_nsc_nxygrid_25' in self.data_features_to_extract):
                             next_goal_idx = all_goal_ids[indices[1:][0]]
-                            goal_pose.append(np.array(data['pose'][next_goal_idx]))
+                            goal_pose.append(np.array(data[self.pose_name][next_goal_idx]))
                             print("final pose added", goal_pose)
                             current_stacking_reward = stacking_reward[indices[1]]
                             print("reward estimate", current_stacking_reward)
                         # x = x + tuple([rgb_images[indices]])
-                        # x = x + tuple([np.array(data['pose'])[indices]])
+                        # x = x + tuple([np.array(data[self.pose_name])[indices]])
 
                         if (self.data_features_to_extract is not None and
                                 ('image_0_image_n_vec_xyz_aaxyz_nsc_15' in self.data_features_to_extract or
@@ -668,7 +669,7 @@ class CostarBlockStackingSequence(Sequence):
                         index1 = indices[1]
                         goal_ids = all_goal_ids[index1]
                         # print(index1)
-                        label = np.array(data['pose'])[goal_ids]
+                        label = np.array(data[self.pose_name])[goal_ids]
                         # print(type(label))
                         # for items in list(data['all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json'][indices]):
                         #     json_data = json.loads(items.decode('UTF-8'))
