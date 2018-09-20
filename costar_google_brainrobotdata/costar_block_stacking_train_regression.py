@@ -176,7 +176,19 @@ def main(_):
     print('-' * 80)
 
     # TODO: remove loss if it doesn't work or make me the default in the other files if it works really well
-    hyperparams['loss'] = 'msle'
+    if 'rotation' in problem_type:
+        # rotation does much better with msle over mse
+        hyperparams['loss'] = 'msle'
+    elif 'translation' in problem_type:
+        # translation does slightly better with mse over msle
+        hyperparams['loss'] = 'mse'
+    elif 'grasp' in problem_type:
+        hyperparams['loss'] = 'mse'
+    else:
+        raise ValueError(
+            'costar_block_stacking_train_regression.py update the train config file, '
+            'unsupported problem type: ' + problem_type)
+
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
     hyperparams['batch_size'] = FLAGS.batch_size
