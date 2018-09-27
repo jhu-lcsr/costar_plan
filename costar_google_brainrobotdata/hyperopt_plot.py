@@ -126,6 +126,11 @@ flags.DEFINE_boolean(
     'Sort in ascending (1 to 100) or descending (100 to 1) order, '
     'Defaults to True unless acc is in sort_by, then defaults to False.'
 )
+flags.DEFINE_integer(
+    'max_models_to_show',
+    24,
+    'Maximum number of models to display, 24 by default'
+)
 
 
 FLAGS = flags.FLAGS
@@ -164,6 +169,7 @@ if problem_type == 'semantic_rotation_regression':
         ('grasp_acc_32cm_360deg', 360),
     ]
     units = '°'
+    avg_error_suffix = 'angle_error'
 elif problem_type == 'semantic_translation_regression':
     dataframe = dataframe.sort_values('val_cart_error', ascending=True)
     if sort_by is None:
@@ -191,6 +197,7 @@ elif problem_type == 'semantic_translation_regression':
         ('grasp_acc_512cm_360deg', 5120),
     ]
     units = 'mm'
+    avg_error_suffix = 'cart_error'
 elif problem_type == 'semantic_grasp_regression':
     dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
     sort_by = 'val_grasp_acc'
@@ -241,31 +248,43 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
     value_dimension_strs = [vt[0] for vt in value_dimension_tuples_mm]
     value_dimension_ints = [vt[1] for vt in value_dimension_tuples_mm]
     value_dimension_int_as_str = [str(vt[1]) for vt in value_dimension_tuples_mm]
-    accuracy_range_limits = []
+    error_distribution_limits = []
     prev_acc_int = 0
     for name, acc_int in value_dimension_tuples_mm:
         acc_range = str(prev_acc_int) + '-' + str(acc_int) + ' ' + units
         prev_acc_int = acc_int
-        accuracy_range_limits = accuracy_range_limits + [acc_range]
-    value_dimension_range_tuples_mm = [(vdt[0], vdt[1], ar) for vdt, ar in zip(value_dimension_tuples_mm, accuracy_range_limits)]
-    print('accuracy_range_limits: ' + str(accuracy_range_limits))
+        error_distribution_limits = error_distribution_limits + [acc_range]
+    value_dimension_range_tuples_mm = [(vdt[0], vdt[1], ar) for vdt, ar in zip(value_dimension_tuples_mm, error_distribution_limits)]
+    print('error_distribution_limits: ' + str(error_distribution_limits))
 
     # first 20 characters of model name are the time, full names are too long
     number_of_time_characters = 19
     # loop over the ranked models
     row_progress = tqdm(dataframe.iterrows(), ncols=240)
-    max_models_to_show = 5
+    max_models_to_show = FLAGS.max_models_to_show
     names = []
     acc_limits = []
     acc_range_limits = []
     values = []
     split_values = []
     tvts = []
+    data_dict = {}
     for index, row in row_progress:
-        if index < max_models_to_show:
+        if 'epoch' in row:
+            # add an epoch field
+            epoch = row['epoch']
+            epoch_name = ' ep {:3}'.format(epoch)
+            if 'epoch' not in data_dict:
+                data_dict['epoch'] = []
+        if max_models_to_show is None or index < max_models_to_show:
             # train, val, test datasets
             for tvt, tvt_prefix in dataset_names_prefix:
                 prev_val = 0.0
+                avg_error_name = tvt_prefix + avg_error_suffix
+                if avg_error_name in row:
+                    # add an average error field
+                    if 'avg_error' not in data_dict:
+                        data_dict['avg_error'] = []
                 # accuracy values & splits
                 for name, acc_limit, acc_range in value_dimension_range_tuples_mm:
                     val = row[tvt_prefix + name]
@@ -276,17 +295,26 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
                     # vals.append((acc_int, split_val))
                     values = values + [val]
                     split_values = split_values + [split_val]
-                    names = names + [row['basename'][:number_of_time_characters]]
+                    name = row['basename'][:number_of_time_characters]
+                    if 'epoch' in row:
+                        # add an epoch field
+                        name = name + epoch_name
+                        data_dict['epoch'] += [epoch]
+                    names += [name]
+                    if avg_error_name in row:
+                        data_dict['avg_error'] += [row[avg_error_name]]
+                    # row_progress.write(' name: ' + name + ' i: ' + str(index) + ' len name: ' + str(len(names)) + ' len avg: ' + str(len(data_dict['avg_error'])))
                     acc_range_limits = acc_range_limits + [acc_range]
                     acc_limits = acc_limits + [acc_limit]
                     tvts = tvts + [tvt]
 
     dictionary = {'name': names,
-                  'accuracy_range_limits': acc_range_limits,
+                  'error_distribution_limits': acc_range_limits,
                   'accuracy_range_value': split_values,
                   'train_val_test': tvts,
                   'accuracy_value': values,
                   'accuracy_value_limit': acc_limits}
+    dictionary.update(data_dict)
 
     rdf = pandas.DataFrame(dictionary)
     # for i, name in enumerate(value_dimension_int_as_str):
@@ -304,8 +332,8 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
 
 rdf = create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
 
-# key_dimensions = [('name', 'Model'), ('accuracy_range_limits', 'Accuracy Range'), ('train_val_test', 'Train Val Test')]
-key_dimensions = [('name', 'Model'), ('accuracy_range_limits', 'Accuracy Range')]
+# key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Accuracy Range'), ('train_val_test', 'Train Val Test')]
+key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Error Distribution')]
 key_dimension_display_strs = [vt[1] for vt in key_dimensions]
 
 table = hv.Table(rdf, key_dimensions, 'accuracy_range_value')
