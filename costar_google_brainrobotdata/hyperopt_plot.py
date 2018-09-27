@@ -129,7 +129,7 @@ flags.DEFINE_boolean(
 flags.DEFINE_integer(
     'max_models_to_show',
     24,
-    'Maximum number of models to display, unlimited by default'
+    'Maximum number of models to display, 24 by default'
 )
 
 
