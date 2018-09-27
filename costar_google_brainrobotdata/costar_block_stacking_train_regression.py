@@ -137,8 +137,9 @@ def main(_):
             if load_best_weights:
                 # TODO(ahundt) 2018-09-25 the next line is not actually the current best weights, but we are training with a new configuration so that's what we will load for now
                 load_weights = 'logs_cornell/2018-09-25-23-51-23_train_0.4_gripper_center_rot-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-25-23-51-23_train_0.4_gripper_center_rot-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-080-val_loss-0.003-val_angle_error-0.550.h5'
+                FLAGS.initial_epoch = 144
                 # load_weights = 'hyperopt_logs_costar_rotation_regression/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-412-val_loss-0.002-val_angle_error-0.279.h5'
-                FLAGS.initial_epoch = 413
+                # FLAGS.initial_epoch = 413
                 # load_weights = 'hyperopt_logs_costar_rotation_regression/2018-08-31-20-35-15_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-31-20-35-15_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-237-val_loss-0.002-val_angle_error-0.281.h5'
                 # FLAGS.initial_epoch = 238
                 # load_weights = 'hyperopt_logs_costar_block_stacking_train_ranked_regression/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-041-val_loss-0.007-val_grasp_acc-0.581.h5'
