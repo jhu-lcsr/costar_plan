@@ -21,8 +21,8 @@ def main(_):
     load_best_weights = True
     # a bit hacky pseudo-eval on training data
     eval_on_training_data = False
-    problem_type = 'semantic_translation_regression'
-    # problem_type = 'semantic_rotation_regression'
+    # problem_type = 'semantic_translation_regression'
+    problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
     # problem_type2 = 'semantic_grasp_regression'
     problem_type2 = None
@@ -135,7 +135,9 @@ def main(_):
             # 2018-08-12 BEST ROTATION MODEL (#5 of 730 models in hyperopt, but #1 after long term training) for rotation 58% val accuracy for angles within 15 degrees.
             FLAGS.load_hyperparams = 'hyperparams/semantic_rotation_regression/2018-08-09-03-05-18_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json'
             if load_best_weights:
-                load_weights = 'hyperopt_logs_costar_rotation_regression/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-412-val_loss-0.002-val_angle_error-0.279.h5'
+                # TODO(ahundt) 2018-09-25 the next line is not actually the current best weights, but we are training with a new configuration so that's what we will load for now
+                load_weights = 'logs_cornell/2018-09-25-23-51-23_train_0.4_gripper_center_rot-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-25-23-51-23_train_0.4_gripper_center_rot-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-080-val_loss-0.003-val_angle_error-0.550.h5'
+                # load_weights = 'hyperopt_logs_costar_rotation_regression/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-412-val_loss-0.002-val_angle_error-0.279.h5'
                 FLAGS.initial_epoch = 413
                 # load_weights = 'hyperopt_logs_costar_rotation_regression/2018-08-31-20-35-15_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-31-20-35-15_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-237-val_loss-0.002-val_angle_error-0.281.h5'
                 # FLAGS.initial_epoch = 238
