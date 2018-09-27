@@ -615,7 +615,7 @@ class CostarBlockStackingSequence(Sequence):
                                     row_axis=0, col_axis=1, channel_axis=2)
                             # TODO(ahundt) improve crop/resize to match cornell_grasp_dataset_reader
                             if self.output_shape is not None:
-                                resized_image = resize(images, self.output_shape, mode='constant', preserve_range=True)
+                                resized_image = resize(images, self.output_shape, mode='constant', preserve_range=True, order=1)
                             else:
                                 resized_image = images
                             if self.is_training and self.random_augmentation:
