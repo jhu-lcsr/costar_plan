@@ -68,8 +68,12 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
-def load_hyperparams_json(hyperparams_file, fine_tuning=False, learning_rate=None, feature_combo_name=None):
+def load_hyperparams_json(hyperparams_file, fine_tuning=False, learning_rate=None, feature_combo_name=None, version=None):
     """ Load hyperparameters from a json file
+
+    version: a version number for the hyperparams json file. It is a simple dictionary
+        but the parameters present and defaults are evolving over time, which is captured by the version number.
+        If no version number is present we assume version 0.
 
     # Returns
 
@@ -98,6 +102,9 @@ def load_hyperparams_json(hyperparams_file, fine_tuning=False, learning_rate=Non
         kwargs.pop('feature_combo_name')
         if 'feature_combo_name' in hyperparams:
             hyperparams.pop('feature_combo_name')
+    if kwargs is not None and 'version' not in kwargs:
+        # if version is not present, assume version 0
+        kwargs['version'] = 0
     return kwargs
 
 
