@@ -101,6 +101,12 @@ flags.DEFINE_integer(
     'Results should only belong to this epoch or lower, not enabled by default.'
 )
 
+flags.DEFINE_integer(
+    'min_epoch',
+    None,
+    'Results should only belong to this epoch or higher, not enabled by default.'
+)
+
 flags.DEFINE_boolean(
     'filter_unique',
     False,
@@ -136,6 +142,9 @@ def main(_):
 
             if FLAGS.max_epoch is not None:
                 dataframe = dataframe.loc[dataframe['epoch'] <= FLAGS.max_epoch]
+
+            if FLAGS.min_epoch is not None:
+                dataframe = dataframe.loc[dataframe['epoch'] >= FLAGS.min_epoch]
 
             # manage hyperparams
             if len(hyperparam_filename) > 1:

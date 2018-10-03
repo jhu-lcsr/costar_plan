@@ -482,6 +482,8 @@ def run_training(
     # Save the hyperparams to a json string so it is human readable
     if hyperparams is not None:
         with open(log_dir_run_name + '_hyperparams.json', 'w+') as fp:
+            # set a version number
+            hyperparams['version'] = 1
             json.dump(hyperparams, fp)
 
     # Save the current model to a json string so it is human readable

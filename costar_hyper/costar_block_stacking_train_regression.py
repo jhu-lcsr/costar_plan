@@ -19,6 +19,8 @@ FLAGS = flags.FLAGS
 def main(_):
     use_best_model = True
     load_best_weights = True
+    # a bit hacky pseudo-eval on training data
+    eval_on_training_data = False
     # problem_type = 'semantic_translation_regression'
     problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
@@ -31,7 +33,8 @@ def main(_):
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
     # uncomment when running on combined block only + block and plush datasets
-    FLAGS.costar_filename_base = 'costar_combined_block_plush_stacking_v0.4_success_only'
+    # FLAGS.costar_filename_base = 'costar_combined_block_plush_stacking_v0.4_success_only'
+    FLAGS.costar_filename_base = 'costar_block_stacking_v0.4_success_only'
     load_weights = None
     if FLAGS.load_hyperparams is None:
         # Results from classification hyperparameter run
@@ -98,7 +101,11 @@ def main(_):
                 # TODO(ahundt) 2018-08-06 Re-enable best weights, currently disabling due to change in input vector which now includes angle. See commits 785eaf4a4501f2e6532ed59b0972d7b1aaa5784e, b78c3e558567c4b3388a99786549d23a2a1e060c, and 19f274c0d77deff533175692046e424165b821df
                 load_weights = None
                 # use these weights if xyz is input but not axis/angle data
-                load_weights = './logs_cornell/2018-07-31-21-40-50_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-31-21-40-50_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-018-val_loss-0.000-val_grasp_acc-0.300.h5'
+                load_weights = './logs_cornell/2018-09-25-18-29-20_train_0.4_gripper_center-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3/2018-09-25-18-29-20_train_0.4_gripper_center-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-146-val_loss-0.000-val_cart_error-0.026.h5'
+                # load_weights = './logs_cornell/2018-09-15-21-10-39_train_no_augmentation-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-003-val_loss-0.000-val_cart_error-0.031.h5'
+                # load_weights = './logs_cornell/2018-08-29-22-47-40_train_v0.3-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3/2018-08-29-22-47-40_train_v0.3-nasnet_mobile_semantic_translation_regression_model--dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-230-val_loss-0.000-val_grasp_acc-0.289.h5'
+                # weights from 2018-07-31-21-40-50 are technically the best for val_grasp_acc (1cm), but newer weights to better with respect to other metrics like val_cart_error and other grasp acc distance metrics
+                # load_weights = './logs_cornell/2018-07-31-21-40-50_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-31-21-40-50_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-018-val_loss-0.000-val_grasp_acc-0.300.h5'
                 # load_weights = './logs_cornell/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-016-val_loss-0.000-val_grasp_acc-0.273.h5'
                 # load_weights = './logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-115-val_loss-0.000-val_grasp_acc-0.258.h5'
                 # use these weights for both xyz and axis angle input data
@@ -125,11 +132,14 @@ def main(_):
         # FLAGS.load_hyperparams = 'hyperopt_logs_costar_grasp_regression/2018-07-24-07-43-45_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8/2018-07-24-07-43-45_vgg_semantic_grasp_regression_model-_img_vgg_vec_dense_block_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_aaxyz_nsc_8_hyperparams.json'
 
         if problem_type == 'semantic_rotation_regression' and use_best_model:
-            # 2018-08-12 EXCELLENT ROTATION MODEL #5 of 730 models for rotation 58% val accuracy for angles within 15 degrees.
+            # 2018-08-12 BEST ROTATION MODEL (#5 of 730 models in hyperopt, but #1 after long term training) for rotation 58% val accuracy for angles within 15 degrees.
             FLAGS.load_hyperparams = 'hyperparams/semantic_rotation_regression/2018-08-09-03-05-18_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json'
             if load_best_weights:
-                load_weights = 'hyperopt_logs_costar_rotation_regression/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-412-val_loss-0.002-val_angle_error-0.279.h5'
-                FLAGS.initial_epoch = 413
+                # TODO(ahundt) 2018-09-25 the next line is not actually the current best weights, but we are training with a new configuration so that's what we will load for now
+                load_weights = 'logs_cornell/2018-09-25-23-51-23_train_0.4_gripper_center_rot-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-25-23-51-23_train_0.4_gripper_center_rot-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-080-val_loss-0.003-val_angle_error-0.550.h5'
+                FLAGS.initial_epoch = 144
+                # load_weights = 'hyperopt_logs_costar_rotation_regression/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-09-04-20-17-25_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-412-val_loss-0.002-val_angle_error-0.279.h5'
+                # FLAGS.initial_epoch = 413
                 # load_weights = 'hyperopt_logs_costar_rotation_regression/2018-08-31-20-35-15_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-31-20-35-15_train_v0.4_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-237-val_loss-0.002-val_angle_error-0.281.h5'
                 # FLAGS.initial_epoch = 238
                 # load_weights = 'hyperopt_logs_costar_block_stacking_train_ranked_regression/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5/2018-08-10-06-55-09_train_200_epochs-vgg_semantic_rotation_regression_model-_img_vgg_vec_dense_block_trunk_nasnet_normal_a_cell-dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5-epoch-041-val_loss-0.007-val_grasp_acc-0.581.h5'
@@ -148,7 +158,8 @@ def main(_):
     # FLAGS.log_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_plan/costar_google_brainrobotdata/hyperparams/'
     # FLAGS.data_dir = r'C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f'
 
-    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
+    FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/blocks_only/')
+    # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.3/')
     FLAGS.fine_tuning_epochs = 40
     print('Regression Training on costar block stacking is about to begin. '
           'It overrides some command line parameters including '
@@ -156,6 +167,7 @@ def main(_):
           'you will need to modify cornell_grasp_train_regression.py directly.')
 
     dataset_name = 'costar_block_stacking'
+    FLAGS.dataset_name = dataset_name
 
     print('-' * 80)
     print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams))
@@ -169,13 +181,36 @@ def main(_):
     print('-' * 80)
 
     # TODO: remove loss if it doesn't work or make me the default in the other files if it works really well
-    hyperparams['loss'] = 'msle'
+    if 'rotation' in problem_type:
+        # rotation does much better with msle over mse
+        hyperparams['loss'] = 'msle'
+    elif 'translation' in problem_type:
+        # translation does slightly better with mse over msle
+        hyperparams['loss'] = 'mse'
+    elif 'grasp' in problem_type:
+        hyperparams['loss'] = 'mse'
+    else:
+        raise ValueError(
+            'costar_block_stacking_train_regression.py update the train config file, '
+            'unsupported problem type: ' + problem_type)
+
     # save weights at checkpoints as the model's performance improves
     hyperparams['checkpoint'] = True
     hyperparams['batch_size'] = FLAGS.batch_size
+    # ------------------------------------
     # temporary 0 learning rate for eval!
-    # learning_rate = 0
-    learning_rate = 1.0
+    if eval_on_training_data:
+        print('EVAL on training data (well, a slightly hacky version) with 0 LR 0 dropout trainable False, no learning rate schedule')
+        learning_rate = 0.000000000001
+        hyperparams['dropout_rate'] = 0.000000000001
+        # TODO(ahundt) it seems set_trainable_layers in grasp_model.py has a bug?
+        # hyperparams['trainable'] = 0.00000000001
+        FLAGS.learning_rate_schedule = 'none'
+    else:
+        print('manual initial 1.0 learning rate override applied')
+        learning_rate = 1.0
+    #------------------------------------
+    # learning_rate = 1.0
     if load_weights is not None:
         FLAGS.load_weights = load_weights
         # For training from scratch

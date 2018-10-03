@@ -317,6 +317,7 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             if dropout_rate is not None:
                 x = Dropout(dropout_rate)(x)
 
+            print('top_block dense layer ' + str(i))
             x = Dense(filters, activation=hidden_activation)(x)
 
         if dropout_rate is not None:
@@ -370,6 +371,7 @@ def hypertree_model(
         create_tree_trunk_fn=None,
         top_block_dense_layers=0,
         top_block_hidden_activation='relu',
+        top_block_fn=top_block,
         verbose=0):
 
     if images is None and image_shapes is None:
@@ -430,7 +432,8 @@ def hypertree_model(
         # and the classifier block according to the problem type.
         # Dense layers for single prediction problems, and
         # Conv2D layers for pixel-wise prediction problems.
-        xi = top_block(
+        # TODO(ahundt) move these parameters out to generalize this api, except for xi, name shape, and verbose
+        xi = top_block_fn(
             xi, output_shape, top, dropout_rate,
             include_top, classes, activation,
             final_pooling, top_block_filters,
@@ -502,7 +505,8 @@ def choose_hypertree_model(
         trunk_normalization='none',
         coordinate_data=None,
         hidden_activation=None,
-        vector_normalization='batch_norm'):
+        vector_normalization='batch_norm',
+        version=1):
     """ Construct a variety of possible models with a tree shape based on hyperparameters.
 
     # Arguments
@@ -527,6 +531,7 @@ def choose_hypertree_model(
         top_block_hidden_activation: Deprecated, use hidden_activation instead.
         hidden_activation: override vector, trunk, and top_block hidden activation,
             setting them all to this value. Example values include 'relu', 'elu', and 'linear'.
+        version: an integer version number used to identify saved hyperparam settings.
 
     # Notes
 
@@ -587,6 +592,14 @@ def choose_hypertree_model(
         trunk_hidden_activation = hidden_activation
         vector_hidden_activation = hidden_activation
         top_block_hidden_activation = hidden_activation
+
+    if version == 0:
+        print(
+            'hyperparams with version 0 loaded, '
+            'old versions always had 0 dense layers, '
+            'so we are setting top_block_dense_layers to '
+            'reproduce old models correctly.')
+        top_block_dense_layers = 0
 
     if top == 'segmentation':
         name_prefix = 'dilated_'
@@ -916,6 +929,7 @@ def choose_hypertree_model(
             top=top,
             top_block_filters=top_block_filters,
             top_block_hidden_activation=top_block_hidden_activation,
+            top_block_dense_layers=top_block_dense_layers,
             classes=classes,
             output_shape=output_shape,
             verbose=verbose
