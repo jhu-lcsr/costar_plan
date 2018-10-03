@@ -16,7 +16,7 @@ def main(args, root = 'root'):
     
     md = dict(collection='test_collection', title='The CoSTAR Block Stacking Dataset', mediatype='data', noindex='True')
     
-    print args
+    print(args)
 
     r = item.upload(
             args['path'], 
@@ -30,7 +30,7 @@ def main(args, root = 'root'):
             # debug = args['execute']) # Set to true to print headers to stdout, and exit without uploading
             debug = True)
             
-    print r
+    print(r)
 
 if __name__ == '__main__':
     args = _parse_args()
