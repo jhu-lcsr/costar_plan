@@ -279,7 +279,7 @@ def classifier_block(input_tensor, include_top=True, top='classification',
 
 def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0, include_top=True,
               classes=1, activation='sigmoid', final_pooling=None,
-              filters=64, dense_layers=0, hidden_activation='relu', name='', verbose=0):
+              filters=64, dense_layers=0, hidden_activation='relu', name='', verbose=1):
     """ Perform final convolutions for decision making, then apply the classification block.
 
         The top block adds the final "decision making" layers
@@ -312,12 +312,15 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
             x = GlobalMaxPooling2D()(x)
             # x = Flatten()(x)
 
+        if verbose > 0:
+            print('top_block() single prediction (sucha as classification) top_block dense layers:' + str(dense_layers))
         for i in range(dense_layers):
             # combined full connected layers
             if dropout_rate is not None:
                 x = Dropout(dropout_rate)(x)
 
-            print('top_block dense layer ' + str(i))
+            if verbose > 0:
+                print('top_block dense layer ' + str(i))
             x = Dense(filters, activation=hidden_activation)(x)
 
         if dropout_rate is not None:
@@ -351,7 +354,8 @@ def top_block(x, output_image_shape=None, top='classification', dropout_rate=0.0
     x = classifier_block(x, include_top=include_top, top=top, classes=classes,
                          activation=activation, input_shape=output_image_shape,
                          final_pooling=final_pooling, name=name, verbose=verbose)
-    print('top_block x: ' + str(x))
+    if verbose > 0:
+        print('top_block x: ' + str(x))
     return x
 
 
