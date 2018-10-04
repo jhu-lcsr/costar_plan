@@ -1,7 +1,6 @@
 
 # CoSTAR Hyper
 
-
 Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 
 ## Installation
@@ -24,8 +23,8 @@ git clone https://github.com/cpaxton/costar_plan
 cd costar_plan
 # this will run the costar_hyper setup
 python2 -m pip install -e . --user --upgrade
-
 ```
+
 costar_plan setup is run separately via the ros catkin package
 
 ## Costar Block Stacking Dataset
@@ -39,6 +38,7 @@ rclone copy drive:costar_block_stacking_dataset_v0.4 ~/.keras/dataset/costar_blo
 ```
 
 Two lines to read one file from the dataset:
+
 ```
 h5 = h5py.File(filename, 'r')
 x = np.array(h5[key])
@@ -48,7 +48,8 @@ Detailed documentation is in the dataset README.md.
 
 More precisely:
 
-```#!/usr/bin/env python
+```python
+#!/usr/bin/env python
 
 import sys
 
@@ -93,7 +94,8 @@ plt.figure()
 plt.axis("off")
 plt.imshow(selected_imgs[4])
 
-plt.show()```
+plt.show()
+```
 
 some of those fields will vary for different use cases.
 
@@ -123,16 +125,17 @@ Color augmentation is also available:
 
 1. copy the .ttt file and the .so file (.dylib on mac) into the `costar_google_brainrobotdata/vrep` folder.
 2. Run vrep with -s file pointing to the example:
+
 ```
 ./vrep.sh -s ~/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/vrep/kukaRemoteApiCommandServerExample.ttt
 ```
+
 4. vrep should load and start the simulation
 5. make sure the folder holding `vrep_grasp.py` is on your PYTHONPATH
 6. cd to `~/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/`, or wherever you put the repository
 7. run `export CUDA_VISIBLE_DEVICES="" && python2 vrep_grasp.py`
 
 ## Hyperparameter search
-
 
 ### Costar Block Stacking Dataset
 
@@ -176,8 +179,7 @@ Re-run the `hyperopt_rank.py` command above to update the model rankings with th
 export CUDA_VISIBLE_DEVICES="0" && python2 costar_block_stacking_train_ranked_regression.py --log_dir hyperopt_logs_costar_block_stacking_train_ranked_regression --run_name 300_epoch
 ```
 
-You may wish to use the ` --learning_rate_schedule triangular` flag for one run and then the  `--learning_rate_schedule triangular2 --load_weights path/to/previous_best_weights.h5` for a second run. These learning rate schedules use the [keras_contrib](github.com/keras-team/keras-contrib) cyclical learning rate callback, see [Cyclical learning rate repo](https://github.com/bckenstler/CLR) for a detailed description and paper links.
-
+You may wish to use the `--learning_rate_schedule triangular` flag for one run and then the  `--learning_rate_schedule triangular2 --load_weights path/to/previous_best_weights.h5` for a second run. These learning rate schedules use the [keras_contrib](github.com/keras-team/keras-contrib) cyclical learning rate callback, see [Cyclical learning rate repo](https://github.com/bckenstler/CLR) for a detailed description and paper links.
 
 ### Google Brain Grasping Dataset
 
@@ -197,7 +199,6 @@ python hyperopt_rank.py --log_dir hyperopt_logs_google_brain_classification --so
 
 These are instructions for training on the [cornell grasping dataset](http://pr.cs.cornell.edu/grasping/rect_data/data.php).
 
-
 #### Downloading the dataset
 
 To download the dataset and generate the tensorflow tfrecord dataset files simply run the following command:
@@ -209,7 +210,6 @@ python cornell_grasp_dataset_writer.py
 This should take about 5-6 GB of space, and by default the dataset files will go in:
 
 ```
-
 flags.DEFINE_string('data_dir',
                     os.path.join(os.path.expanduser("~"),
                                  '.keras', 'datasets', 'cornell_grasping'),
@@ -221,7 +221,9 @@ flags.DEFINE_string('data_dir',
 
 Check the value of the following parameter with each command:
 
-```--log_dir```
+```
+--log_dir
+```
 
 Files will be created containing training results in that file.
 
