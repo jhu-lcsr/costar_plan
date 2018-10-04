@@ -76,15 +76,21 @@ def main(_):
     FLAGS.dataset_name = 'costar_block_stacking'
     # FLAGS.problem_type = 'semantic_grasp_regression'
 
+    ## CONFIGURE: Choose from one of the three problem types for ranking. 
+    ## ---------------------------------------------------- 
+    # When ranking translation use the following settings:
+    FLAGS.log_dir = 'hyperopt_logs_costar_translation_regression'
+    FLAGS.problem_type = 'semantic_translation_regression'
     # ----------------------------------------------------
     # When ranking rotation use the following settings:
     # FLAGS.log_dir = 'hyperopt_logs_costar_block_stacking_train_ranked_regression'
     # FLAGS.problem_type = 'semantic_rotation_regression'
     # ----------------------------------------------------
-    # When ranking translation use the following settings
-    FLAGS.log_dir = 'hyperopt_logs_costar_translation_regression'
-    FLAGS.problem_type = 'semantic_translation_regression'
-    # ----------------------------------------------------
+    # When ranking both rotation and translation, use the following settings:
+    # FLAGS.log_dir = 'hyperopt_logs_costar_grasp_regression'
+    # FLAGS.problem_type = 'semantic_grasp_regression' 
+    ## ----------------------------------------------------   
+
     FLAGS.batch_size = 16
     FLAGS.num_validation = 1
     FLAGS.num_test = 1
@@ -101,8 +107,8 @@ def main(_):
     seed = None
     # TODO(ahundt) costar generator has a memory leak! only do 100 samples as a quick fix. Large values can be used for the cornell dataset without issue.
     # initial_num_samples = 4000
-    initial_num_samples = 100
-    maximum_hyperopt_steps = 10
+    initial_num_samples = 100  # Number of random models
+    maximum_hyperopt_steps = 10  # Number of Bayesian models
     # enable random learning rates, if enabled,
     # this will be the primary motivator for good/bad
     # performance, so once you find a good setting

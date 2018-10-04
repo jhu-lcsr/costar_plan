@@ -11,7 +11,6 @@ Special Thanks To:
 
 - Chunting Jiao for starting & resetting the robot when needed.
 
-
 v0.4 is a **beta** version of the dataset.
 We are using an open source license which requires
 attribution, so we require that users do not publically
@@ -24,7 +23,6 @@ on the robot.
 Please report any inconsistencies in the documentation below,
 and pull requests with preprocessing scripts or corrections
 will be very much appreciated!
-
 
 About this Dataset
 ------------------
@@ -93,8 +91,8 @@ The filenames are defined based on the `save()` function in `collector.py`:
             floor and hit a safety stop, this could be valuable training
             data and the error string will make it easier to determine
             what happened after the fact.
-'''
-
+        '''
+```
 
 Loading Data
 ------------
@@ -114,12 +112,9 @@ More information and code can be found in [costar_plan/ctp_integration/README.md
 ### [collector.py](https://github.com/cpaxton/costar_plan/blob/master/ctp_integration/python/ctp_integration/collector.py)
     - Saves the data from the robot to disk
 
-
-
 ### Dataset Features and Time Steps
 
 Every example can be loaded easily with [h5py](https://www.h5py.org/) and all features has an equal number of frames collected at 10 Hz, or 0.1 second per frame. The number of frames will vary with each example, including examples with zero frames which are typically in the `*.error.failure.h5f` examples.
-
 
 Here is a complete list of features:
 
@@ -165,19 +160,15 @@ Camera Calibration
 
 A yml file is included in the dataset with camera calibration parameters. See the ROS documentation for details.
 
-
 Collecting Data
 ---------------
 
 See [costar_plan/ctp_integration/README.md](https://github.com/cpaxton/costar_plan/tree/master/ctp_integration) for details on how to run data collection.
 
-
 License
 -------
 
 [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
-
-
 
 Notes and Limitations
 ---------------------
@@ -240,7 +231,6 @@ The AR Tag mount broke a second time, and we simply left it detached for collect
 The hand eye calibration itself seems to remain OK.
 
 ### 2018-08-31 Gripper Failure
-
 
 The gripper failed on 2018-08-31 at the time 22:33:34, the example:
 
