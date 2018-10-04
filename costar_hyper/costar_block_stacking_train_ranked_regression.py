@@ -84,9 +84,12 @@ def main(_):
     use_best_model = True
     # epoch to filter, or None if we should just take the best performing value ever
     filter_epoch = FLAGS.filter_epoch
+
+    # CONFIGURE: Select problem type
     problem_type = 'semantic_translation_regression'
     # problem_type = 'semantic_rotation_regression'
     # problem_type = 'semantic_grasp_regression'
+
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
     # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
@@ -126,6 +129,8 @@ def main(_):
     # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f')
     FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
     FLAGS.fine_tuning_epochs = 0
+
+    # CONFIGURE: Change the number of epochs here.
     # final training run:
     # FLAGS.epochs = 600
     FLAGS.epochs = 200
