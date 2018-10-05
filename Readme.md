@@ -14,14 +14,17 @@ Visual Robot Task Planning
 
 ### Associated Paper
 
-Training Frankenstein's Creature To Stack: HyperTree Architecture Search
+[Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home)
+
+[![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
 
 ### Supported Datasets
 
-  - [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset) ([code readme](costar_hyper/README.md))
-  - Cornell Grasping Dataset ([code readme](costar_hyper/README.md))
-  - Google Brain Grasping Dataset ([code readme](costar_hyper/README.md))
+Details are in the [costar hyper readme](costar_hyper/README.md).
 
+  - [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset)
+  - Cornell Grasping Dataset
+  - Google Brain Grasping Dataset
 
 
 # CoSTAR Task Planner (CTP)
@@ -37,17 +40,15 @@ To run deep learning examples, you will need TensorFlow and Keras, plus a number
 *About this repository:* CTP is a _single-repository_ project. As such, all the custom code you need should be in one place: here. There are exceptions, such as the [CoSTAR Stack](https://github.com/cpaxton/costar_stack/) for real robot execution, but these are generally not necessary. The minimal installation of CTP is just to install the `costar_models` package as a normal [python package](https://github.com/cpaxton/costar_plan/tree/master/costar_models/python) ignoring everything else.
 
 # CTP Datasets
-
-  - [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset)
   - [PyBullet Block Stacking](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz)
   - [Sample Husky Data](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/husky_data.tar.gz)
 
 ## Deprecated Datsets
 
-[![Classic CoSTAR Real Robot Data Collection](https://img.youtube.com/vi/LMqEcoYbrLM/0.jpg)](https://youtu.be/LMqEcoYbrLM "Classic CoSTAR Real Robot Data Collection")
   - [Classic CoSTAR Real Robot Data](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/sample_real_ur5_robot_data.tar.gz)
+     - We recommend using the full [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset) over this early version.
+     - [![Classic CoSTAR Real Robot Data Collection](https://img.youtube.com/vi/LMqEcoYbrLM/0.jpg)](https://youtu.be/LMqEcoYbrLM "Classic CoSTAR Real Robot Data Collection")
 
-The original collection run
 
 # Contents
   - [0. Introduction](docs/introduction.md)
