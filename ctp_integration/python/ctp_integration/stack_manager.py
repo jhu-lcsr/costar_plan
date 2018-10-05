@@ -4,14 +4,17 @@ import numpy as np
 
 from .util import *
 from .service_caller import ServiceCaller
+from std_msgs.msg import String
+import json
+import rospy
 
 class StackManager(object):
     '''
-    A task is set up as a graph of parent action objects 
+    A task is set up as a graph of parent action objects
     with sets of possible child actions. To execute these actions,
     we define them to be ROS service calls.
 
-    This class is used to walk through the graph of the things the robot 
+    This class is used to walk through the graph of the things the robot
     can do, and randomly select actions.
     Since ROS services calls are essentially remote function calls with a callback.
     this class creates and holds the different services we need to call to
@@ -40,6 +43,10 @@ class StackManager(object):
         self.labels = set()
         self.update = self._update()
         self.previous_action = None
+        self.start_publisher = rospy.Publisher('/costar/attempt', String)
+        self.costar_info = rospy.Publisher('/costar/info', String)
+        self.labels_publisher = rospy.Publisher('/costar/action_labels', String)
+        self.current_label_publisher = rospy.Publisher('/costar/action_label_current', String)
 
     def _update(self):
         pass
@@ -47,7 +54,7 @@ class StackManager(object):
     def setUpdate(self, update_fn):
         ''' Set the function to call after each action is completed.
 
-          Currently this sets the function that 
+          Currently this sets the function that
           goes home and gets all the object poses after the action.
         '''
         self.update = update_fn
@@ -58,12 +65,16 @@ class StackManager(object):
         self.ok = True
         self.finished_action = False
         self.service.reset()
+        # labels_json = json.dumps(self.labels)
+        # self.labels_publisher.publish(labels_json)
+        # self.start_publisher.publish('STARTING ATTEMPT')
+        # self.costar_info.publish('STARTING ATTEMPT')
 
     def addRequest(self, parents, name, srv, req):
         '''
         Define an action the robot can take, and the parent actions that
-        might call it. 
-        
+        might call it.
+
         This includes a service call object and request message,
         so other processes in costar can execute the action.
 
@@ -108,6 +119,7 @@ class StackManager(object):
         # print a status update for debugging purposes
         if self.previous_action is None or self.current_action != self.previous_action:
             rospy.loginfo("current = " + str(self.current_action))
+            self.current_label_publisher.publish(self.current_action)
             self.previous_action = self.current_action
 
         if self.current_action is not None:
@@ -136,6 +148,7 @@ class StackManager(object):
             # choose which action to take out of the set of possible actions
             idx = np.random.randint(len(children))
             next_action = children[idx]
+            # self.current_label_publisher.publish(next_action)
             rospy.logwarn("next action = " + str(next_action))
             srv, req = self.reqs[next_action]
             # Go home and use vision to update all the object poses.

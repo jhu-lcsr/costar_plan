@@ -1,21 +1,96 @@
 # -*- coding: utf-8 -*-
-"""
-A simple player widget for visualizing an example in the dataset.
+"""Code for visualizing data from the costar stacking dataset in a web browser and V-REP.
 
-Start in the costar_plan directory:
+https://sites.google.com/site/brainrobotdata/home/grasping-dataset
 
-    ~/src/costar_plan/ctp_integration
+Author: Andrew Hundt <ATHundt@gmail.com>
 
-The app can be started (served) using the following line, it will use glob to find matching files:
+License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
 
-    bokeh serve --show scripts/stack_player.py --args  --data-dir "~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f"
+The bokeh and HoloViews libraries are utilized to display the data
+in the browser and show the controls, while V-REP is used for 3-D
+display.
 
-Alternate command:
+The app can be served using:
 
-    bokeh serve --show scripts/stack_player.py --args --data-dir ~/.keras/datasets/costar_block_stacking_dataset_v0.4/
+    bokeh serve --show vrep_costar_stack.py --args --data_dir /Users/athundt/.keras/datasets/costar_block_stacking_dataset_v0.4/2018-05-23-20-46-09_example000001.success.h5f
+    bokeh serve --show vrep_costar_stack.py --args  --data-dir "~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f"
 
 Note that the data dir with * uses glob syntax, so this example will only load the data which has been labeled as successful grasps.
 """
+
+try:
+    # don't require tensorflow for reading, it only speeds things up
+    import tensorflow as tf
+    tf.enable_eager_execution()
+except ImportError:
+    tf = None
+
+import vrep_grasp
+import os
+import errno
+import traceback
+import sys
+
+import numpy as np
+import six  # compatibility between python 2 + 3 = six
+import matplotlib.pyplot as plt
+
+
+try:
+    import vrep
+except Exception as e:
+    print ('--------------------------------------------------------------')
+    print ('"vrep.py" could not be imported. This means very probably that')
+    print ('either "vrep.py" or the remoteApi library could not be found.')
+    print ('Make sure both are in PYTHONPATH folder relative to this file,')
+    print ('or appropriately adjust the file "vrep.py. Also follow the"')
+    print ('ReadMe.txt in the vrep remote API folder')
+    print ('--------------------------------------------------------------')
+    print ('')
+    raise e
+
+import tensorflow as tf
+
+from tensorflow.python.platform import flags
+from tensorflow.python.platform import gfile
+from tensorflow.python.ops import data_flow_ops
+from keras.utils import get_file
+from ply import write_xyz_rgb_as_ply
+from PIL import Image
+
+# progress bars https://github.com/tqdm/tqdm
+# import tqdm without enforcing it as a dependency
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(*args, **kwargs):
+        if args:
+            return args[0]
+        return kwargs.get('iterable', None)
+
+import grasp_geometry
+import grasp_geometry_tf
+from depth_image_encoding import ClipFloatValues
+from depth_image_encoding import FloatArrayToRgbImage
+from depth_image_encoding import FloatArrayToRawRGB
+from skimage.transform import resize
+from skimage import img_as_ubyte
+from skimage import img_as_uint
+from skimage.color import grey2rgb
+import json
+
+try:
+    import eigen  # https://github.com/jrl-umi3218/Eigen3ToPython
+    import sva  # https://github.com/jrl-umi3218/SpaceVecAlg
+except ImportError:
+    print('eigen and sva python modules are not available. To install run the script at:'
+          'https://github.com/ahundt/robotics_setup/blob/master/robotics_tasks.sh'
+          'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
+          'and https://github.com/jrl-umi3218/SpaceVecAlg. '
+          'When you build the modules make sure python bindings are enabled.')
+
 import numpy as np
 import holoviews as hv
 import os
@@ -36,24 +111,97 @@ import argparse
 from functools import partial
 
 try:
-    # don't require tensorflow for reading, it only speeds things up
-    import tensorflow as tf
-except ImportError:
-    tf = None
-
-try:
     # don't require vrep, only use it if it is available
     import vrep
 except ImportError:
     vrep = None
 
+from vrep_grasp import VREPGraspVisualization
 
-parser = argparse.ArgumentParser(description='Process additional parameters for stack player')
 
-parser.add_argument('--data-dir', type=str, action='store', default='~/.keras/datasets/costar_block_stacking_dataset_v0.4',
-                    help='directory path containing the data')
+# flags.DEFINE_string('data_dir',
+#                     os.path.join(os.path.expanduser("~"),
+#                                  '.keras', 'datasets', 'costar_block_stacking_dataset_v0.4'),
+#                     """Path to directory containing the dataset.""")
 
-args = parser.parse_args()
+# the following line is needed for tf versions before 1.5
+# flags.FLAGS._parse_flags()
+FLAGS = flags.FLAGS
+FLAGS(sys.argv)
+
+
+class VREPCostarStackingVisualization(VREPGraspVisualization):
+    """ Visualize the google brain robot data grasp dataset in the V-REP robot simulator.
+    """
+
+    def __init__(self):
+        """Start the connection to the remote V-REP simulation
+
+           Once initialized, call visualize().
+        """
+        super(VREPCostarStackingVisualization, self).__init__()
+
+    def visualize_tensorflow(self, tf_session, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName,
+                             visualization_dir=FLAGS.visualization_dir, verbose=0):
+        """Visualize one dataset in V-REP from performing all preprocessing in tensorflow.
+
+            tensorflow loads the raw data from the dataset and also calculates all
+            features before they are rendered with vrep via python,
+        """
+
+    def visualize_python(self, tf_session=None, dataset=FLAGS.grasp_dataset, batch_size=1, parent_name=FLAGS.vrepParentName,
+                         visualization_dir=FLAGS.visualization_dir):
+        """Visualize one dataset in V-REP from raw dataset features, performing all preprocessing manually in this function.
+        """
+        # Visualize clear view point cloud
+        # if FLAGS.vrepVisualizeRGBD:
+
+        #     vrep.visualization.create_point_cloud(
+        #         self.client_id, 'clear_view_cloud',
+        #         depth_image=np.copy(clear_frame_depth_image),
+        #         camera_intrinsics_matrix=camera_intrinsics_matrix,
+        #         transform=base_to_camera_vec_quat_7,
+        #         color_image=clear_frame_rgb_image, parent_handle=parent_handle,
+        #         rgb_sensor_display_name='kcam_rgb_clear_view',
+        #         depth_sensor_display_name='kcam_depth_clear_view')
+
+    def show_step(self, data, numpy_data, step, prefix='', parent_name=None):
+        if parent_name is None:
+            parent_name = FLAGS.vrepParentName
+
+        error_code, parent_handle = vrep.vrep.simxGetObjectHandle(self.client_id, parent_name, vrep.vrep.simx_opmode_blocking)
+        if error_code is -1:
+            parent_handle = -1
+            print('could not find object with the specified name, so putting objects in world frame:', parent_name)
+
+        single_frame_json_str = str(data["all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json"][step])
+        frames = json.loads(single_frame_json_str)
+        for name, frame in six.iteritems(frames):
+            display_name = prefix + name.replace('/', '_')
+            print('creating dummmy: ' + str(display_name) + ' for frame: ' + name)
+            frame = np.array(frame)
+            vrep.visualization.create_dummy(
+                self.client_id,
+                display_name=display_name,
+                transform=frame,
+                parent_handle=parent_handle
+            )
+            print('past create_dummy')
+
+
+
+def vrep_grasp_main(_):
+    with tf.Session() as sess:
+        viz = VREPCostarStackingVisualization()
+        viz.visualize(sess)
+
+
+# parser = argparse.ArgumentParser(description='Process additional parameters for stack player')
+
+# parser.add_argument('--data-dir', type=str, action='store', default='~/.keras/datasets/costar_block_stacking_dataset_v0.4',
+#                     help='directory path containing the data')
+
+# args = parser.parse_args()
 
 
 def GetJpeg(img):
@@ -118,11 +266,12 @@ def generate_holo_map(rgb_images, height, width):
     holomap = holomap.options(width=int(width), height=int(height))
     return holomap
 
-def process_image(file_path):
+def load_example(file_path):
     """ Update the example, loading images and other data
     """
     data = h5py.File(file_path, 'r')
     rgb_images = list(data['image'])
+    depth_images = list(data['depth_image'])
     frame_indices = np.arange(len(rgb_images))
     gripper_status = list(data['gripper'])
     action_status = list(data['label'])
@@ -135,7 +284,18 @@ def process_image(file_path):
     gripper_action_label, gripper_action_goal_idx = generate_gripper_action_label(data, action_status, gripper_status, gripper_action_goal_idx)
 
     rgb_images = ConvertImageListToNumpy(np.squeeze(rgb_images), format='list')
-    return rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx
+    depth_images = ConvertImageListToNumpy(np.squeeze(depth_images), format='list')
+    numpy_data = {
+        'rgb_images': rgb_images,
+        'depth_images': depth_images,
+        'frame_indices': frame_indices,
+        'gripper_status': gripper_status,
+        'action_status': action_status,
+        'gripper_action_label': gripper_action_label,
+        'gripper_action_goal_idx': gripper_action_goal_idx
+    }
+
+    return data, numpy_data
 
 
 def generate_gripper_action_label(data, action_status, gripper_status, gripper_action_goal_idx):
@@ -147,8 +307,6 @@ def generate_gripper_action_label(data, action_status, gripper_status, gripper_a
         gripper_action_goal_idx = list(data['gripper_action_goal_idx'])
         print(gripper_action_goal_idx)
         print("gripper_action_labels already exist..")
-        print("gripper_action_label length: " + str(len(gripper_action_label)))
-        print("gripper_action_goal_idx length: " + str(len(gripper_action_goal_idx)))
     else:
         # compute the gripper action label on the fly
         unique_actions, indices = np.unique(action_status, return_index=True)
@@ -165,7 +323,6 @@ def generate_gripper_action_label(data, action_status, gripper_status, gripper_a
             else:
                 gripper_action_label[i] = unique_actions[action_ind]
     return gripper_action_label, gripper_action_goal_idx
-
 
 def load_data_plot(renderer, frame_indices, gripper_status, action_status, gripper_action_label, height, width):
     # load the gripper data
@@ -202,8 +359,6 @@ def check_errors(file_list, index, action='next'):
     index: index of the file to check
     action: action to identify the button task
     """
-    if not file_list:
-        raise ValueError('List of files to load is empty! Quitting')
     file_list_copy = file_list[:]
     index_copy = index
     print(file_list[index])
@@ -224,42 +379,39 @@ def check_errors(file_list, index, action='next'):
                 flag = 1
     return index
 
-if tf is not None:
-    tf.enable_eager_execution()
+########################################################################################################################################################
+## Start the bokeh rendering script portion
 renderer = hv.renderer('bokeh')
 
 #example_filename = "C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/2018-05-23-20-18-25_example000002.success.h5f"
 #file_name_list = glob.glob("C:/Users/Varun/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f")
 
-path = os.path.expanduser(args.data_dir)
-
-if '.h5f' in path:
-    filenames = glob.glob(args.data_dir)
+FLAGS(sys.argv)
+if vrep is not None:
+    vrep_viz = VREPCostarStackingVisualization()
 else:
-    filenames = os.listdir(path)
-    # use the full path name
-    filenames = [os.path.join(path, filename) for filename in filenames]
+    vrep_viz = None
 
-# filter out files that aren't .h5f files
-ignored_files = [filename for filename in filenames if '.h5f' not in filename]
-filenames = [filename for filename in filenames if '.h5f' in filename]
-
-# Report ignored files to the user
-if ignored_files:
-    print('Ignoring the following files which do not contain ".h5f": \n\n' + str(ignored_files) + '\n\n')
-
-file_name_list = filenames
-
+data_dir = os.path.expanduser(FLAGS.data_dir)
+if os.path.isdir(data_dir):
+    data_dir = os.path.join(data_dir, '*.h5f')
+print('Loading data_dir: ' + str(data_dir))
+file_name_list = glob.glob(data_dir)
 index = 0
 
 index = check_errors(file_name_list, index)
 
-rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx = process_image(file_name_list[index])
+data, numpy_data = load_example(file_name_list[index])
+rgb_images = numpy_data['rgb_images']
+frame_indices = numpy_data['frame_indices']
+gripper_status = numpy_data['gripper_status']
+action_status = numpy_data['action_status']
+gripper_action_label = numpy_data['gripper_action_label']
+gripper_action_goal_idx = numpy_data['gripper_action_goal_idx']
 print('images loaded')
 # Declare the HoloViews object
 start = 0
-end = len(rgb_images) - 1
-print(' End Index of RGB images: ' + str(end))
+end = len(rgb_images)
 # TODO(ahundt) resize image, all of this size code had no effect
 width = int(640*1.5)
 height = int(480*1.5)
@@ -287,7 +439,12 @@ def animate_update():
     slider.value = year
 
 def slider_update(attrname, old, new):
+    global data, numpy_data, vrep_viz
     plot.update(slider.value)
+    if vrep_viz is not None:
+        print('vrep_viz update slider value: ' + str(slider.value))
+        vrep_viz.show_step(data, numpy_data, slider.value)
+
 
 slider = Slider(start=start, end=end, value=0, step=1, title="Frame", width=width)
 slider.on_change('value', slider_update)
@@ -300,30 +457,38 @@ def animate():
         button.label = ' Play'
         curdoc().remove_periodic_callback(animate_update)
 
-def next_image(files, action):
-    global file_textbox, button, button_next, button_prev, index
+def next_example(files, action):
+    """ load the next example in the dataset
+    """
+    global file_textbox, button, button_next, button_prev, index, vrep_viz, data, numpy_data
     print("next clicked")
     file_textbox.value = "Processing..."
     renderer = hv.renderer('bokeh')
     if action == 'next':
-        index=(index + 1) % len(files)
+        index = (index + 1) % len(files)
     else:
-        index=(index - 1) % len(files)
+        index = (index - 1) % len(files)
     #print("it ", iterator)
-    print("index before check",index)
+    print("index before check", index)
     index = check_errors(files, index, action)
     print("index after check", index)
     print("len", len(files))
 
     file_name = files[index]
-    rgb_images, frame_indices, gripper_status, action_status, gripper_action_label, gripper_action_goal_idx = process_image(file_name)
+    data, numpy_data = load_example(file_name_list[index])
+    rgb_images = numpy_data['rgb_images']
+    frame_indices = numpy_data['frame_indices']
+    gripper_status = numpy_data['gripper_status']
+    action_status = numpy_data['action_status']
+    gripper_action_label = numpy_data['gripper_action_label']
+    gripper_action_goal_idx = numpy_data['gripper_action_goal_idx']
     print("image loaded")
     print("action goal idx", gripper_action_goal_idx)
     height = int(rgb_images[0].shape[0])
     width = int(rgb_images[0].shape[1])
     start = 0
-    end = len(rgb_images) - 1
-    print(' End Index of RGB images: ' + str(end))
+    end = len(rgb_images)
+    print(end)
 
     def slider_update(attrname, old, new):
         plot.update(slider.value)
@@ -356,9 +521,9 @@ button = Button(label=' Play', width=60)
 button.on_click(animate)
 
 button_next = Button(label='Next', width=60)
-button_next.on_click(partial(next_image, files=file_name_list, action='next'))
+button_next.on_click(partial(next_example, files=file_name_list, action='next'))
 button_prev = Button(label='Prev', width=60)
-button_prev.on_click(partial(next_image, files=file_name_list, action='prev'))
+button_prev.on_click(partial(next_example, files=file_name_list, action='prev'))
 
 # https://bokeh.pydata.org/en/latest/docs/reference/models/widgets.inputs.html
 # TODO(ahundt) switch to AutocompleteInput with list of files
@@ -389,3 +554,6 @@ layout_root = layout(plot_list+widget_list, sizing_mode='fixed')
 
 
 curdoc().add_root(layout_root)
+if __name__ == '__main__':
+    tf.app.run(main=vrep_grasp_main)
+

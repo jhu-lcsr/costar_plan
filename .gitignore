@@ -45,6 +45,7 @@ slurm-*.out
 */logs_cornell/*
 */logs_google_brain/*
 */hyperopt_logs*/*
+*/build/*
 *.tfrecord*
 *.nbi
 *.nbc
@@ -56,3 +57,5 @@ slurm-*.out
 *.dylib
 *.dll
 
+# Installation files
+*.egg-info*
