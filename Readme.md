@@ -7,20 +7,20 @@ CoSTAR Plan is for deep learning with robots, divided into two main parts, the C
 ## CoSTAR Task Planner (CTP)
 
 Code for the paper [Visual Robot Task Planning](https://arxiv.org/abs/1804.00062).
+Details are
 
 ## [CoSTAR Hyper](costar_hyper/README.md)
 
 Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home).
+Details are in the [costar hyper readme](costar_hyper/README.md).
 
-[![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
+[![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/1.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
 
 ### Supported Datasets
 
-Details are in the [costar hyper readme](costar_hyper/README.md).
-
   - [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset)
-  - Cornell Grasping Dataset
-  - Google Brain Grasping Dataset
+  - [Cornell Grasping Dataset](http://pr.cs.cornell.edu/grasping/rect_data/data.php)
+  - [Google Brain Grasping Dataset](https://sites.google.com/site/brainrobotdata/home/grasping-dataset)
 
 
 # CoSTAR Task Planner (CTP)
