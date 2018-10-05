@@ -6,15 +6,11 @@ CoSTAR Plan is for deep learning with robots, divided into two main parts, the C
 
 ## CoSTAR Task Planner (CTP)
 
-### Associated Paper
-
-Visual Robot Task Planning
+Code for the paper [Visual Robot Task Planning](https://arxiv.org/abs/1804.00062).
 
 ## [CoSTAR Hyper](costar_hyper/README.md)
 
-### Associated Paper
-
-[Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home)
+Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home).
 
 [![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
 
@@ -40,14 +36,11 @@ To run deep learning examples, you will need TensorFlow and Keras, plus a number
 *About this repository:* CTP is a _single-repository_ project. As such, all the custom code you need should be in one place: here. There are exceptions, such as the [CoSTAR Stack](https://github.com/cpaxton/costar_stack/) for real robot execution, but these are generally not necessary. The minimal installation of CTP is just to install the `costar_models` package as a normal [python package](https://github.com/cpaxton/costar_plan/tree/master/costar_models/python) ignoring everything else.
 
 # CTP Datasets
-  - [PyBullet Block Stacking](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz)
-  - [Sample Husky Data](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/husky_data.tar.gz)
 
-## Deprecated Datsets
-
-  - [Classic CoSTAR Real Robot Data](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/sample_real_ur5_robot_data.tar.gz)
-     - We recommend using the full [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset) over this early version.
-     - [![Classic CoSTAR Real Robot Data Collection](https://img.youtube.com/vi/LMqEcoYbrLM/0.jpg)](https://youtu.be/LMqEcoYbrLM "Classic CoSTAR Real Robot Data Collection")
+  - PyBullet Block Stacking [download tar.gz](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz)
+  - Sample Husky Data [download tar.gz](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/husky_data.tar.gz)
+  - Classic CoSTAR Real Robot Data [download tar.gz](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/sample_real_ur5_robot_data.tar.gz)
+     - Early version, deprecated in lieu of the full [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset).
 
 
 # Contents
