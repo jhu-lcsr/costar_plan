@@ -196,7 +196,7 @@ def _parse_args():
     parser.add_argument("--rgb", action='store_true', default=True, help='process rgb data')
     parser.add_argument("--no-rgb", action='store_false', default=True, help='do not process rgb data', dest='rgb')
     parser.add_argument("--fps", type=int, default=10, help='framerate to process images in frames per second')
-    parser.add_argument("--matplotlib", type=bool, default=False,
+    parser.add_argument("--matplotlib", action='store_true', default=False,
                         help='preview data with matplotlib, slower but you can do pixel lookups')
     parser.add_argument("--print", type=str, default='',
                         help=('Comma separated list of data channels to convert to a list and print as a string.'
