@@ -34,8 +34,11 @@ def _parse_args():
     #                     default=False, help='skip grasp success cases')
     # parser.add_argument("--ignore_error", action='store_true', default=False,
     #                     help='skip attempts that are both failures and contain errors')
-    # parser.add_argument("--success_only", action='store_true', default=False,
-    #                     help='only visit stacking data labeled as successful')
+    parser.add_argument("--success_only", action='store_true', default=False,
+                        help='only visit stacking data labeled as successful')
+    parser.add_ardument("--split_all", action='store_true', default=False,
+                        help='split all datasets into success, failure, and error sets.'
+                             'requires train/val/test from success_only subset')
     parser.add_argument("--plush", action='store_true', default=False,
                         help='processing plush attempts')
     parser.add_argument("--train", type=str, default='',
@@ -81,25 +84,22 @@ def get_existing_filenames(path_to_file):
     return filenames
 
 
-def split_dataset(filenames, train_set, val_set, test_set):
+def split_dataset(filenames, train_set, val_set, test_set, val_len=64, test_len=64):
     """Split the input filenames into three sets.
-    If val_set and test_set are both zero, split the input 8:1:1
+    If val_set and test_set are empty, the sets will be of length val_len and test_len.
     If val_set and test_set have unequal length, match the two lengths
     Add additional files not in val or test sets into training set
-
     """
     if len(val_set) is 0 and len(test_set) is 0:
-        # from math import floor
+        if len(train_set) != 0:
+            not_train_set = [filename for filename in filenames
+                             if filename not in train_set]
+        else:
+            not_train_set = filenames
 
-        # total_samples = len(filenames)
-        # ten_percent_samples = int(floor(total_samples / 10))
-        ten_percent_samples = 64
-
-        not_train_set = [filename for filename in filenames if filename not in train_set]
-
-        val_set = not_train_set[0:ten_percent_samples]
-        test_set = not_train_set[ten_percent_samples:2*ten_percent_samples]
-        train_set += not_train_set[2*ten_percent_samples:]
+        val_set = not_train_set[0:val_len]
+        test_set = not_train_set[val_len:val_len+test_len]
+        train_set += not_train_set[val_len+test_len:]
 
     else:
         """
@@ -172,69 +172,8 @@ def output_file(path, plush, output_prefix, set_name, filenames):
     f.close()
 
 
-def pause():
-    _ = input("Press <Enter> to continue...")
-
-
-def compare_filenames(path, name1, name2):
-    """ Quick function meant to check if filenames are the same
-    Intended to be used in REPL only
-    from split_dataset import compare_filenames
-
-    costar_block_stacking_v0.3_success_only_train_files.txt
-    """
-
-    path = os.path.expanduser(path)
-    if os.path.isdir(path):
-        filenames = os.listdir(path)
-    else:
-        raise ValueError('Path entered is not a path: ' + path)
-    print('Read ' + str(len(filenames)) + ' filenames in the folder')
-
-    # Read files that are success, for now
-    filenames = [filename for filename in filenames if '.success.h5f' in filename]
-    print('Selecting ' + str(len(filenames)) + ' success files')
-    pause()
-
-    file1 = get_existing_filenames(os.path.join(path, name1))
-    file2 = get_existing_filenames(os.path.join(path, name2))
-
-    print(name1 + ": " + str(len(file1)) + "; "
-          + name2 + ": " + str(len(file2)))
-
-    same = []
-    diff = []
-    if len(file1) < len(file2):
-        file1, file2 = file2, file1
-
-    for filename in file1:
-        if filename in file2:
-            same.append(filename)
-        else:
-            diff.append(filename)
-    print("same: " + str(len(same)) + "; diff: " + str(len(diff)))
-
-    return same, diff
-
-
-def main(args, root='root'):
-    # Open and get existing training/validation/test files
-    # Save the filenames to separate lists
-    # Get all the .h5f filenames in the path, compare them to the lists
-    # In training, validation, or test set -> continue
-    # Not in any set -> add to test set
-
-    # handle no pre-existing files => randomize and split files into 3 sets 8:1:1
-
-    # Get the path to
-    path = os.path.expanduser(args['path'])
-    if os.path.isdir(path):
-        filenames = os.listdir(path)
-    else:
-        raise ValueError('Path entered is not a path: ' + path)
-    print('Read ' + str(len(filenames)) + ' filenames in the folder')
-
-    # Read files that are success, for now
+def split_success_only(args, filenames, path):
+    # Read files that are success
     filenames = [filename for filename in filenames if '.success.h5f' in filename]
     print('Selecting ' + str(len(filenames)) + ' success files')
     args['output_name'] += '_success_only'
@@ -307,9 +246,215 @@ def main(args, root='root'):
         raise Exception("Something is wrong!")
 
     # Write the output files
-    output_file(path, args['plush'], args['output_name'], 'train', train_set)
-    output_file(path, args['plush'], args['output_name'], 'val', val_set)
-    output_file(path, args['plush'], args['output_name'], 'test', test_set)
+    output_file(path, args['plush'], args['output_name'], 'success_only_train', train_set)
+    output_file(path, args['plush'], args['output_name'], 'success_only_val', val_set)
+    output_file(path, args['plush'], args['output_name'], 'success_only_test', test_set)
+
+
+def split_all(args, filenames, path):
+    # Get the success, failure, and error filenames with nonzero frames
+    success_filenames, failure_filenames, error_filenames = count_nonzero_files(filenames)
+    pause()  # DEBUG
+
+    # Calculate the percentage of success, failure and error
+    total_file_count = len(filenames)
+    if len(success_filenames) + len(failure_filenames) + \
+       len(error_filenames) != total_file_count:
+        raise Exception("The numbers don't add up!")
+    success_ratio = len(success_filenames) / total_file_count
+    failure_ratio = len(failure_filenames) / total_file_count
+    error_ratio = len(error_filenames) / total_file_count
+    print("Ratios: {0:.2f} success, {1:.2f} failure, {2:.2f} error".format(
+            success_ratio, failure_ratio, error_ratio))
+    pause()  # DEBUG
+
+    # Read the train/val set from success_only subset
+    if args['plush']:
+        default_name = 'costar_plush_block_stacking_v0.4_success_only_'
+    else:
+        default_name = 'costar_block_stacking_v0.4_success_only_'
+    # Read filenames for the previous training set
+    if not args['train']:
+        # Look for v0.4 success only train filenames
+        print('No train file is specified. Trying to open v0.4 success only...')
+        pre_existing_set_file = path + default_name + 'train_files.txt'
+    else:
+        pre_existing_set_file = path + args['train']
+
+    if not os.path.isfile(pre_existing_set_file):
+        raise ValueError(
+            'Pre-existing training file is not a file: ' +
+            pre_existing_set_file)
+    success_train_len = len(get_existing_filenames(pre_existing_set_file))
+
+    # Read filenames for the previous validation set
+    if not args['val']:
+        # Look for v0.4 success only val filenames
+        print('No val file is specified. Trying to open v0.4 success only...')
+        pre_existing_set_file = path + default_name + 'val_files.txt'
+    else:
+        pre_existing_set_file = path + args['val']
+
+    if not os.path.isfile(pre_existing_set_file):
+        raise ValueError(
+            'Pre-existing validating file is not a file: ' +
+            pre_existing_set_file)
+    success_val_len = len(get_existing_filenames(pre_existing_set_file))
+
+    # Read filenames for the previous test set
+    if not args['test']:
+        # Look for v0.4 success only train filenames
+        print('No test file is specified. Trying to open v0.4 success only...')
+        pre_existing_set_file = path + default_name + 'test_files.txt'
+    else:
+        pre_existing_set_file = path + args['test']
+
+    if not os.path.isfile(pre_existing_set_file):
+        raise ValueError(
+            'Pre-existing testing file is not a file: ' +
+            pre_existing_set_file)
+    success_test_len = len(get_existing_filenames(pre_existing_set_file))
+
+    # Calculate set size for failure and error, based on success_only subset
+    multiplier_failure = len(failure_filenames)/len(success_filenames)
+    failure_val_len, failure_test_len = \
+        int(round(success_val_len*multiplier_failure)), \
+        int(round(success_test_len*multiplier_failure))
+    failure_train_len = len(failure_filenames) - (failure_val_len + failure_test_len)
+    multiplier_error = len(error_filenames)/len(success_filenames)
+    error_val_len, error_test_len = \
+        int(round(success_val_len*multiplier_error)), \
+        int(round(success_test_len*multiplier_error))
+    error_train_len = len(error_filenames) - (error_val_len + error_test_len)
+    print("Successfully read success_only filenames: {0} train, {1} val, {2} test".format(
+            success_train_len, success_val_len, success_test_len))
+    print("Length for failure sets: {0} train, {1} val, {2} test".format(
+            failure_train_len, failure_val_len, failure_test_len))
+    print("Length for error sets: {0} train, {1} val, {2} test".format(
+            error_train_len, error_val_len, error_test_len))
+    pause()
+    
+    # Split the dataset for failure and error
+    fail_train_set, fail_val_set, fail_test_set = \
+        split_dataset(failure_filenames, [], [], [])
+    err_train_set,  err_val_set,  err_test_set = \
+        split_dataset(error_filenames, [], [], [])
+
+    # Write the output files
+    output_file(path, args['plush'], args['output_name'], 'failure_only_train', fail_train_set)
+    output_file(path, args['plush'], args['output_name'], 'failure_only_val', fail_val_set)
+    output_file(path, args['plush'], args['output_name'], 'failure_only_test', fail_test_set)
+    output_file(path, args['plush'], args['output_name'], 'error_only_train', err_train_set)
+    output_file(path, args['plush'], args['output_name'], 'error_only_val', err_val_set)
+    output_file(path, args['plush'], args['output_name'], 'error_only_test', err_test_set)
+
+
+def count_nonzero_files(filenames):
+    '''
+    Open the files and check frame count. Skip files with 0 frame.
+
+    :param filenames: .h5f filenames in the folder
+    :return: Lists of success/failure/error filenames with nonzero frames
+    '''
+    import h5py  # Needs h5py to open the files and check frame count
+    # TODO: Write total frames into csv file as a new column
+
+    # Open the files to check frame count. Skip files with 0 frame.
+    error_filenames = []
+    failure_filenames = []
+    success_filenames = []
+    for filename in filenames:
+        with h5py.File(filename, 'r') as data:
+            total_frames = len(data['image'])
+            if total_frames == 0:  # Skip files with 0 frame
+                print('Skipping %s since it has 0 image frame' % filename)
+                continue
+
+            if 'error' in filename:
+                error_filenames += filename
+            elif 'failure' in filename:
+                failure_filenames += filename
+            # else:  # success
+            #     success_filenames += filename
+            elif 'success' in filename:
+                success_filenames += filename
+            else:  # BUG: Sanity check for debugging
+                raise Exception('Somthing is wrong!')
+
+    print("Counted {0} success files, {1} failure files, and {2} error files.".format(
+            len(success_filenames), len(failure_filenames), len(error_filenames)))
+
+    return success_filenames, failure_filenames, error_filenames
+
+
+def pause():
+    _ = input("Press <Enter> to continue...")
+
+
+def compare_filenames(path, name1, name2):
+    """ Quick function meant to check if filenames are the same
+    Intended to be used in REPL only
+    from split_dataset import compare_filenames
+
+    costar_block_stacking_v0.3_success_only_train_files.txt
+    """
+
+    path = os.path.expanduser(path)
+    if os.path.isdir(path):
+        filenames = os.listdir(path)
+    else:
+        raise ValueError('Path entered is not a path: ' + path)
+    print('Read ' + str(len(filenames)) + ' filenames in the folder')
+
+    # Read files that are success, for now
+    filenames = [filename for filename in filenames if '.success.h5f' in filename]
+    print('Selecting ' + str(len(filenames)) + ' success files')
+    pause()
+
+    file1 = get_existing_filenames(os.path.join(path, name1))
+    file2 = get_existing_filenames(os.path.join(path, name2))
+
+    print(name1 + ": " + str(len(file1)) + "; "
+          + name2 + ": " + str(len(file2)))
+
+    same = []
+    diff = []
+    if len(file1) < len(file2):
+        file1, file2 = file2, file1
+
+    for filename in file1:
+        if filename in file2:
+            same.append(filename)
+        else:
+            diff.append(filename)
+    print("same: " + str(len(same)) + "; diff: " + str(len(diff)))
+
+    return same, diff
+
+
+def main(args, root='root'):
+    # Open and get existing training/validation/test files
+    # Save the filenames to separate lists
+    # Get all the .h5f filenames in the path, compare them to the lists
+    # In training, validation, or test set -> continue
+    # Not in any set -> add to test set
+
+    # handle no pre-existing files => randomize and split files into 3 sets 8:1:1
+
+    # Get the path to
+    path = os.path.expanduser(args['path'])
+    if os.path.isdir(path):
+        filenames = os.listdir(path)
+    else:
+        raise ValueError('Path entered is not a path: ' + path)
+    print('Read ' + str(len(filenames)) + ' filenames in the folder')
+
+    if args['success_only'] and args['split_all']:
+        raise ValueError('success_only and split_all are mutually exclusive. Please choose just one.')
+    elif args['success_only']:
+        split_success_only(args, filenames, path)
+    elif args['split_all']:
+        split_all(args, filenames, path)
 
 
 if __name__ == '__main__':
