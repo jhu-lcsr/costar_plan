@@ -262,7 +262,7 @@ def split_all(args, filenames, path):
     failure_ratio = len(failure_filenames) / total_file_count
     error_ratio = len(error_filenames) / total_file_count
     print("Total: %d files" % total_file_count)
-    print("Ratios: {:.2f}% success, {:.2f}% failure, {:.2f}% error".format(
+    print("Ratios: {:.2f}% success, {:.2f}% failure(no error), {:.2f}% error".format(
             success_ratio*100, failure_ratio*100, error_ratio*100))
     pause()  # DEBUG
 
