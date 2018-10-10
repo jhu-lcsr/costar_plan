@@ -366,20 +366,21 @@ def split_all(args, filenames, path):
     pause()
 
     # Write the output files
-    output_file(path, args['plush'], args['output_name'], 'failure_no_error_only_train', fail_train_set)
-    output_file(path, args['plush'], args['output_name'], 'failure_no_error_only_val', fail_val_set)
-    output_file(path, args['plush'], args['output_name'], 'failure_no_error_only_test', fail_test_set)
-    output_file(path, args['plush'], args['output_name'], 'error_only_train', err_train_set)
-    output_file(path, args['plush'], args['output_name'], 'error_only_val', err_val_set)
-    output_file(path, args['plush'], args['output_name'], 'error_only_test', err_test_set)
+    output_file(path, args['plush'], args['output_name'], 'task_failure_only_train', fail_train_set)
+    output_file(path, args['plush'], args['output_name'], 'task_failure_only_val', fail_val_set)
+    output_file(path, args['plush'], args['output_name'], 'task_failure_only_test', fail_test_set)
+    output_file(path, args['plush'], args['output_name'], 'error_failure_only_train', err_train_set)
+    output_file(path, args['plush'], args['output_name'], 'error_failure_only_val', err_val_set)
+    output_file(path, args['plush'], args['output_name'], 'error_failure_only_test', err_test_set)
 
     # Error is also a type of failure!
     fail_train_set += err_train_set
     fail_val_set += err_val_set
     fail_test_set += err_test_set
-    output_file(path, args['plush'], args['output_name'], 'failure_only_train', fail_train_set)
-    output_file(path, args['plush'], args['output_name'], 'failure_only_val', fail_val_set)
-    output_file(path, args['plush'], args['output_name'], 'failure_only_test', fail_test_set)
+    output_file(path, args['plush'], args['output_name'], 'all_failure_only_train', fail_train_set)
+    output_file(path, args['plush'], args['output_name'], 'all_failure_only_val', fail_val_set)
+    output_file(path, args['plush'], args['output_name'], 'all_failure_only_test', fail_test_set)
+
 
 def count_nonzero_files(path, filenames):
     '''
@@ -389,8 +390,6 @@ def count_nonzero_files(path, filenames):
     :return: Lists of success/failure/error filenames with nonzero frames
     '''
     import h5py  # Needs h5py to open the files and check frame count
-    import sys
-    import traceback
     # TODO: Write total frames into csv file as a new column
 
     # Open the files to check frame count. Skip files with 0 frame.
