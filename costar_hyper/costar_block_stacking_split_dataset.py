@@ -261,6 +261,7 @@ def split_all(args, filenames, path):
     success_ratio = len(success_filenames) / total_file_count
     failure_ratio = len(failure_filenames) / total_file_count
     error_ratio = len(error_filenames) / total_file_count
+    print("Total: %d files" % total_file_count)
     print("Ratios: {:.2f}% success, {:.2f}% failure, {:.2f}% error".format(
             success_ratio*100, failure_ratio*100, error_ratio*100))
     pause()  # DEBUG
@@ -324,6 +325,10 @@ def split_all(args, filenames, path):
     print("Successfully read success_only filenames: {0} train, {1} val, {2} test".format(
             success_train_len, success_val_len, success_test_len))
     print("Length for failure sets: {0} train, {1} val, {2} test".format(
+            failure_train_len + error_train_len, 
+            failure_val_len + error_val_len, 
+            failure_test_len + error_test_len))
+    print("Length for failure (no error) sets: {0} train, {1} val, {2} test".format(
             failure_train_len, failure_val_len, failure_test_len))
     print("Length for error sets: {0} train, {1} val, {2} test".format(
             error_train_len, error_val_len, error_test_len))
@@ -361,13 +366,20 @@ def split_all(args, filenames, path):
     pause()
 
     # Write the output files
-    output_file(path, args['plush'], args['output_name'], 'failure_only_train', fail_train_set)
-    output_file(path, args['plush'], args['output_name'], 'failure_only_val', fail_val_set)
-    output_file(path, args['plush'], args['output_name'], 'failure_only_test', fail_test_set)
+    output_file(path, args['plush'], args['output_name'], 'failure_no_error_only_train', fail_train_set)
+    output_file(path, args['plush'], args['output_name'], 'failure_no_error_only_val', fail_val_set)
+    output_file(path, args['plush'], args['output_name'], 'failure_no_error_only_test', fail_test_set)
     output_file(path, args['plush'], args['output_name'], 'error_only_train', err_train_set)
     output_file(path, args['plush'], args['output_name'], 'error_only_val', err_val_set)
     output_file(path, args['plush'], args['output_name'], 'error_only_test', err_test_set)
 
+    # Error is also a type of failure!
+    fail_train_set += err_train_set
+    fail_val_set += err_val_set
+    fail_test_set += err_test_set
+    output_file(path, args['plush'], args['output_name'], 'failure_only_train', fail_train_set)
+    output_file(path, args['plush'], args['output_name'], 'failure_only_val', fail_val_set)
+    output_file(path, args['plush'], args['output_name'], 'failure_only_test', fail_test_set)
 
 def count_nonzero_files(path, filenames):
     '''
@@ -407,12 +419,12 @@ def count_nonzero_files(path, filenames):
                     error_filenames += [filename]
                 elif 'failure' in filename:
                     failure_filenames += [filename]
-                # else:  # success
-                #     success_filenames += filename
-                elif 'success' in filename:
+                else:  # success
                     success_filenames += [filename]
-                else:  # BUG: Sanity check for debugging
-                    raise Exception('Somthing is wrong!')
+                # elif 'success' in filename:
+                #     success_filenames += [filename]
+                # else:  # BUG: Sanity check for debugging
+                #     raise Exception('Somthing is wrong!')
         except IOError as ex:
             print('Skipping %s for IO error' % filename)
 
