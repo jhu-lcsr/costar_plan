@@ -18,6 +18,7 @@ import argparse
 import os
 
 
+
 def _parse_args():
     parser = argparse.ArgumentParser(description=
         'Splits dataset into train, validation and test sets.'
@@ -36,9 +37,9 @@ def _parse_args():
     #                     help='skip attempts that are both failures and contain errors')
     parser.add_argument("--success_only", action='store_true', default=False,
                         help='only visit stacking data labeled as successful')
-    parser.add_ardument("--split_all", action='store_true', default=False,
-                        help='split all datasets into success, failure, and error sets.'
-                             'requires train/val/test from success_only subset')
+    parser.add_argument("--split_all", action='store_true', default=False,
+                        help='Split all datasets into success, failure, and error sets. '
+                             'Requires train/val/test from success_only subset')
     parser.add_argument("--plush", action='store_true', default=False,
                         help='processing plush attempts')
     parser.add_argument("--train", type=str, default='',
@@ -80,7 +81,7 @@ def get_existing_filenames(path_to_file):
     f.close()
 
     print('Read ' + str(len(filenames)) + ' filenames from ' + path_to_file)
-    pause()  # DEBUG
+    # pause()  # DEBUG
     return filenames
 
 
@@ -155,7 +156,7 @@ def output_file(path, plush, output_prefix, set_name, filenames):
     print('Writing ' + path + output_filename)
 
     f = open(os.path.join(path, output_filename), 'w')
-    print(f)
+    # print(f)
 
     if plush:
         folder = 'blocks_with_plush_toy/'
@@ -176,7 +177,6 @@ def split_success_only(args, filenames, path):
     # Read files that are success
     filenames = [filename for filename in filenames if '.success.h5f' in filename]
     print('Selecting ' + str(len(filenames)) + ' success files')
-    args['output_name'] += '_success_only'
     pause()
 
     # Read filenames for the previous training set
@@ -253,19 +253,16 @@ def split_success_only(args, filenames, path):
 
 def split_all(args, filenames, path):
     # Get the success, failure, and error filenames with nonzero frames
-    success_filenames, failure_filenames, error_filenames = count_nonzero_files(filenames)
+    success_filenames, failure_filenames, error_filenames = count_nonzero_files(path, filenames)
     pause()  # DEBUG
 
     # Calculate the percentage of success, failure and error
-    total_file_count = len(filenames)
-    if len(success_filenames) + len(failure_filenames) + \
-       len(error_filenames) != total_file_count:
-        raise Exception("The numbers don't add up!")
+    total_file_count = len(success_filenames) + len(failure_filenames) + len(error_filenames)
     success_ratio = len(success_filenames) / total_file_count
     failure_ratio = len(failure_filenames) / total_file_count
     error_ratio = len(error_filenames) / total_file_count
-    print("Ratios: {0:.2f} success, {1:.2f} failure, {2:.2f} error".format(
-            success_ratio, failure_ratio, error_ratio))
+    print("Ratios: {:.2f}% success, {:.2f}% failure, {:.2f}% error".format(
+            success_ratio*100, failure_ratio*100, error_ratio*100))
     pause()  # DEBUG
 
     # Read the train/val set from success_only subset
@@ -317,14 +314,12 @@ def split_all(args, filenames, path):
 
     # Calculate set size for failure and error, based on success_only subset
     multiplier_failure = len(failure_filenames)/len(success_filenames)
-    failure_val_len, failure_test_len = \
-        int(round(success_val_len*multiplier_failure)), \
-        int(round(success_test_len*multiplier_failure))
+    failure_val_len = int(round(success_val_len*multiplier_failure))
+    failure_test_len = int(round(success_test_len*multiplier_failure))
     failure_train_len = len(failure_filenames) - (failure_val_len + failure_test_len)
     multiplier_error = len(error_filenames)/len(success_filenames)
-    error_val_len, error_test_len = \
-        int(round(success_val_len*multiplier_error)), \
-        int(round(success_test_len*multiplier_error))
+    error_val_len = int(round(success_val_len*multiplier_error))
+    error_test_len = int(round(success_test_len*multiplier_error))
     error_train_len = len(error_filenames) - (error_val_len + error_test_len)
     print("Successfully read success_only filenames: {0} train, {1} val, {2} test".format(
             success_train_len, success_val_len, success_test_len))
@@ -334,11 +329,36 @@ def split_all(args, filenames, path):
             error_train_len, error_val_len, error_test_len))
     pause()
     
+    # Randomize the filenames
+    from random import shuffle
+    shuffle(failure_filenames)
+    shuffle(error_filenames)
+
     # Split the dataset for failure and error
     fail_train_set, fail_val_set, fail_test_set = \
-        split_dataset(failure_filenames, [], [], [])
+        split_dataset(failure_filenames, [], [], [], failure_val_len, failure_test_len)
     err_train_set,  err_val_set,  err_test_set = \
-        split_dataset(error_filenames, [], [], [])
+        split_dataset(error_filenames, [], [], [], error_val_len, error_test_len)
+
+    for i in fail_val_set:
+        if i in fail_train_set:
+            print("fail: val attempt in train set! %s" % i)
+            pause()
+    for i in fail_test_set:
+        if i in fail_train_set:
+            print("fail: test attempt in train set! %s" % i)
+            pause()
+
+    for i in err_val_set:
+        if i in err_train_set:
+            print("err: val attempt in train set! %s" % i)
+            pause()
+
+    for i in err_test_set:
+        if i in err_train_set:
+            print("err: test attempt in train set! %s" % i)
+            pause()
+    pause()
 
     # Write the output files
     output_file(path, args['plush'], args['output_name'], 'failure_only_train', fail_train_set)
@@ -349,7 +369,7 @@ def split_all(args, filenames, path):
     output_file(path, args['plush'], args['output_name'], 'error_only_test', err_test_set)
 
 
-def count_nonzero_files(filenames):
+def count_nonzero_files(path, filenames):
     '''
     Open the files and check frame count. Skip files with 0 frame.
 
@@ -357,32 +377,48 @@ def count_nonzero_files(filenames):
     :return: Lists of success/failure/error filenames with nonzero frames
     '''
     import h5py  # Needs h5py to open the files and check frame count
+    import sys
+    import traceback
     # TODO: Write total frames into csv file as a new column
 
     # Open the files to check frame count. Skip files with 0 frame.
     error_filenames = []
     failure_filenames = []
     success_filenames = []
+    skip_count = 0
+    i = 0
     for filename in filenames:
-        with h5py.File(filename, 'r') as data:
-            total_frames = len(data['image'])
-            if total_frames == 0:  # Skip files with 0 frame
-                print('Skipping %s since it has 0 image frame' % filename)
-                continue
+        # print(filename)
+        i += 1
+        try:
+            with h5py.File(os.path.join(path, filename), 'r') as data:
+                try:
+                    total_frames = len(data['image'])
+                except KeyError as e:
+                    print('Skipping %s for KeyError' % filename)
+                    continue
 
-            if 'error' in filename:
-                error_filenames += filename
-            elif 'failure' in filename:
-                failure_filenames += filename
-            # else:  # success
-            #     success_filenames += filename
-            elif 'success' in filename:
-                success_filenames += filename
-            else:  # BUG: Sanity check for debugging
-                raise Exception('Somthing is wrong!')
+                if total_frames == 0:  # Skip files with 0 frame
+                    # print('Skipping %s since it has 0 image frame' % filename)
+                    skip_count += 1
+                    continue
 
-    print("Counted {0} success files, {1} failure files, and {2} error files.".format(
+                if 'error' in filename:
+                    error_filenames += [filename]
+                elif 'failure' in filename:
+                    failure_filenames += [filename]
+                # else:  # success
+                #     success_filenames += filename
+                elif 'success' in filename:
+                    success_filenames += [filename]
+                else:  # BUG: Sanity check for debugging
+                    raise Exception('Somthing is wrong!')
+        except IOError as ex:
+            print('Skipping %s for IO error' % filename)
+
+    print("Counted {:d} success files, {:d} failure files, and {:d} error files.".format(
             len(success_filenames), len(failure_filenames), len(error_filenames)))
+    print("Skipped %d files since they have 0 image frame" % skip_count)
 
     return success_filenames, failure_filenames, error_filenames
 
@@ -447,7 +483,9 @@ def main(args, root='root'):
         filenames = os.listdir(path)
     else:
         raise ValueError('Path entered is not a path: ' + path)
-    print('Read ' + str(len(filenames)) + ' filenames in the folder')
+
+    filenames = [filename for filename in filenames if '.h5f' in filename]
+    print('Read ' + str(len(filenames)) + ' h5f filenames in the folder')
 
     if args['success_only'] and args['split_all']:
         raise ValueError('success_only and split_all are mutually exclusive. Please choose just one.')
