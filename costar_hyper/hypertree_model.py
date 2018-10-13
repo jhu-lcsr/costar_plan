@@ -273,7 +273,7 @@ def classifier_block(input_tensor, include_top=True, top='classification',
             print("    GlobalMaxPooling2D")
         x = GlobalMaxPooling2D()(x)
     else:
-        raise ValueError('grasp_model.py::classifier_block() unsupported top: ' + str(top))
+        raise ValueError('hypertree_model.py::classifier_block() unsupported top: ' + str(top))
     return x
 
 

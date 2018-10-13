@@ -18,7 +18,7 @@ from tensorflow.python.platform import flags
 import costar_hyper
 from costar_hyper import grasp_utilities
 from costar_hyper import cornell_grasp_train
-from costar_hyper import grasp_model
+from costar_hyper import hypertree_model
 from costar_hyper import block_stacking_reader
 from costar_hyper import grasp_metrics
 from threading import Lock
@@ -57,7 +57,7 @@ flags.DEFINE_string('load_rotation_hyperparams', 'https://github.com/ahundt/cost
 flags.DEFINE_string('translation_problem_type', 'semantic_translation_regression', 'see problem_type parameter in other apis')
 flags.DEFINE_string('rotation_problem_type', 'semantic_rotation_regression', 'see problem_type parameter in other apis')
 flags.DEFINE_string('force_action', None, 'force predicting only a single action, accepts a string or integer id')
-flags.DEFINE_string('default_action', '5', 
+flags.DEFINE_string('default_action', '5',
     'default action if no action has been'
     ' received from ROS on the topic /costar/action_label_current.'
     ' The default 5 means grab_blue.')
@@ -65,8 +65,8 @@ flags.DEFINE_string('default_action', '5',
 FLAGS = flags.FLAGS
 
 def extract_filename_from_url(url):
-    # note this is almost certainly insecure, 
-    # and the url has to exactly match a filename, 
+    # note this is almost certainly insecure,
+    # and the url has to exactly match a filename,
     # no extra string contents at the end
     filename = url[url.rfind("/")+1:]
     return filename
@@ -81,7 +81,7 @@ def get_file_from_url(url, extract=True, file_hash=None, cache_subdir='models'):
                 found_extension = extension
 
     path = keras.utils.get_file(filename, url, extract=extract, file_hash=file_hash, cache_subdir=cache_subdir)
-    if found_extension is not None: 
+    if found_extension is not None:
         # strip the file extension
         path = path.replace(found_extension, '')
 
@@ -219,7 +219,7 @@ class CostarHyperPosePredictor(object):
          loss, metrics, classes, success_only] = cornell_grasp_train.choose_features_and_metrics(feature_combo_name, problem_type)
 
 
-        model = grasp_model.choose_hypertree_model(
+        model = hypertree_model.choose_hypertree_model(
             image_shapes=image_shapes,
             vector_shapes=vector_shapes,
             top=top,
@@ -231,12 +231,12 @@ class CostarHyperPosePredictor(object):
             optimizer='sgd',
             loss=loss,
             metrics=metrics)
-        
+
         model.summary()
 
         is_file = os.path.isfile(load_weights)
         if not is_file:
-            raise RuntimeError('costar_hyper_prediction.py: Weights file does not exist: ' + load_weights) 
+            raise RuntimeError('costar_hyper_prediction.py: Weights file does not exist: ' + load_weights)
         print(problem_type + ' loading weights: ' + load_weights)
         model.load_weights(load_weights)
 
@@ -285,7 +285,7 @@ class CostarHyperPosePredictor(object):
                 self.info_topic,
                 String,
                 self._clear_view_CB)
-        
+
         # we sleep for 1 second so that
         # the buffer can collect some transforms
         rospy.sleep(1)
@@ -350,7 +350,7 @@ class CostarHyperPosePredictor(object):
                 # get possible labels, or None if not specified yet
                 labels = self.labels
             try:
-                # TODO(ahundt) incorporate data_features_to_extract, so we use the right encoding method 
+                # TODO(ahundt) incorporate data_features_to_extract, so we use the right encoding method
                 # encode the action
                 action_labels = [block_stacking_reader.encode_action(current_label, possible_actions=labels)]
             except ValueError as ve:
@@ -401,7 +401,7 @@ class CostarHyperPosePredictor(object):
         """
         with self.mutex:
             self.need_clear_view_rgb_img = True
-    
+
     def get_latest_transform(self, from_frame=None, to_frame=None, preferred_time=None, max_attempts=10, backup_timestamp_attempts=4):
         """
         # Arguments
@@ -410,7 +410,7 @@ class CostarHyperPosePredictor(object):
         backup_timestamp_attempts: the number attempts that should use a backup timestamp.
 
         # Returns
-        
+
         transform, time
         """
         if from_frame is None:
@@ -455,7 +455,7 @@ class CostarHyperPosePredictor(object):
                         'CostarHyperPosePredictor failed to use the rgb image rosmsg timestamp, '
                         'trying latest available time as backup. '
                         'Note: This message may print >1000x less often than the problem occurs.'
-                        ' We checked time t: ' + str(t) + 
+                        ' We checked time t: ' + str(t) +
                         ', and will now try the latest available: ' + str(latest_available_time_lookup) )
                     # try the backup timestamp even though it will be less accurate
                     t = latest_available_time_lookup
@@ -508,12 +508,12 @@ class CostarHyperPosePredictor(object):
                 current_images=rgb_images)
 
         rotation_predictions = self.rotation_model.predict_on_batch(X)
-        rospy.loginfo_throttle(10.0, 
-            'encoded translation predictions: ' + str(translation_predictions) + 
+        rospy.loginfo_throttle(10.0,
+            'encoded translation predictions: ' + str(translation_predictions) +
             ' encoded rotation predictions: ' + str(rotation_predictions))
         tr_predictions = np.concatenate([translation_predictions[0], rotation_predictions[0]])
         prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(tr_predictions)
-        rospy.loginfo_throttle(10.0, 
+        rospy.loginfo_throttle(10.0,
             'decoded prediction_xyz_qxyzw: ' + str(prediction_xyz_qxyzw))
 
         # prediction_kdl = kdl.Frame(
@@ -559,7 +559,7 @@ def main(_):
         start_time = time.clock()
         prediction_xyz_qxyzw, prediction_input_data_time = predictor()
         tick_time = time.clock()
-        
+
         b_to_e = TransformStamped()
         b_to_e.header.stamp = prediction_input_data_time
         b_to_e.header.frame_id = predictor.base_link

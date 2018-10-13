@@ -57,10 +57,10 @@ from keras.callbacks import ModelCheckpoint
 from keras.callbacks import TensorBoard
 from keras.models import Model
 from keras.models import model_from_json
-from grasp_model import concat_images_with_tiled_vector_layer
-from grasp_model import top_block
-from grasp_model import create_tree_roots
-from grasp_model import choose_hypertree_model
+from hypertree_model import concat_images_with_tiled_vector_layer
+from hypertree_model import top_block
+from hypertree_model import create_tree_roots
+from hypertree_model import choose_hypertree_model
 from cornell_grasp_dataset_reader import parse_and_preprocess
 
 from callbacks import EvaluateInputGenerator

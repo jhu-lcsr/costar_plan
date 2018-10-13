@@ -113,7 +113,7 @@ def main(_):
                 # load_weights = './logs_cornell/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-30-21-47-16_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-016-val_loss-0.000-val_grasp_acc-0.273.h5'
                 # load_weights = './logs_cornell/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-07-09-09-08-15_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-115-val_loss-0.000-val_grasp_acc-0.258.h5'
                 # use these weights for both xyz and axis angle input data
-                # Be careful if loading the weights below, the correct vector input data and backwards compatibility code must be in place to avoid: 
+                # Be careful if loading the weights below, the correct vector input data and backwards compatibility code must be in place to avoid:
                 # "ValueError: You are trying to load a weight file containing 13 layers into a model with 11 layers."
                 # load_weights = './logs_cornell/2018-08-09-11-26-03_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3/2018-08-09-11-26-03_nasnet_mobile_semantic_translation_regression_model-_img_nasnet_mobile_vec_dense_trunk_vgg_conv_block-dataset_costar_block_stacking-grasp_goal_xyz_3-epoch-003-val_loss-0.000-val_grasp_acc-0.160.h5'
                 # weights below are trained with data augmentation, weights 2018-07-31-21-40-50 above are actual best so far for translation as of 2018-08-12
@@ -208,7 +208,7 @@ def main(_):
         print('EVAL on training data (well, a slightly hacky version) with 0 LR 0 dropout trainable False, no learning rate schedule')
         learning_rate = 0.000000000001
         hyperparams['dropout_rate'] = 0.000000000001
-        # TODO(ahundt) it seems set_trainable_layers in grasp_model.py has a bug?
+        # TODO(ahundt) it seems set_trainable_layers in hypertree_model.py has a bug?
         # hyperparams['trainable'] = 0.00000000001
         FLAGS.learning_rate_schedule = 'none'
     else:

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from grasp_model import tile_vector_as_image_channels
+from hypertree_model import tile_vector_as_image_channels
 import keras
 from keras import backend as K
 from keras_contrib.losses import segmentation_losses
