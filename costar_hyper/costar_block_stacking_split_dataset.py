@@ -150,7 +150,7 @@ def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_le
         elif len_diff < 0:
             print("Expected val set length: {}, current val set length: {}".format(
                     val_len, len(val_set)))
-            raise RuntimeError("Expected length is smaller than current length!")
+            raise RuntimeError("split_dataset: Expected val length is smaller than current length!")
 
         # Do the same check for test set
         len_diff = test_len - len(test_set)
@@ -167,7 +167,7 @@ def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_le
         elif len_diff < 0:
             print("Expected test set length: {}, current test set length: {}".format(
                     val_len, len(val_set)))
-            raise RuntimeError("Expected length is smaller than current length!")
+            raise RuntimeError("split_dataset: Expected test length is smaller than current length!")
 
         # Dump the rest of the files into train set
         train_set = not_val_or_test_set
@@ -233,7 +233,7 @@ def split_success_only(
         pre_existing_set_file = path + train_txt
         if not os.path.isfile(pre_existing_set_file):
             raise ValueError(
-                'Pre-existing training file is not a file: ' +
+                'split_success_only: Pre-existing training file is not a file: ' +
                 pre_existing_set_file)
 
         train_set = get_existing_filenames(pre_existing_set_file)
@@ -245,7 +245,7 @@ def split_success_only(
         pre_existing_set_file = path + val_txt
         if not os.path.isfile(pre_existing_set_file):
             raise ValueError(
-                'Pre-existing validating file is not a file: ' +
+                'split_success_only: Pre-existing validating file is not a file: ' +
                 pre_existing_set_file)
 
         val_set = get_existing_filenames(pre_existing_set_file)
@@ -257,7 +257,7 @@ def split_success_only(
         pre_existing_set_file = path + test_txt
         if not os.path.isfile(pre_existing_set_file):
             raise ValueError(
-                'Pre-existing testing file is not a file: ' +
+                'split_success_only: Pre-existing testing file is not a file: ' +
                 pre_existing_set_file)
 
         test_set = get_existing_filenames(pre_existing_set_file)
@@ -276,22 +276,26 @@ def split_success_only(
     train_set, val_set, test_set = split_dataset(
         filenames, train_set, val_set, test_set, val_len, test_len)
 
+    # Sanity check
     for i in val_set:
         if i in train_set:
-            print("val attempt in train set! %s" % i)
-            pause()
-
+            raise RuntimeError("split_success_only: test attempt in train set! %s" % i)
+            # print("split_success_only: val attempt in train set! %s" % i)
     for i in test_set:
         if i in train_set:
-            print("test attempt in train set! %s" % i)
-            pause()
-
+            raise RuntimeError("split_success_only: test attempt in train set! %s" % i)
+            # print("split_success_only: test attempt in train set! %s" % i)
+    for i in test_set:
+        if i in val_set:
+            raise RuntimeError("split_success_only: test attempt in val set! %s" % i)
+            # print("split_success_only: test attempt in train set! %s" % i)
     if (len(train_set) + len(val_set) + len(test_set)) != len(filenames):
         print("ERROR! lenth of train, val and test = %d, %d, %d"
               % (len(train_set), len(val_set), len(test_set)))
         print("Length of all files: %d" % len(filenames))
-        pause()
-        raise Exception("Something is wrong!")
+        raise RuntimeError("split_success_only: Numbers do not add up. Something is wrong!")
+    print("Split complete. Sanity check passed.")
+    pause()
 
     # Write the output files
     output_file(path, plush, output_name, 'success_only_train', train_set)
@@ -393,15 +397,15 @@ def split_all(
     error_train_len = len(error_filenames) - (error_val_len + error_test_len)
     print("Successfully read success_only filenames: {0} train, {1} val, {2} test".format(
             success_train_len, success_val_len, success_test_len))
-    print("Length for failure sets: {0} train, {1} val, {2} test".format(
+    print("Length for all failure sets: {0} train, {1} val, {2} test".format(
             failure_train_len + error_train_len,
             failure_val_len + error_val_len,
             failure_test_len + error_test_len))
-    print("Length for failure (no error) sets: {0} train, {1} val, {2} test".format(
+    print("Length for task failure sets: {0} train, {1} val, {2} test".format(
             failure_train_len, failure_val_len, failure_test_len))
-    print("Length for error sets: {0} train, {1} val, {2} test".format(
+    print("Length for error failure sets: {0} train, {1} val, {2} test".format(
             error_train_len, error_val_len, error_test_len))
-    pause()
+    # pause()
     
     # Randomize the filenames
     from random import shuffle
@@ -414,24 +418,36 @@ def split_all(
     err_train_set,  err_val_set,  err_test_set = \
         split_dataset(error_filenames, [], [], [], error_val_len, error_test_len)
 
+    # Sanity check
     for i in fail_val_set:
         if i in fail_train_set:
-            print("fail: val attempt in train set! %s" % i)
-            pause()
+            raise RuntimeError("split_all: fail: val attempt in train set! %s" % i)
+            # print("split_all: fail: val attempt in train set! %s" % i)
     for i in fail_test_set:
         if i in fail_train_set:
-            print("fail: test attempt in train set! %s" % i)
-            pause()
-
+            raise RuntimeError("split_all: fail: test attempt in train set! %s" % i)
+            # print("split_all: fail: test attempt in train set! %s" % i)
     for i in err_val_set:
         if i in err_train_set:
-            print("err: val attempt in train set! %s" % i)
-            pause()
-
+            raise RuntimeError("split_all: err: val attempt in train set! %s" % i)
+            # print("split_all: err: val attempt in train set! %s" % i)
     for i in err_test_set:
         if i in err_train_set:
-            print("err: test attempt in train set! %s" % i)
-            pause()
+            raise RuntimeError("split_all: err: test attempt in train set! %s" % i)
+            # print("split_all: err: test attempt in train set! %s" % i)
+    for i in err_train_set:
+        if i in fail_train_set:
+            raise RuntimeError("split_all: err train set overlap with fail train set! %s" % i)
+            # print("split_all: err train set overlap with fail train set! %s" % i)
+    for i in err_val_set:
+        if i in fail_val_set:
+            raise RuntimeError("split_all: err val set overlap with fail val set! %s" % i)
+            # print("split_all: err val set overlap with fail val set! %s" % i)
+    for i in err_test_set:
+        if i in fail_test_set:
+            raise RuntimeError("split_all: err test set overlap with fail test set! %s" % i)
+            # print("split_all: err test set overlap with fail test set! %s" % i)
+    print("Split complete. Sanity check passed.")
     pause()
 
     # Write the output files
@@ -466,9 +482,12 @@ def count_files_containing_images(path, filenames):
     success_filenames = []
     skip_count = 0
     i = 0
+    print("Checking %d files. This can take some time." % len(filenames))
     for filename in filenames:
-        # print(filename)
         i += 1
+        if i % 100 == 0:
+            # TODO: incorporate tqdm progress bar
+            print("{} out of {} files checked".format(i, len(filenames)))
         try:
             with h5py.File(os.path.join(path, filename), 'r') as data:
                 try:
@@ -555,11 +574,11 @@ def main(args, root='root'):
     elif args['success_only']:
         split_success_only(
             filenames, path, args['plush'], args['train'], args['val'],
-            args['test'], args['val_len'], args['test_len'], args['output_name'])
+            args['test'], args['output_name'], args['val_len'], args['test_len'])
     elif args['split_all']:
         split_all(
             filenames, path, args['plush'], args['train'], args['val'],
-            args['test'], args['val_len'], args['test_len'], args['output_name'])
+            args['test'], args['output_name'], args['val_len'], args['test_len'])
 
 
 if __name__ == '__main__':
