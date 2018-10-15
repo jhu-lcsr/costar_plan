@@ -13,11 +13,11 @@ To split all dataset, i.e. split error files and failure files into train/val/te
 call the following command after success_only subset is splitted:
 
 python costar_block_stacking_split_dataset.py --path /path/to/dataset/folder     \
-    --success_only (--plush) --train success_only/train/txt/filename             \
+    --split_all (--plush) --train success_only/train/txt/filename             \
     --val [success_only val txt filename] --test [success_only test txt filename]\
     --output_name [filename prefix for the output train/val/test filenames]
 
-This will output task_failure_only, error_failure_only, and all_failure_only 
+This will output task_failure_only, error_failure_only, and all_failure_only
 train/val/test filenames as 9 separate txt files.
 
 Author: Chia-Hung "Rexxar" Lin (rexxarchl)
@@ -25,7 +25,7 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 '''
 import argparse
 import os
-from random import shuffle
+import random
 
 
 def _parse_args():
@@ -56,10 +56,12 @@ def _parse_args():
                         'the file is expected to be in argument `path`')
     parser.add_argument("--output_name", type=str,
                         default='costar_block_stacking_dataset', help='output file name')
-    parser.add_argument("--val_len", type=int, default=None, 
+    parser.add_argument("--val_len", type=int, default=None,
                         help='Expected val set length')
-    parser.add_argument("--test_len", type=int, default=None, 
+    parser.add_argument("--test_len", type=int, default=None,
                         help='Expected test set length')
+    parser.add_argument("--seed", type=int, default=0,
+                        help='Numpy seed for reproducing the output lists')
     return vars(parser.parse_args())
 
 
@@ -177,7 +179,7 @@ def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_le
 
 
 def output_file(path, plush, output_prefix, set_name, filenames):
-    '''Output the filenames as a txt file. 
+    '''Output the filenames as a txt file.
     Automatically adds appropriate keras path for the filenames.
 
     :param path: The path to store the output txt file.
@@ -270,7 +272,7 @@ def split_success_only(
               'Output results will be adjusted to same size sets')
 
     # Randomize the filenames
-    shuffle(filenames)
+    random.shuffle(filenames)
 
     # Split the dataset
     train_set, val_set, test_set = split_dataset(
@@ -395,27 +397,32 @@ def split_all(
     error_val_len = int(round(success_val_len*multiplier_error))
     error_test_len = int(round(success_test_len*multiplier_error))
     error_train_len = len(error_filenames) - (error_val_len + error_test_len)
-    print("Successfully read success_only filenames: {0} train, {1} val, {2} test".format(
-            success_train_len, success_val_len, success_test_len))
-    print("Length for all failure sets: {0} train, {1} val, {2} test".format(
+    dataset_splits_csv = 'subset, train, val, test\n'
+    dataset_splits_csv += "success_only, {0}, {1}, {2}\n".format(
+                            success_train_len, success_val_len, success_test_len)
+    dataset_splits_csv += "task_and_error_failure, {0}, {1}, {2}\n".format(
             failure_train_len + error_train_len,
             failure_val_len + error_val_len,
-            failure_test_len + error_test_len))
-    print("Length for task failure sets: {0} train, {1} val, {2} test".format(
-            failure_train_len, failure_val_len, failure_test_len))
-    print("Length for error failure sets: {0} train, {1} val, {2} test".format(
-            error_train_len, error_val_len, error_test_len))
+            failure_test_len + error_test_len)
+    dataset_splits_csv += "task_failure_only, {0}, {1}, {2}\n".format(
+            failure_train_len, failure_val_len, failure_test_len)
+    dataset_splits_csv += "error_failure_only, {0}, {1}, {2}\n".format(
+            error_train_len, error_val_len, error_test_len)
+    dataset_splits_csv_filename = 'costar_block_stacking_dataset_split_summary.csv'
+    print(dataset_splits_csv_filename + '\n' + dataset_splits_csv)
+
+    csv_path = os.path.join(path, dataset_splits_csv_filename)
     # pause()
-    
+
     # Randomize the filenames
-    shuffle(failure_filenames)
-    shuffle(error_filenames)
+    random.shuffle(failure_filenames)
+    random.shuffle(error_filenames)
 
     # Split the dataset for failure and error
-    fail_train_set, fail_val_set, fail_test_set = \
-        split_dataset(failure_filenames, [], [], [], failure_val_len, failure_test_len)
-    err_train_set,  err_val_set,  err_test_set = \
-        split_dataset(error_filenames, [], [], [], error_val_len, error_test_len)
+    fail_train_set, fail_val_set, fail_test_set = split_dataset(
+        failure_filenames, [], [], [], failure_val_len, failure_test_len)
+    err_train_set,  err_val_set,  err_test_set = split_dataset(
+        error_filenames, [], [], [], error_val_len, error_test_len)
 
     # Sanity check
     for i in fail_val_set:
@@ -448,6 +455,8 @@ def split_all(
             # print("split_all: err test set overlap with fail test set! %s" % i)
     print("Split complete. Sanity check passed.")
     pause()
+    with open(csv_path, 'w+') as file_object:
+        file_object.write(dataset_splits_csv)
 
     # Write the output files
     output_file(path, plush, output_name, 'task_failure_only_train', fail_train_set)
@@ -461,9 +470,9 @@ def split_all(
     fail_train_set += err_train_set
     fail_val_set += err_val_set
     fail_test_set += err_test_set
-    output_file(path, plush, output_name, 'all_failure_only_train', fail_train_set)
-    output_file(path, plush, output_name, 'all_failure_only_val', fail_val_set)
-    output_file(path, plush, output_name, 'all_failure_only_test', fail_test_set)
+    output_file(path, plush, output_name, 'task_and_error_failure_train', fail_train_set)
+    output_file(path, plush, output_name, 'task_and_error_failure_val', fail_val_set)
+    output_file(path, plush, output_name, 'task_and_error_failure_test', fail_test_set)
 
 
 def count_files_containing_images(path, filenames):
@@ -563,6 +572,8 @@ def main(args, root='root'):
         filenames = os.listdir(path)
     else:
         raise ValueError('Path entered is not a path: ' + path)
+    # set the random seed for reproducible random lists
+    random.seed(args['seed'])
 
     filenames = [filename for filename in filenames if '.h5f' in filename]
     print('Read ' + str(len(filenames)) + ' h5f filenames in the folder')
