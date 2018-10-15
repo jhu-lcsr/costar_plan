@@ -189,9 +189,10 @@ def output_file(path, plush, output_prefix, set_name, filenames):
     :param filenames: The filenames to be written in the txt file.
     '''
     output_filename = output_prefix + '_' + set_name + '_files.txt'
-    print('Writing ' + path + output_filename)
 
-    f = open(os.path.join(path, output_filename), 'w')
+    list_filename = os.path.join(path, output_filename)
+    print('Writing ' + list_filename)
+    f = open(list_filename, 'w')
     # print(f)
 
     if plush:
@@ -207,6 +208,7 @@ def output_file(path, plush, output_prefix, set_name, filenames):
         f.write(prefix_path + filename + '\n')
 
     f.close()
+    return list_filename
 
 
 def split_success_only(
@@ -397,7 +399,7 @@ def split_all(
     error_val_len = int(round(success_val_len*multiplier_error))
     error_test_len = int(round(success_test_len*multiplier_error))
     error_train_len = len(error_filenames) - (error_val_len + error_test_len)
-    dataset_splits_csv = 'subset, train, val, test\n'
+    dataset_splits_csv = 'subset, train_count, val_count, test_count\n'
     dataset_splits_csv += "success_only, {0}, {1}, {2}\n".format(
                             success_train_len, success_val_len, success_test_len)
     dataset_splits_csv += "task_and_error_failure, {0}, {1}, {2}\n".format(
