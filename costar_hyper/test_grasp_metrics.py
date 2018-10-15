@@ -1,4 +1,4 @@
-import grasp_metrics
+import hypertree_pose_metrics
 import numpy as np
 import sklearn
 import sklearn.preprocessing
@@ -11,12 +11,12 @@ def test_encoding_angle_difference(theta1_degrees, theta2_degrees, diff, thresho
     theta1_2_rad = np.radians(theta1_2)
     s2c2_1 = np.array([np.sin(theta1_2_rad), np.cos(theta1_2_rad)])
     # decode all the way back to theta in radians (not 2 * theta)
-    t1_2decoded_1 = grasp_metrics.decode_sin2_cos2(grasp_metrics.encode_sin2_cos2(s2c2_1))
+    t1_2decoded_1 = hypertree_pose_metrics.decode_sin2_cos2(hypertree_pose_metrics.encode_sin2_cos2(s2c2_1))
     stct_1 = np.array([np.sin(theta1_rad), np.cos(theta1_rad)])
-    e1 = grasp_metrics.encode_2theta(theta1_rad)
-    e1_2 = grasp_metrics.encode_sin2_cos2(s2c2_1)
+    e1 = hypertree_pose_metrics.encode_2theta(theta1_rad)
+    e1_2 = hypertree_pose_metrics.encode_sin2_cos2(s2c2_1)
     assert np.allclose(e1, e1_2)
-    ad1 = grasp_metrics.decode_sin2_cos2(e1)
+    ad1 = hypertree_pose_metrics.decode_sin2_cos2(e1)
     if verbose > 0:
         print('ad1: ' + str(ad1) + ' theta1_rad ' + str(theta1_rad) + ' theta1 degrees:' + str(theta1)) + ' ad1 degrees:' + str(np.degrees(ad1))
     # the gripper can rotate +-180 degrees or -360 degrees and it is considered equivalent
@@ -35,13 +35,13 @@ def test_encoding_angle_difference(theta1_degrees, theta2_degrees, diff, thresho
     theta2_2_rad = np.radians(theta2_2)
     s2c2_2 = np.array([np.sin(theta2_2_rad), np.cos(theta2_2_rad)])
     # decode all the way back to theta in radians (not 2 * theta)
-    t2_2decoded_2 = grasp_metrics.decode_sin2_cos2(grasp_metrics.encode_sin2_cos2(s2c2_2))
+    t2_2decoded_2 = hypertree_pose_metrics.decode_sin2_cos2(hypertree_pose_metrics.encode_sin2_cos2(s2c2_2))
     print('s2c2_2: ' + str(s2c2_2))
     stct_2 = np.array([np.sin(theta2_rad), np.cos(theta2_rad)])
-    e2 = grasp_metrics.encode_2theta(theta2_rad)
-    e2_2 = grasp_metrics.encode_sin2_cos2(s2c2_2)
+    e2 = hypertree_pose_metrics.encode_2theta(theta2_rad)
+    e2_2 = hypertree_pose_metrics.encode_sin2_cos2(s2c2_2)
     assert np.allclose(e2, e2_2)
-    ad2 = grasp_metrics.decode_sin2_cos2(e2)
+    ad2 = hypertree_pose_metrics.decode_sin2_cos2(e2)
     if verbose > 0:
         print('ad2: ' + str(ad2) + ' theta2_rad ' + str(theta2_rad) + ' theta2 degrees:' + str(theta2)) + ' ad2 degrees:' + str(np.degrees(ad2))
     # the gripper can rotate +-180 degrees or -360 degrees and it is considered equivalent
@@ -62,13 +62,13 @@ def test_encoding_angle_difference(theta1_degrees, theta2_degrees, diff, thresho
     # determine if the angle difference in degrees is within the threshold
     theta_in_threshold = diff <= threshold
     two_theta_in_threshold = 2 * diff <= threshold
-    assert grasp_metrics.angle_difference_less_than_threshold(
+    assert hypertree_pose_metrics.angle_difference_less_than_threshold(
         stct_2[0], stct_2[1], stct_1[0], stct_1[1], angle_threshold=threshold_radians) == theta_in_threshold
-    assert grasp_metrics.angle_difference_less_than_threshold(
+    assert hypertree_pose_metrics.angle_difference_less_than_threshold(
         stct_1[0], stct_1[1], stct_2[0], stct_2[1], angle_threshold=threshold_radians) == theta_in_threshold
-    assert grasp_metrics.angle_difference_less_than_threshold(
+    assert hypertree_pose_metrics.angle_difference_less_than_threshold(
         s2c2_2[0], s2c2_2[1], s2c2_1[0], s2c2_1[1], angle_threshold=threshold_radians) == two_theta_in_threshold
-    assert grasp_metrics.angle_difference_less_than_threshold(
+    assert hypertree_pose_metrics.angle_difference_less_than_threshold(
         s2c2_1[0], s2c2_1[1], s2c2_2[0], s2c2_2[1], angle_threshold=threshold_radians) == two_theta_in_threshold
 
 

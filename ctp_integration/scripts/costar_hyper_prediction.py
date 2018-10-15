@@ -20,7 +20,7 @@ from costar_hyper import grasp_utilities
 from costar_hyper import hypertree_train
 from costar_hyper import hypertree_model
 from costar_hyper import block_stacking_reader
-from costar_hyper import grasp_metrics
+from costar_hyper import hypertree_pose_metrics
 from threading import Lock
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
@@ -512,7 +512,7 @@ class CostarHyperPosePredictor(object):
             'encoded translation predictions: ' + str(translation_predictions) +
             ' encoded rotation predictions: ' + str(rotation_predictions))
         tr_predictions = np.concatenate([translation_predictions[0], rotation_predictions[0]])
-        prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(tr_predictions)
+        prediction_xyz_qxyzw = hypertree_pose_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(tr_predictions)
         rospy.loginfo_throttle(10.0,
             'decoded prediction_xyz_qxyzw: ' + str(prediction_xyz_qxyzw))
 

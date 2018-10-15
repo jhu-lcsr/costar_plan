@@ -708,7 +708,7 @@ def grasp_jaccard_batch(y_true, y_pred, verbose=0):
             verbose = 1
             print('')
             print('')
-            print('grasp_metrics.py sample of ground_truth and prediction:')
+            print('hypertree_pose_metrics.py sample of ground_truth and prediction:')
         this_true = y_true[i, :]
         this_pred = y_pred[i, :]
         score = jaccard_score(this_true, this_pred, verbose=verbose)

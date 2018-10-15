@@ -71,7 +71,7 @@ from callbacks import InaccurateModelStopping
 from keras.utils import OrderedEnqueuer
 
 import grasp_loss
-import grasp_metrics
+import hypertree_pose_metrics
 import grasp_utilities
 
 
@@ -1051,7 +1051,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         monitor_loss_name = 'val_loss'
         if loss is None:
             loss = keras.losses.mean_squared_error
-        metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        metrics = [hypertree_pose_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         model_name = '_regression_model'
         classes = 6
     elif problem_name == 'image_center_grasp_regression':
@@ -1059,7 +1059,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         label_features = ['grasp_success_norm_sin2_cos2_hw_5']
         monitor_metric_name = 'grasp_jaccard'
         monitor_loss_name = 'val_loss'
-        metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        metrics = [hypertree_pose_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.mean_squared_error
         model_name = '_center_regression_model'
         classes = 5
@@ -1070,12 +1070,12 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # this is the regression case with the costar block stacking dataset
         # classes = 8
         classes = 3
-        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
-                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
-                   grasp_metrics.grasp_acc_4cm_60deg, grasp_metrics.grasp_acc_8cm_120deg,
-                   grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
-                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
+        # TODO(ahundt) enable hypertree_pose_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [hypertree_pose_metrics.grasp_acc, hypertree_pose_metrics.cart_error, 'mse', 'mae', hypertree_pose_metrics.grasp_acc_5mm_7_5deg,
+                   hypertree_pose_metrics.grasp_acc_1cm_15deg, hypertree_pose_metrics.grasp_acc_2cm_30deg,
+                   hypertree_pose_metrics.grasp_acc_4cm_60deg, hypertree_pose_metrics.grasp_acc_8cm_120deg,
+                   hypertree_pose_metrics.grasp_acc_16cm_240deg, hypertree_pose_metrics.grasp_acc_32cm_360deg,
+                   hypertree_pose_metrics.grasp_acc_256cm_360deg, hypertree_pose_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         # monitor_metric_name = 'val_grasp_acc'
         monitor_metric_name = 'val_cart_error'
@@ -1103,12 +1103,12 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # this is the regression case with the costar block stacking dataset
         # classes = 8
         classes = 5
-        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
-                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
-                   grasp_metrics.grasp_acc_4cm_60deg, grasp_metrics.grasp_acc_8cm_120deg,
-                   grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
-                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
+        # TODO(ahundt) enable hypertree_pose_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [hypertree_pose_metrics.grasp_acc, hypertree_pose_metrics.angle_error, 'mse', 'mae', hypertree_pose_metrics.grasp_acc_5mm_7_5deg,
+                   hypertree_pose_metrics.grasp_acc_1cm_15deg, hypertree_pose_metrics.grasp_acc_2cm_30deg,
+                   hypertree_pose_metrics.grasp_acc_4cm_60deg, hypertree_pose_metrics.grasp_acc_8cm_120deg,
+                   hypertree_pose_metrics.grasp_acc_16cm_240deg, hypertree_pose_metrics.grasp_acc_32cm_360deg,
+                   hypertree_pose_metrics.grasp_acc_256cm_360deg, hypertree_pose_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         # monitor_metric_name = 'val_grasp_acc'
         monitor_metric_name = 'val_angle_error'
@@ -1130,12 +1130,12 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
     elif problem_name == 'semantic_grasp_regression':
         # this is the regression case with the costar block stacking dataset
         classes = 8
-        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
-                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
-                   grasp_metrics.grasp_acc_4cm_60deg, grasp_metrics.grasp_acc_8cm_120deg,
-                   grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
-                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
+        # TODO(ahundt) enable hypertree_pose_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [hypertree_pose_metrics.grasp_acc, hypertree_pose_metrics.cart_error, hypertree_pose_metrics.angle_error, 'mse', 'mae', hypertree_pose_metrics.grasp_acc_5mm_7_5deg,
+                   hypertree_pose_metrics.grasp_acc_1cm_15deg, hypertree_pose_metrics.grasp_acc_2cm_30deg,
+                   hypertree_pose_metrics.grasp_acc_4cm_60deg, hypertree_pose_metrics.grasp_acc_8cm_120deg,
+                   hypertree_pose_metrics.grasp_acc_16cm_240deg, hypertree_pose_metrics.grasp_acc_32cm_360deg,
+                   hypertree_pose_metrics.grasp_acc_256cm_360deg, hypertree_pose_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1154,7 +1154,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         model_name = '_semantic_grasp_regression_model'
     elif problem_name == 'semantic_grasp_classification':
         # this is the classification case with the costar block stacking dataset
-        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        # TODO(ahundt) enable hypertree_pose_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
         metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_binary_accuracy'
         data_features = ['image/preprocessed', 'proposed_goal_xyz_aaxyz_nsc_8']
@@ -1395,7 +1395,7 @@ def model_predict_k_fold(
         prediction_name='norm_sin2_cos2_hw_yx_6',
         metric_name='grasp_jaccard',
         unique_score_category='image/filename',
-        metric_fn=grasp_metrics.grasp_jaccard_batch):
+        metric_fn=hypertree_pose_metrics.grasp_jaccard_batch):
     """ Load past runs and make predictions with the model and data.
 
     Currently only supports evaluating jaccard scores.
@@ -1524,7 +1524,7 @@ def model_predict_k_fold(
 
 def evaluate(
         model, example_generator=None, val_filenames=None, data_features=None, prediction_name='norm_sin2_cos2_hw_yx_6',
-        metric_fn=grasp_metrics.grasp_jaccard_batch,
+        metric_fn=hypertree_pose_metrics.grasp_jaccard_batch,
         progbar_folds=sys.stdout, unique_score_category='image/filename', metric_name='grasp_jaccard',
         steps=None, visualize=False,
         preprocessing_mode='tf', apply_filter=True, loss_fn=None, loss_name='loss',
