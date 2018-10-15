@@ -128,7 +128,7 @@ def main(_):
     # This will be noticeably slower.
     feature_combo_name, min_top_block_filter_multiplier, batch_size, param_to_optimize = cornell_hyperoptions(problem_type, param_to_optimize)
 
-    print('Overriding some flags, edit cornell_hyperopt.py directly to change them.' +
+    print('Overriding some flags, edit hypertree_hyperopt.py directly to change them.' +
           ' num_validation: ' + str(FLAGS.num_validation) +
           ' num_test: ' + str(FLAGS.num_test) +
           ' epochs: ' + str(FLAGS.epochs) +

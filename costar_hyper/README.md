@@ -112,15 +112,15 @@ Follow the [google drive costar block stacking dataset v0.2 download link](https
 rclone copy drive:costar_block_stacking_dataset_v0.4 ~/.keras/dataset/costar_block_stacking_dataset_v0.4 --exclude="*failure*"
 ```
 
-Configure `cornell_hyperopt.py` to run on the problem you'd like, the script supports both the cornell and the costar block stacking ataset. Sorry for the bad naming, this a historical artifact that should be resolved at some point in the future.
+Configure `hypertree_hyperopt.py` to run on the problem you'd like, the script supports both the cornell and the costar block stacking ataset. Sorry for the bad naming, this a historical artifact that should be resolved at some point in the future.
 
 Options for problem types include `semantic_grasp_regression`, `semantic_translation_regression`, `semantic_rotation_regression`. Uncomment the the settings in the file for the preferred problem type. Once you have edited the file for your use case, run the following command:
 
 ```
-while true; do export CUDA_VISIBLE_DEVICES="0" && python2 cornell_hyperopt.py; done
+while true; do export CUDA_VISIBLE_DEVICES="0" && python2 hypertree_hyperopt.py; done
 ```
 
-By default, this will run the hyperopt search on a loop with 100 random models and 10 Bayesian models each run until you stop it with `ctrl + c`. These limits are set due to an memory leak in the block stacking hdf5 reading code which has not yet been resolved. They can be modified in `cornell_hyperopt.py` by changing `initial_num_samples` for the number of random models and `maximum_hyperopt_steps` for the number of Bayesian models. If you run out of memory, lower these numbers. Your GPU should have at least 7GB memory, but preferably 10-12GB of memory.
+By default, this will run the hyperopt search on a loop with 100 random models and 10 Bayesian models each run until you stop it with `ctrl + c`. These limits are set due to an memory leak in the block stacking hdf5 reading code which has not yet been resolved. They can be modified in `hypertree_hyperopt.py` by changing `initial_num_samples` for the number of random models and `maximum_hyperopt_steps` for the number of Bayesian models. If you run out of memory, lower these numbers. Your GPU should have at least 7GB memory, but preferably 10-12GB of memory.
 
 After running hyperopt, you will have collected a dataset of folders with results for each model; collate the results as follows:
 
@@ -207,12 +207,12 @@ Given the grasp command input, the proposed grasp image
 is rotated and centered on the grasp, so that all grasps have the gripper
 in a left-right orientation to the image and the gripper is at the center.
 
- - `cornell_hyperopt.py` is basically a configuration file used to configure hyperparameter optimization for the cornell grasping dataset.
+ - `hypertree_hyperopt.py` is basically a configuration file used to configure hyperparameter optimization for the cornell grasping dataset.
  - `hyperopt.py` is another configuration file that sets up the range of models you should search during hyperopt.
      - shared by google and cornell for both classification and regression training
      - you may also want to modify this to change what kind of models are being searched.
 
-In `cornell_hyperopt.py` make sure the following variable is set correctly:
+In `hypertree_hyperopt.py` make sure the following variable is set correctly:
 
 ```
     FLAGS.problem_type = 'classification'
@@ -223,7 +223,7 @@ This will run hyperopt search for a couple of days on a GTX 1080 or Titan X to f
 Hyperparameter search to find the best model:
 
 ```
-export CUDA_VISIBLE_DEVICES="0" && python cornell_hyperopt.py --log_dir hyperopt_logs_cornell_classification
+export CUDA_VISIBLE_DEVICES="0" && python hypertree_hyperopt.py --log_dir hyperopt_logs_cornell_classification
 ```
 
 Result will be in files with names like these:

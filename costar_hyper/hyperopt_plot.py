@@ -61,7 +61,7 @@ flags.DEFINE_string(
     'hyperopt_rank.csv',
     """Sorted csv ranking models on which to perform full runs after hyperparameter optimization.
 
-    See cornell_hyperopt.py to perform hyperparameter optimization,
+    See hypertree_hyperopt.py to perform hyperparameter optimization,
     and then hyperopt_rank.py to generate the ranking csv file.
     The file is expected to be in the directory specified by the log_dir flag.
 
