@@ -1,4 +1,13 @@
-"""Code for building the input for the prediction model."""
+"""Code for the google push dataset.
+
+Author:
+Laura Downs
+
+Source:
+https://sites.google.com/site/brainrobotdata/home/push-dataset
+
+License: https://creativecommons.org/licenses/by/4.0/
+"""
 
 import os
 

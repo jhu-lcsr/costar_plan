@@ -1,8 +1,12 @@
-"""Code for training the prediction model.
+"""Code for the google push dataset https://sites.google.com/site/brainrobotdata/home/push-dataset.
 
-Author: Andrew Hundt <ATHundt@gmail.com>
+Author:
+Laura Downs
 
-License: Apache v2 https://www.apache.org/licenses/LICENSE-2.0
+Source:
+https://sites.google.com/site/brainrobotdata/home/push-dataset
+
+License: https://creativecommons.org/licenses/by/4.0/
 """
 
 import os
