@@ -25,6 +25,7 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 '''
 import argparse
 import os
+from random import shuffle
 
 
 def _parse_args():
@@ -131,9 +132,9 @@ def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_le
         train_set += not_train_set[val_len+test_len:]
     else:
         # Select filenames not in test or val set
-        not_val_or_test_set = \
-            [filename for filename in filenames if
-             filename not in val_set and filename not in test_set]
+        not_val_or_test_set = [
+            filename for filename in filenames if
+            filename not in val_set and filename not in test_set]
 
         # Check if expected length and current lenth for val set are different
         len_diff = val_len - len(val_set)
@@ -269,7 +270,6 @@ def split_success_only(
               'Output results will be adjusted to same size sets')
 
     # Randomize the filenames
-    from random import shuffle
     shuffle(filenames)
 
     # Split the dataset
@@ -408,7 +408,6 @@ def split_all(
     # pause()
     
     # Randomize the filenames
-    from random import shuffle
     shuffle(failure_filenames)
     shuffle(error_filenames)
 
