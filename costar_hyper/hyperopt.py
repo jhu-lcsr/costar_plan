@@ -329,7 +329,7 @@ def optimize(
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
     # The appropriate preprocessing mode must be chosen for each model.
-    # This should now be done correctly in cornell_grasp_train.py.
+    # This should now be done correctly in hypertree_train.py.
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
                            enable=False, required=False, default='tf')
 

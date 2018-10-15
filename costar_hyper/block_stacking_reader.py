@@ -212,11 +212,11 @@ def encode_label(label_features_to_extract, y, action_successes=None, random_aug
     """
     # determine the label
     if label_features_to_extract is None or 'grasp_goal_xyz_3' in label_features_to_extract:
-        # regression to translation case, see semantic_translation_regression in cornell_grasp_train.py
+        # regression to translation case, see semantic_translation_regression in hypertree_train.py
         y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=random_augmentation)
         y = y[:, :3]
     elif label_features_to_extract is None or 'grasp_goal_aaxyz_nsc_5' in label_features_to_extract:
-        # regression to rotation case, see semantic_rotation_regression in cornell_grasp_train.py
+        # regression to rotation case, see semantic_rotation_regression in hypertree_train.py
         y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=random_augmentation)
         y = y[:, 3:]
     elif label_features_to_extract is None or 'grasp_goal_xyz_aaxyz_nsc_8' in label_features_to_extract:

@@ -17,7 +17,7 @@ import cv2
 from tensorflow.python.platform import flags
 import costar_hyper
 from costar_hyper import grasp_utilities
-from costar_hyper import cornell_grasp_train
+from costar_hyper import hypertree_train
 from costar_hyper import hypertree_model
 from costar_hyper import block_stacking_reader
 from costar_hyper import grasp_metrics
@@ -216,7 +216,7 @@ class CostarHyperPosePredictor(object):
 
         [image_shapes, vector_shapes, data_features, model_name,
          monitor_loss_name, label_features, monitor_metric_name,
-         loss, metrics, classes, success_only] = cornell_grasp_train.choose_features_and_metrics(feature_combo_name, problem_type)
+         loss, metrics, classes, success_only] = hypertree_train.choose_features_and_metrics(feature_combo_name, problem_type)
 
 
         model = hypertree_model.choose_hypertree_model(

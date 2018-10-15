@@ -3,7 +3,7 @@ from keras import backend as K
 from tensorflow.python.platform import flags
 
 import hyperopt
-import cornell_grasp_train
+import hypertree_train
 import cornell_grasp_dataset_reader
 import grasp_utilities
 
@@ -46,7 +46,7 @@ def cornell_hyperoptions(problem_type, param_to_optimize):
                           'semantic_translation_regression', 'semantic_rotation_regression']:
         feature_combo_name = 'image_preprocessed'
         # Override some default flags for this configuration
-        # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
+        # see other configuration in hypertree_train.py choose_features_and_metrics()
         FLAGS.problem_type = problem_type
         FLAGS.feature_combo = feature_combo_name
         # only meaningful on the cornell and google dataset readers
@@ -76,8 +76,8 @@ def main(_):
     FLAGS.dataset_name = 'costar_block_stacking'
     # FLAGS.problem_type = 'semantic_grasp_regression'
 
-    ## CONFIGURE: Choose from one of the three problem types for ranking. 
-    ## ---------------------------------------------------- 
+    ## CONFIGURE: Choose from one of the three problem types for ranking.
+    ## ----------------------------------------------------
     # When ranking translation use the following settings:
     FLAGS.log_dir = 'hyperopt_logs_costar_translation_regression'
     FLAGS.problem_type = 'semantic_translation_regression'
@@ -88,8 +88,8 @@ def main(_):
     # ----------------------------------------------------
     # When ranking both rotation and translation, use the following settings:
     # FLAGS.log_dir = 'hyperopt_logs_costar_grasp_regression'
-    # FLAGS.problem_type = 'semantic_grasp_regression' 
-    ## ----------------------------------------------------   
+    # FLAGS.problem_type = 'semantic_grasp_regression'
+    ## ----------------------------------------------------
 
     FLAGS.batch_size = 16
     FLAGS.num_validation = 1
@@ -99,7 +99,7 @@ def main(_):
     run_name = FLAGS.run_name
     log_dir = FLAGS.log_dir
     run_name = grasp_utilities.timeStamped(run_name)
-    run_training_fn = cornell_grasp_train.run_training
+    run_training_fn = hypertree_train.run_training
     problem_type = FLAGS.problem_type
     param_to_optimize = 'loss'
     # TODO(ahundt) re-enable seed once memory leak issue below is fixed
@@ -117,7 +117,7 @@ def main(_):
 
     # checkpoint is a special parameter to not save hdf5 files because training runs
     # are very quick (~1min) and checkpoint files are very large (~100MB)
-    # which is forwarded to cornell_grasp_train.py run_training() function.
+    # which is forwarded to hypertree_train.py run_training() function.
     checkpoint = False
 
     # TODO(ahundt) hyper optimize more input feature_combo_names (ex: remove sin theta cos theta), optimizers, etc

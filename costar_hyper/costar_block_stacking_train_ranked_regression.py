@@ -22,7 +22,7 @@ import keras
 from tensorflow.python.platform import flags
 
 import grasp_utilities
-import cornell_grasp_train
+import hypertree_train
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -92,7 +92,7 @@ def main(_):
 
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
-    # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
+    # see other configuration in hypertree_train.py choose_features_and_metrics()
     FLAGS.problem_type = problem_type
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
@@ -225,7 +225,7 @@ def main(_):
             FLAGS.load_weights = None
 
         try:
-            history = cornell_grasp_train.run_training(
+            history = hypertree_train.run_training(
                 problem_name=problem_type,
                 # feature_combo_name=feature_combo,
                 hyperparams=hyperparams,

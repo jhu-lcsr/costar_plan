@@ -12,7 +12,7 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 import sys
 import tensorflow as tf
 import grasp_utilities
-import cornell_grasp_train
+import hypertree_train
 from tensorflow.python.platform import flags
 
 FLAGS = flags.FLAGS
@@ -40,7 +40,7 @@ def main(_):
     # NOT RECOMMENDED due to height being correlated with grasp_success:
     # feature_combo = 'image_preprocessed_sin2_cos2_height_width_4'
     # Override some default flags for this configuration
-    # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
+    # see other configuration in hypertree_train.py choose_features_and_metrics()
     FLAGS.crop_height = 224
     FLAGS.crop_width = 224
     FLAGS.problem_type = problem_type
@@ -103,20 +103,20 @@ def main(_):
     if 'k_fold' in FLAGS.pipeline_stage:
         FLAGS.num_validation = 2
         FLAGS.num_test = 0
-        cornell_grasp_train.train_k_fold(
+        hypertree_train.train_k_fold(
             problem_name=problem_type,
             # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='objectwise',
             **hyperparams)
-        cornell_grasp_train.train_k_fold(
+        hypertree_train.train_k_fold(
             problem_name=problem_type,
             # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='imagewise',
             **hyperparams)
     else:
-        cornell_grasp_train.run_training(
+        hypertree_train.run_training(
             problem_name=problem_type,
             # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
