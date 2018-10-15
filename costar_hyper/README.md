@@ -1,6 +1,10 @@
 
 # CoSTAR Hyper
 
+Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home), implementing HyperTrees. Code for the [rENAS: Regression Efficient Neural Architecture Search](github.com/ahundt/enas) portion of the paper is available separately.
+
+[![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/1.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
+
 Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 
 ## Installation
@@ -27,7 +31,9 @@ python2 -m pip install -e . --user --upgrade
 
 costar_plan setup is run separately via the ros catkin package
 
-## Costar Block Stacking Dataset
+## CoSTAR Block Stacking Dataset
+
+The block stacking dataset has a robot attempting to stack 3 colored blocks, as described in [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home). First check out the [CoSTAR Block Stacking Dataset Website](https://sites.google.com/site/costardataset) to get an idea of how everything works.
 
 The Block stacking dataset is currently hosted on google drive. It can be downloaded with [rclone](https://github.com/ncw/rclone).
 
@@ -334,3 +340,7 @@ Generating a hyperparameter search results summary for google brain grasping dat
 ```
 python hyperopt_rank.py --log_dir hyperopt_logs_google_brain_classification --sort_by val_acc
 ```
+
+# Cite
+
+[Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home)
