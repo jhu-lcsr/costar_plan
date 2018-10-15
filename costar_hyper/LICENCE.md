@@ -1,4 +1,4 @@
-Copyright 2018, Andrew Hundt, Ding Yu, Tomi Nikolla. All rights reserved.
+Copyright 2018, Andrew Hundt, Varun Jain, Ding Yu, and The CoSTAR Hyper Authors. All rights reserved.
 
 
 Apache License
