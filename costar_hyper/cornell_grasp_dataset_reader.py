@@ -4,7 +4,7 @@ Image processing of cornell grasping dataset for detecting grasping positions.
 
 Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 
-Cornell Dataset Code based on:
+Portions of Cornell Dataset Code based on:
     https://github.com/tnikolla/robot-grasp-detection
 
 '''

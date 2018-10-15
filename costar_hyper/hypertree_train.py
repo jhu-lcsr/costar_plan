@@ -1,10 +1,13 @@
 #!/usr/local/bin/python
 '''
-Training a network on cornell grasping dataset for detecting grasping positions.
+Training a HyperTree network on CoSTAR Block Stacking Dataset
+and cornell grasping dataset for detecting grasping positions.
+
+Author: Andrew Hundt
 
 Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 
-Cornell Dataset Code Based on:
+Small Portions of Cornell Dataset Code Based on:
     https://github.com/tnikolla/robot-grasp-detection
 
 '''

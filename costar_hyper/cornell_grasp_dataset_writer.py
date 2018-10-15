@@ -3,7 +3,7 @@
 
 Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 
-Cornell Dataset Code based on:
+Portions of Cornell Dataset Code based on:
     https://github.com/tnikolla/robot-grasp-detection
 
 The raw data set resides in png and txt files located in the following structure:
