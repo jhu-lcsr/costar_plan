@@ -9,7 +9,7 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 import sys
 import os
 import tensorflow as tf
-import grasp_utilities
+import hypertree_utilities
 import hypertree_train
 from tensorflow.python.platform import flags
 
@@ -178,7 +178,7 @@ def main(_):
     print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams))
     learning_rate = FLAGS.learning_rate
 
-    hyperparams = grasp_utilities.load_hyperparams_json(
+    hyperparams = hypertree_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, learning_rate,
         feature_combo_name=feature_combo)
 

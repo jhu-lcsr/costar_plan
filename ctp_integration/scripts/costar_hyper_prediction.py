@@ -16,7 +16,7 @@ import tf_conversions.posemath as pm
 import cv2
 from tensorflow.python.platform import flags
 import costar_hyper
-from costar_hyper import grasp_utilities
+from costar_hyper import hypertree_utilities
 from costar_hyper import hypertree_train
 from costar_hyper import hypertree_model
 from costar_hyper import block_stacking_reader
@@ -201,7 +201,7 @@ class CostarHyperPosePredictor(object):
             raise ValueError('A hyperparams file must be specified with: --load_hyperparams path/to/hyperparams.json')
 
         # load hyperparams from a file
-        hyperparams = grasp_utilities.load_hyperparams_json(
+        hyperparams = hypertree_utilities.load_hyperparams_json(
             load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
             feature_combo_name=feature_combo_name)
 

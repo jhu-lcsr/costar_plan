@@ -160,7 +160,7 @@ from tensorflow.python.keras._impl.keras.utils.data_utils import _hash_file
 import keras
 from keras import backend as K
 
-import grasp_utilities
+import hypertree_utilities
 import grasp_visualization
 
 
@@ -279,7 +279,7 @@ class GraspDataset(object):
                 data_dir = FLAGS.data_dir
             else:
                 data_dir = self.data_dir
-        grasp_utilities.mkdir_p(data_dir)
+        hypertree_utilities.mkdir_p(data_dir)
         print('Downloading datasets to: ', data_dir)
 
         url_prefix = ''

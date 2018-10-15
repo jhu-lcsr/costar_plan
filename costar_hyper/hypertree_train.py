@@ -72,7 +72,7 @@ from keras.utils import OrderedEnqueuer
 
 import grasp_loss
 import hypertree_pose_metrics
-import grasp_utilities
+import hypertree_utilities
 
 
 flags.DEFINE_float(
@@ -436,7 +436,7 @@ def run_training(
     # loss = grasp_loss.segmentation_gaussian_measurement
 
     dataset_names_str = dataset_name
-    run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
+    run_name = hypertree_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
     callbacks = []
 
     # don't return the whole dictionary of features, only the specific ones we want
@@ -471,7 +471,7 @@ def run_training(
 
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     log_dir_run_name = os.path.join(log_dir, run_name)
-    grasp_utilities.mkdir_p(log_dir)
+    hypertree_utilities.mkdir_p(log_dir)
 
     # If this is based on some other past hyperparams configuration,
     # save the original hyperparams path to a file for tracing data pipelines.
@@ -889,13 +889,13 @@ def train_k_fold(split_type=None,
     train_id = ''
     val_size = 0
     train_size = 0
-    kfold_run_name = grasp_utilities.timeStamped(run_name + '-' + split_type + '-kfold')
+    kfold_run_name = hypertree_utilities.timeStamped(run_name + '-' + split_type + '-kfold')
     log_dir = os.path.join(log_dir, kfold_run_name)
     kfold_param_dicts = {'num_fold': num_fold, 'num_splits': num_splits, 'fold_size': num_train}
     kfold_run_train_param_list = []
     fold_name_list = []
     # create the directory we will log to
-    grasp_utilities.mkdir_p(log_dir)
+    hypertree_utilities.mkdir_p(log_dir)
 
     # 2k files, but k folds, so read two file at a time
     progbar_folds = tqdm(range(num_fold), desc='Preparing kfold')
@@ -966,12 +966,12 @@ def train_k_fold(split_type=None,
         # save the histories so far, overwriting past updates
         with open(json_histories_path, 'w') as fp:
             # save out all kfold params so they can be reloaded in the future
-            json.dump(history_dicts, fp, cls=grasp_utilities.NumpyEncoder)
+            json.dump(history_dicts, fp, cls=hypertree_utilities.NumpyEncoder)
 
     # find the k-fold average and save it out to a json file
     # Warning: this file will massively underestimate scores for jaccard distance metrics!
     json_summary_path = os.path.join(log_dir, kfold_run_name + '_summary.json')
-    grasp_utilities.multi_run_histories_summary(run_histories, json_summary_path)
+    hypertree_utilities.multi_run_histories_summary(run_histories, json_summary_path)
 
     return run_histories
 
@@ -1475,7 +1475,7 @@ def model_predict_k_fold(
             # Now we have to load the best model
             # '200_epoch_real_run' is for backwards compatibility before
             # the fold nums were put into each fold's log_dir and run_name.
-            fold_checkpoint_file = grasp_utilities.find_best_weights(fold_log_dir, fold_name, verbose, progbar_folds)
+            fold_checkpoint_file = hypertree_utilities.find_best_weights(fold_log_dir, fold_name, verbose, progbar_folds)
 
             progbar_folds.write('Fold ' + str(i) + ' Loading checkpoint: ' + str(fold_checkpoint_file))
 
@@ -1749,7 +1749,7 @@ def steps_per_epoch(train_batch=None, samples_train=None,
 def main(_):
 
     tf.enable_eager_execution()
-    hyperparams = grasp_utilities.load_hyperparams_json(
+    hyperparams = hypertree_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     if 'k_fold' in FLAGS.pipeline_stage:
         train_k_fold(hyperparams=hyperparams, **hyperparams)

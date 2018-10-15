@@ -11,7 +11,7 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 '''
 import sys
 import tensorflow as tf
-import grasp_utilities
+import hypertree_utilities
 import hypertree_train
 from tensorflow.python.platform import flags
 
@@ -91,7 +91,7 @@ def main(_):
           'This mode overrides some command line parameters so to change them '
           'you will need to modify cornell_grasp_train_classification.py directly.')
 
-    hyperparams = grasp_utilities.load_hyperparams_json(
+    hyperparams = hypertree_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, fine_tuning=FLAGS.fine_tuning,
         learning_rate=FLAGS.learning_rate,
         feature_combo_name=feature_combo)

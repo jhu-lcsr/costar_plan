@@ -21,7 +21,7 @@ import json
 import keras
 from tensorflow.python.platform import flags
 
-import grasp_utilities
+import hypertree_utilities
 import hypertree_train
 
 # progress bars https://github.com/tqdm/tqdm
@@ -203,7 +203,7 @@ def main(_):
         history = None
         hyperparameters_filename = row['hyperparameters_filename']
 
-        hyperparams = grasp_utilities.load_hyperparams_json(
+        hyperparams = hypertree_utilities.load_hyperparams_json(
             hyperparameters_filename, FLAGS.fine_tuning, FLAGS.learning_rate,
             feature_combo_name=feature_combo)
 
@@ -240,10 +240,10 @@ def main(_):
             # save the histories so far, overwriting past updates
             with open(json_histories_path, 'w') as fp:
                 # save out all kfold params so they can be reloaded in the future
-                json.dump(history_dicts, fp, cls=grasp_utilities.NumpyEncoder)
+                json.dump(history_dicts, fp, cls=hypertree_utilities.NumpyEncoder)
 
             # generate the summary results
-            results = grasp_utilities.multi_run_histories_summary(
+            results = hypertree_utilities.multi_run_histories_summary(
                 run_histories,
                 metrics=histories_metrics,
                 multi_history_metrics=histories_summary_metrics,

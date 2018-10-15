@@ -35,7 +35,7 @@ from tensorflow.python.ops import data_flow_ops
 import keras
 from keras import backend as K
 
-import grasp_utilities
+import hypertree_utilities
 import hypertree_pose_metrics
 
 

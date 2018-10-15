@@ -17,7 +17,7 @@ import numpy as np
 import tensorflow as tf
 import traceback
 import keras
-import grasp_utilities
+import hypertree_utilities
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -446,7 +446,7 @@ def optimize(
         return loss
 
     log_run_prefix = os.path.join(log_dir, run_name)
-    grasp_utilities.mkdir_p(log_run_prefix)
+    hypertree_utilities.mkdir_p(log_run_prefix)
     print('Hyperopt log run results prefix directory: ' + str(log_run_prefix))
     hyperoptions.save(log_run_prefix + '_hyperoptions.json')
 

@@ -5,7 +5,7 @@ from tensorflow.python.platform import flags
 import hyperopt
 import hypertree_train
 import cornell_grasp_dataset_reader
-import grasp_utilities
+import hypertree_utilities
 
 FLAGS = flags.FLAGS
 
@@ -98,7 +98,7 @@ def main(_):
     FLAGS.fine_tuning_epochs = 0
     run_name = FLAGS.run_name
     log_dir = FLAGS.log_dir
-    run_name = grasp_utilities.timeStamped(run_name)
+    run_name = hypertree_utilities.timeStamped(run_name)
     run_training_fn = hypertree_train.run_training
     problem_type = FLAGS.problem_type
     param_to_optimize = 'loss'

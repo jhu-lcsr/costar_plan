@@ -3,7 +3,7 @@ from tensorflow.python.platform import flags
 
 import hyperopt
 import grasp_train
-import grasp_utilities
+import hypertree_utilities
 
 FLAGS = flags.FLAGS
 
@@ -32,7 +32,7 @@ def main(_):
     run_name = FLAGS.run_name
     run_name += '-' + FLAGS.grasp_sequence_motion_command_feature.split('/')[-1]
     log_dir = FLAGS.log_dir
-    run_name = grasp_utilities.timeStamped(run_name)
+    run_name = hypertree_utilities.timeStamped(run_name)
     run_training_fn = grasp_train.run_hyperopt
     param_to_optimize = 'val_acc'
     batch_size = 4
