@@ -12,7 +12,7 @@ from grasp_dataset import mkdir_p
 
     To run:
 
-    python2 success_fail_statistic.py --grasp_dataset 102
+    python2 grasp_success_fail_statistics.py --grasp_dataset 102
 
     Output:
 
