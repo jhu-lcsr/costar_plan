@@ -29,7 +29,7 @@ cd costar_plan
 python2 -m pip install -e . --user --upgrade
 ```
 
-costar_plan setup is run separately via the ros catkin package
+Setup of the larger costar_plan code base is run separately via the ros catkin package.
 
 ## CoSTAR Block Stacking Dataset
 
