@@ -9,7 +9,7 @@ Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 
 ## Installation
 
-These instructions are with minimal dependencies where you'll be training & predicting on the datasetas.
+These instructions are with minimal dependencies where you'll be training & predicting on the datasets.
 
 ```
 # make sure your python2 is up to date. python3 probably works but is not tested
