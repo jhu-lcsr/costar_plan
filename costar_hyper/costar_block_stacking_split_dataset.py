@@ -48,23 +48,23 @@ def _parse_args():
     parser.add_argument("--dataset_path", type=str, default='/.keras/dataset/',
                         help='The folder that is expected stores the dataset. '
                              'Filenames in the output file will reference this path.')
-    parser.add_argument("--dataset_name", type=str, 
-                        default='costar_block_stacking_dataset_v0.4',
+    parser.add_argument("--dataset_name", type=str,
+                        default='costar_block_stacking_dataset',
                         help='Dataset name to store under dataset path.'
                              'Filenames in the output file will reference this name.')
+    # parser.add_argument("--dataset_version", type=str, default='v0.4',
+    #                     help='The current version of the dataset.')
     parser.add_argument("--success_only", action='store_true', default=False,
-                        help='only visit stacking data labeled as successful')
-    parser.add_argument("--plush", action='store_true', default=False,
-                        help='processing plush attempts')
-    parser.add_argument("--train", type=str, default='',
-                        help='pre-existing filenames for training. '
-                        'the file is expected to be in argument `path`')
-    parser.add_argument("--val", type=str, default='',
-                        help='pre-existing filenames for validation. '
-                        'the file is expected to be in argument `path`')
-    parser.add_argument("--test", type=str, default='',
-                        help='pre-existing filenames for testing. '
-                        'the file is expected to be in argument `path`')
+                        help='Only visit stacking data labeled as successful')
+    # parser.add_argument("--train", type=str, default='',
+    #                     help='Pre-existing filenames for training. '
+    #                     'the file is expected to be in argument `path`')
+    # parser.add_argument("--val", type=str, default='',
+    #                     help='Pre-existing filenames for validation. '
+    #                     'the file is expected to be in argument `path`')
+    # parser.add_argument("--test", type=str, default='',
+    #                     help='Pre-existing filenames for testing. '
+    #                     'the file is expected to be in argument `path`')
     parser.add_argument("--output_name", type=str,
                         default='costar_block_stacking_dataset', help='output file name')
     parser.add_argument("--val_len", type=int, default=None,
@@ -73,8 +73,13 @@ def _parse_args():
                         help='Expected test set length')
     parser.add_argument("--seed", type=int, default=0,
                         help='Random seed for reproducing the output lists')
-    parser.add_argument("--write", type='store_true', default=False,
+    parser.add_argument("--write", action='store_true', default=False,
                         help='Write to output files')
+    parser.add_argument("--existing_file_prefix", type=str, nargs='+',
+                        default=["costar_plush_block_stacking_dataset_v0.4",
+                                 "costar_block_stacking_dataset_v0.4"],
+                        help="Existing txt file prefixes to look for when opening "
+                             "train/val/test files.")
     return vars(parser.parse_args())
 
 
@@ -104,6 +109,43 @@ def get_existing_filenames(path_to_file):
 
     print('Read ' + str(len(filenames)) + ' filenames from ' + path_to_file)
     return filenames
+
+
+def output_file(dataset_path, dataset_name, dir_path, dir_name,
+                category_name, subset_name, subset_filenames, write):
+    '''Output the filenames as a txt file.
+    Automatically adds appropriate keras path for the filenames.
+
+    :param dataset_path: The path that the dataset is expected to store under.
+                         Defaults to '~/.keras/datasets/'.
+    :param dataset_name: The folder that the dataset is expected to store under.
+                         Defaults to 'costar_block_stacking_dataset_v0.4'.
+    :param dir_path: The path to the directory that the files are in.
+    :param dir_name: The name of the directory that the files are in.
+    :param category_name: success_only, task_failures_only, error_failures_only, etc.
+    :param subset_name: train/val/test, to be added to the output filename.
+    :param subset_filenames: The filenames to be written in the txt file.
+    :param write: The flag to actually write the output files.
+    :return output_path: The path to the output txt file.
+    '''
+    output_filename = "{0}_{1}_{2}_{3}_files.txt".format(
+                        dataset_name, dir_name, category_name, subset_name)
+    output_path = os.path.join(dir_path, dir_name, output_filename)
+    prefix_path = os.path.join(dataset_path, dataset_name, dir_name)
+    print("Output txt file: {}".format(output_path))
+    print("Length: {} files".format(len(subset_filenames)))
+    print("Example .h5f path in the txt file: %s".format(
+          os.path.join(prefix_path, subset_filenames[0])))
+
+    if write:
+        with open(output_filename, 'w') as f:
+            for filename in subset_filenames:
+                file_path = os.path.join(prefix_path, filename)
+                f.write(file_path + '\n')
+    else:
+        print("File not written. Use --write flag to actually output the file.")
+
+    return output_path
 
 
 def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_len=None):
@@ -189,159 +231,197 @@ def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_le
     return train_set, val_set, test_set
 
 
-def output_file(path, plush, output_prefix, dataset_name, category_name, subset_name, filenames):
-    '''Output the filenames as a txt file.
-    Automatically adds appropriate keras path for the filenames.
+# def split_success_only(
+#         filenames, path, plush, train_txt, val_txt, test_txt,
+#         val_len=None, test_len=None):
+#     '''Splits success files into success_only train/val/test txt files.
 
-    :param path: The path to store the output txt file.
-    :param plush: A bool stating whether the program is processing plush subset.
-    :param output_prefix: Prefix of the output txt file.
-    :param dataset_name: Dataset name to be placed after 
-    :param set_name: train/val/test, to be added to the output filename.
-    :param filenames: The filenames to be written in the txt file.
+#     :param filenames: A list of .h5f filenames under the path.
+#     :param path: Path to the folder with the .h5f files.
+#     :param plush: A bool indicating whether the program is processing plush subset.
+#     :param train_txt: Filename to a pre-existing train txt file.
+#     :param val_txt: Filename to a pre-existing val txt file.
+#     :param test_txt: Filename to a pre-existing test txt file.
+#     :param val_len: Expected output val set length.
+#     :param test_len: Expected output test set length.
+#     :param output_name: Filename prefix to the output train/val/test txt files.
+#     '''
+#     # Read files that are success
+#     filenames = [filename for filename in filenames if '.success.h5f' in filename]
+#     print('Selecting ' + str(len(filenames)) + ' success files')
+
+#     # Read filenames for the previous training set
+#     if not train_txt:
+#         train_set = []
+#     else:
+#         pre_existing_set_file = path + train_txt
+#         if not os.path.isfile(pre_existing_set_file):
+#             raise ValueError(
+#                 'split_success_only: Pre-existing training file is not a file: ' +
+#                 pre_existing_set_file)
+
+#         train_set = get_existing_filenames(pre_existing_set_file)
+
+#     # Read filenames for the previous validation set
+#     if not val_txt:
+#         val_set = []
+#     else:
+#         pre_existing_set_file = path + val_txt
+#         if not os.path.isfile(pre_existing_set_file):
+#             raise ValueError(
+#                 'split_success_only: Pre-existing validating file is not a file: ' +
+#                 pre_existing_set_file)
+
+#         val_set = get_existing_filenames(pre_existing_set_file)
+
+#     # Read filenames for the previous test set
+#     if not test_txt:
+#         test_set = []
+#     else:
+#         pre_existing_set_file = path + test_txt
+#         if not os.path.isfile(pre_existing_set_file):
+#             raise ValueError(
+#                 'split_success_only: Pre-existing testing file is not a file: ' +
+#                 pre_existing_set_file)
+
+#         test_set = get_existing_filenames(pre_existing_set_file)
+
+#     # Inform the user that the length of val and test will be matched for output,
+#     # when the lengths of val and test are not equal
+#     if len(val_set) is not len(test_set):
+#         print('Validation set and testing set do not have the same length. '
+#               'Output results will be adjusted to same size sets')
+
+#     # Randomize the filenames
+#     random.shuffle(filenames)
+
+#     # Split the dataset
+#     train_set, val_set, test_set = split_dataset(
+#         filenames, train_set, val_set, test_set, val_len, test_len)
+
+#     # Sanity check
+#     for i in val_set:
+#         if i in train_set:
+#             raise RuntimeError("split_success_only: test attempt in train set! %s" % i)
+#             # print("split_success_only: val attempt in train set! %s" % i)
+#     for i in test_set:
+#         if i in train_set:
+#             raise RuntimeError("split_success_only: test attempt in train set! %s" % i)
+#             # print("split_success_only: test attempt in train set! %s" % i)
+#     for i in test_set:
+#         if i in val_set:
+#             raise RuntimeError("split_success_only: test attempt in val set! %s" % i)
+#             # print("split_success_only: test attempt in train set! %s" % i)
+#     if (len(train_set) + len(val_set) + len(test_set)) != len(filenames):
+#         print("ERROR! lenth of train, val and test = %d, %d, %d"
+#               % (len(train_set), len(val_set), len(test_set)))
+#         print("Length of all files: %d" % len(filenames))
+#         raise RuntimeError("split_success_only: Numbers do not add up. Something is wrong!")
+#     print("Split complete. Sanity check passed.")
+
+#     # Write the output files
+#     output_file(path, plush, output_name, 'success_only_train', train_set)
+#     output_file(path, plush, output_name, 'success_only_val', val_set)
+#     output_file(path, plush, output_name, 'success_only_test', test_set)
+
+def read_existing_files(
+        dir_path, dataset_name, dir_name, category_name, existing_file_prefix):
+    '''Try to open existing train/val/test txt files.
+    1. Try [dataset_name]_[dir_name]_[category_name]_[subset_name]_files.txt
+       e.g. costar_block_stacking_dataset_v0.4_blocks_only_success_only_train_files.txt
+    2. If that does not work, try the prefixes in existing_file_prefix
+       e.g. costar_plush_block_stacking_dataset_v0.4_success_only_train_files.txt
+
+    :return train_val_test_filenames: A list of 3 elements representing [train, val, test]
+                                      filenames. If no file is found for that subset, the
+                                      corresponding element will be None
     '''
-    output_filename = output_prefix + '_' + set_name + '_files.txt'
+    # Read the train/val/test set from dataset name and dir name
+    train_val_test_filenames = []
+    for subset_name in ['train', 'val', 'test']:
+        txt_filename = "{0}_{1}_{2}_{3}_files.txt".format(
+                        dataset_name, dir_name, category_name, subset_name)
+        txt_file_path = os.path.join(dir_path, txt_filename)
+        print("Trying %s..." % txt_file_path)
+        if os.path.isfile(txt_file_path):
+            print("Existing {} txt file found: {}".format(subset_name, txt_filename))
+            train_val_test_filenames.append(get_existing_filenames(txt_file_path))
+        else:
+            train_val_test_filenames.append(None)
 
-    list_filename = os.path.join(path, output_filename)
-    print('Writing ' + list_filename)
-    f = open(list_filename, 'w')
-    # print(f)
+    # If no txt files are found, look in existing_file_prefix
+    if any(l is None for l in train_val_test_filenames):
+        for prefix in existing_file_prefix:
+            train_val_test_filenames = []
+            for subset_name in ['train', 'val', 'test']:
+                txt_filename = "{0}_{1}_{2}_files.txt".format(
+                                prefix, category_name, subset_name)
+                txt_file_path = os.path.join(dir_path, txt_filename)
+                print("Trying %s..." % txt_file_path)
+                if os.path.isfile(txt_file_path):
+                    print("Existing {} txt file found: {}".format(
+                           subset_name, txt_filename))
+                    train_val_test_filenames.append(get_existing_filenames(txt_file_path))
+                else:
+                    train_val_test_filenames.append(None)
 
-    if plush:
-        folder = 'blocks_with_plush_toy/'
-    else:
-        folder = 'blocks_only/'
+            # Successfully read some pre-existing train/val/test txt files
+            if any(l is not None for l in train_val_test_filenames):
+                break
 
-    prefix_path = \
-        "~/.keras/datasets/costar_block_stacking_dataset_v0.4/" + folder
-
-    for filename in filenames:
-        # print filename
-        f.write(prefix_path + filename + '\n')
-
-    f.close()
+    return train_val_test_filenames
 
 
-    return list_filename
-
-
-def split_success_only(
-        filenames, path, plush, train_txt, val_txt, test_txt,
-        val_len=None, test_len=None):
-    '''Splits success files into success_only train/val/test txt files.
-
-    :param filenames: A list of .h5f filenames under the path.
-    :param path: Path to the folder with the .h5f files.
-    :param plush: A bool indicating whether the program is processing plush subset.
-    :param train_txt: Filename to a pre-existing train txt file.
-    :param val_txt: Filename to a pre-existing val txt file.
-    :param test_txt: Filename to a pre-existing test txt file.
-    :param val_len: Expected output val set length.
-    :param test_len: Expected output test set length.
-    :param output_name: Filename prefix to the output train/val/test txt files.
-    '''
-    # Read files that are success
-    filenames = [filename for filename in filenames if '.success.h5f' in filename]
-    print('Selecting ' + str(len(filenames)) + ' success files')
-
-    # Read filenames for the previous training set
-    if not train_txt:
-        train_set = []
-    else:
-        pre_existing_set_file = path + train_txt
-        if not os.path.isfile(pre_existing_set_file):
-            raise ValueError(
-                'split_success_only: Pre-existing training file is not a file: ' +
-                pre_existing_set_file)
-
-        train_set = get_existing_filenames(pre_existing_set_file)
-
-    # Read filenames for the previous validation set
-    if not val_txt:
-        val_set = []
-    else:
-        pre_existing_set_file = path + val_txt
-        if not os.path.isfile(pre_existing_set_file):
-            raise ValueError(
-                'split_success_only: Pre-existing validating file is not a file: ' +
-                pre_existing_set_file)
-
-        val_set = get_existing_filenames(pre_existing_set_file)
-
-    # Read filenames for the previous test set
-    if not test_txt:
-        test_set = []
-    else:
-        pre_existing_set_file = path + test_txt
-        if not os.path.isfile(pre_existing_set_file):
-            raise ValueError(
-                'split_success_only: Pre-existing testing file is not a file: ' +
-                pre_existing_set_file)
-
-        test_set = get_existing_filenames(pre_existing_set_file)
-
-    # Inform the user that the length of val and test will be matched for output,
-    # when the lengths of val and test are not equal
-    if len(val_set) is not len(test_set):
-        print('Validation set and testing set do not have the same length. '
-              'Output results will be adjusted to same size sets')
-
-    # Randomize the filenames
-    random.shuffle(filenames)
-
-    # Split the dataset
-    train_set, val_set, test_set = split_dataset(
-        filenames, train_set, val_set, test_set, val_len, test_len)
-
+def split_sanity_check(train_set, val_set, test_set, len_filenames):
     # Sanity check
     for i in val_set:
         if i in train_set:
-            raise RuntimeError("split_success_only: test attempt in train set! %s" % i)
-            # print("split_success_only: val attempt in train set! %s" % i)
+            raise RuntimeError("split_sanity_check: test attempt in train set! %s" % i)
     for i in test_set:
         if i in train_set:
-            raise RuntimeError("split_success_only: test attempt in train set! %s" % i)
-            # print("split_success_only: test attempt in train set! %s" % i)
+            raise RuntimeError("split_sanity_check: test attempt in train set! %s" % i)
     for i in test_set:
         if i in val_set:
-            raise RuntimeError("split_success_only: test attempt in val set! %s" % i)
-            # print("split_success_only: test attempt in train set! %s" % i)
-    if (len(train_set) + len(val_set) + len(test_set)) != len(filenames):
+            raise RuntimeError("split_sanity_check: test attempt in val set! %s" % i)
+    if (len(train_set) + len(val_set) + len(test_set)) != len_filenames:
         print("ERROR! lenth of train, val and test = %d, %d, %d"
               % (len(train_set), len(val_set), len(test_set)))
-        print("Length of all files: %d" % len(filenames))
-        raise RuntimeError("split_success_only: Numbers do not add up. Something is wrong!")
-    print("Split complete. Sanity check passed.")
-
-    # Write the output files
-    output_file(path, plush, output_name, 'success_only_train', train_set)
-    output_file(path, plush, output_name, 'success_only_val', val_set)
-    output_file(path, plush, output_name, 'success_only_test', test_set)
+        print("Length of all files: %d" % len_filenames)
+        raise RuntimeError("split_sanity_check: Numbers do not add up!!!")
+    print("Sanity check passed.")
 
 
 def split_all(
-        filenames, path, plush, train_txt, val_txt, test_txt,
+        filenames, dataset_name, dir_name, dir_path, success_only, existing_file_prefix,
         val_len=None, test_len=None):
-    '''Splits failure files into all_failure_only, task_failure_only and
-    error_failure_only subsets.
+    '''Splits all files into success_only, task_failure_only, error_failure_only, and
+    task_and_error_failure subsets.
     1. Open all filenames with h5py to only count the files that contain images
     2. Calculate success:failure:error ratios
-    3. Refer to pre-existing success_only train/val/test txt file counts and output
-       train/val/test txt files according to the calculated success:failure:error ratio.
+    3. Try to open success_only train/val/test txt file in existing_file_prefix for
+       length reference. Output train/val/test txt files according to the calculated
+       success:failure:error ratio. If no file is found, use val_len and test_len as
+       basis for creating success_only train/val/test txt files.
 
     :param filenames: A list of .h5f filenames under the path.
-    :param path: Path to the folder with the .h5f files.
-    :param plush: A bool indicating whether the program is processing plush subset.
-    :param train_txt: Filename to success_only train txt file.
-    :param val_txt: Filename to success_only val txt file.
-    :param test_txt: Filename to success_only test txt file.
+    :param dataset_name: The name of the dataset.
+    :param dir_name: The folder name for that the .h5f files are under.
+    :param dir_path: Path to the folder with the .h5f files.
+    :param success_only: A bool indicating whether the program should only process
+                         success_only files.
+    :param existing_file_prefix: Txt file prefixes for the program to look for in
+                                 the folder to open as success_only reference.
     :param val_len: Expected output val set length.
     :param test_len: Expected output test set length.
-    :param output_name: Filename prefix to the output train/val/test txt files.
+    :return: A list of 4 lists that contain 3 sublists.
+             The 4 lists are in the format of [success_only, task_and_error_failure,
+             task_failure_only, error_failure_only]
+             Each sublist contains [train, val, test] filenames.
     '''
     # Get the success, failure, and error filenames with nonzero frames
+    print("Checking h5f files in {}".format(dir_path))
     success_filenames, failure_filenames, error_filenames = count_files_containing_images(
-                                                                path, filenames)
+                                                                dir_path, filenames)
 
     # Calculate the percentage of success, failure and error
     total_file_count = (
@@ -353,62 +433,62 @@ def split_all(
     print("Ratios: {:.2f}% success, {:.2f}% failure(no error), {:.2f}% error".format(
             success_ratio*100, failure_ratio*100, error_ratio*100))
 
-    # Read the train/val set from success_only subset
-    if plush:
-        default_name = 'costar_plush_block_stacking_v0.4_success_only_'
-    else:
-        default_name = 'costar_block_stacking_v0.4_success_only_'
-    # Read filenames for the previous training set
-    if not train_txt:
-        # Look for v0.4 success only train filenames
-        print('No train file is specified. Trying to open v0.4 success only...')
-        pre_existing_set_file = path + default_name + 'train_files.txt'
-    else:
-        pre_existing_set_file = path + train_txt
+    # Process success_only files
+    train_val_test_filenames = read_existing_files(
+        dir_path, dataset_name, dir_name, 'success_only', existing_file_prefix)
 
-    if not os.path.isfile(pre_existing_set_file):
-        raise ValueError(
-            'Pre-existing training file is not a file: ' +
-            pre_existing_set_file)
-    success_train_len = len(get_existing_filenames(pre_existing_set_file))
+    # Extract the filenames into subsets
+    success_train_set, success_val_set, success_test_set = [
+        l if l is not None else [] for l in train_val_test_filenames]
+    success_train_len, success_val_len, success_test_len = list(
+        map(len, train_val_test_filenames))
+    if success_val_len == 0:
+        print("No val set found. Default output val length is 64.")
+        success_val_len = 64
+    if success_test_len == 0:
+        print("No test set found. Default output test length is 64.")
+        success_test_len = 64
 
-    # Read filenames for the previous validation set
-    if not val_txt:
-        # Look for v0.4 success only val filenames
-        print('No val file is specified. Trying to open v0.4 success only...')
-        pre_existing_set_file = path + default_name + 'val_files.txt'
-    else:
-        pre_existing_set_file = path + val_txt
+    # Split the dataset
+    random.shuffle(success_filenames)
+    sucess_train_set, success_val_set, success_test_set = split_dataset(
+        success_filenames, success_train_set, success_val_set, success_test_set,
+        success_val_len, success_test_len)
 
-    if not os.path.isfile(pre_existing_set_file):
-        raise ValueError(
-            'Pre-existing validating file is not a file: ' +
-            pre_existing_set_file)
-    success_val_len = len(get_existing_filenames(pre_existing_set_file))
+    # Sanity check
+    print("success_only split complete.")
+    split_sanity_check(
+        sucess_train_set, success_val_set, success_test_set, len(success_filenames))
 
-    # Read filenames for the previous test set
-    if not test_txt:
-        # Look for v0.4 success only train filenames
-        print('No test file is specified. Trying to open v0.4 success only...')
-        pre_existing_set_file = path + default_name + 'test_files.txt'
-    else:
-        pre_existing_set_file = path + test_txt
+    if success_only:
+        # If only sucess_only files should be processed, then return the result now
+        return [[sucess_train_set, success_val_set, success_test_set], [], [], []]
 
-    if not os.path.isfile(pre_existing_set_file):
-        raise ValueError(
-            'Pre-existing testing file is not a file: ' +
-            pre_existing_set_file)
-    success_test_len = len(get_existing_filenames(pre_existing_set_file))
+    # Process .failure.error files
+    train_val_test_filenames = read_existing_files(
+        dir_path, dataset_name, dir_name, 'error_failure_only', existing_file_prefix)
+    err_train_set, err_val_set, err_test_set = [
+        l if l is not None else [] for l in train_val_test_filenames]
+    # error_train_len, error_val_len, error_test_len = list(
+    #     map(len, train_val_test_filenames))
+
+    # Process .failure files
+    train_val_test_filenames = read_existing_files(
+        dir_path, dataset_name, dir_name, 'task_failure_only', existing_file_prefix)
+    fail_train_set, fail_val_set, fail_test_set = [
+        l if l is not None else [] for l in train_val_test_filenames]
+    # failure_train_len, failure_val_len, failure_test_len = list(
+    #     map(len, train_val_test_filenames))
 
     # Calculate set size for failure and error, based on success_only subset
     multiplier_failure = len(failure_filenames)/len(success_filenames)
     failure_val_len = int(round(success_val_len*multiplier_failure))
     failure_test_len = int(round(success_test_len*multiplier_failure))
-    failure_train_len = len(failure_filenames) - (failure_val_len + failure_test_len)
+    # failure_train_len = len(failure_filenames) - (failure_val_len + failure_test_len)
     multiplier_error = len(error_filenames)/len(success_filenames)
     error_val_len = int(round(success_val_len*multiplier_error))
     error_test_len = int(round(success_test_len*multiplier_error))
-    error_train_len = len(error_filenames) - (error_val_len + error_test_len)
+    # error_train_len = len(error_filenames) - (error_val_len + error_test_len)
 
     # Randomize the filenames
     random.shuffle(failure_filenames)
@@ -416,59 +496,28 @@ def split_all(
 
     # Split the dataset for failure and error
     fail_train_set, fail_val_set, fail_test_set = split_dataset(
-        failure_filenames, [], [], [], failure_val_len, failure_test_len)
-    err_train_set,  err_val_set,  err_test_set = split_dataset(
-        error_filenames, [], [], [], error_val_len, error_test_len)
+        failure_filenames, fail_train_set, fail_val_set, fail_test_set,
+        failure_val_len, failure_test_len)
+    print("task_failure_only split complete.")
+    split_sanity_check(
+        fail_train_set, fail_val_set, fail_test_set, len(failure_filenames))
 
-    # Sanity check
-    for i in fail_val_set:
-        if i in fail_train_set:
-            raise RuntimeError("split_all: fail: val attempt in train set! %s" % i)
-            # print("split_all: fail: val attempt in train set! %s" % i)
-    for i in fail_test_set:
-        if i in fail_train_set:
-            raise RuntimeError("split_all: fail: test attempt in train set! %s" % i)
-            # print("split_all: fail: test attempt in train set! %s" % i)
-    for i in err_val_set:
-        if i in err_train_set:
-            raise RuntimeError("split_all: err: val attempt in train set! %s" % i)
-            # print("split_all: err: val attempt in train set! %s" % i)
-    for i in err_test_set:
-        if i in err_train_set:
-            raise RuntimeError("split_all: err: test attempt in train set! %s" % i)
-            # print("split_all: err: test attempt in train set! %s" % i)
-    for i in err_train_set:
-        if i in fail_train_set:
-            raise RuntimeError("split_all: err train set overlap with fail train set! %s" % i)
-            # print("split_all: err train set overlap with fail train set! %s" % i)
-    for i in err_val_set:
-        if i in fail_val_set:
-            raise RuntimeError("split_all: err val set overlap with fail val set! %s" % i)
-            # print("split_all: err val set overlap with fail val set! %s" % i)
-    for i in err_test_set:
-        if i in fail_test_set:
-            raise RuntimeError("split_all: err test set overlap with fail test set! %s" % i)
-            # print("split_all: err test set overlap with fail test set! %s" % i)
-    print("Split complete. Sanity check passed.")
-
-    with open(csv_path, 'w+') as file_object:
-        file_object.write(dataset_splits_csv)
-
-    # Write the output files
-    output_file(path, plush, output_name, 'task_failure_only_train', fail_train_set)
-    output_file(path, plush, output_name, 'task_failure_only_val', fail_val_set)
-    output_file(path, plush, output_name, 'task_failure_only_test', fail_test_set)
-    output_file(path, plush, output_name, 'error_failure_only_train', err_train_set)
-    output_file(path, plush, output_name, 'error_failure_only_val', err_val_set)
-    output_file(path, plush, output_name, 'error_failure_only_test', err_test_set)
+    err_train_set, err_val_set, err_test_set = split_dataset(
+        error_filenames, err_train_set, err_val_set, err_test_set,
+        error_val_len, error_test_len)
+    print("error_failure_only split complete.")
+    split_sanity_check(
+        err_train_set, err_val_set, err_test_set, len(error_filenames))
 
     # Error is also a type of failure! Combine task failure and error failure subsets.
-    fail_train_set += err_train_set
-    fail_val_set += err_val_set
-    fail_test_set += err_test_set
-    output_file(path, plush, output_name, 'task_and_error_failure_train', fail_train_set)
-    output_file(path, plush, output_name, 'task_and_error_failure_val', fail_val_set)
-    output_file(path, plush, output_name, 'task_and_error_failure_test', fail_test_set)
+    task_n_err_train_set = fail_train_set + err_train_set
+    task_n_err_val_set = fail_val_set + err_val_set
+    task_n_err_test_set = fail_test_set + err_test_set
+
+    return [[sucess_train_set, success_val_set, success_test_set],
+            [task_n_err_train_set, task_n_err_val_set, task_n_err_test_set],
+            [fail_train_set, fail_val_set, fail_test_set],
+            [err_train_set, err_val_set, err_test_set]]
 
 
 def count_files_containing_images(path, filenames):
@@ -581,14 +630,10 @@ def main(args, root='root'):
             continue
 
         # Split the dataset
-        if args['success_only']:
-            subsets = split_success_only(
-                filenames, dir_path, args['plush'], args['train'], args['val'],
-                args['test'], args['val_len'], args['test_len'])
-        else:
-            subsets = split_all(
-                filenames, dir_path, args['plush'], args['train'], args['val'],
-                args['test'], args['val_len'], args['test_len'])
+        subsets = split_all(
+                    filenames, args['dataset_name'], dir_name, dir_path,
+                    args['success_only'], args['existing_file_prefix'],
+                    args['val_len'], args['test_len'])
 
         # Output the files
         # Modify here to add more categories
@@ -597,40 +642,36 @@ def main(args, root='root'):
             'task_and_error_failure',
             'task_failure_only',
             'error_failure_only']
-        subset_names = [
-            'train',
-            'val',
-            'test']
+        subset_names = ['train','val','test']
         for i in range(len(subsets)):
             category_name = category_names[i]
             category_subsets = subsets[i]
             # Output the files
-            # TODO: include dataset name
             for j in range(len(category_subsets)):
                 subset_name = subset_names[j]
                 subset_filenames = category_subsets[j]
-                output_file(dir_path, dir_name, args['output_prefix'],
-                            args['dataset_name'], subset_name, subset_filenames)
+                output_file(args['dataset_path'], args['dataset_name'],
+                            dir_path, dir_name, category_name,
+                            subset_name, subset_filenames)
 
+        # TODO: Implement csv output
+        # dataset_splits_csv = 'subset, train_count, val_count, test_count\n'
+        # dataset_splits_csv += "success_only, {0}, {1}, {2}\n".format(
+        #                         success_train_len, success_val_len, success_test_len)
+        # dataset_splits_csv += "task_and_error_failure, {0}, {1}, {2}\n".format(
+        #         failure_train_len + error_train_len,
+        #         failure_val_len + error_val_len,
+        #         failure_test_len + error_test_len)
+        # dataset_splits_csv += "task_failure_only, {0}, {1}, {2}\n".format(
+        #         failure_train_len, failure_val_len, failure_test_len)
+        # dataset_splits_csv += "error_failure_only, {0}, {1}, {2}\n".format(
+        #         error_train_len, error_val_len, error_test_len)
+        # dataset_splits_csv_filename = 'costar_block_stacking_dataset_split_summary.csv'
+        # print(dataset_splits_csv_filename + '\n' + dataset_splits_csv)
 
-
-
-        dataset_splits_csv = 'subset, train_count, val_count, test_count\n'
-        dataset_splits_csv += "success_only, {0}, {1}, {2}\n".format(
-                                success_train_len, success_val_len, success_test_len)
-        dataset_splits_csv += "task_and_error_failure, {0}, {1}, {2}\n".format(
-                failure_train_len + error_train_len,
-                failure_val_len + error_val_len,
-                failure_test_len + error_test_len)
-        dataset_splits_csv += "task_failure_only, {0}, {1}, {2}\n".format(
-                failure_train_len, failure_val_len, failure_test_len)
-        dataset_splits_csv += "error_failure_only, {0}, {1}, {2}\n".format(
-                error_train_len, error_val_len, error_test_len)
-        dataset_splits_csv_filename = 'costar_block_stacking_dataset_split_summary.csv'
-        print(dataset_splits_csv_filename + '\n' + dataset_splits_csv)
-
-        csv_path = os.path.join(path, dataset_splits_csv_filename)
-        
+        # csv_path = os.path.join(path, dataset_splits_csv_filename)
+        # with open(csv_path, 'w+') as file_object:
+        #     file_object.write(dataset_splits_csv)
 
 
 if __name__ == '__main__':
