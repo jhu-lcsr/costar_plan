@@ -4,9 +4,11 @@ image frames, read pre-existing train/val/test txt files, and split all the h5f 
 in this directory into success_only, task_failure_only, error_failure_only, and
 task_and_error_failure txt files.
 
-Files are assumed to store in different folders in:
-    ~/.keras/datasets/costar_block_stacking_dataset_v0.4/
-If the files are stored in a different path, use --path to designate the path.
+--path defaults to: ~/.keras/datasets/costar_block_stacking_dataset_v0.4/
+We expect that folder will contain directories containing h5f files. This is done to
+split the dataset across various collection runs.
+Details can be found in the "folder structure" section of
+https://sites.google.com/site/costardataset/usage
 
 To split the success_only subset or to add new files ot the success_only subset, use
 --success_only flag.
@@ -43,10 +45,11 @@ def _parse_args():
                     success_only, task_failure_only, error_failure_only, and
                     task_and_error_failure txt files.
 
-                    Files are assumed to store in different folders in:
-                        ~/.keras/datasets/costar_block_stacking_dataset_v0.4/
-                    If the files are stored in a different path, use --path to designate
-                    the path.
+                    Path defaults to ~/.keras/datasets/costar_block_stacking_dataset_v0.4/
+                    We expect that folder will contain directories containing h5f files.
+                    This is done to split the dataset across various collection runs.
+                    Details can be found in the "folder structure" section of
+                    https://sites.google.com/site/costardataset/usage
 
                     To split the success_only subset or to add new files ot the
                     success_only subset, use --success_only flag.
@@ -178,7 +181,6 @@ def output_csv(path, subsets, write):
     :param write: The flag to actually write the output files.
     :return csv_path: The path to the output csv file.
     '''
-    # TODO(rexxarchl): Implement csv output
     success, _, task_fail, err_fail = subsets
     success_train_len, success_val_len, success_test_len = map(len, success)
     failure_train_len, failure_val_len, failure_test_len = map(len, task_fail)
@@ -280,9 +282,13 @@ def output_combined_files(path, dataset_name, output_files_dict, category_names,
                     with open(txt_file_path, 'r') as f:
                         size += sum(1 for _ in f)
                 except FileNotFoundError:
-                    print('When counting for summary, file {} is not found. The '
-                          'summary below may be inaccurate.'.format(
-                              extract_filename_from_url(txt_file_path)))
+                    print('''
+                        A file was not found at the expected path when validating and 
+                        summariing the dataset. This problem is most likely caused by 
+                        not running with --write flag. Re-run the program with --write 
+                        flag. The summary below may be inaccurate.\n
+                        The problematic file is {}
+                        '''.format(extract_filename_from_url(txt_file_path)))
             summary_dict[category_name].append(size)
 
     # Get the numbers for the summary
@@ -633,7 +639,7 @@ def count_files_containing_images(path, filenames):
                 try:
                     total_frames = len(data['image'])
                 except KeyError as e:
-                    progress_bar.write('Skipping %s for KeyError' % filename)
+                    progress_bar.write('KeyError: Skipping %s' % filename)
                     continue
 
                 if total_frames == 0:  # Skip files with 0 frame
@@ -652,7 +658,7 @@ def count_files_containing_images(path, filenames):
                         'Somthing is wrong! The file does not contain `error`,'
                         '`failure`, or `success` in the filename: %s' % filename)
         except IOError as ex:
-            progress_bar.write('Skipping %s for IOError' % filename)
+            progress_bar.write('IOError: Skipping %s' % filename)
 
     print("Counted {:d} success files, {:d} failure files, and {:d} error files.".format(
             len(success_filenames), len(failure_filenames), len(error_filenames)))
