@@ -1,24 +1,17 @@
 '''
-Splits dataset into train, validation, and test sets.
-Inherits existing validation and test sets. New files are added into training set.
+This script will walk into each folder in path, read and count h5f files with nonzero
+image frames, read pre-existing train/val/test txt files, and split all the h5f files
+in this directory into success_only, task_failure_only, error_failure_only, and
+task_and_error_failure txt files.
 
-To split the success_only subset or to add new files ot the success_only subset, call:
+Files are assumed to store in different folders in:
+    ~/.keras/datasets/costar_block_stacking_dataset_v0.4/
+If the files are stored in a different path, use --path to designate the path.
 
-python costar_block_stacking_split_dataset.py --path /path/to/dataset/folder\
-    --success_only (--plush) (--train train/txt/filename)                   \
-    (--val val/txt/filename) (-test test/txt/filename/)                     \
-    --output_name [filename prefix for the output train/val/test filenames]
+To split the success_only subset or to add new files ot the success_only subset, use
+--success_only flag.
 
-To split all dataset, i.e. split error files and failure files into train/val/test sets,
-call the following command after success_only subset is splitted:
-
-python costar_block_stacking_split_dataset.py --path /path/to/dataset/folder     \
-    --split_all (--plush) --train success_only/train/txt/filename             \
-    --val [success_only val txt filename] --test [success_only test txt filename]\
-    --output_name [filename prefix for the output train/val/test filenames]
-
-This will output task_failure_only, error_failure_only, and all_failure_only
-train/val/test filenames as 9 separate txt files.
+Use --help to see all possible uses for this function.
 
 Author: Chia-Hung "Rexxar" Lin (rexxarchl)
 Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
@@ -27,6 +20,9 @@ import argparse
 import os
 import random
 import h5py  # Needs h5py to open the files and check frame count
+
+# Progress bars using https://github.com/tqdm/tqdm
+# Import tqdm without enforcing it as a dependency
 try:
     from tqdm import tqdm
 except ImportError:
@@ -157,7 +153,7 @@ def output_file(dataset_path, dataset_name, dir_path, dir_name,
     return output_path
 
 
-def output_csv(path, subsets):
+def output_csv(path, subsets, write):
     '''Output split summary csv file
 
     :param path: The path to store the csv file
@@ -167,6 +163,7 @@ def output_csv(path, subsets):
                     task_and_error_failure, task_failure_only,
                     error_failure_only]
                     Each sublist contains [train, val, test] filenames.
+    :param write: The flag to actually write the output files.
     :return csv_path: The path to the output csv file.
     '''
     # TODO(rexxarchl): Implement csv output
@@ -188,31 +185,124 @@ def output_csv(path, subsets):
             error_train_len, error_val_len, error_test_len)
 
     dataset_splits_csv_filename = 'costar_block_stacking_dataset_split_summary.csv'
-    print(dataset_splits_csv_filename + '\n' + dataset_splits_csv)
+    print('\n' + dataset_splits_csv_filename + '\n' + dataset_splits_csv)
 
     csv_path = os.path.join(path, dataset_splits_csv_filename)
-    with open(csv_path, 'w+') as file_object:
-        file_object.write(dataset_splits_csv)
+    if write:
+        with open(csv_path, 'w+') as file_object:
+            file_object.write(dataset_splits_csv)
+        print('CSV file saved as %s' % csv_path)
+    else:
+        print('Dry run. Use --write to actually output the CSV file.')
 
-    print('CSV file saved as %s' % csv_path)
     return csv_path
 
 
-def output_combined_files(path, output_files_dict, category_names):
+def output_combined_files(path, dataset_name, output_files_dict, category_names, write):
     '''Output combined txt files and overall summary csv file.
-    :param path: The path for thefiles to save in.
+    The format for output_files_dict looks like this:
+    output_files_dict = {
+        dir_name: {
+            category_name: [[train txt file], [val txt file], [test txt file]]
+        }
+    }
+    The program will first convert output_files_dict into this format
+    categorized_train_val_test_filenames = {
+        category_name: [[train txt file paths in all directories],
+                        [val txt file paths in all directories],
+                        [test txt file paths in all directories]]
+    }
+    Then merge the train/val/test txt files for each category in all folders.
+
+    :param path: The path for the files to save in.
+    :param dataset_name: The name of the dataset to write in the output filenames.
     :param output_files_dict: A dictionary of output files in each directory.
-                              Key is the name of the directory, and item is the txt file
-                              paths that we just outputted.
+                              Key is the name of the directory, and item is a dictionary
+                              of categories that contains the list of the
+                              train/val/list txt file paths that we just outputted.
+    :param write: The flag to actually write the output files.
     '''
-    # TODO(rexxarchl): implement this function
-    print(output_files_dict)
+    # Split the output names into categories so that, for example, success_only
+    # files goes together. Further divide the files into lists that contain
+    # train/test/val txt filenames.
+    categorized_train_val_test_filenames = {category_name: [[], [], []]
+                                            for category_name in category_names}
+    for dir_name, category_dict in output_files_dict.items():
+        for category_name, paths in category_dict.items():
+            for i in range(len(paths)):
+                categorized_train_val_test_filenames[category_name][i].append(paths[i])
 
+    # Merge the train/val/test txt files for each category
+    subset_names = ['train', 'val', 'test']
+    summary_dict = {category_name: [] for category_name in category_names}
+    for (category_name,
+         train_val_test_file_paths) in categorized_train_val_test_filenames.items():
+        for i in range(len(train_val_test_file_paths)):
+            subset_name = subset_names[i]
+            output_filename = "{0}_combined_{1}_{2}_files.txt".format(
+                            dataset_name, category_name, subset_name)
+            output_file_path = os.path.join(path, output_filename)
 
-    # train_val_test_filenames = [[]]
-    # for k, v in output_files_dict.items():
+            # Write contents of all the files into the combined file
+            print('>Process combined file for {} {} files'.format(
+                    category_name, subset_name))
+            if write:
+                with open(output_file_path, 'w') as out_file:
+                    for txt_file_path in train_val_test_file_paths[i]:
+                        print('>>Opening txt file: {}'.format(
+                                extract_filename_from_url(txt_file_path)))
+                        with open(txt_file_path, 'r') as in_file:
+                            out_file.write(in_file.read())
+                print('>>Combined file saved as %s' % output_file_path)
+            else:
+                print('>>Dry run. Use --write to actually output the combined files')
+                for txt_file_path in train_val_test_file_paths[i]:
+                    print('>>>Reference txt file: {}'.format(
+                           extract_filename_from_url(txt_file_path)))
 
-    pass
+            # Count the number of lines, i.e. files, in each txt file for use later in
+            # the summary section
+            size = 0
+            for txt_file_path in train_val_test_file_paths[i]:
+                try:
+                    with open(txt_file_path, 'r') as f:
+                        size += sum(1 for _ in f)
+                except FileNotFoundError:
+                    print('When counting for summary, file {} is not found. The '
+                          'summary below may be inaccurate.'.format(
+                              extract_filename_from_url(txt_file_path)))
+            summary_dict[category_name].append(size)
+
+    # Get the numbers for the summary
+    success_train_len, success_val_len, success_test_len = summary_dict['success_only']
+    (failure_train_len, failure_val_len,
+        failure_test_len) = summary_dict['task_failure_only']
+    error_train_len, error_val_len, error_test_len = summary_dict['error_failure_only']
+
+    # Output combined CVS file
+    dataset_splits_csv = 'subset, train_count, val_count, test_count\n'
+    dataset_splits_csv += "success_only, {0}, {1}, {2}\n".format(
+                            success_train_len, success_val_len, success_test_len)
+    dataset_splits_csv += "task_and_error_failure, {0}, {1}, {2}\n".format(
+            failure_train_len + error_train_len,
+            failure_val_len + error_val_len,
+            failure_test_len + error_test_len)
+    dataset_splits_csv += "task_failure_only, {0}, {1}, {2}\n".format(
+            failure_train_len, failure_val_len, failure_test_len)
+    dataset_splits_csv += "error_failure_only, {0}, {1}, {2}\n".format(
+            error_train_len, error_val_len, error_test_len)
+
+    dataset_splits_csv_filename = dataset_name + '_combined_summary.csv'
+    print('\n' + dataset_splits_csv_filename + '\n' + dataset_splits_csv)
+
+    csv_path = os.path.join(path, dataset_splits_csv_filename)
+    if write:
+        with open(csv_path, 'w') as file_object:
+            file_object.write(dataset_splits_csv)
+        print('>CSV file saved as %s' % csv_path)
+    else:
+        print('>>Dry run. The CSV file will be saved as %s' % csv_path)
+        print('>>Use --write to actually output the CSV file.')
 
 
 def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_len=None):
@@ -425,7 +515,7 @@ def split_all(
         dir_path, dataset_name, dir_name, 'success_only', existing_file_prefix)
 
     # Extract the filenames into subsets
-    train_val_test_filenames = [l if l is not None else [] 
+    train_val_test_filenames = [l if l is not None else []
                                 for l in train_val_test_filenames]
     success_train_set, success_val_set, success_test_set = train_val_test_filenames
     success_train_len, success_val_len, success_test_len = list(
@@ -636,7 +726,7 @@ def main(args, root='root'):
         if len(category_names) != len(subsets):
             raise Exception("Length of categories does not match the length of lists "
                             "returned by split_all. Did you add more categories?")
-        dir_output_file_dict = dict()
+        dir_output_file_dict = {category_name: [] for category_name in category_names}
         subset_names = ['train', 'val', 'test']
         for i in range(len(subsets)):
             category_name = category_names[i]
@@ -647,19 +737,25 @@ def main(args, root='root'):
                 subset_filenames = category_subsets[j]
 
                 # Output the files and store the outputted file paths in the dictionary
-                dir_output_file_dict[category_name] = output_file(
+                dir_output_file_dict[category_name].append(
+                    output_file(
                         args['dataset_path'], args['dataset_name'],
                         dir_path, dir_name, category_name,
-                        subset_name, subset_filenames, args['write'])
+                        subset_name, subset_filenames, args['write']))
         # Store the outputted file paths in this directory
         output_files_dict[dir_name] = dir_output_file_dict
 
-        if args['write'] and not args['success_only']:
+        if not args['success_only']:
+            print('\nWriting csv file in directory %s' % dir_name)
             # Output csv file
-            output_csv(dir_path, subsets)
+            output_csv(dir_path, subsets, args['write'])
 
-    if args['write'] and not args['success_only']:
-        output_combined_files(path, output_files_dict, category_names)
+    if not args['success_only']:
+        print('---------------------')
+        print('Combining files')
+        # Write the combined txt files and summary csv file.
+        output_combined_files(path, args['dataset_name'], output_files_dict,
+                              category_names, args['write'])
 
 
 if __name__ == '__main__':
