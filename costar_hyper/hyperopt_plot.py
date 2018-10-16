@@ -337,31 +337,44 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
 rdf = create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
 
 # key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Accuracy Range'), ('train_val_test', 'Train Val Test')]
-key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Error Distribution'), ('train_val_test', 'Dataset Split')]
+key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Error Range'), ('train_val_test', 'Dataset Split')]
 key_dimension_display_strs = [vt[1] for vt in key_dimensions]
-value_dimensions = [('accuracy_range_value', 'Cumulative Fraction of Examples'), ('avg_error', 'Average Error')]#, ('train_val_test', 'Dataset Split')]
+value_dimensions = [('accuracy_range_value', 'Error Distribution'), ('avg_error', 'Average Error')]#, ('train_val_test', 'Dataset Split')]
 value_dimension_display_strs = [vt[1] for vt in value_dimensions]
 distribution_table = hv.Table(rdf, key_dimensions, value_dimensions)
 print('1.0 dist table created')
-distribution_table_bars = distribution_table.to.bars(key_dimension_display_strs, value_dimension_display_strs, ['train_val_test'])
-distribution_table_bars = distribution_table_bars.options(stack_index=1, width=1920, height=1080, xrotation=90, tools=['hover'], group_index=2, cmap='RdYlGn_r')
+distribution_table_bars = distribution_table.to.bars(key_dimension_display_strs, value_dimension_display_strs, [])
+height = 240
+distribution_table_bars = distribution_table_bars.options(stack_index=1, width=1280, height=height, xrotation=90, tools=['hover'], group_index='train_val_test', cmap='RdYlGn_r', show_grid=True)
+# plot train, val, test separately, the + sign sticks the plots together
+distribution_table_bars = (
+    distribution_table_bars.select(train_val_test='train').relabel(group='Train').options(xaxis=None) +
+    distribution_table_bars.select(train_val_test='val', xaxis=None).relabel(group='Val').options(xaxis=None) +
+    distribution_table_bars.select(train_val_test='test').relabel(group='Test').options(height=height + 160))
+distribution_table_bars = distribution_table_bars.cols(1)
+# distribution_table_bars = distribution_table_bars.select(train_val_test='train')
+# distribution_table_bars = distribution_table_bars.grid('train_val_test')
 # distribution_table_bars = distribution_table_bars.overlay('train_val_test')
 print('2.0 dist table bars')
-distribution_table_plot = renderer.get_plot(distribution_table_bars)
+# distribution_table_plot = renderer.get_plot(distribution_table_bars)
 
 print('3.0 dist table created')
-key_dimensions = [('name', 'Model')]
+key_dimensions = [('name', 'Model'), ('train_val_test', 'Dataset Split')]
 key_dimension_display_strs = [vt[1] for vt in key_dimensions]
-value_dimensions = [('avg_error', 'Average Error'), ('train_val_test', 'Dataset Split')]
+value_dimensions = [('avg_error', 'Average Error')]
 value_dimension_display_strs = [vt[1] for vt in value_dimensions]
 avg_table_bars = hv.Table(rdf, key_dimensions, value_dimensions)
 print('4.0 avg table created')
-avg_table_bars = avg_table_bars.to.bars(key_dimension_display_strs, value_dimension_display_strs, ['train_val_test'])
-avg_table_bars = avg_table_bars.options(width=1920, height=640, xrotation=90, tools=['hover'])
+avg_table_bars = avg_table_bars.to.bars(key_dimension_display_strs, value_dimension_display_strs, [])
+avg_table_bars = avg_table_bars.options(width=1280, height=160, xrotation=90, tools=['hover'], group_index='train_val_test', xaxis=None)
 print('4.0 avg table bars')
-avg_table_plot = renderer.get_plot(avg_table_bars)
-print('5.0 table plot')
-plot_list = [[distribution_table_plot.state], [avg_table_plot.state]]
+# avg_table_plot = renderer.get_plot(avg_table_bars)
+# print('5.0 table plot')
+# plot_list = [[avg_table_plot.state], [distribution_table_plot.state]]
+table_bars = avg_table_bars + distribution_table_bars
+table_bars = table_bars.cols(1)
+table_plot = renderer.get_plot(table_bars)
+plot_list = [[table_plot.state]]
 print('6.0 plot list')
 # layout_child = layout(plot_list, sizing_mode='fixed')
 layout_child = layout(plot_list)
