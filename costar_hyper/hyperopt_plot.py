@@ -296,6 +296,8 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
                     values = values + [val]
                     split_values = split_values + [split_val]
                     name = row['basename'][:number_of_time_characters]
+                    # Uncomment below for separate train val test model names
+                    # name = name + ' ' + tvt
                     if 'epoch' in row:
                         # add an epoch field
                         name = name + epoch_name
@@ -308,6 +310,8 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
                     acc_limits = acc_limits + [acc_limit]
                     tvts = tvts + [tvt]
 
+    # print if each is part of the train val or test set
+    # print('tvts: ' + str(tvts))
     dictionary = {'name': names,
                   'error_distribution_limits': acc_range_limits,
                   'accuracy_range_value': split_values,
@@ -333,18 +337,32 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
 rdf = create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
 
 # key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Accuracy Range'), ('train_val_test', 'Train Val Test')]
-key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Error Distribution')]
+key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Error Distribution'), ('train_val_test', 'Dataset Split')]
 key_dimension_display_strs = [vt[1] for vt in key_dimensions]
+value_dimensions = [('accuracy_range_value', 'Cumulative Fraction of Examples'), ('avg_error', 'Average Error')]#, ('train_val_test', 'Dataset Split')]
+value_dimension_display_strs = [vt[1] for vt in value_dimensions]
+distribution_table = hv.Table(rdf, key_dimensions, value_dimensions)
+print('1.0 dist table created')
+distribution_table_bars = distribution_table.to.bars(key_dimension_display_strs, value_dimension_display_strs, ['train_val_test'])
+distribution_table_bars = distribution_table_bars.options(stack_index=1, width=1920, height=1080, xrotation=90, tools=['hover'], group_index=2, cmap='RdYlGn_r')
+# distribution_table_bars = distribution_table_bars.overlay('train_val_test')
+print('2.0 dist table bars')
+distribution_table_plot = renderer.get_plot(distribution_table_bars)
 
-table = hv.Table(rdf, key_dimensions, 'accuracy_range_value')
-print('1.0 table created')
-table_bars = table.to.bars(key_dimension_display_strs, 'accuracy_range_value', ['train_val_test'])
-table_bars = table_bars.options(stack_index=1, width=1920, height=1080, xrotation=90, tools=['hover'])
-print('2.0 table bars')
-table_plot = renderer.get_plot(table_bars)
-print('3.0 table plot')
-plot_list = [[table_plot.state]]
-print('3.0 plot list')
+print('3.0 dist table created')
+key_dimensions = [('name', 'Model')]
+key_dimension_display_strs = [vt[1] for vt in key_dimensions]
+value_dimensions = [('avg_error', 'Average Error'), ('train_val_test', 'Dataset Split')]
+value_dimension_display_strs = [vt[1] for vt in value_dimensions]
+avg_table_bars = hv.Table(rdf, key_dimensions, value_dimensions)
+print('4.0 avg table created')
+avg_table_bars = avg_table_bars.to.bars(key_dimension_display_strs, value_dimension_display_strs, ['train_val_test'])
+avg_table_bars = avg_table_bars.options(width=1920, height=640, xrotation=90, tools=['hover'])
+print('4.0 avg table bars')
+avg_table_plot = renderer.get_plot(avg_table_bars)
+print('5.0 table plot')
+plot_list = [[distribution_table_plot.state], [avg_table_plot.state]]
+print('6.0 plot list')
 # layout_child = layout(plot_list, sizing_mode='fixed')
 layout_child = layout(plot_list)
 curdoc().clear()
