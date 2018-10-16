@@ -20,8 +20,10 @@ def _parse_args():
 def main(args, root='root'):
     item = internetarchive.Item('costar_block_stacking_dataset')
 
+    path = os.path.expanduser(args['path'])
+
     r = item.download(
-            destdir=args['path'],  # The directory to download files to
+            destdir=path,  # The directory to download files to
             ignore_existing=True,  # Skip files that already exist locally
             checksum=True,  # Skip files based on checksum
             verbose=True,  # Print progress to stdout

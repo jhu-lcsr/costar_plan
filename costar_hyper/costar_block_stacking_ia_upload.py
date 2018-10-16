@@ -54,9 +54,10 @@ def main(args, root='root'):
         noindex='True')  # Set to true for the item to not be listed
 
     print(args)
+    path = os.path.expanduser(args['path'])
 
     r = item.upload(
-            args['path'],
+            path,
             metadata=md,
             verify=True,  # Verify local MD5 checksum matches remote MD5 checksum
             checksum=True,  # Skip files based on checksum
