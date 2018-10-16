@@ -36,11 +36,23 @@ except ImportError:
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description='Splits dataset into train, validation and test sets. '
-                    'Inherits existing validation and test sets. '
-                    'New files are added into training set. '
-                    'If no pre-existing sets of files are indicated, randomize and split '
-                    'the files in the folder 8:1:1 for train/val/test.')
+        description='''
+                    This script will walk into each folder in path, read and count h5f
+                    files with nonzero image frames, read pre-existing train/val/test
+                    txt files, and split all the h5f files in this directory into
+                    success_only, task_failure_only, error_failure_only, and
+                    task_and_error_failure txt files.
+
+                    Files are assumed to store in different folders in:
+                        ~/.keras/datasets/costar_block_stacking_dataset_v0.4/
+                    If the files are stored in a different path, use --path to designate
+                    the path.
+
+                    To split the success_only subset or to add new files ot the
+                    success_only subset, use --success_only flag.
+
+                    Use --help to see all possible uses for this function.
+                    ''')
     parser.add_argument("--path", type=str,
                         default=os.path.join(
                             os.path.expanduser("~"),
