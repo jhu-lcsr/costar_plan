@@ -26,6 +26,11 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 import argparse
 import os
 import random
+try:
+    import h5py  # Needs h5py to open the files and check frame count
+except ImportError:
+    print("h5py is not available.")
+    h5py = None
 
 
 def _parse_args():
@@ -36,13 +41,19 @@ def _parse_args():
                     'If no pre-existing sets of files are indicated, randomize and split '
                     'the files in the folder 8:1:1 for train/val/test.')
     parser.add_argument("--path", type=str,
-                        default=os.path.join(os.path.expanduser("~"), '.costar', 'data'),
+                        default=os.path.join(
+                            os.path.expanduser("~"),
+                            '.keras/datasets/costar_block_stacking_dataset_v0.4/'),
                         help='path to dataset folder containing many files')
+    parser.add_argument("--dataset_path", type=str, default='/.keras/dataset/',
+                        help='The folder that is expected stores the dataset. '
+                             'Filenames in the output file will reference this path.')
+    parser.add_argument("--dataset_name", type=str, 
+                        default='costar_block_stacking_dataset_v0.4',
+                        help='Dataset name to store under dataset path.'
+                             'Filenames in the output file will reference this name.')
     parser.add_argument("--success_only", action='store_true', default=False,
                         help='only visit stacking data labeled as successful')
-    parser.add_argument("--split_all", action='store_true', default=False,
-                        help='Split all datasets into success, failure, and error sets. '
-                             'Requires train/val/test from success_only subset')
     parser.add_argument("--plush", action='store_true', default=False,
                         help='processing plush attempts')
     parser.add_argument("--train", type=str, default='',
@@ -61,7 +72,9 @@ def _parse_args():
     parser.add_argument("--test_len", type=int, default=None,
                         help='Expected test set length')
     parser.add_argument("--seed", type=int, default=0,
-                        help='Numpy seed for reproducing the output lists')
+                        help='Random seed for reproducing the output lists')
+    parser.add_argument("--write", type='store_true', default=False,
+                        help='Write to output files')
     return vars(parser.parse_args())
 
 
@@ -83,15 +96,13 @@ def get_existing_filenames(path_to_file):
         # Extract the file names and add them to the returning list
         filename = extract_filename_from_url(line)
         if not filename:
-            print("Empty line extracted.")
-            pause()
+            print("get_existing_filenames: Empty line extracted.")
             continue
         filenames.append(filename)
 
     f.close()
 
     print('Read ' + str(len(filenames)) + ' filenames from ' + path_to_file)
-    # pause()  # DEBUG
     return filenames
 
 
@@ -149,11 +160,11 @@ def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_le
             print("Added %d files to val set." % len_diff)
 
             print("Unusual behavior. Do you really want to add files to val set?")
-            pause()
         elif len_diff < 0:
             print("Expected val set length: {}, current val set length: {}".format(
                     val_len, len(val_set)))
-            raise RuntimeError("split_dataset: Expected val length is smaller than current length!")
+            raise RuntimeError(
+                "split_dataset: Expected val length is smaller than current length!")
 
         # Do the same check for test set
         len_diff = test_len - len(test_set)
@@ -166,11 +177,11 @@ def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_le
             print("Added %d files to test set." % len_diff)
 
             print("Unusual behavior. Do you really want to add files to test set?")
-            pause()
         elif len_diff < 0:
             print("Expected test set length: {}, current test set length: {}".format(
                     val_len, len(val_set)))
-            raise RuntimeError("split_dataset: Expected test length is smaller than current length!")
+            raise RuntimeError(
+                "split_dataset: Expected test length is smaller than current length!")
 
         # Dump the rest of the files into train set
         train_set = not_val_or_test_set
@@ -178,13 +189,14 @@ def split_dataset(filenames, train_set, val_set, test_set, val_len=None, test_le
     return train_set, val_set, test_set
 
 
-def output_file(path, plush, output_prefix, set_name, filenames):
+def output_file(path, plush, output_prefix, dataset_name, category_name, subset_name, filenames):
     '''Output the filenames as a txt file.
     Automatically adds appropriate keras path for the filenames.
 
     :param path: The path to store the output txt file.
     :param plush: A bool stating whether the program is processing plush subset.
     :param output_prefix: Prefix of the output txt file.
+    :param dataset_name: Dataset name to be placed after 
     :param set_name: train/val/test, to be added to the output filename.
     :param filenames: The filenames to be written in the txt file.
     '''
@@ -208,11 +220,13 @@ def output_file(path, plush, output_prefix, set_name, filenames):
         f.write(prefix_path + filename + '\n')
 
     f.close()
+
+
     return list_filename
 
 
 def split_success_only(
-        filenames, path, plush, train_txt, val_txt, test_txt, output_name,
+        filenames, path, plush, train_txt, val_txt, test_txt,
         val_len=None, test_len=None):
     '''Splits success files into success_only train/val/test txt files.
 
@@ -229,7 +243,6 @@ def split_success_only(
     # Read files that are success
     filenames = [filename for filename in filenames if '.success.h5f' in filename]
     print('Selecting ' + str(len(filenames)) + ' success files')
-    pause()
 
     # Read filenames for the previous training set
     if not train_txt:
@@ -299,7 +312,6 @@ def split_success_only(
         print("Length of all files: %d" % len(filenames))
         raise RuntimeError("split_success_only: Numbers do not add up. Something is wrong!")
     print("Split complete. Sanity check passed.")
-    pause()
 
     # Write the output files
     output_file(path, plush, output_name, 'success_only_train', train_set)
@@ -308,7 +320,7 @@ def split_success_only(
 
 
 def split_all(
-        filenames, path, plush, train_txt, val_txt, test_txt, output_name,
+        filenames, path, plush, train_txt, val_txt, test_txt,
         val_len=None, test_len=None):
     '''Splits failure files into all_failure_only, task_failure_only and
     error_failure_only subsets.
@@ -330,7 +342,6 @@ def split_all(
     # Get the success, failure, and error filenames with nonzero frames
     success_filenames, failure_filenames, error_filenames = count_files_containing_images(
                                                                 path, filenames)
-    pause()  # DEBUG
 
     # Calculate the percentage of success, failure and error
     total_file_count = (
@@ -341,7 +352,6 @@ def split_all(
     print("Total: %d files" % total_file_count)
     print("Ratios: {:.2f}% success, {:.2f}% failure(no error), {:.2f}% error".format(
             success_ratio*100, failure_ratio*100, error_ratio*100))
-    pause()  # DEBUG
 
     # Read the train/val set from success_only subset
     if plush:
@@ -399,22 +409,6 @@ def split_all(
     error_val_len = int(round(success_val_len*multiplier_error))
     error_test_len = int(round(success_test_len*multiplier_error))
     error_train_len = len(error_filenames) - (error_val_len + error_test_len)
-    dataset_splits_csv = 'subset, train_count, val_count, test_count\n'
-    dataset_splits_csv += "success_only, {0}, {1}, {2}\n".format(
-                            success_train_len, success_val_len, success_test_len)
-    dataset_splits_csv += "task_and_error_failure, {0}, {1}, {2}\n".format(
-            failure_train_len + error_train_len,
-            failure_val_len + error_val_len,
-            failure_test_len + error_test_len)
-    dataset_splits_csv += "task_failure_only, {0}, {1}, {2}\n".format(
-            failure_train_len, failure_val_len, failure_test_len)
-    dataset_splits_csv += "error_failure_only, {0}, {1}, {2}\n".format(
-            error_train_len, error_val_len, error_test_len)
-    dataset_splits_csv_filename = 'costar_block_stacking_dataset_split_summary.csv'
-    print(dataset_splits_csv_filename + '\n' + dataset_splits_csv)
-
-    csv_path = os.path.join(path, dataset_splits_csv_filename)
-    # pause()
 
     # Randomize the filenames
     random.shuffle(failure_filenames)
@@ -456,7 +450,7 @@ def split_all(
             raise RuntimeError("split_all: err test set overlap with fail test set! %s" % i)
             # print("split_all: err test set overlap with fail test set! %s" % i)
     print("Split complete. Sanity check passed.")
-    pause()
+
     with open(csv_path, 'w+') as file_object:
         file_object.write(dataset_splits_csv)
 
@@ -483,7 +477,6 @@ def count_files_containing_images(path, filenames):
     :param filenames: .h5f filenames in the folder
     :return: Lists of success/failure/error filenames with nonzero frames
     '''
-    import h5py  # Needs h5py to open the files and check frame count
     # TODO: Write total frames into csv file as a new column
 
     # Open the files to check frame count. Skip files with 0 frame.
@@ -531,10 +524,6 @@ def count_files_containing_images(path, filenames):
     return success_filenames, failure_filenames, error_filenames
 
 
-def pause():
-    _ = input("Press <Enter> to continue...")
-
-
 def compare_filenames(path, name1, name2):
     '''Check if filenames within two txt files are the same.
     Example use: compare train and val files to make sure the filenames do not overlap.
@@ -570,27 +559,78 @@ def compare_filenames(path, name1, name2):
 
 def main(args, root='root'):
     path = os.path.expanduser(args['path'])
-    if os.path.isdir(path):
-        filenames = os.listdir(path)
-    else:
+    if not os.path.isdir(path):
         raise ValueError('Path entered is not a path: ' + path)
-    # set the random seed for reproducible random lists
+
+    # Get the subfolders under this path
+    dir_list = [dir_name for dir_name in os.listdir(path)
+                if os.path.isdir(os.path.join(path, dir_name))]
+
+    # Set the random seed for reproducible random lists
     random.seed(args['seed'])
 
-    filenames = [filename for filename in filenames if '.h5f' in filename]
-    print('Read ' + str(len(filenames)) + ' h5f filenames in the folder')
+    for dir_name in dir_list:
+        dir_path = os.path.join(path, dir_name)
 
-    if args['success_only'] and args['split_all']:
-        raise ValueError('success_only and split_all are mutually exclusive. '
-                         'Please choose just one.')
-    elif args['success_only']:
-        split_success_only(
-            filenames, path, args['plush'], args['train'], args['val'],
-            args['test'], args['output_name'], args['val_len'], args['test_len'])
-    elif args['split_all']:
-        split_all(
-            filenames, path, args['plush'], args['train'], args['val'],
-            args['test'], args['output_name'], args['val_len'], args['test_len'])
+        # Get all h5f files under this folder
+        filenames = [filename for filename in os.listdir(dir_path) if '.h5f' in filename]
+        if filenames:
+            print('Read ' + str(len(filenames)) + ' h5f filenames in the folder')
+        else:
+            print('Skipping directory %s because it contains no h5f file.' % dir_name)
+            continue
+
+        # Split the dataset
+        if args['success_only']:
+            subsets = split_success_only(
+                filenames, dir_path, args['plush'], args['train'], args['val'],
+                args['test'], args['val_len'], args['test_len'])
+        else:
+            subsets = split_all(
+                filenames, dir_path, args['plush'], args['train'], args['val'],
+                args['test'], args['val_len'], args['test_len'])
+
+        # Output the files
+        # Modify here to add more categories
+        category_names = [
+            'success_only',
+            'task_and_error_failure',
+            'task_failure_only',
+            'error_failure_only']
+        subset_names = [
+            'train',
+            'val',
+            'test']
+        for i in range(len(subsets)):
+            category_name = category_names[i]
+            category_subsets = subsets[i]
+            # Output the files
+            # TODO: include dataset name
+            for j in range(len(category_subsets)):
+                subset_name = subset_names[j]
+                subset_filenames = category_subsets[j]
+                output_file(dir_path, dir_name, args['output_prefix'],
+                            args['dataset_name'], subset_name, subset_filenames)
+
+
+
+
+        dataset_splits_csv = 'subset, train_count, val_count, test_count\n'
+        dataset_splits_csv += "success_only, {0}, {1}, {2}\n".format(
+                                success_train_len, success_val_len, success_test_len)
+        dataset_splits_csv += "task_and_error_failure, {0}, {1}, {2}\n".format(
+                failure_train_len + error_train_len,
+                failure_val_len + error_val_len,
+                failure_test_len + error_test_len)
+        dataset_splits_csv += "task_failure_only, {0}, {1}, {2}\n".format(
+                failure_train_len, failure_val_len, failure_test_len)
+        dataset_splits_csv += "error_failure_only, {0}, {1}, {2}\n".format(
+                error_train_len, error_val_len, error_test_len)
+        dataset_splits_csv_filename = 'costar_block_stacking_dataset_split_summary.csv'
+        print(dataset_splits_csv_filename + '\n' + dataset_splits_csv)
+
+        csv_path = os.path.join(path, dataset_splits_csv_filename)
+        
 
 
 if __name__ == '__main__':
