@@ -345,7 +345,10 @@ distribution_table = hv.Table(rdf, key_dimensions, value_dimensions)
 print('1.0 dist table created')
 distribution_table_bars = distribution_table.to.bars(key_dimension_display_strs, value_dimension_display_strs, [])
 height = 240
-distribution_table_bars = distribution_table_bars.options(stack_index=1, width=1280, height=height, xrotation=90, tools=['hover'], group_index='train_val_test', cmap='RdYlGn_r', show_grid=True)
+width = 1280
+# uncomment below if you want to plot tons of models
+# width = 12800
+distribution_table_bars = distribution_table_bars.options(stack_index=1, width=width, height=height, xrotation=90, tools=['hover'], group_index='train_val_test', cmap='RdYlGn_r', show_grid=True)
 # plot train, val, test separately, the + sign sticks the plots together
 distribution_table_bars = (
     distribution_table_bars.select(train_val_test='train').relabel(group='Train').options(xaxis=None) +
@@ -366,7 +369,7 @@ value_dimension_display_strs = [vt[1] for vt in value_dimensions]
 avg_table_bars = hv.Table(rdf, key_dimensions, value_dimensions)
 print('4.0 avg table created')
 avg_table_bars = avg_table_bars.to.bars(key_dimension_display_strs, value_dimension_display_strs, [])
-avg_table_bars = avg_table_bars.options(width=1280, height=160, xrotation=90, tools=['hover'], group_index='train_val_test', xaxis=None)
+avg_table_bars = avg_table_bars.options(width=width, height=160, xrotation=90, tools=['hover'], group_index='train_val_test', xaxis=None)
 print('4.0 avg table bars')
 # avg_table_plot = renderer.get_plot(avg_table_bars)
 # print('5.0 table plot')
