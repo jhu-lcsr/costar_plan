@@ -1310,7 +1310,7 @@ def load_dataset(
                 FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
             # TODO(ahundt) make the data dir user configurable again for costar_block stacking
             # FLAGS.data_dir = os.path.expanduser('~/.keras/datasets/costar_block_stacking_dataset_v0.4/')
-            data_dir = FLAGS.data_dir
+            data_dir = os.path.expanduser(FLAGS.data_dir)
             costar_filename_base = FLAGS.costar_filename_base
 
             test_data_filename = os.path.join(data_dir, costar_filename_base + '_test_files.txt')
