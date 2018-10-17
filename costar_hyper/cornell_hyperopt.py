@@ -74,13 +74,13 @@ def main(_):
     # FLAGS.problem_type = 'classification'
     # FLAGS.dataset_name = 'cornell_grasping'
     FLAGS.dataset_name = 'costar_block_stacking'
-    # FLAGS.problem_type = 'semantic_grasp_regression'
+    FLAGS.problem_type = 'semantic_grasp_regression'
 
     ## CONFIGURE: Choose from one of the three problem types for ranking. 
     ## ---------------------------------------------------- 
     # When ranking translation use the following settings:
-    FLAGS.log_dir = 'hyperopt_logs_costar_translation_regression'
-    FLAGS.problem_type = 'semantic_translation_regression'
+    FLAGS.log_dir = '2018_10_hyperopt_logs_costar_grasp_regression'
+    # FLAGS.problem_type = 'semantic_translation_regression'
     # ----------------------------------------------------
     # When ranking rotation use the following settings:
     # FLAGS.log_dir = 'hyperopt_logs_costar_block_stacking_train_ranked_regression'
