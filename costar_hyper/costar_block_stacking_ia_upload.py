@@ -27,7 +27,7 @@ def main(args, root='root'):
         version='v0.4',  # Custom metadata field for the current version
         contributor='Andrew Hundt, Varun Jain, Chris Paxton, Chunting Jiao, '
                     'Chia-Hung Lin, and Gregory D. Hager',
-        creator='Andrew Hundt: athundt[at]gmail[dot]com',
+        creator='Andrew Hundt <ATHundt@gmail.com>',
         credits='''
                 Andrew Hundt, Varun Jain, Chris Paxton, Chunting Jiao, Chia-Hung Lin, 
                 and Gregory D. Hager<br>
