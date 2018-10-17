@@ -38,7 +38,7 @@ from keras.losses import binary_crossentropy
 from tensorflow.python.platform import flags
 
 import grasp_dataset
-import grasp_model
+import hypertree_model
 import grasp_loss
 import grasp_utilities
 import keras_workaround
@@ -207,7 +207,7 @@ class GraspTrain(object):
               test_per_epoch=None,
               load_weights=None,
               save_weights=None,
-              make_model_fn=grasp_model.grasp_model_densenet,
+              make_model_fn=hypertree_model.grasp_model_densenet,
               imagenet_preprocessing=None,
               grasp_sequence_min_time_step=None,
               grasp_sequence_max_time_step=None,
@@ -267,7 +267,7 @@ class GraspTrain(object):
         if save_weights is None:
             save_weights = FLAGS.save_weights
         if make_model_fn is None:
-            make_model_fn = grasp_model.grasp_model_densenet
+            make_model_fn = hypertree_model.grasp_model_densenet
         if imagenet_preprocessing is None:
             imagenet_preprocessing = FLAGS.imagenet_preprocessing
         if grasp_sequence_min_time_step is None:
@@ -557,7 +557,7 @@ class GraspTrain(object):
              batch_size=None,
              load_weights=None,
              save_weights=None,
-             make_model_fn=grasp_model.grasp_model_densenet,
+             make_model_fn=hypertree_model.grasp_model_densenet,
              imagenet_preprocessing=None,
              grasp_sequence_min_time_step=None,
              grasp_sequence_max_time_step=None,
@@ -603,7 +603,7 @@ class GraspTrain(object):
             if save_weights is None:
                 save_weights = FLAGS.save_weights
             if make_model_fn is None:
-                make_model_fn = grasp_model.grasp_model_densenet
+                make_model_fn = hypertree_model.grasp_model_densenet
             if imagenet_preprocessing is None:
                 imagenet_preprocessing = FLAGS.imagenet_preprocessing,
             if grasp_sequence_max_time_step is None:
@@ -727,7 +727,7 @@ class GraspTrain(object):
     def get_compiled_model(self, dataset=None,
                            batch_size=1,
                            load_weights=None,
-                           make_model_fn=grasp_model.grasp_model_densenet,
+                           make_model_fn=hypertree_model.grasp_model_densenet,
                            imagenet_preprocessing=None,
                            grasp_sequence_min_time_step=None,
                            grasp_sequence_max_time_step=None,
@@ -745,7 +745,7 @@ class GraspTrain(object):
             if load_weights is None:
                 load_weights = FLAGS.load_weights
             if make_model_fn is None:
-                make_model_fn = grasp_model.grasp_model_densenet
+                make_model_fn = hypertree_model.grasp_model_densenet
             if imagenet_preprocessing is None:
                 imagenet_preprocessing = FLAGS.imagenet_preprocessing,
             if grasp_sequence_max_time_step is None:
@@ -884,7 +884,7 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
 
         This lets us write custom code that sets up the model
         you asked for in the `--grasp_model` command line argument,
-        FLAGS.grasp_model. This means that when GraspTrain actually
+        FLAGS.hypertree_model. This means that when GraspTrain actually
         creates the model they will all work in exactly the same way.
         The end result is GraspTrain doesn't need a bunch of if
         statements for every type of model, and the class can be more focused
@@ -910,18 +910,18 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
         grasp_model_name = FLAGS.grasp_model
     if grasp_model_name == 'grasp_model_resnet':
         def make_model_fn(*a, **kw):
-            return grasp_model.grasp_model_resnet(
+            return hypertree_model.grasp_model_resnet(
                 *a, **kw)
     elif grasp_model_name == 'grasp_model_pretrained':
         def make_model_fn(*a, **kw):
-            return grasp_model.grasp_model_pretrained(
+            return hypertree_model.grasp_model_pretrained(
                 growth_rate=FLAGS.densenet_growth_rate,
                 reduction=FLAGS.densenet_reduction_after_pretrained,
                 dense_blocks=FLAGS.densenet_dense_blocks,
                 *a, **kw)
     elif grasp_model_name == 'grasp_model_densenet':
         def make_model_fn(*a, **kw):
-            return grasp_model.grasp_model_densenet(
+            return hypertree_model.grasp_model_densenet(
                 growth_rate=FLAGS.densenet_growth_rate,
                 reduction=FLAGS.densenet_reduction,
                 dense_blocks=FLAGS.densenet_dense_blocks,
@@ -929,18 +929,18 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
                 *a, **kw)
     elif grasp_model_name == 'grasp_model_segmentation':
         def make_model_fn(*a, **kw):
-            return grasp_model.grasp_model_segmentation(
+            return hypertree_model.grasp_model_segmentation(
                 growth_rate=FLAGS.densenet_growth_rate,
                 reduction=FLAGS.densenet_reduction,
                 dense_blocks=FLAGS.densenet_dense_blocks,
                 *a, **kw)
     elif grasp_model_name == 'grasp_model_levine_2016_segmentation':
         def make_model_fn(*a, **kw):
-            return grasp_model.grasp_model_levine_2016_segmentation(
+            return hypertree_model.grasp_model_levine_2016_segmentation(
                 *a, **kw)
     elif grasp_model_name == 'grasp_model_levine_2016':
         def make_model_fn(*a, **kw):
-            return grasp_model.grasp_model_levine_2016(
+            return hypertree_model.grasp_model_levine_2016(
                 *a, **kw)
     elif grasp_model_name == 'grasp_model_hypertree':
         def make_model_fn(
@@ -976,7 +976,7 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
             kw.pop('batch_size', None)
             kw.pop('feature_combo_name', None)
             # TODO(ahundt) consider making image_model_weights shared vs separate configurable
-            return grasp_model.choose_hypertree_model(
+            return hypertree_model.choose_hypertree_model(
                 images=images,
                 vectors=vectors,
                 image_shapes=image_shapes,
