@@ -22,7 +22,9 @@ def main(args, root='root'):
     item = internetarchive.get_item('costar_block_stacking_dataset')
 
     md = dict(
-        collection='test_collection',  # TODO(rexxarchl): change to Dataset Collection
+        # TODO(rexxarchl): change to Dataset Collection after proper testing
+        # collection='datasets',
+        collection='test_collection',
         title='The CoSTAR Block Stacking Dataset',
         version='v0.4',  # Custom metadata field for the current version
         contributor='Andrew Hundt, Varun Jain, Chris Paxton, Chunting Jiao, '

@@ -18,7 +18,7 @@ def _parse_args():
 
 
 def main(args, root='root'):
-    item = internetarchive.Item('costar_block_stacking_dataset')
+    item = internetarchive.get_item('costar_block_stacking_dataset')
 
     path = os.path.expanduser(args['path'])
 
