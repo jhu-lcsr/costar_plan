@@ -128,8 +128,18 @@ flags.DEFINE_boolean(
 )
 flags.DEFINE_integer(
     'max_models_to_show',
-    24,
+    384,
     'Maximum number of models to display, 24 by default'
+)
+flags.DEFINE_integer(
+    'width',
+    6144,
+    'Width of figure in pixels, 1280 and 1920 are good options.'
+)
+flags.DEFINE_integer(
+    'height',
+    240,
+    'Height of each subfigure in pixels, 240 is a good option.'
 )
 
 
@@ -144,6 +154,9 @@ if FLAGS.log_dir:
     csv_file = os.path.join(os.path.expanduser(FLAGS.log_dir), FLAGS.rank_csv)
 else:
     csv_file = os.path.expanduser(FLAGS.rank_csv)
+log_y = False
+width = FLAGS.width
+height = FLAGS.height
 # load the hyperparameter optimization ranking csv file created by hyperopt_rank.py
 dataframe = pandas.read_csv(csv_file, index_col=None, header=0)
 if problem_type == 'semantic_rotation_regression':
@@ -198,6 +211,7 @@ elif problem_type == 'semantic_translation_regression':
     ]
     units = 'mm'
     avg_error_suffix = 'cart_error'
+    log_y = True
 elif problem_type == 'semantic_grasp_regression':
     dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
     sort_by = 'val_grasp_acc'
@@ -296,6 +310,8 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
                     values = values + [val]
                     split_values = split_values + [split_val]
                     name = row['basename'][:number_of_time_characters]
+                    # Uncomment below for separate train val test model names
+                    # name = name + ' ' + tvt
                     if 'epoch' in row:
                         # add an epoch field
                         name = name + epoch_name
@@ -308,6 +324,8 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
                     acc_limits = acc_limits + [acc_limit]
                     tvts = tvts + [tvt]
 
+    # print if each is part of the train val or test set
+    # print('tvts: ' + str(tvts))
     dictionary = {'name': names,
                   'error_distribution_limits': acc_range_limits,
                   'accuracy_range_value': split_values,
@@ -333,18 +351,50 @@ def create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
 rdf = create_data_comparison_table(value_dimension_tuples_mm, units, problem_type)
 
 # key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Accuracy Range'), ('train_val_test', 'Train Val Test')]
-key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Error Distribution')]
+key_dimensions = [('name', 'Model'), ('error_distribution_limits', 'Error Range'), ('train_val_test', 'Dataset Split')]
 key_dimension_display_strs = [vt[1] for vt in key_dimensions]
+value_dimensions = [('accuracy_range_value', 'Error Distribution'), ('avg_error', 'Average Error')]#, ('train_val_test', 'Dataset Split')]
+value_dimension_display_strs = [vt[1] for vt in value_dimensions]
+distribution_table = hv.Table(rdf, key_dimensions, value_dimensions)
+print('1.0 dist table created')
+distribution_table_bars = distribution_table.to.bars(key_dimension_display_strs, value_dimension_display_strs, [])
+# uncomment below if you want to plot tons of models
+# width = 12800
+distribution_table_bars = distribution_table_bars.options(stack_index=1, width=width, height=height, xrotation=90, tools=['hover'], group_index='train_val_test', cmap='RdYlGn_r', show_grid=True)
+# plot train, val, test separately, the + sign sticks the plots together
+distribution_table_bars = (
+    distribution_table_bars.select(train_val_test='train').relabel(group='Train').options(xaxis=None) +
+    distribution_table_bars.select(train_val_test='val', xaxis=None).relabel(group='Val').options(xaxis=None) +
+    distribution_table_bars.select(train_val_test='test').relabel(group='Test').options(height=height + 160))
+distribution_table_bars = distribution_table_bars.cols(1)
+# distribution_table_bars = distribution_table_bars.select(train_val_test='train')
+# distribution_table_bars = distribution_table_bars.grid('train_val_test')
+# distribution_table_bars = distribution_table_bars.overlay('train_val_test')
+print('2.0 dist table bars')
+# distribution_table_plot = renderer.get_plot(distribution_table_bars)
 
-table = hv.Table(rdf, key_dimensions, 'accuracy_range_value')
-print('1.0 table created')
-table_bars = table.to.bars(key_dimension_display_strs, 'accuracy_range_value', ['train_val_test'])
-table_bars = table_bars.options(stack_index=1, width=1920, height=1080, xrotation=90, tools=['hover'])
-print('2.0 table bars')
+print('3.0 dist table created')
+key_dimensions = [('name', 'Model'), ('train_val_test', 'Dataset Split')]
+key_dimension_display_strs = [vt[1] for vt in key_dimensions]
+value_dimensions = [('avg_error', 'Average Error')]
+if log_y:
+    value_dimensions = [('avg_error', 'Average Error (Log Scale)')]
+value_dimension_display_strs = [vt[1] for vt in value_dimensions]
+avg_table_bars = hv.Table(rdf, key_dimensions, value_dimensions)
+print('4.0 avg table created')
+avg_table_bars = avg_table_bars.to.bars(key_dimension_display_strs, value_dimension_display_strs, [])
+avg_table_bars = avg_table_bars.options(
+    width=width, height=height-80, xrotation=90, tools=['hover'], group_index='train_val_test',
+    xaxis=None, logy=log_y)
+print('4.0 avg table bars')
+# avg_table_plot = renderer.get_plot(avg_table_bars)
+# print('5.0 table plot')
+# plot_list = [[avg_table_plot.state], [distribution_table_plot.state]]
+table_bars = avg_table_bars + distribution_table_bars
+table_bars = table_bars.cols(1)
 table_plot = renderer.get_plot(table_bars)
-print('3.0 table plot')
 plot_list = [[table_plot.state]]
-print('3.0 plot list')
+print('6.0 plot list')
 # layout_child = layout(plot_list, sizing_mode='fixed')
 layout_child = layout(plot_list)
 curdoc().clear()

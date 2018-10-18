@@ -1,25 +1,51 @@
-# CoSTAR Task Planner (CTP)
+# CoSTAR Plan
 
 [![Build Status](https://travis-ci.com/cpaxton/costar_plan.svg?token=13PmLzWGjzrfxQvEyWp1&branch=master)](https://travis-ci.com/cpaxton/costar_plan)
+
+CoSTAR Plan is for deep learning with robots, divided into two main parts, the CoSTAR Task Planner (CTP) library and CoSTAR Hyper.
+
+### CoSTAR Task Planner (CTP)
+
+Code for the paper [Visual Robot Task Planning](https://arxiv.org/abs/1804.00062).
+
+### [CoSTAR Hyper](costar_hyper/README.md)
+
+Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home).
+Details are in the [costar hyper readme](costar_hyper/README.md).
+
+[![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/1.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
+
+### Supported Datasets
+
+  - [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset)
+  - [Cornell Grasping Dataset](http://pr.cs.cornell.edu/grasping/rect_data/data.php)
+  - [Google Brain Grasping Dataset](https://sites.google.com/site/brainrobotdata/home/grasping-dataset)
+
+
+# CoSTAR Task Planner (CTP)
+
 
 The CoSTAR Planner is part of the larger [CoSTAR project](https://github.com/cpaxton/costar_stack/). It integrates some learning from demonstration and task planning capabilities into the larger CoSTAR framework in different ways.
 
 [![Visual Task Planning](https://img.youtube.com/vi/Rk4EDL4B7zQ/0.jpg)](https://youtu.be/Rk4EDL4B7zQ "Visual Task Planning")
 
-Specifically it is a project for creating task and motion planning algorithms that use machine learning to solve challenging problems in a variety of domains. This code provides a testbed for complex task and motion planning search algorithms. The goal is to describe example problems where actor must move around in the world and plan complex interactions with other actors or the environment that correspond to high-level symbolic states. Among these is our Visual Task Planning project, in which robots learn representations of their world and use these to imagine possible futures, then use these for planning.
+Specifically it is a project for creating task and motion planning algorithms that use machine learning to solve challenging problems in a variety of domains. This code provides a testbed for complex task and motion planning search algorithms. 
 
-[![CoSTAR Real Robot Data Collection](https://img.youtube.com/vi/LMqEcoYbrLM/0.jpg)](https://youtu.be/LMqEcoYbrLM "CoSTAR Real Robot Data Collection")
+The goal is to describe example problems where the actor must move around in the world and plan complex interactions with other actors or the environment that correspond to high-level symbolic states. Among these is our Visual Task Planning project, in which robots learn representations of their world and use these to imagine possible futures, then use these for planning.
 
 To run deep learning examples, you will need TensorFlow and Keras, plus a number of Python packages. To run robot experiments, you'll need a simulator (Gazebo or PyBullet), and ROS Indigo or Kinetic. Other versions of ROS may work but have not been tested. If you want to stick to the toy examples, you do not need to use this as a ROS package.
 
 *About this repository:* CTP is a _single-repository_ project. As such, all the custom code you need should be in one place: here. There are exceptions, such as the [CoSTAR Stack](https://github.com/cpaxton/costar_stack/) for real robot execution, but these are generally not necessary. The minimal installation of CTP is just to install the `costar_models` package as a normal [python package](https://github.com/cpaxton/costar_plan/tree/master/costar_models/python) ignoring everything else.
 
-Datasets:
-  - [PyBullet Block Stacking](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz)
-  - [Sample Husky Data](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/husky_data.tar.gz)
-  - [CoSTAR Real Robot Data](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/sample_real_ur5_robot_data.tar.gz)
+# CTP Datasets
 
-Contents:
+  - PyBullet Block Stacking [download tar.gz](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/simdata.tar.gz)
+  - Sample Husky Data [download tar.gz](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/husky_data.tar.gz)
+  - Classic CoSTAR Real Robot Data [download tar.gz](https://github.com/cpaxton/costar_plan/releases/download/v0.6.0/sample_real_ur5_robot_data.tar.gz)
+     - Early version, deprecated in lieu of the full [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset).
+
+
+# Contents
   - [0. Introduction](docs/introduction.md)
   - [1. Installation Guide](docs/install.md)
     - [1.1 Docker Instructions](docs/docker_instructions.md)
@@ -28,7 +54,7 @@ Contents:
     - [2.1 Software Design](docs/design.md): high-level notes
   - [3. Machine Learning Models](docs/learning.md): using the command line tool
     - [3.1 Data collection](docs/collect_data.md): data collection with a real or simulated robot
-    - [3.2 MARCC instructions](docs/marcc.md): learning models using JHU's MARCC cluste
+    - [3.2 MARCC instructions](docs/marcc.md): learning models using JHU's MARCC cluster
     - [3.3 Generative Adversarial Models](docs/learning_gan.md)
     - [3.4 SLURM Utilities](docs/slurm_utils.md): tools for using slurm on MARCC
   - [4. Creating and training a custom task](docs/task_learning.md): overview of task representations
@@ -45,7 +71,7 @@ Contents:
     - [7.2 The Real TOM](docs/tom_real_robot.md): details about parts of the system for running on the real TOM
   - [8. CoSTAR Robot](docs/costar_real_robot.md): execution with a standard UR5
 
-Package/folder layout:
+# Package/folder layout
   - [CoSTAR Simulation](costar_simulation/Readme.md): Gazebo simulation and ROS execution
   - [CoSTAR Task Plan](costar_task_plan/Readme.md): the high-level python planning library
   - [CoSTAR Gazebo Plugins](costar_gazebo_plugins/Readme.md): assorted plugins for integration
@@ -61,7 +87,11 @@ Package/folder layout:
   - Others are temporary packages for various projects
 
 Many of these sections are a work in progress; if you have any questions shoot me an email (`cpaxton@jhu.edu`).
-## Contact
 
-This code is maintained by Chris Paxton (cpaxton@jhu.edu).
+# Contact
+
+This code is maintained by:
+
+ - Chris Paxton (cpaxton@jhu.edu).
+ - Andrew Hundt (ATHundt@gmail.com)
 

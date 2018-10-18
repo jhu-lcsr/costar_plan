@@ -99,41 +99,6 @@ plt.show()
 
 some of those fields will vary for different use cases.
 
-## Google Brain Grasp Dataset APIs
-
-<img width="1511" alt="2017-12-16 surface relative transforms correct" src="https://user-images.githubusercontent.com/55744/34134058-5846b59e-e426-11e7-92d6-699883199255.png">
-This version should be ready to use when generating data real training.
-
-Plus now there is a flag to draw a circle at the location of the gripper as stored in the dataset:
-![102_grasp_0_rgb_success_1](https://user-images.githubusercontent.com/55744/34133964-ccf57caa-e425-11e7-8ab1-6bba459a5408.gif)
-
-A new feature is writing out depth image gifs:
-![102_grasp_0_depth_success_1](https://user-images.githubusercontent.com/55744/34133966-d0951f28-e425-11e7-85d1-aa2706a4ba05.gif)
-
-Image data can be resized:
-
-![102_grasp_1_rgb_success_1](https://user-images.githubusercontent.com/55744/34430739-3adbd65c-ec36-11e7-84b5-3c3712949914.gif)
-
-The blue circle is a visualization, not actual input, which marks the gripper stored in the dataset pose information.
-
-Color augmentation is also available:
-
-![102_grasp_2_rgb_success_1](https://user-images.githubusercontent.com/55744/34698561-ba2bd61e-f4a6-11e7-88d9-5091aed500fe.gif)
-![102_grasp_3_rgb_success_1](https://user-images.githubusercontent.com/55744/34698564-bef2fba0-f4a6-11e7-9547-06b4410d86aa.gif)
-
-### How to view the vrep dataset visualization
-
-1. copy the .ttt file and the .so file (.dylib on mac) into the `costar_google_brainrobotdata/vrep` folder.
-2. Run vrep with -s file pointing to the example:
-
-```
-./vrep.sh -s ~/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/vrep/kukaRemoteApiCommandServerExample.ttt
-```
-
-4. vrep should load and start the simulation
-5. make sure the folder holding `vrep_grasp.py` is on your PYTHONPATH
-6. cd to `~/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/`, or wherever you put the repository
-7. run `export CUDA_VISIBLE_DEVICES="" && python2 vrep_grasp.py`
 
 ## Hyperparameter search
 
@@ -182,21 +147,7 @@ export CUDA_VISIBLE_DEVICES="0" && python2 costar_block_stacking_train_ranked_re
 
 You may wish to use the `--learning_rate_schedule triangular` flag for one run and then the `--learning_rate_schedule triangular2 --load_weights path/to/previous_best_weights.h5` for a second run. These learning rate schedules use the [keras_contrib](github.com/keras-team/keras-contrib) cyclical learning rate callback, see [Cyclical learning rate repo](https://github.com/bckenstler/CLR) for a detailed description and paper links.
 
-### Google Brain Grasping Dataset
-
-To run the search execute the following command
-
-```
-export CUDA_VISIBLE_DEVICES="0" && python2 google_grasp_hyperopt.py --run_name single_prediction_all_transforms
-```
-
-Generating a hyperparameter search results summary for google brain grasping dataset classification:
-
-```
-python hyperopt_rank.py --log_dir hyperopt_logs_google_brain_classification --sort_by val_acc
-```
-
-### Cornell Dataset
+## Cornell Dataset
 
 These are instructions for training on the [cornell grasping dataset](http://pr.cs.cornell.edu/grasping/rect_data/data.php).
 
@@ -325,3 +276,61 @@ export CUDA_VISIBLE_DEVICES="0" && python cornell_grasp_train_classification.py 
 ```
 
 After it finishes running there should be a file created named `*summary.json` with your final results.
+
+
+## Google Brain Grasp Dataset APIs
+
+Note: The [Google Brain Grasping Dataset](https://sites.google.com/site/brainrobotdata/home/grasping-dataset) has several important limitations which must be considered before trying it out:
+- There is no validation or test dataset with novel objects
+- There is no robot model available, and the robot is not commercially available
+- Data is collected at 1Hz and may not be well synchronized w.r.t. time.
+- The robot may move vast distances and change directions completely between frames.
+
+<img width="1511" alt="2017-12-16 surface relative transforms correct" src="https://user-images.githubusercontent.com/55744/34134058-5846b59e-e426-11e7-92d6-699883199255.png">
+This version should be ready to use when generating data real training.
+
+Plus now there is a flag to draw a circle at the location of the gripper as stored in the dataset:
+![102_grasp_0_rgb_success_1](https://user-images.githubusercontent.com/55744/34133964-ccf57caa-e425-11e7-8ab1-6bba459a5408.gif)
+
+A new feature is writing out depth image gifs:
+![102_grasp_0_depth_success_1](https://user-images.githubusercontent.com/55744/34133966-d0951f28-e425-11e7-85d1-aa2706a4ba05.gif)
+
+Image data can be resized:
+
+![102_grasp_1_rgb_success_1](https://user-images.githubusercontent.com/55744/34430739-3adbd65c-ec36-11e7-84b5-3c3712949914.gif)
+
+The blue circle is a visualization, not actual input, which marks the gripper stored in the dataset pose information. You can see the time synchronization issue in these frames.
+
+Color augmentation is also available:
+
+![102_grasp_2_rgb_success_1](https://user-images.githubusercontent.com/55744/34698561-ba2bd61e-f4a6-11e7-88d9-5091aed500fe.gif)
+![102_grasp_3_rgb_success_1](https://user-images.githubusercontent.com/55744/34698564-bef2fba0-f4a6-11e7-9547-06b4410d86aa.gif)
+
+### How to view the vrep dataset visualization
+
+1. copy the .ttt file and the .so file (.dylib on mac) into the `costar_google_brainrobotdata/vrep` folder.
+2. Run vrep with -s file pointing to the example:
+
+```
+./vrep.sh -s ~/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/vrep/kukaRemoteApiCommandServerExample.ttt
+```
+
+4. vrep should load and start the simulation
+5. make sure the folder holding `vrep_grasp.py` is on your PYTHONPATH
+6. cd to `~/src/costar_ws/src/costar_plan/costar_google_brainrobotdata/`, or wherever you put the repository
+7. run `export CUDA_VISIBLE_DEVICES="" && python2 vrep_grasp.py`
+
+
+### Google Brain Grasping Dataset
+
+To run the search execute the following command
+
+```
+export CUDA_VISIBLE_DEVICES="0" && python2 google_grasp_hyperopt.py --run_name single_prediction_all_transforms
+```
+
+Generating a hyperparameter search results summary for google brain grasping dataset classification:
+
+```
+python hyperopt_rank.py --log_dir hyperopt_logs_google_brain_classification --sort_by val_acc
+```

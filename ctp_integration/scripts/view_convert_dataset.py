@@ -196,7 +196,7 @@ def _parse_args():
     parser.add_argument("--rgb", action='store_true', default=True, help='process rgb data')
     parser.add_argument("--no-rgb", action='store_false', default=True, help='do not process rgb data', dest='rgb')
     parser.add_argument("--fps", type=int, default=10, help='framerate to process images in frames per second')
-    parser.add_argument("--matplotlib", type=bool, default=False,
+    parser.add_argument("--matplotlib", action='store_true', default=False,
                         help='preview data with matplotlib, slower but you can do pixel lookups')
     parser.add_argument("--print", type=str, default='',
                         help=('Comma separated list of data channels to convert to a list and print as a string.'
@@ -208,6 +208,13 @@ def _parse_args():
                                 and inserts them directly into the hdf5 file.
                              """)
     parser.add_argument("--write", action='store_true', help='Actually write out the changes specified in preprocess_inplace, or label_correction.')
+    parser.add_argument("--action_label_check", action='store_true', default=False,
+                        help='''To be used with flag --goal-to-jpeg. Check the action label strings in each file for consistency.
+                                1. Output the image frame at the goals for each file to folder action_label_check/ for manual inspection of
+                                   the action label and the actual action that the robot executes. The filename for the jpeg images contain
+                                   the action label that the robot was supposed to do at the time frame.
+                                2. Checks the action labels stored in each file for inconsistent ordering.
+                             ''')
 
     return vars(parser.parse_args())
 
@@ -566,7 +573,11 @@ def main(args, root="root"):
                     example_folder_path, name = os.path.split(example_filename)
                     progress_bar.write(example_folder_path)
                     name = name.replace('.h5f', '')
-                    example_folder_path = os.path.join(example_folder_path, 'goal_images')
+                    if args['action_label_check']:
+                        action_label_check(data_labels_to_name)
+                        example_folder_path = os.path.join(example_folder_path, 'action_label_check')
+                    else:
+                        example_folder_path = os.path.join(example_folder_path, 'goal_images')
                     if not os.path.exists(example_folder_path):
                         os.makedirs(example_folder_path)
                     # extract the clear view image
@@ -837,6 +848,31 @@ def generate_gripper_action_label(data):
     gripper_action_goal_idx = goal_list
 
     return gripper_action_label, gripper_action_goal_idx
+
+
+def action_label_check(action_labels, stored_action_labels=None):
+    if stored_action_labels is None:
+        stored_action_labels = [
+            b'place_green_on_yellow', b'move_to_home', b'place_blue_on_yellowred', b'place_yellow_on_red',
+            b'place_blue_on_red', b'grab_blue', b'place_red_on_blueyellow', b'place_green_on_redyellow', 
+            b'place_red_on_yellow', b'place_green_on_blueyellow', b'place_red_on_greenblue', b'place_blue_on_green',
+            b'place_blue_on_redgreen',b'place_yellow_on_greenblue', b'place_yellow_on_blue', b'place_blue_on_greenyellow',
+            b'place_blue_on_yellowgreen', b'place_blue_on_greenred', b'place_yellow_on_redgreen', b'grab_yellow', 
+            b'place_red_on_greenyellow', b'grab_green', b'place_red_on_green', b'place_yellow_on_bluered', 
+            b'place_yellow_on_green', b'place_green_on_blue', b'place_yellow_on_bluegreen', b'place_blue_on_redyellow', 
+            b'place_red_on_blue', b'place_red_on_yellowgreen', b'place_yellow_on_greenred', b'place_green_on_yellowblue',  
+            b'place_red_on_bluegreen', b'place_green_on_red', b'place_red_on_yellowblue', b'place_green_on_yellowred',
+            b'place_green_on_redblue', b'grab_red', b'place_yellow_on_redblue', b'place_green_on_bluered', b'place_blue_on_yellow']
+    
+    assert len(stored_action_labels) == len(action_labels)
+
+    if stored_action_labels != action_labels:
+        print("WARNING! Inconsistent action labels detected")
+        for i in range(len(action_labels)):
+            if stored_action_labels[i] != action_labels[i]:
+                print("Expected in {0}: {1}, get: {2}".format(i, stored_action_labels[i], action_labels[i]))
+        # raise ValueError("WARNING! Inconsistent action labels detected")
+
 
 
 if __name__ == "__main__":
