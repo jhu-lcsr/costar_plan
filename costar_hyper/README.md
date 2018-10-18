@@ -178,7 +178,7 @@ Plot results with `hyperopt_plot.py`.
 ```
 curl http://localhost:4004/2018_10_hyperopt_logs_costar_grasp_regression/hyperopt_rank.csv --output ~/Downloads/hyperopt_rank.csv && bokeh serve --show hyperopt_plot.py --args --rank_csv ~/Downloads/hyperopt_rank.csv --problem_type semantic_translation_regression
 ```
-This should open your web browser with a plot similar to the one above.
+This should open your web browser with a plot similar to the one above. A file `hyperopt_plot.csv` will also be generated which you can load with your favorite utility. 
 
 ## Cornell Dataset
 
