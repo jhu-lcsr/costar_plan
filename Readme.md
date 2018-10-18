@@ -17,7 +17,7 @@ Details are in the [costar hyper readme](costar_hyper/README.md).
 
 ### Supported Datasets
 
-  - [CoSTAR Block Stacking Dataset](sites.google.com/site/costardataset)
+  - [CoSTAR Block Stacking Dataset](https://sites.google.com/site/costardataset)
   - [Cornell Grasping Dataset](http://pr.cs.cornell.edu/grasping/rect_data/data.php)
   - [Google Brain Grasping Dataset](https://sites.google.com/site/brainrobotdata/home/grasping-dataset)
 
