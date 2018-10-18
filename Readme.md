@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.com/cpaxton/costar_plan.svg?token=13PmLzWGjzrfxQvEyWp1&branch=master)](https://travis-ci.com/cpaxton/costar_plan)
 
-CoSTAR Plan is for deep learning with robots, divided into two main parts, the CoSTAR Task Planner (CTP) library and CoSTAR Hyper.
+CoSTAR Plan is for deep learning with robots divided into two main parts: The CoSTAR Task Planner (CTP) library and CoSTAR Hyper.
 
 ### CoSTAR Task Planner (CTP)
 
