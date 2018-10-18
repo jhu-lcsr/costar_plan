@@ -11,13 +11,16 @@ Code for the paper [Visual Robot Task Planning](https://arxiv.org/abs/1804.00062
 ### [CoSTAR Hyper](costar_hyper/README.md)
 
 Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home).
-Details are in the [costar hyper readme](costar_hyper/README.md).
 
 [![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
 
+
+Code instructions are in the [CoSTAR Hyper README.md](costar_hyper/README.md).
+
 ### Supported Datasets
 
-  - [CoSTAR Block Stacking Dataset](https://sites.google.com/site/costardataset)
+  - [CoSTAR Block Stacking Dataset](https://sites.google.com/site/costardataset) 
+[![2018-06-21-23-21-49_example000004 success_tiled](https://user-images.githubusercontent.com/55744/47169252-ff1e3380-d2d0-11e8-97ed-1d747d97ea11.jpg)](https://sites.google.com/site/costardataset "CoSTAR Block stacking Dataset")
   - [Cornell Grasping Dataset](http://pr.cs.cornell.edu/grasping/rect_data/data.php)
   - [Google Brain Grasping Dataset](https://sites.google.com/site/brainrobotdata/home/grasping-dataset)
 
