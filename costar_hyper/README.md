@@ -33,7 +33,7 @@ costar_plan setup is run separately via the ros catkin package
 
 ## Costar Block Stacking Dataset
 
-
+[![2018-06-21-23-21-49_example000004 success_tiled](https://user-images.githubusercontent.com/55744/47169252-ff1e3380-d2d0-11e8-97ed-1d747d97ea11.jpg)](https://sites.google.com/site/costardataset "CoSTAR Block stacking Dataset")
 
 An old version 0.2 of the [CoSTAR Block stacking Dataset](https://sites.google.com/site/costardataset) is currently hosted on google drive but this will be updated shortly. It can be downloaded with [rclone](https://github.com/ncw/rclone).
 
