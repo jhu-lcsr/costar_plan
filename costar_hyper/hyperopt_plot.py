@@ -128,8 +128,18 @@ flags.DEFINE_boolean(
 )
 flags.DEFINE_integer(
     'max_models_to_show',
-    24,
+    384,
     'Maximum number of models to display, 24 by default'
+)
+flags.DEFINE_integer(
+    'width',
+    6144,
+    'Width of figure in pixels, 1280 and 1920 are good options.'
+)
+flags.DEFINE_integer(
+    'height',
+    240,
+    'Height of each subfigure in pixels, 240 is a good option.'
 )
 
 
@@ -144,6 +154,9 @@ if FLAGS.log_dir:
     csv_file = os.path.join(os.path.expanduser(FLAGS.log_dir), FLAGS.rank_csv)
 else:
     csv_file = os.path.expanduser(FLAGS.rank_csv)
+log_y = False
+width = FLAGS.width
+height = FLAGS.height
 # load the hyperparameter optimization ranking csv file created by hyperopt_rank.py
 dataframe = pandas.read_csv(csv_file, index_col=None, header=0)
 if problem_type == 'semantic_rotation_regression':
@@ -198,6 +211,7 @@ elif problem_type == 'semantic_translation_regression':
     ]
     units = 'mm'
     avg_error_suffix = 'cart_error'
+    log_y = True
 elif problem_type == 'semantic_grasp_regression':
     dataframe = dataframe.sort_values('val_grasp_acc', ascending=False)
     sort_by = 'val_grasp_acc'
@@ -344,8 +358,6 @@ value_dimension_display_strs = [vt[1] for vt in value_dimensions]
 distribution_table = hv.Table(rdf, key_dimensions, value_dimensions)
 print('1.0 dist table created')
 distribution_table_bars = distribution_table.to.bars(key_dimension_display_strs, value_dimension_display_strs, [])
-height = 240
-width = 1280
 # uncomment below if you want to plot tons of models
 # width = 12800
 distribution_table_bars = distribution_table_bars.options(stack_index=1, width=width, height=height, xrotation=90, tools=['hover'], group_index='train_val_test', cmap='RdYlGn_r', show_grid=True)
@@ -365,11 +377,15 @@ print('3.0 dist table created')
 key_dimensions = [('name', 'Model'), ('train_val_test', 'Dataset Split')]
 key_dimension_display_strs = [vt[1] for vt in key_dimensions]
 value_dimensions = [('avg_error', 'Average Error')]
+if log_y:
+    value_dimensions = [('avg_error', 'Average Error (Log Scale)')]
 value_dimension_display_strs = [vt[1] for vt in value_dimensions]
 avg_table_bars = hv.Table(rdf, key_dimensions, value_dimensions)
 print('4.0 avg table created')
 avg_table_bars = avg_table_bars.to.bars(key_dimension_display_strs, value_dimension_display_strs, [])
-avg_table_bars = avg_table_bars.options(width=width, height=160, xrotation=90, tools=['hover'], group_index='train_val_test', xaxis=None)
+avg_table_bars = avg_table_bars.options(
+    width=width, height=height-80, xrotation=90, tools=['hover'], group_index='train_val_test',
+    xaxis=None, logy=log_y)
 print('4.0 avg table bars')
 # avg_table_plot = renderer.get_plot(avg_table_bars)
 # print('5.0 table plot')
