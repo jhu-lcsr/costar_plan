@@ -33,7 +33,9 @@ costar_plan setup is run separately via the ros catkin package
 
 ## Costar Block Stacking Dataset
 
-The Block stacking dataset is currently hosted on google drive. It can be downloaded with [rclone](https://github.com/ncw/rclone).
+
+
+An old version 0.2 of the [CoSTAR Block stacking Dataset](https://sites.google.com/site/costardataset) is currently hosted on google drive but this will be updated shortly. It can be downloaded with [rclone](https://github.com/ncw/rclone).
 
 Follow the [google drive costar block stacking dataset v0.2 download link](https://drive.google.com/drive/folders/1k7N1EvxRh7GwS5tbax8RAeUU_dcPGWOw?usp=sharing), and add the folder to your drive. This should not use up any of your storage limit.
 
