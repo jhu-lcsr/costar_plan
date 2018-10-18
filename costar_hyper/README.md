@@ -3,6 +3,10 @@
 
 Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 
+Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home).
+
+[![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
+
 ## Installation
 
 These instructions are with minimal dependencies where you'll be training & predicting on the datasetas.
@@ -29,7 +33,9 @@ costar_plan setup is run separately via the ros catkin package
 
 ## Costar Block Stacking Dataset
 
-The Block stacking dataset is currently hosted on google drive. It can be downloaded with [rclone](https://github.com/ncw/rclone).
+[![2018-06-21-23-21-49_example000004 success_tiled](https://user-images.githubusercontent.com/55744/47169252-ff1e3380-d2d0-11e8-97ed-1d747d97ea11.jpg)](https://sites.google.com/site/costardataset "CoSTAR Block stacking Dataset")
+
+An old version 0.2 of the [CoSTAR Block stacking Dataset](https://sites.google.com/site/costardataset) is currently hosted on google drive but this will be updated shortly. It can be downloaded with [rclone](https://github.com/ncw/rclone).
 
 Follow the [google drive costar block stacking dataset v0.2 download link](https://drive.google.com/drive/folders/1k7N1EvxRh7GwS5tbax8RAeUU_dcPGWOw?usp=sharing), and add the folder to your drive. This should not use up any of your storage limit.
 
