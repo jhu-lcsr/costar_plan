@@ -3,7 +3,7 @@
 
 Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 
-Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home).
+HyperTree code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home), [rENAS code is also available](https://github.com/ahundt/enas).
 
 [![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
 
@@ -106,7 +106,7 @@ plt.show()
 some of those fields will vary for different use cases.
 
 
-## Hyperparameter search
+## HyperTree Architecture search
 
 ### Costar Block Stacking Dataset
 
