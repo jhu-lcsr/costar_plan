@@ -28,11 +28,12 @@ def _parse_args():
 
 
 def main(args, root='root'):
-    item = internetarchive.get_item('costar_block_stacking_dataset')
+    item = internetarchive.get_item('johns_hopkins_costar_block_stacking_dataset')
 
     md = dict(
         # TODO(rexxarchl): change to Dataset Collection 'datasets' after proper testing
-        collection='datasets',
+        # collection='datasets',
+        collection='test_collection',
         # collection='test_collection',
         title='The CoSTAR Block Stacking Dataset',
         version='v0.4',  # Custom metadata field for the current version
@@ -64,10 +65,15 @@ def main(args, root='root'):
         mediatype='data',  # data is the default media type
         noindex='True')  # Set to true for the item to not be listed
 
-    print(args)
+    print('User supplied arguments:\n' + str(args))
     # get the path, and add an extra slash to make sure it is a directory
     # and to avoid a bug in the internet archive upload code.
     path = os.path.expanduser(args['path'] + '/')
+
+    debug = True
+    if args['execute']:
+        debug = False
+    print('debug: ' + str(debug))
 
     print('uploading all data from path:\n\n ' + str(path))
 
@@ -82,8 +88,9 @@ def main(args, root='root'):
         # Prevent an item from being derived to another format after upload
         queue_derive=False,
         # Set to true to print headers to stdout, and exit without uploading
-        debug=args['execute'])
+        debug=debug)
 
+    print(results[0].url)
     server_urls = [str(result.url) for result in results]
     local_urls = [str(result.path_url) for result in results]
     prefix = timeStamped('internet_archive_uploaded')
