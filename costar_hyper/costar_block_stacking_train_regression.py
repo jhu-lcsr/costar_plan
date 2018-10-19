@@ -9,8 +9,8 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 import sys
 import os
 import tensorflow as tf
-import grasp_utilities
-import cornell_grasp_train
+import hypertree_utilities
+import hypertree_train
 from tensorflow.python.platform import flags
 
 FLAGS = flags.FLAGS
@@ -28,7 +28,7 @@ def main(_):
     problem_type2 = None
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
-    # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
+    # see other configuration in hypertree_train.py choose_features_and_metrics()
     FLAGS.problem_type = problem_type
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
@@ -178,7 +178,7 @@ def main(_):
     print('Training with hyperparams from: ' + str(FLAGS.load_hyperparams))
     learning_rate = FLAGS.learning_rate
 
-    hyperparams = grasp_utilities.load_hyperparams_json(
+    hyperparams = hypertree_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, learning_rate,
         feature_combo_name=feature_combo)
 
@@ -233,28 +233,28 @@ def main(_):
     FLAGS.fine_tuning_learning_rate = learning_rate
 
     if 'k_fold' in FLAGS.pipeline_stage:
-        cornell_grasp_train.train_k_fold(
+        hypertree_train.train_k_fold(
             problem_name=problem_type,
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='objectwise',
             dataset_name=dataset_name,
             **hyperparams)
-        cornell_grasp_train.train_k_fold(
+        hypertree_train.train_k_fold(
             problem_name=problem_type,
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='imagewise',
             dataset_name=dataset_name,
             **hyperparams)
-        cornell_grasp_train.train_k_fold(
+        hypertree_train.train_k_fold(
             problem_name=problem_type2,
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
             split_type='objectwise',
             dataset_name=dataset_name,
             **hyperparams)
-        cornell_grasp_train.train_k_fold(
+        hypertree_train.train_k_fold(
             problem_name=problem_type2,
             feature_combo_name=feature_combo,
             hyperparams=hyperparams,
@@ -263,7 +263,7 @@ def main(_):
             **hyperparams)
     else:
         print('\n---------------------\ntraining problem type: ' + str(problem_type) + '\n---------------------')
-        cornell_grasp_train.run_training(
+        hypertree_train.run_training(
             problem_name=problem_type,
             # feature_combo_name=feature_combo,
             hyperparams=hyperparams,
@@ -274,7 +274,7 @@ def main(_):
             **hyperparams)
         if problem_type2 is not None:
             print('\n---------------------\ntraining problem type2: ' + str(problem_type2) + '\n---------------------')
-            cornell_grasp_train.run_training(
+            hypertree_train.run_training(
                 problem_name=problem_type2,
                 # feature_combo_name=feature_combo,
                 hyperparams=hyperparams,

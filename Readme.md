@@ -32,7 +32,7 @@ The CoSTAR Planner is part of the larger [CoSTAR project](https://github.com/cpa
 
 [![Visual Task Planning](https://img.youtube.com/vi/Rk4EDL4B7zQ/0.jpg)](https://youtu.be/Rk4EDL4B7zQ "Visual Task Planning")
 
-Specifically it is a project for creating task and motion planning algorithms that use machine learning to solve challenging problems in a variety of domains. This code provides a testbed for complex task and motion planning search algorithms. 
+Specifically it is a project for creating task and motion planning algorithms that use machine learning to solve challenging problems in a variety of domains. This code provides a testbed for complex task and motion planning search algorithms.
 
 The goal is to describe example problems where the actor must move around in the world and plan complex interactions with other actors or the environment that correspond to high-level symbolic states. Among these is our Visual Task Planning project, in which robots learn representations of their world and use these to imagine possible futures, then use these for planning.
 
@@ -98,3 +98,9 @@ This code is maintained by:
  - Chris Paxton (cpaxton@jhu.edu).
  - Andrew Hundt (ATHundt@gmail.com)
 
+# Cite
+
+
+[Visual Robot Task Planning](https://arxiv.org/abs/1804.00062)
+
+[Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home)

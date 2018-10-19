@@ -17,7 +17,7 @@ import numpy as np
 import tensorflow as tf
 import traceback
 import keras
-import grasp_utilities
+import hypertree_utilities
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -329,7 +329,7 @@ def optimize(
     hyperoptions.add_param('batch_size', [2**x for x in range(2, 4)],
                            enable=False, required=True, default=batch_size)
     # The appropriate preprocessing mode must be chosen for each model.
-    # This should now be done correctly in cornell_grasp_train.py.
+    # This should now be done correctly in hypertree_train.py.
     hyperoptions.add_param('preprocessing_mode', ['tf', 'caffe', 'torch'],
                            enable=False, required=False, default='tf')
 
@@ -446,7 +446,7 @@ def optimize(
         return loss
 
     log_run_prefix = os.path.join(log_dir, run_name)
-    grasp_utilities.mkdir_p(log_run_prefix)
+    hypertree_utilities.mkdir_p(log_run_prefix)
     print('Hyperopt log run results prefix directory: ' + str(log_run_prefix))
     hyperoptions.save(log_run_prefix + '_hyperoptions.json')
 

@@ -15,7 +15,7 @@ import keras
 from keras.utils import Sequence
 from keras.utils import OrderedEnqueuer
 import tensorflow as tf
-import grasp_metrics
+import hypertree_pose_metrics
 import keras_applications
 import keras_preprocessing
 
@@ -212,16 +212,16 @@ def encode_label(label_features_to_extract, y, action_successes=None, random_aug
     """
     # determine the label
     if label_features_to_extract is None or 'grasp_goal_xyz_3' in label_features_to_extract:
-        # regression to translation case, see semantic_translation_regression in cornell_grasp_train.py
-        y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=random_augmentation)
+        # regression to translation case, see semantic_translation_regression in hypertree_train.py
+        y = hypertree_pose_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=random_augmentation)
         y = y[:, :3]
     elif label_features_to_extract is None or 'grasp_goal_aaxyz_nsc_5' in label_features_to_extract:
-        # regression to rotation case, see semantic_rotation_regression in cornell_grasp_train.py
-        y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=random_augmentation)
+        # regression to rotation case, see semantic_rotation_regression in hypertree_train.py
+        y = hypertree_pose_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=random_augmentation)
         y = y[:, 3:]
     elif label_features_to_extract is None or 'grasp_goal_xyz_aaxyz_nsc_8' in label_features_to_extract:
         # default, regression label case
-        y = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=random_augmentation)
+        y = hypertree_pose_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(y, random_augmentation=random_augmentation)
     elif 'grasp_success' in label_features_to_extract or 'action_success' in label_features_to_extract:
         if action_successes is None:
             raise ValueError(
@@ -312,11 +312,11 @@ def encode_action_and_images(
     poses = np.array(poses)
 
     # print('poses shape: ' + str(poses.shape))
-    encoded_poses = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
+    encoded_poses = hypertree_pose_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
         poses, random_augmentation=random_augmentation)
     if data_features_to_extract is None or 'image_0_image_n_vec_0_vec_n_xyz_aaxyz_nsc_nxygrid_25':
         # TODO(ahundt) This should actually encode two poses like the commented encoded_poses line below because it is for grasp proposal success/failure classification. First need to double check all code that uses it in enas and costar_plan
-        encoded_goal_pose = grasp_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
+        encoded_goal_pose = hypertree_pose_metrics.batch_encode_xyz_qxyzw_to_xyz_aaxyz_nsc(
             poses, random_augmentation=random_augmentation)
         # encoded_poses = np.array([encoded_poses, encoded_goal_pose])
 

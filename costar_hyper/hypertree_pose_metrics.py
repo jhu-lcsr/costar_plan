@@ -12,7 +12,7 @@ from shapely.geometry import Polygon
 from pyquaternion import Quaternion
 import sklearn
 
-import grasp_utilities
+import hypertree_utilities
 
 # class Vector:
 #     # http://www.mathopenref.com/coordpolygonarea.html
@@ -241,8 +241,8 @@ def rectangle_intersection_polygon(rp0, rl0, rp1, rl1):
         # and determine which part is inside and which is outside.
         new_intersection = []
         # points in rp0 rotated around by one
-        rp0_rot = grasp_utilities.rotate(rp0)
-        line_values_rot = grasp_utilities.rotate(line_values)
+        rp0_rot = hypertree_utilities.rotate(rp0)
+        line_values_rot = hypertree_utilities.rotate(line_values)
         for s, t, s_value, t_value, line0 in zip(
                 rp0, rp0_rot, line_values, line_values_rot, rl0):
 
@@ -708,7 +708,7 @@ def grasp_jaccard_batch(y_true, y_pred, verbose=0):
             verbose = 1
             print('')
             print('')
-            print('grasp_metrics.py sample of ground_truth and prediction:')
+            print('hypertree_pose_metrics.py sample of ground_truth and prediction:')
         this_true = y_true[i, :]
         this_pred = y_pred[i, :]
         score = jaccard_score(this_true, this_pred, verbose=verbose)
