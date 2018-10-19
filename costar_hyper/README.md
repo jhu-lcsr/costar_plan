@@ -122,7 +122,7 @@ Follow the [google drive costar block stacking dataset v0.2 download link](https
 rclone copy drive:costar_block_stacking_dataset_v0.4 ~/.keras/dataset/costar_block_stacking_dataset_v0.4 --exclude="*failure*"
 ```
 
-Configure `hypertree_hyperopt.py` to run on the problem you'd like, the script supports both the cornell and the costar block stacking ataset. Sorry for the bad naming, this a historical artifact that should be resolved at some point in the future.
+Configure `hypertree_hyperopt.py` to run on the problem you'd like, the script supports both the Cornell and the costar block stacking dataset. 
 
 Options for problem types include `semantic_grasp_regression`, `semantic_translation_regression`, `semantic_rotation_regression`. Uncomment the the settings in the file for the preferred problem type. Once you have edited the file for your use case, run the following command:
 
