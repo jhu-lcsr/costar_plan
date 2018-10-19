@@ -628,10 +628,6 @@ def main(args, root="root"):
                                            'pose is not present: ' +
                                            str(filename))
                         continue
-                        
-                    # Delete existing column, if there is one already
-                    if 'pose_gripper_center' in list(data.keys()):
-                        del data['pose_gripper_center']
                     
                     ee_link_poses = data['pose']
                     gripper_center_poses = np.zeros(ee_link_poses.shape, dtype=ee_link_poses.dtype)
@@ -649,6 +645,9 @@ def main(args, root="root"):
                         #    )
                         
                     if args['write']:
+                        # Delete existing column, if there is one already
+                        if 'pose_gripper_center' in list(data.keys()):
+                            del data['pose_gripper_center']
                         # Write the data 
                         data['pose_gripper_center'] = gripper_center_poses
                         progress_bar.write("Writing gripper_center dataset to file:" + str(filename))
