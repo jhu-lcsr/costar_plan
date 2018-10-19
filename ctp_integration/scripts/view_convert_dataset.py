@@ -269,7 +269,7 @@ def _parse_args():
                         help="""One option is gripper_action, which generates new labels
                                 gripper_action_label and gripper_action_goal_idx based on the timestep at which the gripper opened and closed,
                                 and inserts them directly into the hdf5 file.
-                                The other option is tf_gripper_center, which takes and adds a new column to the h5f that is the transform from
+                                The other option is pose_gripper_center, which takes and adds a new column to the h5f that is the transform from
                                 base_link to gripper_center, for alternative learning purposes.
                              """)
     parser.add_argument("--write", action='store_true', help='Actually write out the changes specified in preprocess_inplace, or label_correction.')
@@ -611,7 +611,7 @@ def main(args, root="root"):
                     # so this conversion runs 1000x faster
                     continue
 
-                if args['preprocess_inplace'] == 'tf_gripper_center':
+                if args['preprocess_inplace'] == 'pose_gripper_center':
                     # Check dependency
                     if sva == None or eigen == None:
                         raise ValueError(
@@ -652,7 +652,7 @@ def main(args, root="root"):
                         data['pose_gripper_center'] = gripper_center_poses
                         progress_bar.write("Writing gripper_center dataset to file:" + str(filename))
                     else:
-                        progress_bar.write('tf_gripper_center test run. Use --write to actually write to the h5f file(s).')
+                        progress_bar.write('pose_gripper_center test run. Use --write to actually write to the h5f file(s).')
                     # skip other steps like video viewing,
                     # so this conversion runs 1000x faster
                     continue
