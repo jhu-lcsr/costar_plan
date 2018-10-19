@@ -18,7 +18,8 @@ def _parse_args():
     parser.add_argument(
         "--path", type=str,
         default=os.path.join(os.path.expanduser("~"),
-                             '.keras/datasets/costar_block_stacking_dataset_v0.4/'),
+                             #  '.keras/datasets/costar_block_stacking_dataset_v0.4/'),
+                             '/media/ahundt/EA824B88824B5869/costar_block_stacking_dataset_v0.4/'),
         help='Path to dataset folder containing many files. Default is current path.')
     parser.add_argument(
         "--execute", action='store_true', default=False,
@@ -28,14 +29,24 @@ def _parse_args():
 
 
 def main(args, root='root'):
-    item = internetarchive.get_item('johns_hopkins_costar_block_stacking_dataset')
+
+    print('User supplied arguments:\n' + str(args))
+    # get the path, and add an extra slash to make sure it is a directory
+    # and to avoid a bug in the internet archive upload code.
+    path = os.path.expanduser(args['path'] + '/')
+
+    debug = True
+    if args['execute']:
+        debug = False
+    print('debug: ' + str(debug))
+    item = internetarchive.get_item('johns_hopkins_costar_dataset', debug=debug)
 
     md = dict(
         # TODO(rexxarchl): change to Dataset Collection 'datasets' after proper testing
         # collection='datasets',
         collection='test_collection',
         # collection='test_collection',
-        title='The CoSTAR Block Stacking Dataset',
+        title='The Johns Hopkins CoSTAR Robotics Dataset',
         version='v0.4',  # Custom metadata field for the current version
         contributor='Andrew Hundt, Varun Jain, Chris Paxton, Chunting Jiao, '
                     'Chia-Hung Lin, and Gregory D. Hager',
@@ -49,7 +60,7 @@ def main(args, root='root'):
                 This material is based upon work supported by the National Science
                 Foundation under NRI Grant Award No. 1637949.
                 ''',
-        date='2018-10-17',
+        date='2018-10-19',
         description='''
             Stack blocks like a champion! The CoSTAR Block Stacking Dataset includes a
             real robot trying to stack colored children's blocks more than 10,000 times
@@ -64,16 +75,6 @@ def main(args, root='root'):
         license='https://creativecommons.org/licenses/by/4.0/',
         mediatype='data',  # data is the default media type
         noindex='True')  # Set to true for the item to not be listed
-
-    print('User supplied arguments:\n' + str(args))
-    # get the path, and add an extra slash to make sure it is a directory
-    # and to avoid a bug in the internet archive upload code.
-    path = os.path.expanduser(args['path'] + '/')
-
-    debug = True
-    if args['execute']:
-        debug = False
-    print('debug: ' + str(debug))
 
     print('uploading all data from path:\n\n ' + str(path))
 
@@ -93,14 +94,18 @@ def main(args, root='root'):
     print(results[0].url)
     server_urls = [str(result.url) for result in results]
     local_urls = [str(result.path_url) for result in results]
-    prefix = timeStamped('internet_archive_uploaded')
+
+    if debug:
+        debug_str = '_debug'
+    else:
+        debug_str = ''
+    prefix = timeStamped('internet_archive_uploaded' + debug_str)
     server_txt = prefix + '_server_urls.txt'
     local_txt = prefix + '_local_path_urls.txt'
     with open(server_txt, mode='w') as set_file:
         set_file.write('\n'.join(server_urls))
     with open(local_txt, mode='w') as set_file:
         set_file.write('\n'.join(local_urls))
-
     print('-' * 80)
     print('local_urls:' + str(local_urls))
     print('-' * 80)
