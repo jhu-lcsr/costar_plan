@@ -80,13 +80,10 @@ def main(args, root='root'):
                     'Chia-Hung Lin, and Gregory D. Hager',
         creator='Andrew Hundt <ATHundt@gmail.com>',
         credits='''
-                Andrew Hundt, Varun Jain, Chris Paxton, Chunting Jiao, Chia-Hung Lin,
-                and Gregory D. Hager<br>
+                Andrew Hundt, Varun Jain, Chris Paxton, Chunting Jiao, Chia-Hung Lin, and Gregory D. Hager<br>
                 The Johns Hopkins University<br>
-                <a href="https://cirl.lcsr.jhu.edu/">Computational Interaction and
-                Robotics Laboratory</a><br>
-                This material is based upon work supported by the National Science
-                Foundation under NRI Grant Award No. 1637949.
+                <a href="https://cirl.lcsr.jhu.edu/">Computational Interaction and Robotics Laboratory</a><br>
+                This material is based upon work supported by the National Science Foundation under NRI Grant Award No. 1637949.
                 ''',
         date='2018-10-19',
         description='''
@@ -98,6 +95,11 @@ def main(args, root='root'):
             Visit the <a href='https://sites.google.com/site/costardataset'>CoSTAR Dataset Website</a> for more info.<br>
             <b>If you use the dataset, please cite our paper introducing it:</b>
             <a href='https://sites.google.com/view/hypertree-renas'>Training Frankenstein's Creature to Stack: HyperTree Architecture Search</a>
+
+            Andrew Hundt, Varun Jain, Chris Paxton, Chunting Jiao, Chia-Hung Lin, and Gregory D. Hager<br>
+            The Johns Hopkins University<br>
+            <a href="https://cirl.lcsr.jhu.edu/">Computational Interaction and Robotics Laboratory</a><br>
+            This material is based upon work supported by the National Science Foundation under NRI Grant Award No. 1637949.
             ''',
         license='https://creativecommons.org/licenses/by/4.0/',
         mediatype='data',  # data is the default media type
@@ -118,7 +120,7 @@ def main(args, root='root'):
         # Set to true to print headers to stdout, and exit without uploading
         debug=debug)
 
-    print(results[0].url)
+    print('Upload finished, printing the results:')
     server_urls = [str(result.url) for result in results]
     local_urls = [str(result.path_url) for result in results]
 
