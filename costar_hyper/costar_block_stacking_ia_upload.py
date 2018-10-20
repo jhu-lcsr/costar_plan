@@ -67,10 +67,9 @@ def main(args, root='root'):
             in a scene with challenging lighting and a movable bin obstacle which must
             be avoided. This dataset is especially well suited to the benchmarking and
             comparison of deep learning algorithms.<br>
-            Visit the <a href='https://sites.google.com/site/costardataset'>website</a>
-            for more info.<br>
-            <b>Cite: </b><a href='https://sites.google.com/view/hypertree-renas'>Training
-            Frankenstein's Creature to Stack: HyperTree Architecture Search</a>
+            Visit the <a href='https://sites.google.com/site/costardataset'>CoSTAR Dataset Website</a> for more info.<br>
+            <b>If you use the dataset, please cite our paper introducing it:</b>
+            <a href='https://sites.google.com/view/hypertree-renas'>Training Frankenstein's Creature to Stack: HyperTree Architecture Search</a>
             ''',
         license='https://creativecommons.org/licenses/by/4.0/',
         mediatype='data',  # data is the default media type
