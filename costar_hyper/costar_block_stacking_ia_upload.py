@@ -49,12 +49,11 @@ def main(args, root='root'):
     # get the path, and add an extra slash to make sure it is a directory
     # and to avoid a bug in the internet archive upload code.
     path = os.path.expanduser(args['path'])
-    if path[-1] != '/':
-        print(
-            'ERROR: We only accept directories in this script so'
-            ' there must be a trailing slash /.\n'
-            'Try: ' + str(path) + '/'
-            '\nExiting.')
+    if path[-1] != '/' or not os.path.isdir(path):
+        print('ERROR: We only accept directories in this script so'
+              ' there must be a trailing slash /. Try:\n'
+              '   python costar_block_stacking_ia_upload.py --path ' + str(path) + '/'
+              '\nExiting.')
         return
 
     debug = True
@@ -105,7 +104,7 @@ def main(args, root='root'):
         mediatype='data',  # data is the default media type
         noindex='True')  # Set to true for the item to not be listed
 
-    print('uploading all data from path:\n\n ' + str(path))
+    print('uploading all data in the following directory:\n\n ' + str(path))
 
     results = item.upload(
         path,
