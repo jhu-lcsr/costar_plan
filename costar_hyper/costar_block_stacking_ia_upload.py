@@ -60,7 +60,7 @@ def main(args, root='root'):
     debug = True
     if args['execute']:
         debug = False
-        print('WARNING: ATTEMPTING A REAL UPLOAD TO THE INTERNET ARCHIVE. THIS IS NOT A TEST.\n'
+        print('\n\nWARNING: ATTEMPTING A REAL UPLOAD TO THE INTERNET ARCHIVE. THIS IS NOT A TEST.\n\n'
               'We are uploading the data to the test_collection, which will only store files for 30 days.\n'
               'When the uplod is complete, email info@archive.org, and they will move your item to a permanent collection.\n'
               'See https://archive.org/about/faqs.php#Collections for details.\n')
