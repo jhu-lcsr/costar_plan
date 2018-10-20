@@ -42,9 +42,7 @@ def main(args, root='root'):
     item = internetarchive.get_item('johns_hopkins_costar_dataset', debug=debug)
 
     md = dict(
-        # TODO(rexxarchl): change to Dataset Collection 'datasets' after proper testing
-        # collection='datasets',
-        collection='test_collection',
+        collection='datasets',
         # collection='test_collection',
         title='The Johns Hopkins CoSTAR Robotics Dataset',
         version='v0.4',  # Custom metadata field for the current version
