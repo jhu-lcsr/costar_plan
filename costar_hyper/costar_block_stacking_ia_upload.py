@@ -1,3 +1,13 @@
+""" Internet Archive Dataset Upload Script
+
+The Internet Archive Python Library and Command Line Tool is at:
+    https://github.com/jjjake/internetarchive
+
+However, we recommend installing the internet archive library version at:
+    https://github.com/RexxarCHL/internetarchive
+
+Until https://github.com/jjjake/internetarchive/pull/274 has been merged.
+"""
 import internetarchive
 import argparse
 import os
@@ -30,6 +40,11 @@ def _parse_args():
 
 def main(args, root='root'):
 
+    print('If this is your first time running this program:\n'
+          ' 1. Make an account at archive.org\n'
+          ' 2. On command line, run:\n'
+          '    pip install internetarchive\n'
+          '    ia configure')
     print('User supplied arguments:\n' + str(args))
     # get the path, and add an extra slash to make sure it is a directory
     # and to avoid a bug in the internet archive upload code.
@@ -38,12 +53,20 @@ def main(args, root='root'):
     debug = True
     if args['execute']:
         debug = False
+        print('WARNING: ATTEMPTING A REAL UPLOAD TO THE INTERNET ARCHIVE. THIS IS NOT A TEST.\n'
+              'We are uploading the data to the test_collection, which will only store files for 30 days.\n'
+              'When the uplod is complete, email info@archive.org, and they will move your item to a permanent collection.\n'
+              'See https://archive.org/about/faqs.php#Collections for details.\n')
+    else:
+        print('Performing test run.')
     print('debug: ' + str(debug))
     item = internetarchive.get_item('johns_hopkins_costar_dataset', debug=debug)
 
     md = dict(
-        collection='datasets',
-        # collection='test_collection',
+        # collection='datasets',
+        # You must upload to the test_collection then email them to move your item to another collection.
+        # See https://archive.org/about/faqs.php#Collections.
+        collection='test_collection',
         title='The Johns Hopkins CoSTAR Robotics Dataset',
         version='v0.4',  # Custom metadata field for the current version
         contributor='Andrew Hundt, Varun Jain, Chris Paxton, Chunting Jiao, '
