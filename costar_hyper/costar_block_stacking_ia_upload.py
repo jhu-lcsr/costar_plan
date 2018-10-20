@@ -48,7 +48,14 @@ def main(args, root='root'):
     print('User supplied arguments:\n' + str(args))
     # get the path, and add an extra slash to make sure it is a directory
     # and to avoid a bug in the internet archive upload code.
-    path = os.path.expanduser(args['path'] + '/')
+    path = os.path.expanduser(args['path'])
+    if path[-1] != '/':
+        print(
+            'ERROR: We only accept directories in this script so'
+            ' there must be a trailing slash /.\n'
+            'Try: ' + str(path) + '/'
+            '\nExiting.')
+        return
 
     debug = True
     if args['execute']:
