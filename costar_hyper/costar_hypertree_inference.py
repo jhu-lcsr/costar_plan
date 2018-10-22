@@ -36,12 +36,7 @@ class CostarHyperTreeInference():
                 file_len = len(data['gripper_action_goal_idx']) - 1
                 self.file_len_list.append(file_len)
                 self.gripper_action_goal_idx.append(list(data['gripper_action_goal_idx']))
-                # print(file_len)
-                # list_id = [f_name] * file_len
-            # file_list_updated = file_list_updated + list_id
-            # with open("filenames_with_len.csv", file_mode) as fp:
-            #     fp.write("{}, {}\n".format(f_name, file_len))
-            #     file_mode = "a"
+
         for i in range(len(file_names)):
             for j in range(self.file_len_list[i]):
                 self.file_list_updated.append(file_names[i])
@@ -77,7 +72,7 @@ class CostarHyperTreeInference():
                 frame_len = file_len_list[file_counter]
                 frame_counter = 0
 
-            print("len of X---", len(data[0]))
+            # print("len of X---", len(data[0]))
             frame_counter += 1 % frame_len
             score = model.evaluate(data[0], data[1])
             with open("inference_results_per_frame.csv", 'a') as fp:
@@ -104,7 +99,7 @@ class CostarHyperTreeInference():
         plt.xticks(np.arange(min(frames), max(frames)+1, 10))
         plt.yticks(np.arange(min(loss), max(loss)+1, 0.1))
         indexes = np.where(np.array(frames) == 1)[0]
-        print(indexes)
+        # print(indexes)
         ax = plt.axes()
         n_lines = len(indexes)
         ax.set_color_cycle([plt.cm.cool(i) for i in np.linspace(0, 1, n_lines)])
@@ -112,13 +107,13 @@ class CostarHyperTreeInference():
         for i in indexes[1:]:
             goals = self.gripper_action_goal_idx[count]
             count += 1
-            print(len(goals))
-            print(len(frames[indexes[count-1]:i]))
+            # print(len(goals))
+            # print(len(frames[indexes[count-1]:i]))
             plt.scatter(np.array(goals[1:] - np.array(frames[indexes[count-1]:i])), loss[indexes[count-1]:i])
         goals = self.gripper_action_goal_idx[-1]
-        print(goals)
+        # print(goals)
         plt.scatter(np.array(goals[1:]) - frames[indexes[-1]:-8], loss[indexes[-1]:-8])
-        print(frames[indexes[-1]:-8]-np.array(goals[1:]))
+        # print(frames[indexes[-1]:-8]-np.array(goals[1:]))
         # plt.plot(frames[:225], loss[:225])
         # plt.plot(frames[225:], loss[225:])
         plt.xlabel('Distance to goal')
@@ -158,38 +153,5 @@ if __name__ == "__main__":
     hyperparams = "2018-09-04-20-17-25_train_v0.3_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json"
     problem_name = 'semantic_rotation_regression'
     hypertree_inference = CostarHyperTreeInference(filenames=filenames, hyperparams_json=hyperparams, load_weights=load_weights, problem_name=problem_name)
-    # hypertree_inference.evaluateModel(training_generator)
+    hypertree_inference.evaluateModel(training_generator)
     hypertree_inference.plotErrorFrameDist('inference_results_per_frame.csv', 'angle_error')
-    # json_file = open("2018-09-04-20-17-25_train_v0.3_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json", "r")
-    # loaded_model_json = json_file.read()
-    # json_file.close()
-    # hyperparams = load_hyperparams_json("2018-09-04-20-17-25_train_v0.3_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json")
-    # print(hyperparams)
-    # frame_counter = 0
-    # file_counter = 0
-    # frame_len = file_len_list[file_counter]
-    # hyperparams.pop('checkpoint', None)
-    # model = get_compiled_model(**hyperparams, problem_name='semantic_rotation_regression', load_weights=load_weights)
-    # with open("inference_results_per_frame.csv", 'w') as fp:
-    #     cw = csv.writer(fp, delimiter=',')
-    #     cw.writerow(model.metrics_names)
-
-    # for i in range(len(filenames_updated)):
-    #     data = next(bsg)
-    #     if filenames_updated[i] != filenames[file_counter]:
-    #         file_counter += 1
-    #         frame_len = file_len_list[file_counter]
-    #     print("len of X---", len(data[0]))
-    #     frame_counter += 1 % frame_len
-    #     score = model.evaluate(data[0], data[1])
-    #     # grasp_acc, angle_error, mse, mae, grasp_acc_5mm_7_5deg, grasp_acc_1cm_15deg, grasp_acc_2cm_30deg,
-    #     # grasp_acc_4cm_60deg, grasp_acc_8cm_120deg,
-    #     # grasp_acc_16cm_240deg, grasp_acc_32cm_360deg,
-    #     # grasp_acc_256cm_360deg, grasp_acc_512cm_360deg = score
-    #     print(model.metrics_names)
-    #     # print("score =", score)
-    #     with open("inference_results_per_frame.csv", 'a') as fp:
-    #         cw = csv.writer(fp, delimiter=',')
-    #         score = [file_counter] + [frame_counter] + score 
-    #         cw.writerow(score)
-            # fp.write("{}, {}, {}\n".format())
