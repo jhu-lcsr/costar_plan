@@ -140,7 +140,7 @@ class CostarHyperTreeInference():
             plt.scatter(np.array(goals[1:] - np.array(frames[indexes[count-1]:i])), loss[indexes[count-1]:i])
         goals = self.gripper_action_goal_idx[-1]
         # print(goals)
-        plt.scatter(np.array(goals[1:]) - frames[indexes[-1]:-8], loss[indexes[-1]:-8])
+        plt.scatter(np.array(goals[1:]) - frames[indexes[-1]:], loss[indexes[-1]:])
         # print(frames[indexes[-1]:-8]-np.array(goals[1:]))
         # plt.plot(frames[:225], loss[:225])
         # plt.plot(frames[225:], loss[225:])
