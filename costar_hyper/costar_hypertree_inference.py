@@ -15,6 +15,16 @@ import matplotlib.ticker as ticker
 class CostarHyperTreeInference():
 
     def __init__(self, filenames, hyperparams_json, load_weights, problem_name):
+        '''
+        Initialization
+
+        #Arguments
+        filenames: List of file paths to be read
+        hyperparams_json: Path of the model json to be read
+        load_weights: Path of the weights h5 file to be used
+        problem_name: As used in cornell_grasp_train
+
+        '''
         self.filenames = filenames
         self.hyperparams_json = hyperparams_json
         self.problem_name = problem_name
@@ -23,7 +33,7 @@ class CostarHyperTreeInference():
         self.inference_mode_gen(self.filenames)
 
     def inference_mode_gen(self, file_names):
-        """ Generate data for all time steps in a single example.
+        """ Generate information for all time steps in a single example to be utilized for evaluating and plotting.
         """
         self.file_list_updated = []
         self.file_len_list = []
@@ -43,6 +53,9 @@ class CostarHyperTreeInference():
         # return file_list_updated, file_len_list
 
     def block_stacking_generator(self, sequence):
+        '''
+
+        '''
         epoch_size = 1
         step = 0
         while True:
@@ -52,13 +65,20 @@ class CostarHyperTreeInference():
             batch = sequence.__getitem__(step)
             step += 1
             yield batch
-    def evaluateModel(self, generator):
+    def evaluate_model(self, generator, result_filename):
+        '''
+        Evaluates the initialized model and stores all metrics as per cases in cornell_grasp_train.py.
+
+        #Arguments
+        generator: Generator object for feeding data for evaluations
+        result_filename: The filename for evaluated metrics to be stored.
+        '''
         filenames_updated, file_len_list = self.file_list_updated, self.file_len_list
         hyperparams = load_hyperparams_json(self.hyperparams_json)
         hyperparams.pop('checkpoint', None)
         model = get_compiled_model(**hyperparams, problem_name=self.problem_name, load_weights=self.load_weights)
         bsg = self.block_stacking_generator(generator)
-        with open("inference_results_per_frame.csv", 'w') as fp:
+        with open(result_filename, 'w') as fp:
             cw = csv.writer(fp, delimiter=',', lineterminator='\n')
             cw.writerow(['example', 'frame_no'] + model.metrics_names)
             # fp.write("\n")
@@ -79,7 +99,15 @@ class CostarHyperTreeInference():
                 cw = csv.writer(fp, delimiter=',', lineterminator='\n')
                 score = [file_counter] + [frame_counter] + score
                 cw.writerow(score)
-    def plotErrorFrameDist(self, score_file, metric_2):
+
+
+    def generate_plots(self, score_file, metric_2):
+        '''
+        Generates plots for the given metric
+        #Arguments
+        score_file: name of the file containing the metrics
+        metric_2: name of metric to be used in plot generation
+        '''
         with open(score_file, 'r') as fp:
             reader = csv.reader(fp)
             headers = next(reader, None)
@@ -153,5 +181,5 @@ if __name__ == "__main__":
     hyperparams = "2018-09-04-20-17-25_train_v0.3_msle-vgg_semantic_rotation_regression_model--dataset_costar_block_stacking-grasp_goal_aaxyz_nsc_5_hyperparams.json"
     problem_name = 'semantic_rotation_regression'
     hypertree_inference = CostarHyperTreeInference(filenames=filenames, hyperparams_json=hyperparams, load_weights=load_weights, problem_name=problem_name)
-    hypertree_inference.evaluateModel(training_generator)
-    hypertree_inference.plotErrorFrameDist('inference_results_per_frame.csv', 'angle_error')
+    hypertree_inference.evaluate_model(training_generator, 'inference_results_per_frame.csv')
+    hypertree_inference.generate_plots('inference_results_per_frame.csv', 'angle_error')
