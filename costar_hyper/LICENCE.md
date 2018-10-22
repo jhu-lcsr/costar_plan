@@ -1,5 +1,4 @@
-Copyright 2018, Andrew Hundt, Ding Yu, Tomi Nikolla. All rights reserved.
-
+Copyright 2017-2018, Chris Paxton, Andrew Hundt, Yotam Barnoy, Ding Yu, The Johns Hopkins University. All rights reserved.
 
 Apache License
 
