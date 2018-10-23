@@ -112,8 +112,8 @@ def main(args, root='root'):
         verify=True,  # Verify local MD5 checksum matches remote MD5 checksum
         checksum=True,  # Skip files based on checksum
         verbose=True,  # Print progress to stdout
-        retries=100,  # Number of times to retry the given request
-        retries_sleep=5,  # Amount of time to sleep between `retries`
+        retries=10,  # Number of times to retry the given request
+        retries_sleep=30,  # Amount of time to sleep between `retries`
         # Prevent an item from being derived to another format after upload
         queue_derive=False,
         # Set to true to print headers to stdout, and exit without uploading
