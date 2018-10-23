@@ -120,8 +120,12 @@ def main(args, root='root'):
         debug=debug)
 
     print('Upload finished, printing the results:')
-    server_urls = [str(result.url) for result in results]
-    local_urls = [str(result.path_url) for result in results]
+    if debug:
+        server_urls = [str(result.url) for result in results]
+        local_urls = [str(result.path_url) for result in results]
+    else:
+        server_urls = [str(result.request.url) for result in results]
+        local_urls = [str(result.request.path_url) for result in results]
 
     if debug:
         debug_str = '_debug'
