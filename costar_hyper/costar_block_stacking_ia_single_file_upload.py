@@ -13,17 +13,8 @@ import argparse
 import os
 import datetime
 import numpy as np
-# Progress bars using https://github.com/tqdm/tqdm
-# Import tqdm without enforcing it as a dependency
-try:
-    from tqdm import tqdm
-except ImportError:
-    print("tqdm is not available. Progress bar functionalities will be disabled.")
-
-    def tqdm(*args, **kwargs):
-        if args:
-            return args[0]
-        return kwargs.get('iterable', None)
+from tqdm import tqdm  # tqdm required for pb.write()
+from glob import glob
 
 
 def _parse_args():
@@ -31,18 +22,29 @@ def _parse_args():
         description='Upload the dataset to the Internet Archive.')
     parser.add_argument(
         "--path", type=str,
-        default=os.path.join(os.path.expanduser("~"),
-                             #  '.keras/datasets/costar_block_stacking_dataset_v0.4/'),
-                             '/media/ahundt/EA824B88824B5869/costar_block_stacking_dataset_v0.4/'),
+        # default=os.path.join(os.path.expanduser("~"),
+        #                      '.keras/datasets/costar_block_stacking_dataset_v0.4/'),
+        default='/media/ahundt/EA824B88824B5869/costar_block_stacking_dataset_v0.4/',
         help='Path to dataset folder containing many files. '
              'Default is .keras/datasets/costar_block_stacking_dataset_v0.4/')
     parser.add_argument(
         '--files_hash_csv', type=str,
-        default='costar_uploaded_files_hash.csv',
+        default='costar_upload_files_hash.csv',
         help='The filename of the CSV that contains uploaded files and their hashes.')
+    parser.add_argument(
+        '--exclude_files_txt', type=str,
+        default='costar_upload_exclude_files.txt',
+        help='''The txt file that contains filenames to be excluded in the upload process.
+             The file can contain the relative path to the file to be excluded, or a glob
+             pattern. Each line must be separated with a end-of-line character(\\n)''')
     parser.add_argument(
         "--execute", action='store_true', default=False,
         help='Use this flag to actually upload the files to the internet archive')
+    parser.add_argument(
+        "--include_ext", type=str, nargs='+',
+        default=['.txt', '.h5f', '.csv', '.yaml'],
+        help='File extensions for selecting files to upload. '
+             'Default is .txt, .h5f, .csv, and .yaml')
 
     return vars(parser.parse_args())
 
@@ -80,7 +82,7 @@ def main(args, root='root'):
           '    pip install internetarchive\n'
           '    ia configure')
     print('User supplied arguments:\n' + str(args))
-    
+
     # Ensure that the path argument is an directory, to avoid a bug in the internetarchive
     # library in processing directories without trailing slash.
     path = os.path.expanduser(args['path'])
@@ -102,14 +104,40 @@ def main(args, root='root'):
         print('Performing test run.')
     print('debug: ' + str(debug))
 
+    # Get the list of excluded files
+    txt_path = os.path.join(path, args['exclude_files_txt'])
+    if os.path.isfile(txt_path):
+        glob_list = np.genfromtxt(txt_path, dtype='str', delimiter='\n')
+        print('Imported {} glob rules from {}'.format(len(glob_list), txt_path))
+    else:
+        with open(txt_path, 'w') as f:
+            print('Created exclude file txt at {}'.format(txt_path))
+        glob_list = []
+    excluded_list = []
+    for s in glob_list:
+        excluded_list += glob(s)
+    print('Selected {} files to be excluded'.format(len(excluded_list)))
+
     # Get the path to all h5f, txt, and csv files in the directory and subdirectories
     filenames = []
+    include_ext = args['include_ext']
+    print('Selecting files with extensions: \n{}'.format(str(include_ext)))
     for root, _, files in os.walk(path):
         for filename in files:
-            if '.txt' in filename or '.h5f' in filename or '.csv' in filename:
+            # Skip the hash CSV and excluded files
+            if (args['files_hash_csv'] in filename or
+               filename in excluded_list):
+                continue
+            # Only select proper extensions
+            if any([ext in filename for ext in include_ext]):
                 rel_dir = os.path.relpath(root, path)
+                if rel_dir == '.':
+                    rel_dir = ''
                 filenames.append(os.path.join(rel_dir, filename))
-    print('Counted {} h5f, txt, and csv filenames in \n{}'.format(len(filenames), path))
+    if len(filenames) == 0:
+        raise RuntimeError('No matching files found! '
+                           'Are you sure the path is correct? {}'.format(path))
+    print('Counted {} matching files in \n{}'.format(len(filenames), path))
 
     # Read in the current uploaded files from a CSV file
     csv_path = os.path.join(path, args['files_hash_csv'])
@@ -122,12 +150,26 @@ def main(args, root='root'):
             [filenames, ['not_uploaded_yet'] * len(filenames)])
         save_file_hash_as_csv(csv_path, file_hash_table)
 
-    if file_hash_table.shape[0] != len(filenames):
-        # TODO(rexxarchl): handle the case where some files are added or deleted
-        raise RuntimeError('File count in CSV file does not match actual file count!')
+    if file_hash_table.shape[0] < len(filenames):
+        diff = len(filenames) - file_hash_table.shape[0]
+        print('Adding {} new files to the CSV file...'.format(diff))
+        for filename in filenames:
+            if filename in file_hash_table:
+                continue
+            print('Added {}'.format(filename))
+            file_hash_table = np.append(file_hash_table,
+                                        [[filename, 'not_uploaded_yet']],
+                                        axis=0)
+        # Save the newly added contents
+        save_file_hash_as_csv(csv_path, file_hash_table)
+    elif file_hash_table.shape[0] > len(filenames):
+        # TODO(rexxarchl): Handle this case
+        raise RuntimeError('File count({}) is greater than actual file count({})!'.format(
+            file_hash_table.shape[0], len(filenames)))
 
     # Get the item from the internetarchive
-    item = internetarchive.get_item('johns_hopkins_costar_dataset', debug=debug)
+    # item = internetarchive.get_item('johns_hopkins_costar_dataset', debug=debug)
+    item = internetarchive.get_item('deleteme_10-23-2018', debug=debug)
 
     # Define the metadata
     md = dict(
@@ -167,7 +209,7 @@ def main(args, root='root'):
         mediatype='data',  # data is the default media type
         noindex='True')  # Set to true for the item to not be listed
 
-    print('Uploading all data in the following directory:\n\n ' + str(path))
+    print('Uploading all data in the following directory:\n ' + str(path))
     success_count, failed_count, skip_count = 0, 0, 0
     hash_csv_idx = -1
     results_url = []
@@ -175,12 +217,14 @@ def main(args, root='root'):
     pb = tqdm(range(len(filenames)))
     for i in pb:
         file_path, md5_hash = file_hash_table[i]
+        pb.write('Uploading {}'.format(file_path))
         if args['files_hash_csv'] in file_path:
             # skip_count += 1
             hash_csv_idx = i
             continue  # Skip the file hash until the end
         if md5_hash != 'not_uploaded_yet':
             skip_count += 1
+            pb.write('Skipping {} because it has been uploaded'.format(file_path))
             continue  # Skip uploaded files
 
         # Upload the file
@@ -190,7 +234,6 @@ def main(args, root='root'):
             metadata=md,
             verify=True,
             checksum=True,
-            verbose=True,
             retries=10,
             retries_sleep=30,
             queue_derive=False,
@@ -202,42 +245,42 @@ def main(args, root='root'):
             pb.write('[DEBUG] item key = {}'.format(file_path))
             results_url.append(resp.url)
             results_path_url.append(resp.path_url)
-            with open(os.path.join(path, file_path)) as f:
+            with open(os.path.join(path, file_path), 'rb') as f:
                 md5_hash = internetarchive.utils.get_md5(f)
             success_count += 1
         elif resp.status_code is None:
-            # NOTE: it is possible that this file is already on the server.
-            # TODO(rexxarchl): Need extensive testing to find out if this is true
-            pb.write('Upload failed for {}, status code is None.'.format(
+            # NOTE: Response object is empty. This file is already on the server.
+            # See definition of upload_file in internetarchive/item.py
+            pb.write('{} is already on the server.'.format(
                 file_path))
-            # # File already on server. Record the hash
-            # with open(os.path.join(path, file_path)) as f:
-            #     md5_hash = internetarchive.utils.get_md5(f)
-            # skip_count += 1
+            # File already on server. Record the hash
+            with open(os.path.join(path, file_path), 'rb') as f:
+                md5_hash = internetarchive.utils.get_md5(f)
+            skip_count += 1
         elif resp.status_code != 200:
             pb.write('Upload failed for {}, status code = {}'.format(
                 file_path, resp.status_code))
             failed_count += 1
         else:
-            results_url.append(resp.url)
-            results_path_url.append(resp.path_url)
+            results_url.append(resp.request.url)
+            results_path_url.append(resp.request.path_url)
             # File successfully sent to server. Record the hash
-            with open(os.path.join(path, file_path)) as f:
+            with open(os.path.join(path, file_path), 'rb') as f:
                 md5_hash = internetarchive.utils.get_md5(f)
             success_count += 1
         file_hash_table[i] = np.array([file_path, md5_hash])
 
-        if i % 10 == 0:
+        if (success_count + 1) % 10 == 0:
             pb.write(timeStamped('[%d] Check point, saving csv' % i))
             save_file_hash_as_csv(csv_path, file_hash_table)
 
     print('Uploaded {} files. Skipped {} files. {} files failed to upload.'.format(
         success_count, skip_count, failed_count))
     print('Total file count {}, expected file count {}'.format(
-        len(success_count)+len(skip_count)+len(failed_count), len(filenames)))
+        success_count+skip_count+failed_count, len(filenames)))
 
     print('Saving file hash CSV file for uploading.')
-    with open(csv_path) as f:
+    with open(csv_path, 'rb') as f:
             md5_hash = internetarchive.utils.get_md5(f)
     file_hash_table[hash_csv_idx][1] = md5_hash
     save_file_hash_as_csv(csv_path, file_hash_table)
@@ -248,7 +291,6 @@ def main(args, root='root'):
         metadata=md,
         verify=True,
         checksum=True,
-        verbose=True,
         retries=10,
         retries_sleep=30,
         queue_derive=False,
@@ -260,8 +302,8 @@ def main(args, root='root'):
             csv_path, resp.status_code))
         failed_count += 1
     else:
-        results_url.append(resp.url)
-        results_path_url.append(resp.path_url)
+        results_url.append(resp.request.url)
+        results_path_url.append(resp.request.path_url)
 
     print('Upload finished, printing the results:')
     server_urls = [url for url in results_url]
