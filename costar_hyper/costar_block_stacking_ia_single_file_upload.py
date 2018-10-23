@@ -128,7 +128,7 @@ def main(args, root='root'):
     if len(filenames) == 0:
         raise RuntimeError('No matching files found! '
                            'Are you sure the path is correct? {}'.format(path))
-    print('Counted {} matching files in \n{}'.format(len(filenames), path))
+    print('Counted {} matching files.'.format(len(filenames)))
 
     # Read in the current uploaded files from a CSV file
     csv_path = os.path.join(path, args['files_hash_csv'])
@@ -159,8 +159,7 @@ def main(args, root='root'):
             file_hash_table.shape[0], len(filenames)))
 
     # Get the item from the internetarchive
-    # item = internetarchive.get_item('johns_hopkins_costar_dataset', debug=debug)
-    item = internetarchive.get_item('deleteme_10-23-2018', debug=debug)
+    item = internetarchive.get_item('johns_hopkins_costar_dataset', debug=debug)
 
     # Define the metadata
     md = dict(
@@ -200,7 +199,8 @@ def main(args, root='root'):
         mediatype='data',  # data is the default media type
         noindex='True')  # Set to true for the item to not be listed
 
-    print('Uploading all data in the following directory:\n ' + str(path))
+    print('Uploading {} files in the following directory:\n{}'.format(
+        len(filenames), str(path)))
     success_count, failed_count, skip_count = 0, 0, 0
     hash_csv_idx = -1
     results_url = []
