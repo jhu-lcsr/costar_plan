@@ -1,4 +1,4 @@
-""" Internet Archive Dataset Upload Script
+""" Internet Archive Dataset Single File Upload Script
 
 The Internet Archive Python Library and Command Line Tool is at:
     https://github.com/jjjake/internetarchive
@@ -55,15 +55,6 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     see: http://stackoverflow.com/a/5215012/99379
     """
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
-
-
-def get_file_hash_from_csv(csv_path, filenames):
-    '''Open a csv file using numpy and return the ndarray that contains h5f filenames
-    and hashes that have successfully uploaded to the server.
-
-    :param csv_path: The path to the csv file
-    :return file_hash_table: A np.ndarray containing filenames and hashes
-    '''
 
 
 def save_file_hash_as_csv(csv_path, file_hash_table):

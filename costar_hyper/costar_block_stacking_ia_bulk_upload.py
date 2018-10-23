@@ -1,4 +1,4 @@
-""" Internet Archive Dataset Upload Script
+""" Internet Archive Dataset Bulk Upload Script
 
 The Internet Archive Python Library and Command Line Tool is at:
     https://github.com/jjjake/internetarchive
