@@ -1,4 +1,4 @@
-Copyright 2017-2018, Chris Paxton, Andrew Hundt, Yotam Barnoy, Ding Yu, The Johns Hopkins University. All rights reserved.
+Copyright 2017-2018, Andrew Hundt, Varun Jain, Ding Yu, Chia-Hung Lin, The Johns Hopkins University, The CoSTAR Hyper Authors, and The CoSTAR Plan Authors. All rights reserved.
 
 Apache License
 
