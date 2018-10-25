@@ -1,11 +1,15 @@
 
 # CoSTAR Hyper
 
+Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home), implementing HyperTrees. Code for the [rENAS: Regression Efficient Neural Architecture Search](github.com/ahundt/enas) portion of the paper is available separately.
+
+[![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
+
 Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 
 ## Installation
 
-These instructions are with minimal dependencies where you'll be training & predicting on the datasetas.
+These instructions are with minimal dependencies where you'll be training & predicting on the datasets.
 
 ```
 # make sure your python2 is up to date. python3 probably works but is not tested
@@ -25,11 +29,17 @@ cd costar_plan
 python2 -m pip install -e . --user --upgrade
 ```
 
-costar_plan setup is run separately via the ros catkin package
+Setup of the larger costar_plan code base is run separately via the ros catkin package.
 
-## Costar Block Stacking Dataset
+## CoSTAR Block Stacking Dataset
 
-The Block stacking dataset is currently hosted on google drive. It can be downloaded with [rclone](https://github.com/ncw/rclone).
+The block stacking dataset has a robot attempting to stack 3 colored blocks, as described in [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home). First check out the [CoSTAR Block Stacking Dataset Website](https://sites.google.com/site/costardataset) to get an idea of how everything works.
+
+[![2018-06-21-23-21-49_example000004 success_tiled](https://user-images.githubusercontent.com/55744/47169252-ff1e3380-d2d0-11e8-97ed-1d747d97ea11.jpg)](https://sites.google.com/site/costardataset "CoSTAR Block stacking Dataset")
+
+We highly recommend looking at the [CoSTAR Block Stacking Dataset Website](https://sites.google.com/site/costardataset).
+
+An old version 0.2 of the dataset is currently hosted on google drive but this will be updated shortly. It can be downloaded with [rclone](https://github.com/ncw/rclone).
 
 Follow the [google drive costar block stacking dataset v0.2 download link](https://drive.google.com/drive/folders/1k7N1EvxRh7GwS5tbax8RAeUU_dcPGWOw?usp=sharing), and add the folder to your drive. This should not use up any of your storage limit.
 
@@ -100,7 +110,7 @@ plt.show()
 some of those fields will vary for different use cases.
 
 
-## Hyperparameter search
+## HyperTree Architecture search
 
 ### Costar Block Stacking Dataset
 
@@ -112,20 +122,26 @@ Follow the [google drive costar block stacking dataset v0.2 download link](https
 rclone copy drive:costar_block_stacking_dataset_v0.4 ~/.keras/dataset/costar_block_stacking_dataset_v0.4 --exclude="*failure*"
 ```
 
-Configure `cornell_hyperopt.py` to run on the problem you'd like, the script supports both the cornell and the costar block stacking ataset. Sorry for the bad naming, this a historical artifact that should be resolved at some point in the future.
+Configure `hypertree_hyperopt.py` to run on the problem you'd like, the script supports both the Cornell and the costar block stacking dataset. 
 
 Options for problem types include `semantic_grasp_regression`, `semantic_translation_regression`, `semantic_rotation_regression`. Uncomment the the settings in the file for the preferred problem type. Once you have edited the file for your use case, run the following command:
 
 ```
-while true; do export CUDA_VISIBLE_DEVICES="0" && python2 cornell_hyperopt.py; done
+while true; do export CUDA_VISIBLE_DEVICES="0" && export TF_CPP_MIN_LOG_LEVEL="3" && python2 hypertree_hyperopt.py --data_dir "~/.keras/datasets/costar_block_stacking_dataset_v0.4/blocks_only/"; done
 ```
 
-By default, this will run the hyperopt search on a loop with 100 random models and 10 Bayesian models each run until you stop it with `ctrl + c`. These limits are set due to an memory leak in the block stacking hdf5 reading code which has not yet been resolved. They can be modified in `cornell_hyperopt.py` by changing `initial_num_samples` for the number of random models and `maximum_hyperopt_steps` for the number of Bayesian models. If you run out of memory, lower these numbers. Your GPU should have at least 7GB memory, but preferably 10-12GB of memory.
+By default, this will run the hyperopt search on a loop with 100 random models and 10 Bayesian models each run until you stop it with `ctrl + c`. These limits are set due to an memory leak in the block stacking hdf5 reading code which has not yet been resolved. They can be modified in `hypertree_hyperopt.py` by changing `initial_num_samples` for the number of random models and `maximum_hyperopt_steps` for the number of Bayesian models. If you run out of memory, lower these numbers. Your GPU should have at least 7GB memory, but preferably 10-12GB of memory.
 
 After running hyperopt, you will have collected a dataset of folders with results for each model; collate the results as follows:
 
 ```
 python hyperopt_rank.py  --log_dir hyperopt_logs_costar_block_stacking_train_ranked_regression --sort_by val_grasp_acc --ascending=False --nofilter_epoch --filter_unique  && csvtotable hyperopt_logs_costar_block_stacking_train_ranked_regression/hyperopt_rank.csv hyperopt_logs_costar_block_stacking_train_ranked_regression/hyperopt_rank.html -o
+```
+
+Here is an alternate ranking command that you can just leave up:
+
+```
+while true; do python hyperopt_rank.py  --log_dir 2018_10_hyperopt_logs_costar_grasp_regression --sort_by="val_cart_error" --ascending=True --nofilter_epoch --filter_unique && csvtotable 2018_10_hyperopt_logs_costar_grasp_regression/hyperopt_rank.csv 2018_10_hyperopt_logs_costar_grasp_regression/hyperopt_rank.html -o; sleep 1200; done
 ```
 
 `hyperopt_rank.py` produces a file `hyperopt_rank.csv` with all of the best models sorted by the chosen metric, in the above case `val_grasp_acc`. Available metrics can be viewed in the file with column prefix `val_`.
@@ -146,6 +162,25 @@ export CUDA_VISIBLE_DEVICES="0" && python2 costar_block_stacking_train_ranked_re
 ```
 
 You may wish to use the `--learning_rate_schedule triangular` flag for one run and then the `--learning_rate_schedule triangular2 --load_weights path/to/previous_best_weights.h5` for a second run. These learning rate schedules use the [keras_contrib](github.com/keras-team/keras-contrib) cyclical learning rate callback, see [Cyclical learning rate repo](https://github.com/bckenstler/CLR) for a detailed description and paper links.
+
+#### Viewing Search Results
+
+```
+cd 2018_10_hyperopt_logs_costar_grasp_regression/..
+python -m SimpleHTTPServer 4004
+```
+
+now browse to localhost:4004 and you can look at the html file generated by the csvtotable command further up. 
+
+#### Plotting Search Results
+
+![2018_10_18 hypertree 1 epoch comparison](https://user-images.githubusercontent.com/55744/47176379-778df000-d2e3-11e8-800d-f3d62540781a.png)
+
+Plot results with `hyperopt_plot.py`.
+```
+curl http://localhost:4004/2018_10_hyperopt_logs_costar_grasp_regression/hyperopt_rank.csv --output ~/Downloads/hyperopt_rank.csv && bokeh serve --show hyperopt_plot.py --args --rank_csv ~/Downloads/hyperopt_rank.csv --problem_type semantic_translation_regression
+```
+This should open your web browser with a plot similar to the one above. A file `hyperopt_plot.csv` will also be generated which you can load with your favorite utility. 
 
 ## Cornell Dataset
 
@@ -207,12 +242,12 @@ Given the grasp command input, the proposed grasp image
 is rotated and centered on the grasp, so that all grasps have the gripper
 in a left-right orientation to the image and the gripper is at the center.
 
- - `cornell_hyperopt.py` is basically a configuration file used to configure hyperparameter optimization for the cornell grasping dataset.
+ - `hypertree_hyperopt.py` is basically a configuration file used to configure hyperparameter optimization for the cornell grasping dataset.
  - `hyperopt.py` is another configuration file that sets up the range of models you should search during hyperopt.
      - shared by google and cornell for both classification and regression training
      - you may also want to modify this to change what kind of models are being searched.
 
-In `cornell_hyperopt.py` make sure the following variable is set correctly:
+In `hypertree_hyperopt.py` make sure the following variable is set correctly:
 
 ```
     FLAGS.problem_type = 'classification'
@@ -223,7 +258,7 @@ This will run hyperopt search for a couple of days on a GTX 1080 or Titan X to f
 Hyperparameter search to find the best model:
 
 ```
-export CUDA_VISIBLE_DEVICES="0" && python cornell_hyperopt.py --log_dir hyperopt_logs_cornell_classification
+export CUDA_VISIBLE_DEVICES="0" && python hypertree_hyperopt.py --log_dir hyperopt_logs_cornell_classification
 ```
 
 Result will be in files with names like these:
@@ -334,3 +369,7 @@ Generating a hyperparameter search results summary for google brain grasping dat
 ```
 python hyperopt_rank.py --log_dir hyperopt_logs_google_brain_classification --sort_by val_acc
 ```
+
+# Cite
+
+[Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home)

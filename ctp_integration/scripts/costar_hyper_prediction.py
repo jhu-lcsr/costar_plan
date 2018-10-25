@@ -16,11 +16,11 @@ import tf_conversions.posemath as pm
 import cv2
 from tensorflow.python.platform import flags
 import costar_hyper
-from costar_hyper import grasp_utilities
-from costar_hyper import cornell_grasp_train
+from costar_hyper import hypertree_utilities
+from costar_hyper import hypertree_train
 from costar_hyper import hypertree_model
 from costar_hyper import block_stacking_reader
-from costar_hyper import grasp_metrics
+from costar_hyper import hypertree_pose_metrics
 from threading import Lock
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
@@ -201,7 +201,7 @@ class CostarHyperPosePredictor(object):
             raise ValueError('A hyperparams file must be specified with: --load_hyperparams path/to/hyperparams.json')
 
         # load hyperparams from a file
-        hyperparams = grasp_utilities.load_hyperparams_json(
+        hyperparams = hypertree_utilities.load_hyperparams_json(
             load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
             feature_combo_name=feature_combo_name)
 
@@ -216,7 +216,7 @@ class CostarHyperPosePredictor(object):
 
         [image_shapes, vector_shapes, data_features, model_name,
          monitor_loss_name, label_features, monitor_metric_name,
-         loss, metrics, classes, success_only] = cornell_grasp_train.choose_features_and_metrics(feature_combo_name, problem_type)
+         loss, metrics, classes, success_only] = hypertree_train.choose_features_and_metrics(feature_combo_name, problem_type)
 
 
         model = hypertree_model.choose_hypertree_model(
@@ -512,7 +512,7 @@ class CostarHyperPosePredictor(object):
             'encoded translation predictions: ' + str(translation_predictions) +
             ' encoded rotation predictions: ' + str(rotation_predictions))
         tr_predictions = np.concatenate([translation_predictions[0], rotation_predictions[0]])
-        prediction_xyz_qxyzw = grasp_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(tr_predictions)
+        prediction_xyz_qxyzw = hypertree_pose_metrics.decode_xyz_aaxyz_nsc_to_xyz_qxyzw(tr_predictions)
         rospy.loginfo_throttle(10.0,
             'decoded prediction_xyz_qxyzw: ' + str(prediction_xyz_qxyzw))
 

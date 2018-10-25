@@ -21,8 +21,8 @@ import json
 import keras
 from tensorflow.python.platform import flags
 
-import grasp_utilities
-import cornell_grasp_train
+import hypertree_utilities
+import hypertree_train
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -41,7 +41,7 @@ flags.DEFINE_string(
     'hyperopt_rank.csv',
     """Sorted csv ranking models on which to perform full runs after hyperparameter optimization.
 
-    See cornell_hyperopt.py to perform hyperparameter optimization,
+    See hypertree_hyperopt.py to perform hyperparameter optimization,
     and then hyperopt_rank.py to generate the ranking csv file.
     The file is expected to be in the directory specified by the log_dir flag.
 
@@ -92,7 +92,7 @@ def main(_):
 
     feature_combo = 'image_preprocessed'
     # Override some default flags for this configuration
-    # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
+    # see other configuration in hypertree_train.py choose_features_and_metrics()
     FLAGS.problem_type = problem_type
     FLAGS.feature_combo = feature_combo
     FLAGS.crop_to = 'image_contains_grasp_box_center'
@@ -203,7 +203,7 @@ def main(_):
         history = None
         hyperparameters_filename = row['hyperparameters_filename']
 
-        hyperparams = grasp_utilities.load_hyperparams_json(
+        hyperparams = hypertree_utilities.load_hyperparams_json(
             hyperparameters_filename, FLAGS.fine_tuning, FLAGS.learning_rate,
             feature_combo_name=feature_combo)
 
@@ -225,7 +225,7 @@ def main(_):
             FLAGS.load_weights = None
 
         try:
-            history = cornell_grasp_train.run_training(
+            history = hypertree_train.run_training(
                 problem_name=problem_type,
                 # feature_combo_name=feature_combo,
                 hyperparams=hyperparams,
@@ -240,10 +240,10 @@ def main(_):
             # save the histories so far, overwriting past updates
             with open(json_histories_path, 'w') as fp:
                 # save out all kfold params so they can be reloaded in the future
-                json.dump(history_dicts, fp, cls=grasp_utilities.NumpyEncoder)
+                json.dump(history_dicts, fp, cls=hypertree_utilities.NumpyEncoder)
 
             # generate the summary results
-            results = grasp_utilities.multi_run_histories_summary(
+            results = hypertree_utilities.multi_run_histories_summary(
                 run_histories,
                 metrics=histories_metrics,
                 multi_history_metrics=histories_summary_metrics,

@@ -38,12 +38,11 @@ def _parse_args():
              The file can contain the relative path to the file to be excluded, or a glob
              pattern. Each line must be separated with a end-of-line character(\\n)''')
     parser.add_argument(
-        "--execute", action='store_true', default=False,
+        "--upload", action='store_true', default=False,
         help='Use this flag to actually upload the files to the internet archive')
     parser.add_argument(
         "--verify", action='store_true', default=False,
-        help='Use this flag to verify the files on the server matches files recorded in'
-             ' hash CSV.')
+        help='Use this flag to verify every file exists on the server.')
     parser.add_argument(
         "--include_ext", type=str, nargs='+',
         default=['.txt', '.h5f', '.csv', '.yaml'],
@@ -89,7 +88,7 @@ def main(args, root='root'):
         return
 
     debug = True
-    if args['execute']:
+    if args['upload']:
         debug = False
         print('\n\nWARNING: ATTEMPTING A REAL UPLOAD TO THE INTERNET ARCHIVE. THIS IS NOT A TEST.\n\n'
               'We are uploading the data to the test_collection, which will only store files for 30 days.\n'

@@ -154,7 +154,7 @@ def find_best_weights(fold_log_dir, match_string='', verbose=0, out_file=sys.std
     if fold_checkpoint_file is None:
         raise ValueError('\n\nSomething went wrong when looking for model checkpoints, '
                          'you need to take a look at model_predict_k_fold() '
-                         'in cornell_grasp_train.py. Here are the '
+                         'in hypertree_train.py. Here are the '
                          'model checkpoint files we were looking at: \n\n' +
                          str(fold_checkpoint_files))
     return fold_checkpoint_file
