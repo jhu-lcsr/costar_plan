@@ -41,6 +41,10 @@ def _parse_args():
         "--execute", action='store_true', default=False,
         help='Use this flag to actually upload the files to the internet archive')
     parser.add_argument(
+        "--verify", action='store_true', default=False,
+        help='Use this flag to verify the files on the server matches files recorded in'
+             ' hash CSV.')
+    parser.add_argument(
         "--include_ext", type=str, nargs='+',
         default=['.txt', '.h5f', '.csv', '.yaml'],
         help='File extensions for selecting files to upload. '
@@ -161,6 +165,27 @@ def main(args, root='root'):
     # Get the item from the internetarchive
     item = internetarchive.get_item('johns_hopkins_costar_dataset', debug=debug)
 
+    # Verify the files on the server matches files recorded
+    if args['verify']:
+        # Store the files on server as a key-md5 pair
+        keys_and_md5 = {}
+        for server_file in item.files:
+            keys_and_md5[server_file['name']] = server_file['md5']
+
+        # Cross check with local files hash CSV
+        mismatch_files = []
+        for key, md5 in file_hash_table:
+            try:
+                server_md5 = keys_and_md5[key]
+                if not md5 == server_md5:
+                    print("Local md5 for {} does not match server md5!".format(key))
+                    mismatch_files += key
+            except KeyError:
+                print("{} is not on the server!".format(key))
+                mismatch_files += key
+
+        print("Verify result: {} files not on the server!".format(len(mismatch_files)))
+
     # Define the metadata
     md = dict(
         # collection='datasets',
@@ -213,10 +238,14 @@ def main(args, root='root'):
             # skip_count += 1
             hash_csv_idx = i
             continue  # Skip the file hash until the end
-        if md5_hash != 'not_uploaded_yet':
+        if not args['verify'] and md5_hash != 'not_uploaded_yet':
             skip_count += 1
             pb.write('Skipping {} because it has been uploaded'.format(file_path))
             continue  # Skip uploaded files
+        if args['verify'] and file_path not in mismatch_files:
+            skip_count += 1
+            pb.write('Skipping {} because it has been verified to be on the sever'.format(
+                file_path))
 
         # Upload the file
         resp = item.upload_file(
@@ -242,8 +271,11 @@ def main(args, root='root'):
         elif resp.status_code is None:
             # NOTE: Response object is empty. This file is already on the server.
             # See definition of upload_file in internetarchive/item.py
-            pb.write('{} is already on the server.'.format(
-                file_path))
+            if not args['verify']:
+                pb.write('{} is already on the server.'.format(file_path))
+            elif args['verify'] and file_path in mismatch_files:
+                raise RuntimeError("Empty response, but {} is not on server!".format(
+                    file_path))
             # File already on server. Record the hash
             with open(os.path.join(path, file_path), 'rb') as f:
                 md5_hash = internetarchive.utils.get_md5(f)
@@ -255,6 +287,9 @@ def main(args, root='root'):
         else:
             results_url.append(resp.request.url)
             results_path_url.append(resp.request.path_url)
+            if args['verify'] and file_path in mismatch_files:
+                print("Response = 200, but {} was not on server!".format(
+                    file_path))
             # File successfully sent to server. Record the hash
             with open(os.path.join(path, file_path), 'rb') as f:
                 md5_hash = internetarchive.utils.get_md5(f)
