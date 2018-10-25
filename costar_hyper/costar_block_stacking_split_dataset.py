@@ -61,7 +61,7 @@ def _parse_args():
                             os.path.expanduser("~"),
                             '.keras/datasets/costar_block_stacking_dataset_v0.4/'),
                         help='path to dataset folder containing many files')
-    parser.add_argument("--dataset_path", type=str, default='/.keras/dataset/',
+    parser.add_argument("--dataset_path", type=str, default='~/.keras/dataset/',
                         help='The folder that is expected stores the dataset. '
                              'Filenames in the output file will reference this path.')
     parser.add_argument("--dataset_name", type=str,
