@@ -13,8 +13,8 @@ def _parse_args():
         help='The path to download the dataset to. '
              'Default is "~/.keras/datasets/costar_block_stacking_dataset_v0.4/"')
     parser.add_argument(
-        "--execute", action='store_true', default=False,
-        help='Use this flag to actually download the files from the internet archive')
+        "--dryrun", action='store_true', default=False,
+        help='Use this flag to only do a test download of the files from the internet archive')
 
 
 def main(args, root='root'):
@@ -22,7 +22,7 @@ def main(args, root='root'):
 
     path = os.path.expanduser(args['path'])
 
-    dryrun = not args['execute']
+    dryrun = args['dryrun']
 
     r = item.download(
             destdir=path,  # The directory to download files to
@@ -32,7 +32,6 @@ def main(args, root='root'):
             retries=100,  # Thenumber of times to retry on failed requests
             # Set to true to print headers to stdout, and exit without downloading
             dryrun=dryrun)
-            # dryrun=True)
 
     print(r)
 
