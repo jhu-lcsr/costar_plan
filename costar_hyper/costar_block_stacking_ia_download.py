@@ -18,9 +18,11 @@ def _parse_args():
 
 
 def main(args, root='root'):
-    item = internetarchive.get_item('costar_block_stacking_dataset')
+    item = internetarchive.get_item('johns_hopkins_costar_dataset')
 
     path = os.path.expanduser(args['path'])
+
+    dryrun = not args['execute']
 
     r = item.download(
             destdir=path,  # The directory to download files to
@@ -28,9 +30,9 @@ def main(args, root='root'):
             checksum=True,  # Skip files based on checksum
             verbose=True,  # Print progress to stdout
             retries=100,  # Thenumber of times to retry on failed requests
-            # Set to true to print headers to stdout, and exit without uploading
-            # dryrun = args['execute'])
-            dryrun=True)
+            # Set to true to print headers to stdout, and exit without downloading
+            dryrun=dryrun)
+            # dryrun=True)
 
     print(r)
 

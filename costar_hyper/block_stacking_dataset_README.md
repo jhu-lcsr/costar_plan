@@ -10,15 +10,9 @@ Authors:
 Special Thanks To:
 
 - Chunting Jiao for starting & resetting the robot when needed.
+- Chia-Hung Lin for help with preprocessing
 
 v0.4 is a **beta** version of the dataset.
-We are using an open source license which requires
-attribution, so we require that users do not publically
-release information based on this dataset until the paper
-announcing it is ready, expected Sep 2018. Contact Andrew Hundt
-at the email address above for details, if you would like
-to release something sooner, or if you would like to run code
-on the robot.
 
 Please report any inconsistencies in the documentation below,
 and pull requests with preprocessing scripts or corrections
@@ -30,21 +24,8 @@ About this Dataset
 The robot attempts to stack 3 of 4 colored blocks (red, green, yellow, blue) in a pre-specified order.
 The blocks are cubes that are 51mm on each side.
 
-- 2293 successful stacking examples `*.success.h5f`
-- 6253 failure stacking examples `*.failure.h5f` consisting of:
-        - 1396 failures where the run completed but the stack was not at least 3 blocks tall
-	- 4857 failures (`*.error.failure.h5f`) where an error occurred and the example terminated early
-            - Causes include arm hardware errors such as safety stops and software crashes.
-
-TODO(ahundt) Some failure examples are successes that hae been mislabled, because the z height of the block was used to determine success, and the robot pounded the floor surface down enough to turn success labels into failures.
-
-How to count the data:
-
-```
-ls -1 ~/.costar/data/ | grep success | wc -l
-ls -1 ~/.costar/data/ | grep failure | wc -l
-ls -1 ~/.costar/data/ | grep error | wc -l
-```
+Detailed up-to-date documentation is at https://sites.google.com/site/costardataset.
+Code is available at https://github.com/jhu-lcsr/costar_plan.
 
 ### Filenames
 
@@ -97,19 +78,20 @@ The filenames are defined based on the `save()` function in `collector.py`:
 Loading Data
 ------------
 
-More information and code can be found in [costar_plan/ctp_integration/README.md](https://github.com/cpaxton/costar_plan/tree/master/ctp_integration).
+More information and code can be found in [costar_plan/ctp_integration/README.md](https://github.com/jhu-lcsr/costar_plan/tree/master/ctp_integration).
 
-### [view_convert_dataset.py](https://github.com/cpaxton/costar_plan/blob/master/ctp_integration/scripts/view_convert_dataset.py)
+### [view_convert_dataset.py](https://github.com/jhu-lcsr/costar_plan/blob/master/ctp_integration/scripts/view_convert_dataset.py)
     - example of how to walk through the dataset
-    - TODO(ahundt) modify the dataset to add 'gripper_action' labels based on when the gripper opens and closes
+    - view the dataset
+    - relabel the dataset
 
-### [stack_player.py](https://github.com/cpaxton/costar_plan/blob/2ef9b194a507b24e479c037c8e7121209c5013fe/ctp_integration/scripts/stack_player.py)
+### [stack_player.py](https://github.com/jhu-lcsr/costar_plan/blob/master/ctp_integration/scripts/stack_player.py)
     - view the dataset
     - scroll through individual timesteps and image frames
     - plot state such as action labels over time
-    - TODO(ahundt) manually label data
+    - manually label data
 
-### [collector.py](https://github.com/cpaxton/costar_plan/blob/master/ctp_integration/python/ctp_integration/collector.py)
+### [collector.py](https://github.com/jhu-lcsr/costar_plan/blob/master/ctp_integration/python/ctp_integration/collector.py)
     - Saves the data from the robot to disk
 
 ### Dataset Features and Time Steps
@@ -153,8 +135,6 @@ Here is a complete list of features:
 
  Additional features may be added with preprocessing.
 
- TODO(ahundt) preprocessing to create new goal labels which change at the moment gripper open/close actions are triggered is currently in progress.
-
 Camera Calibration
 ------------------
 
@@ -163,17 +143,30 @@ A yml file is included in the dataset with camera calibration parameters. See th
 Collecting Data
 ---------------
 
-See [costar_plan/ctp_integration/README.md](https://github.com/cpaxton/costar_plan/tree/master/ctp_integration) for details on how to run data collection.
+See [costar_plan/ctp_integration/README.md](https://github.com/jhu-lcsr/costar_plan/tree/master/ctp_integration) for details on how to run data collection.
 
 License
 -------
 
+Dataset License:
 [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
+Code License:
+[Apache v2](https://www.apache.org/licenses/LICENSE-2.0)
+
+Cite
+----
+
+If you use the dataset please cite our paper introducing it:
+
+[Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home).
+
+Attribution is one of the few requirements of our permissive dataset license.
+
+[![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
+
 
 Notes and Limitations
 ---------------------
-
-TODO(ahundt) Successes may have been marked as failures in the dataset, they will need to be double checked.
 
 
 ### Error logs
@@ -182,7 +175,7 @@ error.failure indicates a problem we cannot currently recover from, such as a se
 About halfway through the dataset we saved the final error string on error.failure cases, hopefully that
 will assist in diagnosing/classifiying mroe detailed reasons for why failures occur.
 
-### Broken AR Tag mount
+### 2018-05-15 Broken AR Tag mount
 
 The AR tag mount broke around 2018-05-15.
 Some of the dataset was collected with the tag shifting around.
@@ -213,7 +206,7 @@ which was collected previously.
 - Start is Approximate filename, the change may have been a few minutes before/after, end is exact.
 - run with planning includes about 162 successes.
 
-### RGB/Depth time synchronization
+### 2018-05-17-16-39 RGB/Depth time synchronization
 
 The RGB and depth data (in fact all data) is not always perfectly time synchronized,
 and in some cases many depth frames are missing.
@@ -223,24 +216,19 @@ examples than it is in successes `*.success.h5f`.
 Some bugs were fixed during the collection process which improved the synchronization
 dramatically, so use the filenames to choose more recently collected data, try after 2018-05-17-16-39, if you need to minimize the synchronization errors.
 
-### AR Tag mount broken
+### AR Tag mount broken - second occasion
 
-TODO(ahundt) get date of this break
-
-The AR Tag mount broke a second time, and we simply left it detached for collection until the first data in september. In general, we advise not making any assumptions about the precision of the AR tag position relative to the robot. It can vary by a few centimeters and vary noticeably in angle. It should only be used if very rough values are needed.
+The AR Tag mount on the gripper broke a second time, and we simply left it detached for collection until the first data in September. Unfortunately, the exact date has been lost. In general, we advise not making any assumptions about the precision of the AR tag position relative to the robot. It can vary by a few centimeters and vary noticeably in angle. It should only be used if very rough values are needed.
 The hand eye calibration itself seems to remain OK.
 
-### 2018-08-31 Gripper Failure
+### 2018-08-31-22-27-44 Gripper Failure
 
-The gripper failed on 2018-08-31 at the time 22:33:34, the example:
+The gripper failed on 2018-08-31 at the time 22:27:44, the example:
 
-    ~/.keras/datasets/costar_plush_block_stacking_dataset_v0.1/2018-08-31-22-33-34_example000002.error.failure.h5f
+    ~/.keras/datasets/costar_block_stacking_dataset_v0.4/blocks_with_plush_toy/2018-08-31-22-27-44_example000003.error.failure.h5f
 
 and all following it on 2018-08-31 have the gripper locked in the closed position, and data may or may not be recorded for the gripper state.
 
 ### 2018-09-07 Gripper Repaired, appearance change
 
 We repaired the connector and added a piece to minimize flexing of the wire, and changed where the gripper wire is attached. This means there will be an appearance change which may affect predictions.
-
-
-

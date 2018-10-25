@@ -5,7 +5,7 @@ View and Convert dataset lets you look at the video data in a costar stacking da
 
 show a video from an h5f file:
 
-    python view_convert_dataset.py --path <path/to/data/folder/or/file> --previe
+    python view_convert_dataset.py --path <path/to/data/folder/or/file> --preview
 
 Convert video from an h5f file into a gif:
 
@@ -56,6 +56,69 @@ try:
     import tensorflow as tf
 except ImportError:
     tf = None
+
+try:
+    import eigen
+    import sva
+except ImportError:
+    print('eigen and sva not available, skipping components utilizing 3D geometry algorithms.'
+          'To install run the script at'
+          'https://github.com/ahundt/robotics_setup/blob/master/robotics_tasks.sh'
+          'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
+          'and https://github.com/jrl-umi3218/SpaceVecAlg and make sure python bindings'
+          'are enabled.')
+    eigen = None
+    sva = None
+
+
+def vector_quaternion_array_to_ptransform(vector_quaternion_array, q_inverse=True, t_inverse=False, pt_inverse=False):
+    """See costar_hyper/grasp_geometry.py
+    """
+    v = eigen.Vector3d(vector_quaternion_array[:3])
+    if t_inverse is True:
+        v *= -1
+
+    # Quaterniond important coefficient ordering details:
+    # scalar constructor is Quaterniond(w,x,y,z)
+    # vector constructor is Quaterniond(np.array([x,y,z,w]))
+    # Quaterniond.coeffs() is [x,y,z,w]
+    # https://eigen.tuxfamily.org/dox/classEigen_1_1Quaternion.html
+    xyzw = eigen.Vector4d(vector_quaternion_array[3:])
+    q = eigen.Quaterniond(xyzw)
+
+    # The ptransform needs the rotation component to inverted before construction.
+    # see https://github.com/ahundt/grl/blob/master/include/grl/vrep/SpaceVecAlg.hpp#L22 for a well tested example
+    # see https://github.com/jrl-umi3218/Tasks/issues/10 for a detailed discussion leading to this conclusion
+    if q_inverse is True:
+        q = q.inverse()
+    pt = sva.PTransformd(q,v)
+    if pt_inverse is True:
+        pt = pt.inv()
+    return pt
+
+
+def ptransform_to_vector_quaternion_array(ptransform, q_inverse=True, dtype=np.float32):
+    """See costar_hyper/grasp_geometry.py
+    """
+    rot = ptransform.rotation()
+    quaternion = eigen.Quaterniond(rot)
+    if q_inverse:
+        quaternion = quaternion.inverse()
+    translation = np.array(ptransform.translation()).reshape(3)
+    # coeffs are in xyzw order
+    q_floats_array = np.array(quaternion.coeffs())
+    vec_quat_7 = np.append(translation, q_floats_array)
+    return vec_quat_7.astype(dtype)
+
+
+def apply_static_tf_to_gripper_center(tf_ee_link):
+    """Takes the transform from base_link to ee_link and returns the transfrom from base_link to gripper_center
+    """
+    tf_ee_link_to_gripper_center = vector_quaternion_array_to_ptransform([0.19, -0.020, -0.010, 0, 0, 0, 1])
+
+    tf_gripper_center = tf_ee_link_to_gripper_center * tf_ee_link
+
+    return tf_gripper_center
 
 
 def GetJpeg(img):
@@ -203,9 +266,11 @@ def _parse_args():
                               'Options include: label, gripper, pose, nsecs, secs, q, dq, labels_to_name, all_tf2_frames_as_yaml, '
                               'all_tf2_frames_from_base_link_vec_quat_xyzxyzw_json, and more. See collector.py for more key strings.'))
     parser.add_argument('--preprocess_inplace', type=str, action='store', default='',
-                        help="""Currently the only option is gripper_action, which generates new labels
+                        help="""One option is gripper_action, which generates new labels
                                 gripper_action_label and gripper_action_goal_idx based on the timestep at which the gripper opened and closed,
                                 and inserts them directly into the hdf5 file.
+                                The other option is pose_gripper_center, which takes and adds a new column to the h5f that is the transform from
+                                base_link to gripper_center, for alternative learning purposes.
                              """)
     parser.add_argument("--write", action='store_true', help='Actually write out the changes specified in preprocess_inplace, or label_correction.')
     parser.add_argument("--action_label_check", action='store_true', default=False,
@@ -542,6 +607,52 @@ def main(args, root="root"):
                             'gripper_action_label test run, use --write to change the files in place. gripper_action_label: ' +
                             str(gripper_action_label) + ' gripper_action_goal_idx: ' + str(gripper_action_goal_idx))
 
+                    # skip other steps like video viewing,
+                    # so this conversion runs 1000x faster
+                    continue
+
+                if args['preprocess_inplace'] == 'pose_gripper_center':
+                    # Check dependency
+                    if sva == None or eigen == None:
+                        raise ValueError(
+                            'Trying to do tf calculation, but sva or eigen is not available!'
+                            'To install run the script at'
+                            'https://github.com/ahundt/robotics_setup/blob/master/robotics_tasks.sh'
+                            'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
+                            'and https://github.com/jrl-umi3218/SpaceVecAlg and make sure python bindings'
+                            'are enabled.')
+                    
+                    # Check column existence
+                    if 'pose' not in data:
+                        progress_bar.write('Skipping file because the feature string '
+                                           'pose is not present: ' +
+                                           str(filename))
+                        continue
+                    
+                    ee_link_poses = data['pose']
+                    gripper_center_poses = np.zeros(ee_link_poses.shape, dtype=ee_link_poses.dtype)
+                    
+                    for i in range(len(ee_link_poses)):
+                        tf_ee_link = vector_quaternion_array_to_ptransform(ee_link_poses[i])
+                        tf_gripper_center = apply_static_tf_to_gripper_center(tf_ee_link)
+                        gripper_center_poses[i] = ptransform_to_vector_quaternion_array(tf_gripper_center)
+                        
+                        # uncomment for verbose output
+                        #progress_bar.write(
+                        #    'Processed datapoint[' + str(i) + ']: ' +
+                        #    '\nee_link = ' + str(ee_link_poses[i]) + 
+                        #    '\ngripper_center = ' + str(gripper_center_poses[i])
+                        #    )
+                        
+                    if args['write']:
+                        # Delete existing column, if there is one already
+                        if 'pose_gripper_center' in list(data.keys()):
+                            del data['pose_gripper_center']
+                        # Write the data 
+                        data['pose_gripper_center'] = gripper_center_poses
+                        progress_bar.write("Writing gripper_center dataset to file:" + str(filename))
+                    else:
+                        progress_bar.write('pose_gripper_center test run. Use --write to actually write to the h5f file(s).')
                     # skip other steps like video viewing,
                     # so this conversion runs 1000x faster
                     continue
