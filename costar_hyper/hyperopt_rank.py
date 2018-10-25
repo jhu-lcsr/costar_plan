@@ -12,7 +12,7 @@ from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import app
 import pandas
-import grasp_utilities
+import hypertree_utilities
 
 # progress bars https://github.com/tqdm/tqdm
 # import tqdm without enforcing it as a dependency
@@ -157,7 +157,7 @@ def main(_):
                 continue
             dataframe['hyperparameters_filename'] = hyperparam_filename
             if FLAGS.load_hyperparams and len(hyperparam_filename) > 0:
-                hyperparams = grasp_utilities.load_hyperparams_json(hyperparam_filename)
+                hyperparams = hypertree_utilities.load_hyperparams_json(hyperparam_filename)
                 for key, val in six.iteritems(hyperparams):
                     dataframe[key] = val
 

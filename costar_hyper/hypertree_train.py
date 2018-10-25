@@ -1,10 +1,13 @@
 #!/usr/local/bin/python
 '''
-Training a network on cornell grasping dataset for detecting grasping positions.
+Training a HyperTree network on CoSTAR Block Stacking Dataset
+and cornell grasping dataset for detecting grasping positions.
+
+Author: Andrew Hundt
 
 Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 
-Cornell Dataset Code Based on:
+Small Portions of Cornell Dataset Code Based on:
     https://github.com/tnikolla/robot-grasp-detection
 
 '''
@@ -71,8 +74,8 @@ from callbacks import InaccurateModelStopping
 from keras.utils import OrderedEnqueuer
 
 import grasp_loss
-import grasp_metrics
-import grasp_utilities
+import hypertree_pose_metrics
+import hypertree_utilities
 
 
 flags.DEFINE_float(
@@ -436,7 +439,7 @@ def run_training(
     # loss = grasp_loss.segmentation_gaussian_measurement
 
     dataset_names_str = dataset_name
-    run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
+    run_name = hypertree_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str, label_features[0])
     callbacks = []
 
     # don't return the whole dictionary of features, only the specific ones we want
@@ -471,7 +474,7 @@ def run_training(
 
     print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
     log_dir_run_name = os.path.join(log_dir, run_name)
-    grasp_utilities.mkdir_p(log_dir)
+    hypertree_utilities.mkdir_p(log_dir)
 
     # If this is based on some other past hyperparams configuration,
     # save the original hyperparams path to a file for tracing data pipelines.
@@ -889,13 +892,13 @@ def train_k_fold(split_type=None,
     train_id = ''
     val_size = 0
     train_size = 0
-    kfold_run_name = grasp_utilities.timeStamped(run_name + '-' + split_type + '-kfold')
+    kfold_run_name = hypertree_utilities.timeStamped(run_name + '-' + split_type + '-kfold')
     log_dir = os.path.join(log_dir, kfold_run_name)
     kfold_param_dicts = {'num_fold': num_fold, 'num_splits': num_splits, 'fold_size': num_train}
     kfold_run_train_param_list = []
     fold_name_list = []
     # create the directory we will log to
-    grasp_utilities.mkdir_p(log_dir)
+    hypertree_utilities.mkdir_p(log_dir)
 
     # 2k files, but k folds, so read two file at a time
     progbar_folds = tqdm(range(num_fold), desc='Preparing kfold')
@@ -966,12 +969,12 @@ def train_k_fold(split_type=None,
         # save the histories so far, overwriting past updates
         with open(json_histories_path, 'w') as fp:
             # save out all kfold params so they can be reloaded in the future
-            json.dump(history_dicts, fp, cls=grasp_utilities.NumpyEncoder)
+            json.dump(history_dicts, fp, cls=hypertree_utilities.NumpyEncoder)
 
     # find the k-fold average and save it out to a json file
     # Warning: this file will massively underestimate scores for jaccard distance metrics!
     json_summary_path = os.path.join(log_dir, kfold_run_name + '_summary.json')
-    grasp_utilities.multi_run_histories_summary(run_histories, json_summary_path)
+    hypertree_utilities.multi_run_histories_summary(run_histories, json_summary_path)
 
     return run_histories
 
@@ -1051,7 +1054,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         monitor_loss_name = 'val_loss'
         if loss is None:
             loss = keras.losses.mean_squared_error
-        metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        metrics = [hypertree_pose_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         model_name = '_regression_model'
         classes = 6
     elif problem_name == 'image_center_grasp_regression':
@@ -1059,7 +1062,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         label_features = ['grasp_success_norm_sin2_cos2_hw_5']
         monitor_metric_name = 'grasp_jaccard'
         monitor_loss_name = 'val_loss'
-        metrics = [grasp_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
+        metrics = [hypertree_pose_metrics.grasp_jaccard, keras.losses.mean_squared_error, grasp_loss.mean_pred, grasp_loss.mean_true]
         loss = keras.losses.mean_squared_error
         model_name = '_center_regression_model'
         classes = 5
@@ -1070,12 +1073,12 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # this is the regression case with the costar block stacking dataset
         # classes = 8
         classes = 3
-        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
-                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
-                   grasp_metrics.grasp_acc_4cm_60deg, grasp_metrics.grasp_acc_8cm_120deg,
-                   grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
-                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
+        # TODO(ahundt) enable hypertree_pose_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [hypertree_pose_metrics.grasp_acc, hypertree_pose_metrics.cart_error, 'mse', 'mae', hypertree_pose_metrics.grasp_acc_5mm_7_5deg,
+                   hypertree_pose_metrics.grasp_acc_1cm_15deg, hypertree_pose_metrics.grasp_acc_2cm_30deg,
+                   hypertree_pose_metrics.grasp_acc_4cm_60deg, hypertree_pose_metrics.grasp_acc_8cm_120deg,
+                   hypertree_pose_metrics.grasp_acc_16cm_240deg, hypertree_pose_metrics.grasp_acc_32cm_360deg,
+                   hypertree_pose_metrics.grasp_acc_256cm_360deg, hypertree_pose_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         # monitor_metric_name = 'val_grasp_acc'
         monitor_metric_name = 'val_cart_error'
@@ -1103,12 +1106,12 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         # this is the regression case with the costar block stacking dataset
         # classes = 8
         classes = 5
-        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
-                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
-                   grasp_metrics.grasp_acc_4cm_60deg, grasp_metrics.grasp_acc_8cm_120deg,
-                   grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
-                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
+        # TODO(ahundt) enable hypertree_pose_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [hypertree_pose_metrics.grasp_acc, hypertree_pose_metrics.angle_error, 'mse', 'mae', hypertree_pose_metrics.grasp_acc_5mm_7_5deg,
+                   hypertree_pose_metrics.grasp_acc_1cm_15deg, hypertree_pose_metrics.grasp_acc_2cm_30deg,
+                   hypertree_pose_metrics.grasp_acc_4cm_60deg, hypertree_pose_metrics.grasp_acc_8cm_120deg,
+                   hypertree_pose_metrics.grasp_acc_16cm_240deg, hypertree_pose_metrics.grasp_acc_32cm_360deg,
+                   hypertree_pose_metrics.grasp_acc_256cm_360deg, hypertree_pose_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         # monitor_metric_name = 'val_grasp_acc'
         monitor_metric_name = 'val_angle_error'
@@ -1130,12 +1133,12 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
     elif problem_name == 'semantic_grasp_regression':
         # this is the regression case with the costar block stacking dataset
         classes = 8
-        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
-        metrics = [grasp_metrics.grasp_acc, grasp_metrics.cart_error, grasp_metrics.angle_error, 'mse', 'mae', grasp_metrics.grasp_acc_5mm_7_5deg,
-                   grasp_metrics.grasp_acc_1cm_15deg, grasp_metrics.grasp_acc_2cm_30deg,
-                   grasp_metrics.grasp_acc_4cm_60deg, grasp_metrics.grasp_acc_8cm_120deg,
-                   grasp_metrics.grasp_acc_16cm_240deg, grasp_metrics.grasp_acc_32cm_360deg,
-                   grasp_metrics.grasp_acc_256cm_360deg, grasp_metrics.grasp_acc_512cm_360deg]
+        # TODO(ahundt) enable hypertree_pose_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        metrics = [hypertree_pose_metrics.grasp_acc, hypertree_pose_metrics.cart_error, hypertree_pose_metrics.angle_error, 'mse', 'mae', hypertree_pose_metrics.grasp_acc_5mm_7_5deg,
+                   hypertree_pose_metrics.grasp_acc_1cm_15deg, hypertree_pose_metrics.grasp_acc_2cm_30deg,
+                   hypertree_pose_metrics.grasp_acc_4cm_60deg, hypertree_pose_metrics.grasp_acc_8cm_120deg,
+                   hypertree_pose_metrics.grasp_acc_16cm_240deg, hypertree_pose_metrics.grasp_acc_32cm_360deg,
+                   hypertree_pose_metrics.grasp_acc_256cm_360deg, hypertree_pose_metrics.grasp_acc_512cm_360deg]
         #  , grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_grasp_acc'
         # this is the length of the state vector defined in block_stacking_reader.py
@@ -1154,7 +1157,7 @@ def choose_features_and_metrics(feature_combo_name, problem_name, image_shapes=N
         model_name = '_semantic_grasp_regression_model'
     elif problem_name == 'semantic_grasp_classification':
         # this is the classification case with the costar block stacking dataset
-        # TODO(ahundt) enable grasp_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
+        # TODO(ahundt) enable hypertree_pose_metrics.grasp_accuracy_xyz_aaxyz_nsc metric
         metrics = ['binary_accuracy', grasp_loss.mean_pred, grasp_loss.mean_true]
         monitor_metric_name = 'val_binary_accuracy'
         data_features = ['image/preprocessed', 'proposed_goal_xyz_aaxyz_nsc_8']
@@ -1280,7 +1283,7 @@ def load_dataset(
                 else:
                     # regression case
                     FLAGS.data_dir = '~/.keras/datasets/costar_block_stacking_dataset_v0.4/*success.h5f'
-                print('cornell_grasp_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
+                print('hypertree_train.py: Overriding FLAGS.data_dir with: ' + FLAGS.data_dir)
             # temporarily hardcoded initialization
             # file_names = glob.glob(os.path.expanduser("~/JHU/LAB/Projects/costar_block_stacking_dataset_v0.4/*success.h5f"))
             file_names = glob.glob(os.path.expanduser(FLAGS.data_dir))
@@ -1395,7 +1398,7 @@ def model_predict_k_fold(
         prediction_name='norm_sin2_cos2_hw_yx_6',
         metric_name='grasp_jaccard',
         unique_score_category='image/filename',
-        metric_fn=grasp_metrics.grasp_jaccard_batch):
+        metric_fn=hypertree_pose_metrics.grasp_jaccard_batch):
     """ Load past runs and make predictions with the model and data.
 
     Currently only supports evaluating jaccard scores.
@@ -1475,7 +1478,7 @@ def model_predict_k_fold(
             # Now we have to load the best model
             # '200_epoch_real_run' is for backwards compatibility before
             # the fold nums were put into each fold's log_dir and run_name.
-            fold_checkpoint_file = grasp_utilities.find_best_weights(fold_log_dir, fold_name, verbose, progbar_folds)
+            fold_checkpoint_file = hypertree_utilities.find_best_weights(fold_log_dir, fold_name, verbose, progbar_folds)
 
             progbar_folds.write('Fold ' + str(i) + ' Loading checkpoint: ' + str(fold_checkpoint_file))
 
@@ -1524,7 +1527,7 @@ def model_predict_k_fold(
 
 def evaluate(
         model, example_generator=None, val_filenames=None, data_features=None, prediction_name='norm_sin2_cos2_hw_yx_6',
-        metric_fn=grasp_metrics.grasp_jaccard_batch,
+        metric_fn=hypertree_pose_metrics.grasp_jaccard_batch,
         progbar_folds=sys.stdout, unique_score_category='image/filename', metric_name='grasp_jaccard',
         steps=None, visualize=False,
         preprocessing_mode='tf', apply_filter=True, loss_fn=None, loss_name='loss',
@@ -1749,7 +1752,7 @@ def steps_per_epoch(train_batch=None, samples_train=None,
 def main(_):
 
     tf.enable_eager_execution()
-    hyperparams = grasp_utilities.load_hyperparams_json(
+    hyperparams = hypertree_utilities.load_hyperparams_json(
         FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.fine_tuning_learning_rate)
     if 'k_fold' in FLAGS.pipeline_stage:
         train_k_fold(hyperparams=hyperparams, **hyperparams)

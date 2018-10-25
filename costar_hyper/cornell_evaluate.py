@@ -8,10 +8,10 @@ Apache License 2.0 https://www.apache.org/licenses/LICENSE-2.0
 '''
 import sys
 import tensorflow as tf
-import grasp_utilities
-import cornell_grasp_train
+import hypertree_utilities
+import hypertree_train
 from tensorflow.python.platform import flags
-import cornell_grasp_train
+import hypertree_train
 import cornell_grasp_dataset_reader
 
 # progress bars https://github.com/tqdm/tqdm
@@ -46,11 +46,11 @@ def main(_):
     print('Model evaluation on Jaccard Distance is about to begin. '
           'It overrides some command line parameters so to change them '
           'you will need to modify cornell_evaluate.py directly.')
-    cornell_grasp_train.model_predict_k_fold(kfold_params)
+    hypertree_train.model_predict_k_fold(kfold_params)
     # problem_type = 'grasp_regression'
     # feature_combo = 'image_preprocessed'
     # # Override some default flags for this configuration
-    # # see other configuration in cornell_grasp_train.py choose_features_and_metrics()
+    # # see other configuration in hypertree_train.py choose_features_and_metrics()
     # FLAGS.problem_type = problem_type
     # FLAGS.feature_combo = feature_combo
     # FLAGS.crop_to = 'image_contains_grasp_box_center'
@@ -59,20 +59,20 @@ def main(_):
     # FLAGS.split_dataset = 'objectwise'
     # FLAGS.epochs = 100
 
-    # hyperparams = grasp_utilities.load_hyperparams_json(
+    # hyperparams = hypertree_utilities.load_hyperparams_json(
     #     FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate,
     #     feature_combo_name=feature_combo)
 
 
     # model_predict()
     # if 'k_fold' in FLAGS.pipeline_stage:
-    #     cornell_grasp_train.train_k_fold(
+    #     hypertree_train.train_k_fold(
     #         problem_name=problem_type,
     #         feature_combo_name=feature_combo,
     #         hyperparams=hyperparams,
     #         **hyperparams)
     # else:
-    #     cornell_grasp_train.run_training(
+    #     hypertree_train.run_training(
     #         problem_name=problem_type,
     #         feature_combo_name=feature_combo,
     #         hyperparams=hyperparams,

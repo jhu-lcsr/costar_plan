@@ -35,8 +35,8 @@ from tensorflow.python.ops import data_flow_ops
 import keras
 from keras import backend as K
 
-import grasp_utilities
-import grasp_metrics
+import hypertree_utilities
+import hypertree_pose_metrics
 
 
 def draw_grasp(axs, grasp_success, center, theta, x_current=None, y_current=None, z=2, showTextBox=False, show_center=True, title=None):
@@ -134,7 +134,7 @@ def unit_coordinates_to_image_coordinates(y_current, x_current, center, height, 
 
 
 def decode_prediction_for_matplotlib(prediction, img2):
-    theta, center, rectangle_polygon = grasp_metrics.decode_prediction_vector_theta_center_polygon(prediction)
+    theta, center, rectangle_polygon = hypertree_pose_metrics.decode_prediction_vector_theta_center_polygon(prediction)
     # adjust from unit coordinates to image coordinates
     ih, iw, _ = img2.shape
     y_current, x_current = get_grasp_polygon_lines_from_polygon(rectangle_polygon)
