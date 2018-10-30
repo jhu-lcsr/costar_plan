@@ -104,7 +104,6 @@ This code is maintained by:
 [Visual Robot Task Planning](https://arxiv.org/abs/1804.00062)
 
 ```
-
 @article{paxton2018visual,
   author    = {Chris Paxton and
                Yotam Barnoy and
@@ -120,13 +119,11 @@ This code is maintained by:
   biburl    = {https://dblp.org/rec/bib/journals/corr/abs-1804-00062},
   bibsource = {dblp computer science bibliography, https://dblp.org}
 }
-
 ```
 
 [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home)
 
 ```
-
 @article{hundt2018hypertree,
     author = {Andrew Hundt and Varun Jain and Chris Paxton and Gregory D. Hager},
     title = "{Training Frankenstein's Creature to Stack: HyperTree Architecture Search}",
@@ -137,5 +134,4 @@ This code is maintained by:
     month = Oct,
     url = {https://arxiv.org/abs/1810.11714}
 }
-
 ```
