@@ -10,11 +10,10 @@ Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 **Cite**
 
 ```
-
 @article{hundt2018hypertree,
     author = {Andrew Hundt and Varun Jain and Chris Paxton and Gregory D. Hager},
     title = "{Training Frankenstein's Creature to Stack: HyperTree Architecture Search}",
-    journal = {ArXiv e-prints},
+    journal = {ArXiv},
     archivePrefix = {arXiv},
     eprint = {1810.11714},
     year = 2018,
