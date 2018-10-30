@@ -111,7 +111,7 @@ This code is maintained by:
                Raman Arora and
                Gregory D. Hager},
   title     = {Visual Robot Task Planning},
-  journal   = {CoRR},
+  journal   = {ArXiv},
   year      = {2018},
   url       = {http://arxiv.org/abs/1804.00062},
   archivePrefix = {arXiv},
@@ -127,7 +127,7 @@ This code is maintained by:
 @article{hundt2018hypertree,
     author = {Andrew Hundt and Varun Jain and Chris Paxton and Gregory D. Hager},
     title = "{Training Frankenstein's Creature to Stack: HyperTree Architecture Search}",
-    journal = {ArXiv e-prints},
+    journal = {ArXiv},
     archivePrefix = {arXiv},
     eprint = {1810.11714},
     year = 2018,
