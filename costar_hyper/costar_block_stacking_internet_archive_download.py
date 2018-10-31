@@ -14,13 +14,19 @@ def _parse_args():
              'Default is "~/.keras/datasets/costar_block_stacking_dataset_v0.4/"')
     parser.add_argument(
         "--dryrun", action='store_true', default=False,
-        help='Use this flag to only do a test download of the files from the internet archive')
+        help='Use this flag to only do a test download of the files from the internet'
+             ' archive')
+    
+    return vars(parser.parse_args())
 
 
 def main(args, root='root'):
     item = internetarchive.get_item('johns_hopkins_costar_dataset')
 
     path = os.path.expanduser(args['path'])
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print("{} created.".format(path))
 
     dryrun = args['dryrun']
 
@@ -29,11 +35,10 @@ def main(args, root='root'):
             ignore_existing=True,  # Skip files that already exist locally
             checksum=True,  # Skip files based on checksum
             verbose=True,  # Print progress to stdout
-            retries=100,  # Thenumber of times to retry on failed requests
+            retries=100,  # The number of times to retry on failed requests
+            no_directory=True,  # Download withtout the identifier
             # Set to true to print headers to stdout, and exit without downloading
-            dryrun=dryrun)
-
-    print(r)
+            dry_run=dryrun)
 
 
 if __name__ == '__main__':
