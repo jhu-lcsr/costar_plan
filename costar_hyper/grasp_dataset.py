@@ -49,7 +49,7 @@ import grasp_geometry_tf
 import depth_image_encoding
 import random_crop as rcp
 import inception_preprocessing
-import grasp_utilities
+import hypertree_utilities
 from grasp_median_filter import grasp_dataset_median_filter
 
 # DATASET LOADING CONFIGURATION COMMAND LINE PARAMETERS, see GraspDataset()
@@ -343,7 +343,7 @@ class GraspDataset(object):
                 data_dir = FLAGS.data_dir
             else:
                 data_dir = self.data_dir
-        grasp_utilities.mkdir_p(data_dir)
+        hypertree_utilities.mkdir_p(data_dir)
         print('Downloading datasets to: ', data_dir)
 
         url_prefix = 'https://storage.googleapis.com/brain-robotics-data/'
@@ -2432,7 +2432,7 @@ class GraspDataset(object):
             visualization_dir = FLAGS.visualization_dir
         if tf_session is None:
             tf_session = tf.Session()
-        grasp_utilities.mkdir_p(FLAGS.visualization_dir)
+        hypertree_utilities.mkdir_p(FLAGS.visualization_dir)
 
         batch_size = 1
         (feature_op_dicts, features_complete_list,
@@ -2588,7 +2588,7 @@ class GraspDataset(object):
 
         if save_file is True:
             save_dir = FLAGS.data_dir
-            grasp_utilities.mkdir_p(save_dir)
+            hypertree_utilities.mkdir_p(save_dir)
             if filename is None:
                 filename = 'grasp_dataset_' + self.dataset + '_statistics.txt'
             complete_path = os.path.join(save_dir, filename)

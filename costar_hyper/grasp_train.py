@@ -40,7 +40,7 @@ from tensorflow.python.platform import flags
 import grasp_dataset
 import hypertree_model
 import grasp_loss
-import grasp_utilities
+import hypertree_utilities
 import keras_workaround
 from callbacks import EvaluateInputTensor
 from callbacks import PrintLogsCallback
@@ -330,7 +330,7 @@ class GraspTrain(object):
                 input_image_shape = [batch_size, 512, 640, 3]
             print('input_image_shape: ' + str(input_image_shape))
 
-            run_name = grasp_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str)
+            run_name = hypertree_utilities.make_model_description(run_name, model_name, hyperparams, dataset_names_str)
 
             # ###############learning rate scheduler####################
             # source: https://github.com/aurora95/Keras-FCN/blob/master/train.py
@@ -443,7 +443,7 @@ class GraspTrain(object):
             log_dir = os.path.join(log_dir, run_name)
             log_dir_run_name = os.path.join(log_dir, run_name)
             print('Writing logs for models, accuracy and tensorboard in ' + log_dir)
-            grasp_utilities.mkdir_p(log_dir)
+            hypertree_utilities.mkdir_p(log_dir)
 
             if FLAGS.progress_tracker == 'tensorboard':
                 print('Enabling tensorboard in ' + str(log_dir))
@@ -954,7 +954,7 @@ def choose_make_model_fn(grasp_model_name=None, hyperparams=None):
             if 'hyperparams' in kw:
                 hyperparams = kw['hyperparams']
             elif HyperparamCarrier.hyperparams is None and FLAGS.load_hyperparams:
-                hyperparams = grasp_utilities.load_hyperparams_json(
+                hyperparams = hypertree_utilities.load_hyperparams_json(
                     FLAGS.load_hyperparams, FLAGS.fine_tuning, FLAGS.learning_rate)
             elif HyperparamCarrier.hyperparams is not None:
                 hyperparams = HyperparamCarrier.hyperparams
