@@ -7,6 +7,21 @@ Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Archite
 
 Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 
+**Cite**
+
+```
+@article{hundt2018hypertree,
+    author = {Andrew Hundt and Varun Jain and Chris Paxton and Gregory D. Hager},
+    title = "{Training Frankenstein's Creature to Stack: HyperTree Architecture Search}",
+    journal = {ArXiv},
+    archivePrefix = {arXiv},
+    eprint = {1810.11714},
+    year = 2018,
+    month = Oct,
+    url = {https://arxiv.org/abs/1810.11714}
+}
+```
+
 ## Installation
 
 These instructions are with minimal dependencies where you'll be training & predicting on the datasets.

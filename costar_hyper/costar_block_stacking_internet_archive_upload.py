@@ -1,5 +1,11 @@
 """ Internet Archive Dataset Single File Upload Script
 
+This is the script we use to upload/update the [CoSTAR Block Stacking Dataset](https://sites.google.com/site/costardataset),
+which can be downloaded from the [Internet Archive's johns_hopkins_costar_dataset item](https://archive.org/details/johns_hopkins_costar_dataset).
+Please note that only those with an account holding the proper permissions can actually modify the dataset,
+so this script is mostly for the authors' use and for use as a reference
+in case you wanted to upload your own dataset.
+
 The Internet Archive Python Library and Command Line Tool is at:
     https://github.com/jjjake/internetarchive
 
@@ -7,6 +13,18 @@ However, we recommend installing the internet archive library version at:
     https://github.com/RexxarCHL/internetarchive
 
 Until https://github.com/jjjake/internetarchive/pull/274 has been merged.
+
+# Extra How-Tos
+
+To set the [Item Image representing the dataset from command line](https://github.com/jjjake/internetarchive/issues/279#issuecomment-433503703):
+
+    ia metadata <identifier> --target 'files/foo.jpg' --modify 'format:Item Image'
+
+To set the Item Image representing the dataset from python code:
+
+    item.modify_metadata(dict(format='Item Image'), target='files/foo.jpg')
+
+
 """
 import internetarchive
 import argparse
@@ -298,6 +316,7 @@ def main(args, root='root'):
                 file_path, resp.status_code))
             failed_count += 1
         else:
+            # return code of 200 means the file was successfully uploaded to the server
             results_url.append(resp.request.url)
             results_path_url.append(resp.request.path_url)
             # File successfully sent to server. Record the hash
