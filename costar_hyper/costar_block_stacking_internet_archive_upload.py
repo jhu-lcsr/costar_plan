@@ -42,8 +42,7 @@ def _parse_args():
         "--path", type=str,
         # default=os.path.join(os.path.expanduser("~"),
         #                      '.keras/datasets/costar_block_stacking_dataset_v0.4/'),
-        # default='/media/ahundt/EA824B88824B5869/costar_block_stacking_dataset_v0.4/',
-        default='/home/rexxarchl/Documents/costar_dataset/',
+        default='/media/ahundt/EA824B88824B5869/costar_block_stacking_dataset_v0.4/',
         help='Path to dataset folder containing many files. '
              'Default is .keras/datasets/costar_block_stacking_dataset_v0.4/')
     parser.add_argument(
@@ -155,7 +154,7 @@ def main(args, root='root'):
                     filenames.append(os.path.join(rel_dir, filename))
         if len(filenames) == 0:
             raise RuntimeError('No matching files found! '
-                                'Are you sure the path is correct? {}'.format(path))
+                               'Are you sure the path is correct? {}'.format(path))
         print('Counted {} matching files.'.format(len(filenames)))
     else:
         # Read in filenames from a csv file
@@ -164,9 +163,11 @@ def main(args, root='root'):
             raise ValueError('Attempted to read in filenames from a csv file, but the input file '
                              'is not a file:\n{}'.format(txt_path))
         filenames = np.genfromtxt(txt_path, dtype='str', delimiter=', ')
+        # Check if all the files are actually a file
         for filename in filenames:
-            if not os.path.isfile(os.path.join(path, filename)):
-                raise ValueError('A filename read from CSV file is not a valid file:\n{}'.format(filename))
+            file_path = os.path.join(path, filename)
+            if not os.path.isfile(file_path):
+                raise ValueError('A filename read from CSV file is not a valid file:\n{}'.format(file_path))
         print('Read {} files from {}'.format(len(filenames), txt_path))
 
     # Read in the current uploaded files from a CSV file
@@ -273,15 +274,14 @@ def main(args, root='root'):
 
     print('Uploading {} files in the following directory:\n{}'.format(
         len(filenames), str(path)))
-    success_count, failed_count, skip_count, changed_count = 0, 0, 0, 0
-    changed_files = []
+    success_count, failed_count, skip_count, changed_count = 0, 0, 0, 0  # File counts for various situations
+    changed_files = []  # Store the filenames whose MD5 hash has been changed
     hash_csv_idx = -1
     results_url = []
     results_path_url = []
     pb = tqdm(range(len(filenames)))
     for i in pb:
         file_path, md5_hash = file_hash_listing[i]
-        # file_path = str(file_path)
         pb.write('Uploading {}'.format(file_path))
         if args['files_hash_csv'] in file_path:
             # skip_count += 1
@@ -295,11 +295,11 @@ def main(args, root='root'):
                 skip_count += 1
                 pb.write('Skipping {} because it has been uploaded'.format(file_path))
                 continue  # Skip uploaded files
-            else:
+            else:  # Hash has been changed for this file
                 if args['replace_changed']:
-                    pb.write('Reuploading {} because the md5 hash has been changed'.format(file_path))
+                    pb.write('Reuploading {} because the md5 hash has been changed locally'.format(file_path))
                 else:
-                    pb.write('The md5 hash has been changed for {}'.format(file_path))
+                    pb.write('The md5 hash has been changed locally for {}'.format(file_path))
                     changed_count += 1
                     changed_files += [file_path]
         if args['verify'] and file_path not in mismatch_files:
@@ -383,7 +383,7 @@ def main(args, root='root'):
             md5_hash = internetarchive.utils.get_md5(f)
     file_hash_listing[hash_csv_idx][1] = md5_hash
     save_file_hash_as_csv(csv_path, file_hash_listing)
-    # Upload the file
+    # Upload the CSV file
     resp = item.upload_file(
         csv_path,
         key=args['files_hash_csv'],
