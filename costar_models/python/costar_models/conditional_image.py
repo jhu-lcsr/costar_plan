@@ -48,6 +48,7 @@ class ConditionalImage(RobotMultiPredictionSampler):
         self.num_transforms = 3
         self.transform_model = None
         self.save_encoder_decoder = self.retrain
+        self.encoder_channels = 8
 
         if self.use_noise:
             raise NotImplementedError('noise vectors not supported for'

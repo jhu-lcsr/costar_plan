@@ -247,21 +247,19 @@ def MakeImageEncoder(model, img_shape, perm_drop=False):
     if model.encode_spatial_softmax:
         def _ssm(x):
             return spatial_softmax(x)
-        model.encoder_channels = 32
         x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
                 "same", lrelu=False, bn=False, perm_drop=perm_drop,
-                activation="sigmoid",
+                activation="tanh",
                 )
         x = Lambda(_ssm,name="encoder_spatial_softmax")(x)
         model.hidden_shape = (model.encoder_channels*2,)
         model.hidden_size = 2*model.encoder_channels
         model.hidden_shape = (model.hidden_size,)
     else:
-        model.encoder_channels = 32
         # Note: I removed the BN here
         x = AddConv2D(x, model.encoder_channels, [1,1], 1, 0.*dr,
                 "same", lrelu=False,
-                activation="sigmoid",
+                activation="tanh",
                 bn=False, perm_drop=perm_drop)
         model.steps_down = 3
         model.hidden_dim = int(img_shape[0]/(2**model.steps_down))

@@ -388,7 +388,7 @@ class RobotMultiPredictionSampler(RobotMultiHierarchical):
         # Encode again -- 1x1 convolution -- 7-10 convolutions total
         x = AddConv2D(x, self.encoder_channels, [1, 1], stride=1,
                 bn=False, # disables batchnorm here
-                activation="sigmoid", # outputs in [0, 1]
+                activation="tanh", # outputs in [-1, 1]
                 dropout_rate=0.)
 
         #l = [h0, h, option, z] if self.use_noise else [h0, h, option]
