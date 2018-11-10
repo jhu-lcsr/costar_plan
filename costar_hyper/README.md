@@ -129,13 +129,10 @@ some of those fields will vary for different use cases.
 
 ### Costar Block Stacking Dataset
 
-The Block stacking dataset is currently hosted on google drive. It can be downloaded with [rclone](https://github.com/ncw/rclone).
+#### Download instructions can be found at:
+https://sites.google.com/site/costardataset/download
 
-Follow the [google drive costar block stacking dataset v0.2 download link](https://drive.google.com/drive/folders/1k7N1EvxRh7GwS5tbax8RAeUU_dcPGWOw?usp=sharing), and add the folder to your drive. This should not use up any of your storage limit.
-
-```
-rclone copy drive:costar_block_stacking_dataset_v0.4 ~/.keras/dataset/costar_block_stacking_dataset_v0.4 --exclude="*failure*"
-```
+#### Run hypertree hyperparameter optimization on the dataset
 
 Configure `hypertree_hyperopt.py` to run on the problem you'd like, the script supports both the Cornell and the costar block stacking dataset. 
 
