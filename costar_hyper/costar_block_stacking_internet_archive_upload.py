@@ -62,6 +62,12 @@ def _parse_args():
         "--verify", action='store_true', default=False,
         help='Use this flag to verify every file exists on the server.')
     parser.add_argument(
+        "--replace_changed", action='store_true', default=False,
+        help='Use this flag to upload files with changed hash.')
+    parser.add_argument(
+        "--from_csv", type=str, default='',
+        help='Use this flag to upload files in the designated CSV file.')
+    parser.add_argument(
         "--include_ext", type=str, nargs='+',
         default=['.txt', '.h5f', '.csv', '.yaml'],
         help='File extensions for selecting files to upload. '
@@ -78,11 +84,11 @@ def timeStamped(fname, fmt='%Y-%m-%d-%H-%M-%S_{fname}'):
     return datetime.datetime.now().strftime(fmt).format(fname=fname)
 
 
-def save_file_hash_as_csv(csv_path, file_hash_table):
+def save_file_hash_as_csv(csv_path, file_hash_listing):
     '''Save the filename hash table as a CSV file
     '''
     with open(csv_path, 'wb') as csv_file:
-        np.savetxt(csv_file, file_hash_table, fmt='%s', delimiter=', ',
+        np.savetxt(csv_file, file_hash_listing, fmt='%s', delimiter=', ',
                    header='filename, md5_hash')
 
 
@@ -130,54 +136,73 @@ def main(args, root='root'):
         excluded_list += glob(s)
     print('Selected {} files to be excluded'.format(len(excluded_list)))
 
-    # Get the path to all h5f, txt, and csv files in the directory and subdirectories
-    filenames = []
-    include_ext = args['include_ext']
-    print('Selecting files with extensions: \n{}'.format(str(include_ext)))
-    for root, _, files in os.walk(path):
-        for filename in files:
-            # Skip the hash CSV and excluded files
-            if (args['files_hash_csv'] in filename or
-               filename in excluded_list):
-                continue
-            # Only select proper extensions
-            if any([ext in filename for ext in include_ext]):
-                rel_dir = os.path.relpath(root, path)
-                if rel_dir == '.':
-                    rel_dir = ''
-                filenames.append(os.path.join(rel_dir, filename))
-    if len(filenames) == 0:
-        raise RuntimeError('No matching files found! '
-                           'Are you sure the path is correct? {}'.format(path))
-    print('Counted {} matching files.'.format(len(filenames)))
+    if not args['from_csv']:
+        # Get the path to all h5f, txt, and csv files in the directory and subdirectories
+        filenames = []
+        include_ext = args['include_ext']
+        print('Selecting files with extensions: \n{}'.format(str(include_ext)))
+        for root, _, files in os.walk(path):
+            for filename in files:
+                # Skip the hash CSV and excluded files
+                if (args['files_hash_csv'] in filename or filename in excluded_list):
+                    continue
+                # Only select proper extensions
+                if any([ext in filename for ext in include_ext]):
+                    rel_dir = os.path.relpath(root, path)
+                    if rel_dir == '.':
+                        rel_dir = ''
+                    filenames.append(os.path.join(rel_dir, filename))
+        if len(filenames) == 0:
+            raise RuntimeError('No matching files found! '
+                               'Are you sure the path is correct? {}'.format(path))
+        print('Counted {} matching files.'.format(len(filenames)))
+    else:
+        # Read in filenames from a csv file
+        txt_path = os.path.join(path, args['from_csv'])
+        if not os.path.isfile(txt_path):
+            raise ValueError('Attempted to read in filenames from a csv file, but the input file '
+                             'is not a file:\n{}'.format(txt_path))
+        filenames = np.genfromtxt(txt_path, dtype='str', delimiter=', ')
+        # Check if all the files are actually a file
+        for filename in filenames:
+            file_path = os.path.join(path, filename)
+            if not os.path.isfile(file_path):
+                raise ValueError('A filename read from CSV file is not a valid file:\n{}'.format(file_path))
+        print('Read {} files from {}'.format(len(filenames), txt_path))
 
     # Read in the current uploaded files from a CSV file
-    csv_path = os.path.join(path, args['files_hash_csv'])
-    if os.path.isfile(csv_path):
+    list_of_csv = glob('*'+args['files_hash_csv'])  # Get the CSV files without the timestamp
+    if list_of_csv:  # If the list is not empty, then there's csv files already
+        csv_path = max(list_of_csv, key=os.path.getctime)  # Get the latest CSV file
         print("Loading existing filename hash CSV file: \n{}".format(csv_path))
-        file_hash_table = np.genfromtxt(csv_path, dtype='str', delimiter=', ')
+        file_hash_listing = np.genfromtxt(csv_path, dtype='str', delimiter=', ')
     else:
-        print("Creating a new filename hash CSV file.: \n{}".format(csv_path))
-        file_hash_table = np.column_stack(
+        print("No pre-existing filename hash CSV file found. Creating a new filename hash CSV file.")
+        file_hash_listing = np.column_stack(
             [filenames, ['not_uploaded_yet'] * len(filenames)])
-        save_file_hash_as_csv(csv_path, file_hash_table)
 
-    if file_hash_table.shape[0] < len(filenames):
-        diff = len(filenames) - file_hash_table.shape[0]
+    csv_path = timeStamped(args['files_hash_csv'])  # Get a timestamped file name for the CSV file
+    list_of_csv += [csv_path]
+
+    if file_hash_listing.shape[0] < len(filenames):
+        diff = len(filenames) - file_hash_listing.shape[0]
         print('Adding {} new files to the CSV file...'.format(diff))
         for filename in filenames:
-            if filename in file_hash_table:
+            if filename in file_hash_listing:
                 continue
             print('Added {}'.format(filename))
-            file_hash_table = np.append(file_hash_table,
-                                        [[filename, 'not_uploaded_yet']],
-                                        axis=0)
-        # Save the newly added contents
-        save_file_hash_as_csv(csv_path, file_hash_table)
-    elif file_hash_table.shape[0] > len(filenames):
-        # TODO(rexxarchl): Handle this case
-        raise RuntimeError('File count({}) is greater than actual file count({})!'.format(
-            file_hash_table.shape[0], len(filenames)))
+            file_hash_listing = np.append(file_hash_listing,
+                                          [[filename, 'not_uploaded_yet']],
+                                          axis=0)
+    elif file_hash_listing.shape[0] > len(filenames):
+        print('File count in CSV({}) is greater than actual file count({})!'.format(
+              file_hash_listing.shape[0], len(filenames)))
+        print("Creating a new filename hash CSV file: \n{}".format(csv_path))
+        file_hash_listing = np.column_stack(
+            [filenames, ['not_uploaded_yet'] * len(filenames)])
+
+    # Save the CSV file before starting
+    save_file_hash_as_csv(csv_path, file_hash_listing)
 
     # Get the item from the internetarchive
     item = internetarchive.get_item('johns_hopkins_costar_dataset', debug=debug)
@@ -191,17 +216,23 @@ def main(args, root='root'):
 
         # Cross check with local files hash CSV
         mismatch_files = []
-        for key, md5 in file_hash_table:
+        for key, md5 in file_hash_listing:
             try:
+                # Cross check stored hash with current hash and server hash
                 server_md5 = keys_and_md5[key]
+                with open(os.path.join(path, key), 'rb') as f:
+                    current_hash = internetarchive.utils.get_md5(f)
                 if not md5 == server_md5:
                     print("Local md5 for {} does not match server md5!".format(key))
+                    mismatch_files += key
+                elif not md5 == current_hash:
+                    print("Local md5 for {} has been changed!".format(key))
                     mismatch_files += key
             except KeyError:
                 print("{} is not on the server!".format(key))
                 mismatch_files += key
 
-        print("Verify result: {} files not on the server!".format(len(mismatch_files)))
+        print("Verify result: {} files not on the server or hash does not match".format(len(mismatch_files)))
 
     # Define the metadata
     md = dict(
@@ -243,26 +274,39 @@ def main(args, root='root'):
 
     print('Uploading {} files in the following directory:\n{}'.format(
         len(filenames), str(path)))
-    success_count, failed_count, skip_count = 0, 0, 0
+    success_count, failed_count, skip_count, changed_count = 0, 0, 0, 0  # File counts for various situations
+    changed_files = []  # Store the filenames whose MD5 hash has been changed
     hash_csv_idx = -1
     results_url = []
     results_path_url = []
     pb = tqdm(range(len(filenames)))
     for i in pb:
-        file_path, md5_hash = file_hash_table[i]
+        file_path, md5_hash = file_hash_listing[i]
         pb.write('Uploading {}'.format(file_path))
         if args['files_hash_csv'] in file_path:
             # skip_count += 1
             hash_csv_idx = i
             continue  # Skip the file hash until the end
         if not args['verify'] and md5_hash != 'not_uploaded_yet':
-            skip_count += 1
-            pb.write('Skipping {} because it has been uploaded'.format(file_path))
-            continue  # Skip uploaded files
+            # Check the current MD5 with stored MD5
+            with open(os.path.join(path, file_path), 'rb') as f:
+                current_hash = internetarchive.utils.get_md5(f)
+            if current_hash == md5_hash:
+                skip_count += 1
+                pb.write('Skipping {} because it has been uploaded'.format(file_path))
+                continue  # Skip uploaded files
+            else:  # Hash has been changed for this file
+                if args['replace_changed']:
+                    pb.write('Reuploading {} because the md5 hash has been changed locally'.format(file_path))
+                else:
+                    pb.write('The md5 hash has been changed locally for {}'.format(file_path))
+                    changed_count += 1
+                    changed_files += [file_path]
         if args['verify'] and file_path not in mismatch_files:
             skip_count += 1
             pb.write('Skipping {} because it has been verified to be on the sever'.format(
                 file_path))
+            continue
 
         # Upload the file
         resp = item.upload_file(
@@ -280,8 +324,11 @@ def main(args, root='root'):
         # A successful upload should have status_code = 200
         if debug:
             pb.write('[DEBUG] item key = {}'.format(file_path))
-            results_url.append(resp.url)
-            results_path_url.append(resp.path_url)
+            if resp.url:
+                results_url.append(resp.url)
+                results_path_url.append(resp.path_url)
+            else:
+                pb.write('{} is already on the server.'.format(file_path))
             with open(os.path.join(path, file_path), 'rb') as f:
                 md5_hash = internetarchive.utils.get_md5(f)
             success_count += 1
@@ -291,7 +338,7 @@ def main(args, root='root'):
             if not args['verify']:
                 pb.write('{} is already on the server.'.format(file_path))
             elif args['verify'] and file_path in mismatch_files:
-                raise RuntimeError("Empty response, but {} is not on server!".format(
+                raise RuntimeError("Empty response, but {} is changed or was not on server!".format(
                     file_path))
             # File already on server. Record the hash
             with open(os.path.join(path, file_path), 'rb') as f:
@@ -305,30 +352,38 @@ def main(args, root='root'):
             # return code of 200 means the file was successfully uploaded to the server
             results_url.append(resp.request.url)
             results_path_url.append(resp.request.path_url)
-            if args['verify'] and file_path in mismatch_files:
-                print("Response = 200, but {} was not on server!".format(
-                    file_path))
             # File successfully sent to server. Record the hash
             with open(os.path.join(path, file_path), 'rb') as f:
                 md5_hash = internetarchive.utils.get_md5(f)
             success_count += 1
-        file_hash_table[i] = np.array([file_path, md5_hash])
+        file_hash_listing[i] = np.array([file_path, md5_hash])
 
         if (success_count + 1) % 10 == 0:
             pb.write(timeStamped('[%d] Check point, saving csv' % i))
-            save_file_hash_as_csv(csv_path, file_hash_table)
+            save_file_hash_as_csv(csv_path, file_hash_listing)
 
     print('Uploaded {} files. Skipped {} files. {} files failed to upload.'.format(
         success_count, skip_count, failed_count))
-    print('Total file count {}, expected file count {}'.format(
-        success_count+skip_count+failed_count, len(filenames)))
 
-    print('Saving file hash CSV file for uploading.')
+    if not args['replace_changed'] and changed_count is not 0:
+        print('Local hash changed for {} files. Use --replace_changed to upload these files'.format(
+              changed_count))
+        # Output the changed files as a txt
+        changed_hash_file_txt = os.path.join(path, 'changed_hash_files.txt')
+        with open(changed_hash_file_txt, 'w') as f:
+            for file_path in changed_files:
+                f.write("{}\n".format(file_path))
+        print('Changed files have been saved as {}'.format(changed_hash_file_txt))
+
+    print('Total file count {}, expected file count {}'.format(
+        success_count+skip_count+failed_count+changed_count, len(filenames)))
+
+    print('Saving file hash CSV file for uploading:\n{}'.format(csv_path))
     with open(csv_path, 'rb') as f:
             md5_hash = internetarchive.utils.get_md5(f)
-    file_hash_table[hash_csv_idx][1] = md5_hash
-    save_file_hash_as_csv(csv_path, file_hash_table)
-    # Upload the file
+    file_hash_listing[hash_csv_idx][1] = md5_hash
+    save_file_hash_as_csv(csv_path, file_hash_listing)
+    # Upload the CSV file
     resp = item.upload_file(
         csv_path,
         key=args['files_hash_csv'],
@@ -340,7 +395,7 @@ def main(args, root='root'):
         queue_derive=False,
         debug=debug)
     if debug:
-        print('[DEBUG] item key = {}'.format(file_path))
+        print('[DEBUG] item key = {}'.format(args['files_hash_csv']))
     elif resp.status_code != 200:
         print('Upload failed for {}, status code = {}'.format(
             csv_path, resp.status_code))
