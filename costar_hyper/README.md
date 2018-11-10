@@ -57,7 +57,7 @@ We highly recommend looking at the [CoSTAR Block Stacking Dataset Website](https
 
 Six lines to read one file from the dataset ([60MB example success file download link](https://archive.org/download/johns_hopkins_costar_dataset/blocks_only/2018-05-23-18-00-08_example000001.success.h5f)):
 
-```
+```python
 import h5py
 filename = '2018-05-23-18-00-08_example000001.success.h5f'
 h5 = h5py.File(filename, 'r')
