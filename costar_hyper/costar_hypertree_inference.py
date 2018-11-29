@@ -3,21 +3,19 @@ Run model inference for HyperTree Model and generate plots for distance vs error
 See main for object initialization to evaluate model from hyperparams and weights, generate plots from the evaluated data.
 '''
 from block_stacking_reader import CostarBlockStackingSequence
+from costar_inference_plot_generator import CostarInferencePlotGenerator
+from costar_inference_plot_generator import inference_mode_gen
 import h5py
 import os
-import tensorflow as tf
 import numpy as np
 import glob
 import keras
-from keras.models import model_from_json
 from grasp_utilities import load_hyperparams_json
 from cornell_grasp_train import get_compiled_model
 from cornell_grasp_train import choose_features_and_metrics
 import csv
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-
-from tensorflow.python.platform import flags
 
 
 class CostarHyperTreeInference():
@@ -53,7 +51,8 @@ class CostarHyperTreeInference():
             self.load_weights = self.get_file_from_url(load_weights)
         self.gripper_action_goal_idx = []
         self.image_shape = image_shape
-        self.inference_mode_gen(self.filenames)
+        self.file_list_updated, self.file_len_list, self.gripper_action_goal_idx = inference_mode_gen(self.filenames)
+        self.file_counter=0
         self.generator = self.initialize_generator(pose_name)
 
     def initialize_generator(self, pose_name):
@@ -75,36 +74,16 @@ class CostarHyperTreeInference():
             output_shape=output_shape,
             label_features_to_extract=label_features,
             data_features_to_extract=data_features,
-            blend_previous_goal_images=False, inference_mode=True, pose_name=pose_name)
+            blend_previous_goal_images=False, inference_mode=True, pose_name=pose_name, is_training=False)
         return generator
 
-    def inference_mode_gen(self, file_names):
-        """ Generate information for all time steps in a single example to be utilized for evaluating and plotting.
-        """
-        self.file_list_updated = []
-        self.file_len_list = []
-        # print(len(file_names))
-        file_mode = "w"
-        file_len = 0
-        print('len ', len(file_names))
-        for f_name in file_names:
-            with h5py.File(f_name, 'r') as data:
-                file_len = len(data['gripper_action_goal_idx']) - 1
-                self.file_len_list.append(file_len)
-                self.gripper_action_goal_idx.append(list(data['gripper_action_goal_idx']))
-
-        for i in range(len(file_names)):
-            for j in range(self.file_len_list[i]):
-                self.file_list_updated.append(file_names[i])
-        # return file_list_updated, file_len_list
 
     def block_stacking_generator(self, sequence):
-        '''
-
-        '''
-        epoch_size = 1
+        epoch_size = len(self.file_list_updated)
+        sequence.on_epoch_end()
         step = 0
         while True:
+            # step = self.file_counter
             # if step > epoch_size:
             #     step = 0
             #     sequence.on_epoch_end()
@@ -131,13 +110,13 @@ class CostarHyperTreeInference():
             cw.writerow(['example', 'frame_no'] + model.metrics_names)
             # fp.write("\n")
         frame_counter = 0
-        file_counter = 0
-        frame_len = file_len_list[file_counter]
+        self.file_counter = 0
+        frame_len = file_len_list[self.file_counter]
         for i in range(len(generator)):
             data = next(bsg)
-            if filenames_updated[i] != filenames[file_counter]:
-                file_counter += 1
-                frame_len = file_len_list[file_counter]
+            if filenames_updated[i] != self.filenames[self.file_counter]:
+                self.file_counter += 1
+                frame_len = file_len_list[self.file_counter]
                 frame_counter = 0
 
             # print("len of X---", len(data[0]))
@@ -145,7 +124,7 @@ class CostarHyperTreeInference():
             score = model.evaluate(data[0], data[1])
             with open("inference_results_per_frame.csv", 'a') as fp:
                 cw = csv.writer(fp, delimiter=',', lineterminator='\n')
-                score = [file_counter] + [frame_counter] + score
+                score = [self.file_counter] + [frame_counter] + score
                 cw.writerow(score)
 
     def extract_filename_from_url(self, url):
@@ -156,7 +135,7 @@ class CostarHyperTreeInference():
         return filename
 
     def get_file_from_url(self, url, extract=True, file_hash=None, cache_subdir='models'):
-        filename = extract_filename_from_url(url)
+        filename = self.extract_filename_from_url(url)
 
         found_extension = None
         if extract:
@@ -183,66 +162,6 @@ class CostarHyperTreeInference():
         return path
 
 
-    def generate_plots(self, score_file, metric_2):
-        '''
-        Generates plots for the given metric
-        #Arguments
-        score_file: name of the file containing the metrics
-        metric_2: name of metric to be used in plot generation
-        '''
-        with open(score_file, 'r') as fp:
-            reader = csv.reader(fp)
-            headers = next(reader, None)
-            scores = list(reader)
-        # metric_1_index = headers.index(metric_1)
-        metric_2_index = headers.index(metric_2)
-        frames = []
-        loss = []
-        for row in scores:
-            frames.append(row[1])
-            loss.append(row[metric_2_index])
-
-        # initialization of metrics and step size for plots
-        frames = list(map(int, frames))
-        loss = list(map(float, loss))
-        figure1 = plt.figure(1, figsize=(20, 10))
-        plt.xticks(np.arange(min(frames), max(frames)+1, 10))
-        plt.yticks(np.arange(min(loss), max(loss)+1, 0.1))
-        indexes = np.where(np.array(frames) == 1)[0]
-        # print(indexes)
-        ax = plt.axes()
-        n_lines = len(indexes)
-        ax.set_color_cycle([plt.cm.cool(i) for i in np.linspace(0, 1, n_lines)])
-        count = 0
-        for i in indexes[1:]:
-            goals = self.gripper_action_goal_idx[count]
-            count += 1
-            # plotting distance to goal for each attempt
-            plt.scatter(np.array(goals[1:] - np.array(frames[indexes[count-1]:i])), loss[indexes[count-1]:i])
-        goals = self.gripper_action_goal_idx[-1]
-        # print(goals)
-        plt.scatter(np.array(goals[1:]) - frames[indexes[-1]:], loss[indexes[-1]:])
-        # print(frames[indexes[-1]:-8]-np.array(goals[1:]))
-        # plt.plot(frames[:225], loss[:225])
-        # plt.plot(frames[225:], loss[225:])
-        plt.xlabel('Distance to goal')
-        plt.ylabel(metric_2)
-        plt.savefig("plot1.png")
-        # plt.show()
-
-        # generating the second plot
-        figure2 = plt.figure(2, figsize=(20, 10))
-        frame_range = range(1, len(frames)+1)
-        print(len(frame_range))
-        plt.xticks(np.arange(min(loss), max(loss)+1, 0.1))
-        figure2.axes[0].yaxis.set_major_formatter(ticker.PercentFormatter(xmax=len(frames)))
-        plt.plot(np.sort(loss), frame_range)
-        # print(figure2.axes)
-        plt.xlabel(metric_2)
-        plt.ylabel('Attempts')
-        plt.savefig('plot2.png')
-        # plt.show()
-
 
 if __name__ == "__main__":
 
@@ -263,7 +182,9 @@ if __name__ == "__main__":
     hypertree_inference.evaluate_model('inference_results_per_frame.csv')
 
     # pass filename and the metric_name to be used to generate the plots
-    hypertree_inference.generate_plots('inference_results_per_frame.csv', 'angle_error')
+    # inference_generator = CostarInferencePlotGenerator(filenames)
+    # inference_generator.generate_plots('inference_results_per_frame.csv', 'angle_error')
+    # hypertree_inference.generate_plots('inference_results_per_frame.csv', 'angle_error')
 
     # exit()
     # filenames_updated, file_len_list = inference_mode_gen(filenames[:2])
