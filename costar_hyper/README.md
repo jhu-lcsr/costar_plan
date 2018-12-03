@@ -52,26 +52,23 @@ The block stacking dataset has a robot attempting to stack 3 colored blocks, as 
 
 [![2018-06-21-23-21-49_example000004 success_tiled](https://user-images.githubusercontent.com/55744/47169252-ff1e3380-d2d0-11e8-97ed-1d747d97ea11.jpg)](https://sites.google.com/site/costardataset "CoSTAR Block stacking Dataset")
 
-We highly recommend looking at the [CoSTAR Block Stacking Dataset Website](https://sites.google.com/site/costardataset).
+We highly recommend looking at the [CoSTAR Block Stacking Dataset Website](https://sites.google.com/site/costardataset) and [download instructions](https://sites.google.com/site/costardataset/download).
 
-An old version 0.2 of the dataset is currently hosted on google drive but this will be updated shortly. It can be downloaded with [rclone](https://github.com/ncw/rclone).
 
-Follow the [google drive costar block stacking dataset v0.2 download link](https://drive.google.com/drive/folders/1k7N1EvxRh7GwS5tbax8RAeUU_dcPGWOw?usp=sharing), and add the folder to your drive. This should not use up any of your storage limit.
+Six lines to read one file from the dataset ([60MB example success file download link](https://archive.org/download/johns_hopkins_costar_dataset/blocks_only/2018-05-23-18-00-08_example000001.success.h5f)):
 
-```
-rclone copy drive:costar_block_stacking_dataset_v0.4 ~/.keras/dataset/costar_block_stacking_dataset_v0.4 --exclude="*failure*"
-```
-
-Two lines to read one file from the dataset:
-
-```
+```python
+import h5py
+filename = '2018-05-23-18-00-08_example000001.success.h5f'
 h5 = h5py.File(filename, 'r')
-x = np.array(h5[key])
+joint_angle_key = 'q'
+joint_angles = np.array(h5[joint_angle_key])
+print(joint_angles)
 ```
 
-Detailed documentation is in the dataset README.md.
+Detailed documentation is on the [costar dataset website 'Using the Dataset' section](https://sites.google.com/site/costardataset/usage?authuser=0) and in the dataset README.md.
 
-More precisely:
+More detailed example of viewing data:
 
 ```python
 #!/usr/bin/env python
@@ -127,15 +124,9 @@ some of those fields will vary for different use cases.
 
 ## HyperTree Architecture search
 
-### Costar Block Stacking Dataset
+### Costar Block Stacking Dataset ([download instructions](https://sites.google.com/site/costardataset/download))
 
-The Block stacking dataset is currently hosted on google drive. It can be downloaded with [rclone](https://github.com/ncw/rclone).
-
-Follow the [google drive costar block stacking dataset v0.2 download link](https://drive.google.com/drive/folders/1k7N1EvxRh7GwS5tbax8RAeUU_dcPGWOw?usp=sharing), and add the folder to your drive. This should not use up any of your storage limit.
-
-```
-rclone copy drive:costar_block_stacking_dataset_v0.4 ~/.keras/dataset/costar_block_stacking_dataset_v0.4 --exclude="*failure*"
-```
+#### Run hypertree hyperparameter optimization on the dataset
 
 Configure `hypertree_hyperopt.py` to run on the problem you'd like, the script supports both the Cornell and the costar block stacking dataset. 
 
