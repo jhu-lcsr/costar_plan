@@ -20,6 +20,14 @@ Relabel "success" data in a dataset:
 
     python2 ctp_integration/scripts/view_convert_dataset.py --path ~/.keras/datasets/costar_block_stacking_dataset_v0.4 --label_correction --fps 60 --ignore_failure --ignore_error
 
+Generate tiled rgb images from stack attempts:
+
+    python view_convert_dataset.py --path /Users/athundt/Downloads/  --goal_to_jpeg
+
+Generate tiled depth images from stack attempts:
+
+    python view_convert_dataset.py --path /Users/athundt/Downloads/  --goal_to_jpeg --goal_to_depth_jpeg
+
 '''
 import argparse
 import os
@@ -253,6 +261,9 @@ def _parse_args():
     parser.add_argument("--goal_to_jpeg", action='store_true', default=False,
                         help='Convert the rgb images from each goal time step to a jpeg saved in a folder called '
                              'goal_images which will be created right next to the dataset files.')
+    parser.add_argument("--goal_to_depth_jpeg", action='store_true', default=False,
+                        help='Convert the depth images from each goal time step to a jpeg saved in a folder called '
+                             'goal_images which will be created right next to the dataset files. Must also pass --goal_to_jpeg.')
     parser.add_argument("--gripper", action='store_true', default=False, help='print gripper data channel')
     parser.add_argument("--depth", action='store_true', default=True, help='process depth data', dest='depth')
     parser.add_argument("--no-depth", action='store_false', default=True, help='do not process depth data', dest='depth')
@@ -621,34 +632,34 @@ def main(args, root="root"):
                             'or follow the instructions at https://github.com/jrl-umi3218/Eigen3ToPython'
                             'and https://github.com/jrl-umi3218/SpaceVecAlg and make sure python bindings'
                             'are enabled.')
-                    
+
                     # Check column existence
                     if 'pose' not in data:
                         progress_bar.write('Skipping file because the feature string '
                                            'pose is not present: ' +
                                            str(filename))
                         continue
-                    
+
                     ee_link_poses = data['pose']
                     gripper_center_poses = np.zeros(ee_link_poses.shape, dtype=ee_link_poses.dtype)
-                    
+
                     for i in range(len(ee_link_poses)):
                         tf_ee_link = vector_quaternion_array_to_ptransform(ee_link_poses[i])
                         tf_gripper_center = apply_static_tf_to_gripper_center(tf_ee_link)
                         gripper_center_poses[i] = ptransform_to_vector_quaternion_array(tf_gripper_center)
-                        
+
                         # uncomment for verbose output
                         #progress_bar.write(
                         #    'Processed datapoint[' + str(i) + ']: ' +
-                        #    '\nee_link = ' + str(ee_link_poses[i]) + 
+                        #    '\nee_link = ' + str(ee_link_poses[i]) +
                         #    '\ngripper_center = ' + str(gripper_center_poses[i])
                         #    )
-                        
+
                     if args['write']:
                         # Delete existing column, if there is one already
                         if 'pose_gripper_center' in list(data.keys()):
                             del data['pose_gripper_center']
-                        # Write the data 
+                        # Write the data
                         data['pose_gripper_center'] = gripper_center_poses
                         progress_bar.write("Writing gripper_center dataset to file:" + str(filename))
                     else:
@@ -659,10 +670,14 @@ def main(args, root="root"):
 
                 if args['goal_to_jpeg']:
                     # Visit all the goal timesteps and write out a jpeg file in the 'goal_images' folder
+                    image_to_read = 'image'
+                    if args['goal_to_depth_jpeg']:
+                        # create jpegs for the depth images
+                        image_to_read = 'depth_image'
                     progress_bar.write('-' * 80)
                     image_list = []
                     tiling_list = []
-                    total_frames = len(data['image'])
+                    total_frames = len(data[image_to_read])
                     if total_frames == 0:
                         progress_bar.write('Skipping file without image frames: ' + filename)
                         continue
@@ -676,7 +691,7 @@ def main(args, root="root"):
                     progress_bar.write('goal_labels_name: ' + str(goal_labels_name))
                     progress_bar.write("writing frames:" + str(goal_frames) + ' total frames: ' + str(total_frames))
                     if len(goal_frames) > 1:
-                        image_list = np.array(data['image'])[goal_frames]
+                        image_list = np.array(data[image_to_read])[goal_frames]
                     else:
                         progress_bar.write("WARNING: printing first and final frame, but 0 or 1 actual goal frames for: " + str(filename))
                         image_list = []
@@ -692,7 +707,7 @@ def main(args, root="root"):
                     if not os.path.exists(example_folder_path):
                         os.makedirs(example_folder_path)
                     # extract the clear view image
-                    image = ConvertImageListToNumpy(np.array(data['image'][0:1]), format='list')
+                    image = ConvertImageListToNumpy(np.array(data[image_to_read][0:1]), format='list')
                     im = Image.fromarray(image[0])
                     goal_image_path = os.path.join(example_folder_path, name + '_clear_view_' + "0" + '.jpg')
                     progress_bar.write('Saving jpeg: ' + str(goal_image_path))
@@ -700,7 +715,7 @@ def main(args, root="root"):
                     tiling_list = image + images
                     # extract the final image
                     final_frame = total_frames - 1
-                    image = ConvertImageListToNumpy(np.array(data['image'][-2:]), format='list')
+                    image = ConvertImageListToNumpy(np.array(data[image_to_read][-2:]), format='list')
                     im = Image.fromarray(image[0])
                     goal_image_path = os.path.join(example_folder_path, name + '_z_final_frame_' + str(final_frame) + '.jpg')
                     progress_bar.write('Saving jpeg: ' + str(goal_image_path))
@@ -965,16 +980,16 @@ def action_label_check(action_labels, stored_action_labels=None):
     if stored_action_labels is None:
         stored_action_labels = [
             b'place_green_on_yellow', b'move_to_home', b'place_blue_on_yellowred', b'place_yellow_on_red',
-            b'place_blue_on_red', b'grab_blue', b'place_red_on_blueyellow', b'place_green_on_redyellow', 
+            b'place_blue_on_red', b'grab_blue', b'place_red_on_blueyellow', b'place_green_on_redyellow',
             b'place_red_on_yellow', b'place_green_on_blueyellow', b'place_red_on_greenblue', b'place_blue_on_green',
             b'place_blue_on_redgreen',b'place_yellow_on_greenblue', b'place_yellow_on_blue', b'place_blue_on_greenyellow',
-            b'place_blue_on_yellowgreen', b'place_blue_on_greenred', b'place_yellow_on_redgreen', b'grab_yellow', 
-            b'place_red_on_greenyellow', b'grab_green', b'place_red_on_green', b'place_yellow_on_bluered', 
-            b'place_yellow_on_green', b'place_green_on_blue', b'place_yellow_on_bluegreen', b'place_blue_on_redyellow', 
-            b'place_red_on_blue', b'place_red_on_yellowgreen', b'place_yellow_on_greenred', b'place_green_on_yellowblue',  
+            b'place_blue_on_yellowgreen', b'place_blue_on_greenred', b'place_yellow_on_redgreen', b'grab_yellow',
+            b'place_red_on_greenyellow', b'grab_green', b'place_red_on_green', b'place_yellow_on_bluered',
+            b'place_yellow_on_green', b'place_green_on_blue', b'place_yellow_on_bluegreen', b'place_blue_on_redyellow',
+            b'place_red_on_blue', b'place_red_on_yellowgreen', b'place_yellow_on_greenred', b'place_green_on_yellowblue',
             b'place_red_on_bluegreen', b'place_green_on_red', b'place_red_on_yellowblue', b'place_green_on_yellowred',
             b'place_green_on_redblue', b'grab_red', b'place_yellow_on_redblue', b'place_green_on_bluered', b'place_blue_on_yellow']
-    
+
     assert len(stored_action_labels) == len(action_labels)
 
     if stored_action_labels != action_labels:
