@@ -740,7 +740,6 @@ class CostarBlockStackingSequence(Sequence):
                 data_format='channels_last', mode='tf')
             poses = np.array(poses)
 
-
             encoded_goal_pose = None
             # print('encoded poses shape: ' + str(encoded_poses.shape))
             # print('action labels shape: ' + str(action_labels.shape))
