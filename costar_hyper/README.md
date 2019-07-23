@@ -1,7 +1,7 @@
 
 # CoSTAR Hyper
 
-Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home), implementing HyperTrees. Code for the [rENAS: Regression Efficient Neural Architecture Search](github.com/ahundt/enas) portion of the paper is available separately.
+Code for the paper [The CoSTAR Block Stacking Dataset: Learning with Workspace Constraints](https://sites.google.com/view/hypertree-renas/home), implementing HyperTrees.
 
 [![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
 
@@ -10,17 +10,16 @@ Author and maintainer: `Andrew Hundt <ATHundt@gmail.com>`
 **Cite**
 
 ```
-@article{hundt2018hypertree,
-    author = {Andrew Hundt and Varun Jain and Chris Paxton and Gregory D. Hager},
-    title = "{Training Frankenstein's Creature to Stack: HyperTree Architecture Search}",
-    journal = {ArXiv},
-    archivePrefix = {arXiv},
-    eprint = {1810.11714},
-    year = 2018,
-    month = Oct,
+@article{hundt2019costar,
+    title={The CoSTAR Block Stacking Dataset: Learning with Workspace Constraints},
+    author={Andrew Hundt and Varun Jain and Chia-Hung Lin and Chris Paxton and Gregory D. Hager},
+    journal = {Intelligent Robots and Systems (IROS), 2019 IEEE International Conference on},
+    year = 2019,
     url = {https://arxiv.org/abs/1810.11714}
 }
 ```
+
+Code using this dataset is also available at [costar_dataset](https://github.com/ahundt/costar_dataset) and [rENAS: Regression Efficient Neural Architecture Search](github.com/ahundt/enas).
 
 ## Installation
 
