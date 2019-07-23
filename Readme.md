@@ -10,7 +10,17 @@ Code for the paper [Visual Robot Task Planning](https://arxiv.org/abs/1804.00062
 
 ### [CoSTAR Hyper](costar_hyper/README.md)
 
-Code for the paper [Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://sites.google.com/view/hypertree-renas/home).
+Code for the paper [The CoSTAR Block Stacking Dataset: Learning with Workspace Constraints](https://sites.google.com/view/hypertree-renas/home).
+
+```
+@article{hundt2019costar,
+    title={The CoSTAR Block Stacking Dataset: Learning with Workspace Constraints},
+    author={Andrew Hundt and Varun Jain and Chia-Hung Lin and Chris Paxton and Gregory D. Hager},
+    journal = {Intelligent Robots and Systems (IROS), 2019 IEEE International Conference on},
+    year = 2019,
+    url = {https://arxiv.org/abs/1810.11714}
+}
+```
 
 [![Training Frankenstein's Creature To Stack: HyperTree Architecture Search](https://img.youtube.com/vi/1MV7slHnMX0/0.jpg)](https://youtu.be/1MV7slHnMX0 "Training Frankenstein's Creature To Stack: HyperTree Architecture Search")
 
